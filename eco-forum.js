@@ -41,19 +41,26 @@ async function readBin() {
 }
 async function writeBin(record) {
   try {
-    const url = `${JSONBIN_PROXY_BASE}${BIN_ID}`;
-    const r = await fetch(url, {
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": API_KEY,
+        "X-Bin-Versioning": "false"
+      },
       body: JSON.stringify(record)
     });
-    if (!r.ok) { warn("writeBin status", r.status); return null; }
-    return await r.json();
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("[EcoV2] writeBin error:", response.status, text);
+      throw new Error("WriteBin failed");
+    }
+    return await response.json();
   } catch (e) {
-    err("writeBin error", e);
-    return null;
+    console.error("[EcoV2] writeBin exception:", e);
   }
 }
+
 
 // ---------- ModernBB extractors ----------
 function getPseudo() {
