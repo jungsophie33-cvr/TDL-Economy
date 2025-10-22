@@ -313,6 +313,7 @@ async function ecoCheckPostGain() {
         gain = GAIN_RULES.vote_topic_reply;
       }
     }
+    console.log("[EcoV2] Vérification gain : path =", path, "isNew =", isNew, "gain =", gain);
 
     if (gain > 0) {
       membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
