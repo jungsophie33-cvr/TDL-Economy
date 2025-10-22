@@ -191,6 +191,8 @@ setTimeout(() => {
 
   // admin bar
   if (ADMIN_USERS.includes(pseudo)) {
+     const adminBar = document.getElementById("eco-admin-bar");
+     if (!adminBar) return; // sécurité
     try {
 
       document.getElementById("eco-btn-cag").addEventListener("click", async ()=>{
