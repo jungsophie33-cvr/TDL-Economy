@@ -250,18 +250,40 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action);
 
-    f.addEventListener("submit", () => {
-      try {
-        const isNewTopic = !!f.querySelector("input[name='subject']");
-        const forumIdField = f.querySelector("input[name='f']");
-        const forumId = forumIdField ? forumIdField.value : location.pathname;
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify({
-          t: Date.now(),
-          newTopic: isNewTopic,
-          fid: forumId
-        }));
-      } catch(e){ err("ecoAttachPostListeners", e); }
-    });
+   f.addEventListener("submit", () => {
+  try {
+    const isNewTopic = !!f.querySelector("input[name='subject']");
+    let forumId = null;
+
+    // 1️⃣ priorité : champ caché dans le formulaire
+    const forumIdField = f.querySelector("input[name='f']");
+    if (forumIdField) forumId = forumIdField.value;
+
+    // 2️⃣ sinon : essayer de le déduire depuis la breadcrumb
+    if (!forumId) {
+      const breadcrumb = document.querySelector(".sub-header-path");
+      if (breadcrumb) {
+        const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
+        if (forumLink) forumId = forumLink.getAttribute("href");
+      }
+    }
+
+    // 3️⃣ fallback final
+    if (!forumId) forumId = location.pathname;
+
+    // on stocke tout ça
+    sessionStorage.setItem("ecoJustPosted", JSON.stringify({
+      t: Date.now(),
+      newTopic: isNewTopic,
+      fid: forumId
+    }));
+
+    console.log("[EcoV2] ➕ Post intercepté : forum =", forumId, "isNew =", isNewTopic);
+  } catch(e) {
+    console.error("[EcoV2] ecoAttachPostListeners error", e);
+  }
+});
+
   });
 }
 
