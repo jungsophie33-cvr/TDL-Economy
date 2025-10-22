@@ -106,17 +106,6 @@ function createErrorBanner(msg) {
   b.textContent = msg;
   return b;
 }
-function createAdminBar() {
-  const bar = document.createElement("div");
-  bar.id = "eco-admin-bar";
-  bar.innerHTML = `
-    <strong style="margin-right:8px">Admin Économie</strong>
-    <button id="eco-btn-cag">Voir cagnottes</button>
-    <button id="eco-btn-shop">Voir boutique</button>
-    <button id="eco-btn-don">Don à cagnotte</button>
-    <span id="eco-admin-msg" style="margin-left:12px;font-weight:600;"></span>`;
-  return bar;
-}
 
 // ---------- CORE INIT ----------
 async function coreInit() {
@@ -203,8 +192,6 @@ setTimeout(() => {
   // admin bar
   if (ADMIN_USERS.includes(pseudo)) {
     try {
-      const adminBar = createAdminBar();
-      document.body.prepend(adminBar);
 
       document.getElementById("eco-btn-cag").addEventListener("click", async ()=>{
         const rec = await readBin();
