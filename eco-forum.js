@@ -397,5 +397,25 @@ const timer = setInterval(async () => {
   }
 }, RETRY_INTERVAL_MS);
 
+  // ---------- Vérification différée (pour nouvelle création de sujet FA) ----------
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    console.log("[EcoV2] 🔁 Lancement différé de ecoCheckPostGain");
+    const justPosted = sessionStorage.getItem("ecoJustPosted");
+    if (!justPosted) return;
+    try {
+      const data = JSON.parse(justPosted);
+      const age = Date.now() - data.t;
+      if (age > 30000) { sessionStorage.removeItem("ecoJustPosted"); return; }
+      console.log("[EcoV2] 🔁 Relance post-delay :", data);
+      ecoCheckPostGain(data);
+      sessionStorage.removeItem("ecoJustPosted");
+    } catch (e) {
+      console.error("[EcoV2] ecoDelayedCheck error:", e);
+      sessionStorage.removeItem("ecoJustPosted");
+    }
+  }, 2500); // délai de 2.5 secondes
+});
+
 // ---------- END IIFE ----------
 })();
