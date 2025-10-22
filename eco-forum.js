@@ -168,24 +168,36 @@ async function coreInit() {
     }
   }
 
-  // sync #sj-dollars
-  try {
-    const dollarsActuels = record.membres[pseudo].dollars || 0;
-    const sjDollars = document.querySelector("#sj-dollars");
-    if (sjDollars) sjDollars.textContent = dollarsActuels;
-  } catch(e) { err("sync sj-dollars error", e); }
+// --- Synchronise immédiatement le solde perso avant affichage cagnottes ---
+try {
+  const dollarsActuels = record.membres[pseudo].dollars;
+  const sjDollars = document.querySelector("#sj-dollars");
+  if (sjDollars) {
+    sjDollars.textContent = dollarsActuels;
+    sjDollars.dataset.synced = "true";
+  } else {
+    console.warn("[EcoV2] #sj-dollars introuvable pour la synchro initiale");
+  }
+} catch (e) {
+  console.error("[EcoV2] sync sj-dollars error:", e);
+}
 
-  // display cagnottes
+// --- Afficher solde + cagnottes une fois le DOM prêt ---
+setTimeout(() => {
   try {
     const box = document.createElement("div");
     box.id = "eco-solde-box";
-    let html = `${record.membres[pseudo].dollars || 0} ${MONNAIE_NAME} — Cagnottes : `;
+    let html = `<span id="eco-solde">${record.membres[pseudo].dollars}</span> ${MONNAIE_NAME} — Cagnottes : `;
     GROUPS.forEach(g => {
-      html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g,'_')}">${record.cagnottes[g]||0}</b></span>`;
+      html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g, '_')}">${record.cagnottes[g] || 0}</b></span>`;
     });
     box.innerHTML = html;
     insertAfter(menu, box);
-  } catch(e) { err("afficher solde error", e); }
+  } catch (e) {
+    console.error("[EcoV2] afficher solde error:", e);
+  }
+}, 600); // délai léger pour stabiliser le DOM
+
 
   // admin bar
   if (ADMIN_USERS.includes(pseudo)) {
