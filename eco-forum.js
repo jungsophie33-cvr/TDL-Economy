@@ -257,12 +257,12 @@ const FORUM_IDS = {
 
 // Détection d’un envoi de post
 function ecoAttachPostListeners() {
-  console.log("[EcoV2] Formulaire de post détecté :", f.action);
-
   const forms = document.querySelectorAll("form[name='post'], form#quick_reply, form[action*='post'], form[action*='posting']");
   forms.forEach(f => {
     if (f.__eco_listening) return;
     f.__eco_listening = true;
+
+    console.log("[EcoV2] Formulaire de post détecté :", f.action);
 
     f.addEventListener("submit", () => {
       try {
