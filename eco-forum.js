@@ -233,6 +233,7 @@ const timer = setInterval(async () => {
   //-----------------------------------------------------------//
 //  MODULE : GAINS AUTOMATIQUES SUR LES POSTS                //
 //-----------------------------------------------------------//
+console.log("[EcoV2] Module de gains automatiques chargé !");
 
 const GAIN_RULES = {
   presentation_new: 20,
@@ -256,7 +257,9 @@ const FORUM_IDS = {
 
 // Détection d’un envoi de post
 function ecoAttachPostListeners() {
-  const forms = document.querySelectorAll("form[action*='post'], form[action*='posting']");
+  console.log("[EcoV2] Formulaire de post détecté :", f.action);
+
+  const forms = document.querySelectorAll("form[name='post'], form#quick_reply, form[action*='post'], form[action*='posting']");
   forms.forEach(f => {
     if (f.__eco_listening) return;
     f.__eco_listening = true;
