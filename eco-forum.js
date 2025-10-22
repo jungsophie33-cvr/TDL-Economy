@@ -335,15 +335,18 @@ ecoAttachPostListeners();
 window.addEventListener("load", ecoCheckPostGain);
 
 
-  // --- Vérifie après chargement si un post vient d'être soumis ---
-window.addEventListener("DOMContentLoaded", async () => {
+// --- Vérifie après chargement si un post vient d'être soumis ---
+window.addEventListener("load", async () => {
   const justPosted = sessionStorage.getItem("ecoJustPosted");
   if (!justPosted) return;
 
   try {
     const data = JSON.parse(justPosted);
     const age = Date.now() - data.t;
-    if (age > 15000) { sessionStorage.removeItem("ecoJustPosted"); return; }
+    if (age > 30000) { // 30s au lieu de 15 pour être large
+      sessionStorage.removeItem("ecoJustPosted");
+      return;
+    }
 
     console.log("[EcoV2] Détection d'un post récent :", data);
 
