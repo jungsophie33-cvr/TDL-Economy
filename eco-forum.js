@@ -3,6 +3,7 @@
 // Objectif : système d’économie complet via JSONBin + intégration ModernBB
 // Héberger ce fichier sur Archive-Host, GitHub Gist, etc.
 // Puis charger sur ton forum via : $.getScript("https://tonurl/eco-forum.js");
+console.log("[EcoV2] Fichier eco-forum.js bien chargé !");
 
 const BIN_ID = "68f89576d0ea881f40b2b27b";
 const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
