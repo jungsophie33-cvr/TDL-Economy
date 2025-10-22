@@ -3,6 +3,7 @@
 // Objectif : système d’économie complet via JSONBin + intégration ModernBB
 // Héberger ce fichier sur Archive-Host, GitHub Gist, etc.
 // Puis charger sur ton forum via : $.getScript("https://tonurl/eco-forum.js");
+console.log("[EcoV2] >>> début du script");
 (function(){
 
 
@@ -234,35 +235,16 @@ setTimeout(() => {
     } catch(e){ err("adminBar error", e); }
 
 // --- OUTILS ADMIN : réinitialisations ---
-const adminResetContainer = document.createElement("div");
-adminResetContainer.id = "eco-admin-reset";
-
-adminResetContainer.innerHTML = `
-  <strong id="eco-reset-toggle" style="display:block;margin-bottom:6px;cursor:pointer;">▶ Réinitialisations</strong>
-  <div id="eco-reset-panel" style="display:none;">
-    <div style="margin:6px 0;">
-      <label>Membre :</label>
-      <select id="eco-member-select" style="margin-left:6px;"></select>
-      <button id="eco-reset-member" style="margin-left:6px;">🔄 Réinit. membre</button>
-      <button id="eco-reset-all-members" style="margin-left:6px;">🧹 Tous</button>
-    </div>
-    <div style="margin:6px 0;">
-      <label>Cagnotte :</label>
-      <select id="eco-cag-select" style="margin-left:6px;"></select>
-      <button id="eco-reset-cagnotte" style="margin-left:6px;">💰 Réinit. cagnotte</button>
-      <button id="eco-reset-all-cagnottes" style="margin-left:6px;">💥 Toutes</button>
-    </div>
-  </div>
-`;
-document.getElementById("eco-admin-bar").appendChild(adminResetContainer);
-
-// --- Gestion de l’ouverture/fermeture du panneau ---
-document.getElementById("eco-reset-toggle").addEventListener("click", () => {
-  const panel = document.getElementById("eco-reset-panel");
-  const opened = panel.style.display === "block";
-  panel.style.display = opened ? "none" : "block";
-  document.getElementById("eco-reset-toggle").textContent = opened ? "▶ Réinitialisations" : "▼ Réinitialisations";
-});
+// --- Activation du panneau existant dans le template ---
+const resetToggle = document.getElementById("eco-reset-toggle");
+if (resetToggle) {
+  resetToggle.addEventListener("click", () => {
+    const panel = document.getElementById("eco-reset-panel");
+    const opened = panel.style.display === "block";
+    panel.style.display = opened ? "none" : "block";
+    resetToggle.textContent = opened ? "▶ Réinitialisations" : "▼ Réinitialisations";
+  });
+}
 
 // --- Chargement dynamique des listes ---
 (async function populateSelects() {
@@ -271,27 +253,30 @@ document.getElementById("eco-reset-toggle").addEventListener("click", () => {
   const memberSel = document.getElementById("eco-member-select");
   const cagSel = document.getElementById("eco-cag-select");
 
-  // Liste membres
-  Object.keys(rec.membres || {}).sort().forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.textContent = name;
-    memberSel.appendChild(opt);
-  });
+  if (memberSel) {
+    memberSel.innerHTML = ""; // reset
+    Object.keys(rec.membres || {}).sort().forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      memberSel.appendChild(opt);
+    });
+  }
 
-  // Liste cagnottes
-  Object.keys(rec.cagnottes || {}).forEach(g => {
-    const opt = document.createElement("option");
-    opt.value = g;
-    opt.textContent = g;
-    cagSel.appendChild(opt);
-  });
+  if (cagSel) {
+    cagSel.innerHTML = "";
+    Object.keys(rec.cagnottes || {}).forEach(g => {
+      const opt = document.createElement("option");
+      opt.value = g;
+      opt.textContent = g;
+      cagSel.appendChild(opt);
+    });
+  }
 })();
 
-// --- Gestion des clics ---
-document.getElementById("eco-reset-member").addEventListener("click", async () => {
-  const memberSel = document.getElementById("eco-member-select");
-  const choix = memberSel.value;
+// --- Gestion des clics des boutons déjà présents dans le HTML ---
+document.getElementById("eco-reset-member")?.addEventListener("click", async () => {
+  const choix = document.getElementById("eco-member-select")?.value;
   if (!choix) return alert("Aucun membre sélectionné !");
   if (!confirm(`Remettre ${choix} à 0 ${MONNAIE_NAME} ?`)) return;
   const rec = await readBin();
@@ -301,7 +286,7 @@ document.getElementById("eco-reset-member").addEventListener("click", async () =
   alert(`${choix} a été réinitialisé à 0 ${MONNAIE_NAME}.`);
 });
 
-document.getElementById("eco-reset-all-members").addEventListener("click", async () => {
+document.getElementById("eco-reset-all-members")?.addEventListener("click", async () => {
   if (!confirm("⚠️ Réinitialiser TOUS les membres à 0 Dollars ?")) return;
   const rec = await readBin();
   for (const m in rec.membres) rec.membres[m].dollars = 0;
@@ -309,9 +294,8 @@ document.getElementById("eco-reset-all-members").addEventListener("click", async
   alert("Tous les membres ont été remis à 0 Dollars.");
 });
 
-document.getElementById("eco-reset-cagnotte").addEventListener("click", async () => {
-  const cagSel = document.getElementById("eco-cag-select");
-  const choix = cagSel.value;
+document.getElementById("eco-reset-cagnotte")?.addEventListener("click", async () => {
+  const choix = document.getElementById("eco-cag-select")?.value;
   if (!choix) return alert("Aucune cagnotte sélectionnée !");
   if (!confirm(`Remettre la cagnotte de ${choix} à 0 ?`)) return;
   const rec = await readBin();
@@ -320,7 +304,7 @@ document.getElementById("eco-reset-cagnotte").addEventListener("click", async ()
   alert(`La cagnotte de ${choix} a été réinitialisée.`);
 });
 
-document.getElementById("eco-reset-all-cagnottes").addEventListener("click", async () => {
+document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click", async () => {
   if (!confirm("⚠️ Réinitialiser TOUTES les cagnottes à 0 ?")) return;
   const rec = await readBin();
   for (const g in rec.cagnottes) rec.cagnottes[g] = 0;
@@ -328,6 +312,7 @@ document.getElementById("eco-reset-all-cagnottes").addEventListener("click", asy
   alert("Toutes les cagnottes ont été remises à 0.");
 });
 
+  }
 
   // remove loading
   const lb = document.getElementById("eco-loading");
@@ -588,6 +573,6 @@ function showEcoGain(gain) {
   }, 2500);
 }
 
-
+console.log("[EcoV2] <<< fin du script");
 // ---------- END IIFE ----------
 })();
