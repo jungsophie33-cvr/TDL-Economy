@@ -190,7 +190,6 @@ setTimeout(() => {
 
 
   // admin bar
-const pseudo = getPseudo();
 const adminBar = document.getElementById("eco-admin-bar");
 if (!adminBar) return; // sécurité
 
@@ -204,9 +203,6 @@ if (ADMIN_USERS.includes(pseudo)) {
   if (adminSection) adminSection.remove();
 }
 
-
-     const adminBar = document.getElementById("eco-admin-bar");
-     if (!adminBar) return; // sécurité
     try {
 
       document.getElementById("eco-btn-cag").addEventListener("click", async ()=>{
