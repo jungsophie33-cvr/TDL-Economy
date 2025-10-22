@@ -282,7 +282,21 @@ async function ecoCheckPostGain(info) {
     const membres = record.membres || {};
     if (!membres[pseudo]) return;
 
-    const path = String(data.fid).toLowerCase();
+// Détermination du forum courant (depuis la breadcrumb personnalisée)
+let path = "";
+
+// essaie de trouver la breadcrumb dans ton forum (sub-header-path)
+const breadcrumb = document.querySelector(".sub-header-path");
+if (breadcrumb) {
+  // cherche le dernier lien qui contient un href vers /f
+  const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
+  if (forumLink) path = forumLink.getAttribute("href").toLowerCase();
+}
+
+// fallback : si rien trouvé, utilise ce qu’on a stocké avant envoi
+if (!path && data.fid) path = String(data.fid).toLowerCase();
+if (!path) path = location.pathname.toLowerCase();
+    
     const isNew = !!data.newTopic;
     let gain = 0;
 
