@@ -311,20 +311,31 @@ async function ecoCheckPostGain(info) {
     const membres = record.membres || {};
     if (!membres[pseudo]) return;
 
-// Détermination du forum courant (depuis la breadcrumb personnalisée)
+// Détermination du forum (nouveau sujet/redirection)
 let path = "";
 
-// essaie de trouver la breadcrumb dans ton forum (sub-header-path)
+// 1) ta breadcrumb personnalisée (après création du sujet)
 const breadcrumb = document.querySelector(".sub-header-path");
 if (breadcrumb) {
-  // cherche le dernier lien qui contient un href vers /f
-  const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
+  const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
   if (forumLink) path = forumLink.getAttribute("href").toLowerCase();
 }
 
-// fallback : si rien trouvé, utilise ce qu’on a stocké avant envoi
-if (!path && data.fid) path = String(data.fid).toLowerCase();
+// 2) fallback: ce qu'on a stocké au moment du submit
+if (!path && info && info.fid) path = String(info.fid).toLowerCase();
+
+// 3) vraiment rien ? on prend l'URL courante (rare)
 if (!path) path = location.pathname.toLowerCase();
+
+// 4) si ce n'est pas encore un /f..., on retente une dernière fois la breadcrumb
+if (!path.includes("/f")) {
+  const bc2 = document.querySelector(".sub-header-path");
+  if (bc2) {
+    const forumLink2 = Array.from(bc2.querySelectorAll('a[href*="/f"]')).pop();
+    if (forumLink2) path = forumLink2.getAttribute("href").toLowerCase();
+  }
+}
+
     
     const isNew = !!data.newTopic;
     let gain = 0;
@@ -364,23 +375,6 @@ if (!path) path = location.pathname.toLowerCase();
 // Lancer écouteurs
 ecoAttachPostListeners();
 
-// Vérification après chargement si post récent (lecture du sessionStorage)
-window.addEventListener("load", async () => {
-  const justPosted = sessionStorage.getItem("ecoJustPosted");
-  if (!justPosted) return;
-  try {
-    const data = JSON.parse(justPosted);
-    const age = Date.now() - data.t;
-    if (age > 30000) { sessionStorage.removeItem("ecoJustPosted"); return; }
-    log("Détection d'un post récent :", data);
-    await ecoCheckPostGain(data);
-    sessionStorage.removeItem("ecoJustPosted");
-  } catch(e){
-    err("Erreur lecture ecoJustPosted :", e);
-    sessionStorage.removeItem("ecoJustPosted");
-  }
-});
-
 // ---------- Wait-for-menu & boot ----------
 let tries = 0;
 const timer = setInterval(async () => {
@@ -397,25 +391,29 @@ const timer = setInterval(async () => {
   }
 }, RETRY_INTERVAL_MS);
 
-  // ---------- Vérification différée (pour nouvelle création de sujet FA) ----------
+// ---------- Vérification différée unique après load ----------
 window.addEventListener("load", () => {
-  setTimeout(() => {
+  setTimeout(async () => {
     console.log("[EcoV2] 🔁 Lancement différé de ecoCheckPostGain");
     const justPosted = sessionStorage.getItem("ecoJustPosted");
     if (!justPosted) return;
+
     try {
       const data = JSON.parse(justPosted);
       const age = Date.now() - data.t;
       if (age > 30000) { sessionStorage.removeItem("ecoJustPosted"); return; }
+
       console.log("[EcoV2] 🔁 Relance post-delay :", data);
-      ecoCheckPostGain(data);
-      sessionStorage.removeItem("ecoJustPosted");
+      await ecoCheckPostGain(data);
     } catch (e) {
       console.error("[EcoV2] ecoDelayedCheck error:", e);
+    } finally {
+      // on efface le flag ICI, une seule fois
       sessionStorage.removeItem("ecoJustPosted");
     }
-  }, 2500); // délai de 2.5 secondes
+  }, 2500); // 2,5 s pour laisser FA afficher la breadcrumb
 });
+
 
 // ---------- END IIFE ----------
 })();
