@@ -232,6 +232,71 @@ setTimeout(() => {
         if (cagEl) cagEl.textContent = rec.cagnottes[grp];
       });
     } catch(e){ err("adminBar error", e); }
+
+    // --- OUTILS ADMIN : réinitialisations ---
+const adminResetContainer = document.createElement("div");
+adminResetContainer.id = "eco-admin-reset";
+
+adminResetContainer.innerHTML = `
+  <strong style="display:block;margin-bottom:6px;">Réinitialisations</strong>
+  <button id="eco-reset-member" style="margin-right:6px;">🔄 Réinit. membre</button>
+  <button id="eco-reset-all-members" style="margin-right:6px;">🧹 Réinit. tous membres</button>
+  <button id="eco-reset-cagnotte" style="margin-right:6px;">💰 Réinit. cagnotte</button>
+  <button id="eco-reset-all-cagnottes">💥 Réinit. toutes cagnottes</button>
+`;
+document.getElementById("eco-admin-bar").appendChild(adminResetContainer);
+
+// ---------- Gestion des clics ----------
+document.getElementById("eco-reset-member").addEventListener("click", async () => {
+  const rec = await readBin();
+  if (!rec || !rec.membres) return alert("JSON non lisible !");
+  const noms = Object.keys(rec.membres);
+  const choix = prompt("Membre à réinitialiser :\n" + noms.join(", "));
+  if (!choix || !rec.membres[choix]) return alert("Membre inconnu !");
+  if (!confirm(`Remettre ${choix} à 0 ${MONNAIE_NAME} ?`)) return;
+  rec.membres[choix].dollars = 0;
+  await writeBin(rec);
+  alert(`${choix} a été réinitialisé à 0 ${MONNAIE_NAME}.`);
+  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
+
+});
+
+document.getElementById("eco-reset-all-members").addEventListener("click", async () => {
+  if (!confirm("⚠️ Réinitialiser TOUS les membres à 0 Dollars ?")) return;
+  const rec = await readBin();
+  if (!rec || !rec.membres) return alert("JSON non lisible !");
+  for (const m in rec.membres) rec.membres[m].dollars = 0;
+  await writeBin(rec);
+  alert("Tous les membres ont été remis à 0 Dollars.");
+  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
+
+});
+
+document.getElementById("eco-reset-cagnotte").addEventListener("click", async () => {
+  const rec = await readBin();
+  if (!rec || !rec.cagnottes) return alert("JSON non lisible !");
+  const noms = Object.keys(rec.cagnottes);
+  const choix = prompt("Cagnotte à réinitialiser :\n" + noms.join(", "));
+  if (!choix || !rec.cagnottes[choix]) return alert("Cagnotte inconnue !");
+  if (!confirm(`Remettre la cagnotte de ${choix} à 0 ?`)) return;
+  rec.cagnottes[choix] = 0;
+  await writeBin(rec);
+  alert(`La cagnotte de ${choix} a été réinitialisée.`);
+  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
+
+});
+
+document.getElementById("eco-reset-all-cagnottes").addEventListener("click", async () => {
+  if (!confirm("⚠️ Réinitialiser TOUTES les cagnottes à 0 ?")) return;
+  const rec = await readBin();
+  if (!rec || !rec.cagnottes) return alert("JSON non lisible !");
+  for (const g in rec.cagnottes) rec.cagnottes[g] = 0;
+  await writeBin(rec);
+  alert("Toutes les cagnottes ont été réinitialisées à 0.");
+  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
+
+});
+
   }
 
   // remove loading
