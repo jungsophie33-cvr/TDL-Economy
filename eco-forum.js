@@ -322,15 +322,24 @@ const GAIN_RULES = {
   houma_terrebonne_reply: 10,
   vote_topic_reply: 2
 };
- // --- Catégories RP regroupées ---
-    const RP_ZONES = [
-      "/f7-les-bayous-sauvages",
-      "/f8-downtown-houma",
-      "/f9-bayou-cane",
-      "/f10-bayou-blue",
-      "/f11-mandalay-national-wildlife-refuge",
-      "/f12-terrebonne-bay"
-    ];
+ // Forums non-RP référencés par le code (gardez uniquement ceux utilisés)
+const FORUM_IDS = {
+  presentations: "/f5-presentations",
+  preliens: "/f3-pre-liens",
+  gestionPersos: "/f6-gestion-des-personnages",
+  voteTopicName: "vote aux top-sites"
+};
+
+// Catégories / sous-forums RP (gains identiques partout)
+const RP_ZONES = [
+  "/f7-les-bayous-sauvages",
+  "/f8-downtown-houma",
+  "/f9-bayou-cane",
+  "/f10-bayou-blue",
+  "/f11-mandalay-national-wildlife-refuge",
+  "/f12-terrebonne-bay"
+];
+
 
 // Détection d’un envoi de post
 function ecoAttachPostListeners() {
