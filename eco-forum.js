@@ -233,18 +233,31 @@ setTimeout(() => {
       });
     } catch(e){ err("adminBar error", e); }
 
-    // --- OUTILS ADMIN : réinitialisations ---
+// --- OUTILS ADMIN : réinitialisations ---
 const adminResetContainer = document.createElement("div");
 adminResetContainer.id = "eco-admin-reset";
 
 adminResetContainer.innerHTML = `
-  <strong style="display:block;margin-bottom:6px;">Réinitialisations</strong>
-  <button id="eco-reset-member" style="margin-right:6px;">🔄 Réinit. membre</button>
-  <button id="eco-reset-all-members" style="margin-right:6px;">🧹 Réinit. tous membres</button>
-  <button id="eco-reset-cagnotte" style="margin-right:6px;">💰 Réinit. cagnotte</button>
-  <button id="eco-reset-all-cagnottes">💥 Réinit. toutes cagnottes</button>
+  <strong id="eco-reset-toggle" style="display:block;margin-bottom:6px;cursor:pointer;color:#0056b3;">
+    ▶ Réinitialisations
+  </strong>
+  <div id="eco-reset-panel" style="display:none;margin-top:6px;">
+    <button id="eco-reset-member" style="margin-right:6px;">🔄 Réinit. membre</button>
+    <button id="eco-reset-all-members" style="margin-right:6px;">🧹 Réinit. tous membres</button>
+    <button id="eco-reset-cagnotte" style="margin-right:6px;">💰 Réinit. cagnotte</button>
+    <button id="eco-reset-all-cagnottes">💥 Réinit. toutes cagnottes</button>
+  </div>
 `;
 document.getElementById("eco-admin-bar").appendChild(adminResetContainer);
+
+// --- toggle show/hide ---
+const toggle = adminResetContainer.querySelector("#eco-reset-toggle");
+const panel = adminResetContainer.querySelector("#eco-reset-panel");
+toggle.addEventListener("click", () => {
+  const visible = panel.style.display === "block";
+  panel.style.display = visible ? "none" : "block";
+  toggle.textContent = visible ? "▶ Réinitialisations" : "▼ Réinitialisations";
+});
 
 // ---------- Gestion des clics ----------
 document.getElementById("eco-reset-member").addEventListener("click", async () => {
@@ -257,8 +270,6 @@ document.getElementById("eco-reset-member").addEventListener("click", async () =
   rec.membres[choix].dollars = 0;
   await writeBin(rec);
   alert(`${choix} a été réinitialisé à 0 ${MONNAIE_NAME}.`);
-  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
-
 });
 
 document.getElementById("eco-reset-all-members").addEventListener("click", async () => {
@@ -268,8 +279,6 @@ document.getElementById("eco-reset-all-members").addEventListener("click", async
   for (const m in rec.membres) rec.membres[m].dollars = 0;
   await writeBin(rec);
   alert("Tous les membres ont été remis à 0 Dollars.");
-  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
-
 });
 
 document.getElementById("eco-reset-cagnotte").addEventListener("click", async () => {
@@ -282,8 +291,6 @@ document.getElementById("eco-reset-cagnotte").addEventListener("click", async ()
   rec.cagnottes[choix] = 0;
   await writeBin(rec);
   alert(`La cagnotte de ${choix} a été réinitialisée.`);
-  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
-
 });
 
 document.getElementById("eco-reset-all-cagnottes").addEventListener("click", async () => {
@@ -293,9 +300,8 @@ document.getElementById("eco-reset-all-cagnottes").addEventListener("click", asy
   for (const g in rec.cagnottes) rec.cagnottes[g] = 0;
   await writeBin(rec);
   alert("Toutes les cagnottes ont été réinitialisées à 0.");
-  console.log("[EcoV2] Réinitialisation effectuée avec succès !");
-
 });
+
 
   }
 
