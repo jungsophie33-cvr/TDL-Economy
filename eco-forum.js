@@ -325,7 +325,7 @@ if (giveAllBtn) {
       }
 
       await writeBin(rec);
-      showEcoGain(`+${montant} ${MONNAIE_NAME} pour tous !`);
+      showEcoGain(montant);
       console.log(`[EcoV2] ${montant} ${MONNAIE_NAME} ajoutés à ${count} membres.`);
     } catch (e) {
       err("Erreur distribution globale", e);
@@ -333,7 +333,7 @@ if (giveAllBtn) {
     }
   });
 }
-
+  }
   // remove loading
   const lb = document.getElementById("eco-loading");
   if (lb) lb.remove();
