@@ -101,7 +101,6 @@ function createErrorBanner(msg) {
 function createAdminBar() {
   const bar = document.createElement("div");
   bar.id = "eco-admin-bar";
-  bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;background:#111;color:#fff;padding:8px 10px;font-family:Arial,Helvetica,sans-serif;display:flex;gap:8px;align-items:center;";
   bar.innerHTML = `
     <strong style="margin-right:8px">Admin Économie</strong>
     <button id="eco-btn-cag">Voir cagnottes</button>
@@ -173,7 +172,6 @@ async function coreInit() {
   try {
     const box = document.createElement("div");
     box.id = "eco-solde-box";
-    box.style.cssText = "text-align:center;background:#f7f7f7;padding:6px;border-bottom:1px solid #ddd;font-size:14px;margin-top:6px;";
     let html = `${record.membres[pseudo].dollars || 0} ${MONNAIE_NAME} — Cagnottes : `;
     GROUPS.forEach(g => {
       html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g,'_')}">${record.cagnottes[g]||0}</b></span>`;
