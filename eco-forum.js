@@ -301,7 +301,38 @@ document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click", as
   alert("Toutes les cagnottes ont été remises à 0.");
 });
 
-  }
+    // --- Distribution globale ---
+const giveAllBtn = document.getElementById("eco-giveall-btn");
+if (giveAllBtn) {
+  giveAllBtn.addEventListener("click", async () => {
+    const amountField = document.getElementById("eco-giveall-amount");
+    const montant = parseInt(amountField.value, 10);
+
+    if (isNaN(montant) || montant <= 0) {
+      return alert("Veuillez entrer un montant valide supérieur à 0.");
+    }
+
+    if (!confirm(`Ajouter ${montant} ${MONNAIE_NAME} à TOUS les membres ?`)) return;
+
+    try {
+      const rec = await readBin();
+      if (!rec || !rec.membres) return alert("Erreur : impossible de lire les membres du JSON.");
+
+      let count = 0;
+      for (const nom in rec.membres) {
+        rec.membres[nom].dollars = (rec.membres[nom].dollars || 0) + montant;
+        count++;
+      }
+
+      await writeBin(rec);
+      showEcoGain(`+${montant} ${MONNAIE_NAME} pour tous !`);
+      console.log(`[EcoV2] ${montant} ${MONNAIE_NAME} ajoutés à ${count} membres.`);
+    } catch (e) {
+      err("Erreur distribution globale", e);
+      alert("Une erreur est survenue pendant la distribution.");
+    }
+  });
+}
 
   // remove loading
   const lb = document.getElementById("eco-loading");
