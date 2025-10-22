@@ -229,6 +229,107 @@ const timer = setInterval(async () => {
     if (!existing) document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable. Contacter l'admin."));
   }
 }, RETRY_INTERVAL_MS);
+
+  //-----------------------------------------------------------//
+//  MODULE : GAINS AUTOMATIQUES SUR LES POSTS                //
+//-----------------------------------------------------------//
+
+const GAIN_RULES = {
+  presentation_new: 20,
+  presentation_reply: 5,
+  preliens_or_gestion_new: 10,
+  preliens_or_gestion_reply: 2,
+  houma_terrebonne_new: 15,
+  houma_terrebonne_reply: 10,
+  vote_topic_reply: 2
+};
+
+// correspondances des forums
+const FORUM_IDS = {
+  presentations: "/f5-presentations",
+  preliens: "/f3-pre-liens",
+  gestionPersos: "/f6-gestion-des-personnages",
+  houma: "Houma_20Metropolitan_20Area",
+  terrebonne: "Terrebonne_20Parish",
+  voteTopicName: "vote aux top-sites"
+};
+
+// Détection d’un envoi de post
+function ecoAttachPostListeners() {
+  const forms = document.querySelectorAll("form[action*='post'], form[action*='posting']");
+  forms.forEach(f => {
+    if (f.__eco_listening) return;
+    f.__eco_listening = true;
+
+    f.addEventListener("submit", () => {
+      try {
+        const isNewTopic = !!f.querySelector("input[name='subject']");
+        const forumIdField = f.querySelector("input[name='f']");
+        const forumId = forumIdField ? forumIdField.value : location.pathname;
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify({ 
+          t: Date.now(), 
+          newTopic: isNewTopic, 
+          fid: forumId 
+        }));
+      } catch(e){ console.error("[EcoV2] ecoAttachPostListeners", e); }
+    });
+  });
+}
+
+// Vérifie après le chargement de page si un post vient d’être fait
+async function ecoCheckPostGain() {
+  const data = sessionStorage.getItem("ecoJustPosted");
+  if (!data) return;
+  const info = JSON.parse(data);
+  sessionStorage.removeItem("ecoJustPosted");
+
+  if (Date.now() - info.t > 15000) return; // vieux
+
+  const pseudo = getPseudo();
+  if (!pseudo) return;
+
+  try {
+    const record = await readBin();
+    const membres = record.membres || {};
+    if (!membres[pseudo]) return;
+
+    const path = String(info.fid).toLowerCase();
+    const isNew = info.newTopic;
+    let gain = 0;
+
+    if (path.includes(FORUM_IDS.presentations)) {
+      gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
+    } else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
+      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
+    } else if (path.includes(FORUM_IDS.houma) || path.includes(FORUM_IDS.terrebonne)) {
+      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
+    } else {
+      const topicTitleEl = document.querySelector(".topic-title, h1.topictitle, .page-title");
+      const topicTitle = topicTitleEl ? topicTitleEl.textContent.toLowerCase() : "";
+      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) {
+        gain = GAIN_RULES.vote_topic_reply;
+      }
+    }
+
+    if (gain > 0) {
+      membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
+      await writeBin(record);
+      console.log(`[EcoV2] +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+      const el = document.querySelector("#sj-dollars");
+      if (el) el.textContent = membres[pseudo].dollars;
+      const box = document.querySelector("#eco-solde-box");
+      if (box) box.querySelector("div, span, b")?.replaceChildren(`${membres[pseudo].dollars}`);
+    }
+
+  } catch(e){
+    console.error("[EcoV2] ecoCheckPostGain", e);
+  }
+}
+
+// Lancer les écouteurs
+ecoAttachPostListeners();
+window.addEventListener("load", ecoCheckPostGain);
+
   })();
 
 
