@@ -3,11 +3,13 @@
 // Objectif : système d’économie complet via JSONBin + intégration ModernBB
 // Héberger ce fichier sur Archive-Host, GitHub Gist, etc.
 // Puis charger sur ton forum via : $.getScript("https://tonurl/eco-forum.js");
-(function() {
-  console.log("[EcoV2] Fichier eco-forum.js bien chargé !");
+(function(){
 
-const BIN_ID = "68f89576d0ea881f40b2b27b";
-const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
+
+// ---------- CONFIG ----------
+const BIN_ID = "68f92d16d0ea881f40b3f36f"; // fourni
+const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq"; // si tu possèdes une autre clé, change-la ici
+const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/"; // proxy pour contourner CORS
 const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
 const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles"];
 const DEFAULT_DOLLARS = 10;
@@ -16,43 +18,44 @@ const MENU_SELECTOR = "body #sj-main .menu .sj-menu-top";
 const RETRY_INTERVAL_MS = 500;
 const RETRY_MAX = 20;
 
-// === Sécurité & logs ===
+// ---------- Helpers & logs ----------
 window.addEventListener("error", e => console.error("[EcoV2] onerror:", e.error || e.message, e));
 window.addEventListener("unhandledrejection", e => console.error("[EcoV2] unhandled:", e.reason));
 
-// === Fonctions JSONBin ===
+function log(...args){ try{ console.log("[EcoV2]", ...args); }catch(e){} }
+function warn(...args){ try{ console.warn("[EcoV2]", ...args); }catch(e){} }
+function err(...args){ try{ console.error("[EcoV2]", ...args); }catch(e){} }
+
+// ---------- JSONBin helpers (via proxy) ----------
 async function readBin() {
   try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-      headers: { "X-Master-Key": API_KEY }
-    });
-    if (!r.ok) { console.warn("[EcoV2] readBin status", r.status); return null; }
+    const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
+    const r = await fetch(url, { method: "GET", headers: { "X-Master-Key": API_KEY }});
+    if (!r.ok) { warn("readBin status", r.status); return null; }
     const j = await r.json();
     return j.record || {};
   } catch (e) {
-    console.error("[EcoV2] readBin error", e);
+    err("readBin error", e);
     return null;
   }
 }
 async function writeBin(record) {
   try {
-    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    const url = `${JSONBIN_PROXY_BASE}${BIN_ID}`;
+    const r = await fetch(url, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": API_KEY
-      },
+      headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
       body: JSON.stringify(record)
     });
-    if (!r.ok) { console.warn("[EcoV2] writeBin status", r.status); return null; }
+    if (!r.ok) { warn("writeBin status", r.status); return null; }
     return await r.json();
   } catch (e) {
-    console.error("[EcoV2] writeBin error", e);
+    err("writeBin error", e);
     return null;
   }
 }
 
-// === Fonctions utilitaires ===
+// ---------- ModernBB extractors ----------
 function getPseudo() {
   try { return (typeof _userdata !== "undefined" && _userdata.username) ? String(_userdata.username).trim() : null; }
   catch(e){ return null; }
@@ -68,9 +71,9 @@ function getMessagesCount() {
 async function fetchUserGroupFromProfile(userId) {
   if (!userId) return null;
   try {
-    const resp = await fetch(`/u${userId}`);
-    if (!resp.ok) return null;
-    const html = await resp.text();
+    const res = await fetch(`/u${userId}`);
+    if (!res.ok) return null;
+    const html = await res.text();
     const tmp = document.createElement("div");
     tmp.innerHTML = html;
     const dd = tmp.querySelector("dd, .usergroup, .group, .user-level");
@@ -78,10 +81,12 @@ async function fetchUserGroupFromProfile(userId) {
     const m = html.match(/(Les [A-ZÀ-Ÿa-zà-ÿ0-9_\- ]{2,40})/);
     return m ? m[1].trim() : null;
   } catch(e){
-    console.error("[EcoV2] fetchUserGroupFromProfile error", e);
+    err("fetchUserGroupFromProfile error", e);
     return null;
   }
 }
+
+// ---------- DOM helpers ----------
 function insertAfter(target, el) {
   if (!target || !target.parentNode) return false;
   target.parentNode.insertBefore(el, target.nextSibling);
@@ -96,6 +101,7 @@ function createErrorBanner(msg) {
 function createAdminBar() {
   const bar = document.createElement("div");
   bar.id = "eco-admin-bar";
+  bar.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:9999;background:#111;color:#fff;padding:8px 10px;font-family:Arial,Helvetica,sans-serif;display:flex;gap:8px;align-items:center;";
   bar.innerHTML = `
     <strong style="margin-right:8px">Admin Économie</strong>
     <button id="eco-btn-cag">Voir cagnottes</button>
@@ -105,11 +111,11 @@ function createAdminBar() {
   return bar;
 }
 
-// === CORE INITIALISATION ===
+// ---------- CORE INIT ----------
 async function coreInit() {
-  console.log("[EcoV2] Initialisation...");
+  log("Initialisation...");
   const menu = document.querySelector(MENU_SELECTOR);
-  if (!menu) { console.warn("[EcoV2] Menu non trouvé", MENU_SELECTOR); return; }
+  if (!menu) { warn("Menu non trouvé", MENU_SELECTOR); return; }
 
   const loadingBox = document.createElement("div");
   loadingBox.id = "eco-loading";
@@ -123,6 +129,7 @@ async function coreInit() {
     return;
   }
 
+  // ensure structure
   record.membres = record.membres || {};
   record.cagnottes = record.cagnottes || {};
   GROUPS.forEach(g => { if (record.cagnottes[g] === undefined) record.cagnottes[g] = 0; });
@@ -136,6 +143,7 @@ async function coreInit() {
     return;
   }
 
+  // create or update member
   if (!record.membres[pseudo]) {
     const group = await fetchUserGroupFromProfile(uid);
     record.membres[pseudo] = {
@@ -144,36 +152,37 @@ async function coreInit() {
       group: group || null,
       lastMessageThresholdAwarded: 0
     };
-    await writeBin(record);
-    console.log("[EcoV2] Membre ajouté:", pseudo);
+    await writeBin(record).catch(()=>null);
+    log("Membre ajouté:", pseudo);
   } else {
     record.membres[pseudo].messages = getMessagesCount();
     if (!record.membres[pseudo].group) {
       const group = await fetchUserGroupFromProfile(uid);
-      if (group) { record.membres[pseudo].group = group; await writeBin(record); }
+      if (group) { record.membres[pseudo].group = group; await writeBin(record).catch(()=>null); }
     }
   }
 
-  // --- Mise à jour du champ dollars dans le header ---
+  // sync #sj-dollars
   try {
-    const dollarsActuels = record.membres[pseudo].dollars;
+    const dollarsActuels = record.membres[pseudo].dollars || 0;
     const sjDollars = document.querySelector("#sj-dollars");
     if (sjDollars) sjDollars.textContent = dollarsActuels;
-  } catch(e) { console.error("[EcoV2] sync sj-dollars error:", e); }
+  } catch(e) { err("sync sj-dollars error", e); }
 
-  // --- Affichage des cagnottes ---
+  // display cagnottes
   try {
     const box = document.createElement("div");
     box.id = "eco-solde-box";
-    let html = `${record.membres[pseudo].dollars} ${MONNAIE_NAME} — Cagnottes : `;
+    box.style.cssText = "text-align:center;background:#f7f7f7;padding:6px;border-bottom:1px solid #ddd;font-size:14px;margin-top:6px;";
+    let html = `${record.membres[pseudo].dollars || 0} ${MONNAIE_NAME} — Cagnottes : `;
     GROUPS.forEach(g => {
       html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g,'_')}">${record.cagnottes[g]||0}</b></span>`;
     });
     box.innerHTML = html;
     insertAfter(menu, box);
-  } catch(e) { console.error("[EcoV2] afficher solde error:", e); }
+  } catch(e) { err("afficher solde error", e); }
 
-  // --- Barre admin ---
+  // admin bar
   if (ADMIN_USERS.includes(pseudo)) {
     try {
       const adminBar = createAdminBar();
@@ -195,8 +204,8 @@ async function coreInit() {
         const rec = await readBin();
         const grp = rec.membres[pseudo]?.group;
         if (!grp) return alert("Ton groupe est inconnu.");
-        if (rec.membres[pseudo].dollars < montant) return alert("Fonds insuffisants !");
-        rec.membres[pseudo].dollars -= montant;
+        if ((rec.membres[pseudo]?.dollars || 0) < montant) return alert("Fonds insuffisants !");
+        rec.membres[pseudo].dollars = (rec.membres[pseudo].dollars || 0) - montant;
         rec.cagnottes[grp] = (rec.cagnottes[grp]||0) + montant;
         await writeBin(rec);
         alert("✅ Don effectué !");
@@ -205,36 +214,17 @@ async function coreInit() {
         const cagEl = document.getElementById(`eco-cag-${grp.replace(/\s/g,'_')}`);
         if (cagEl) cagEl.textContent = rec.cagnottes[grp];
       });
-    } catch(e){ console.error("[EcoV2] adminBar error:", e); }
+    } catch(e){ err("adminBar error", e); }
   }
 
-  // Fin du chargement
+  // remove loading
   const lb = document.getElementById("eco-loading");
   if (lb) lb.remove();
-  console.log("[EcoV2] Initialisation terminée.");
-}
+  log("Initialisation terminée.");
+} // coreInit end
 
-// === Attente du DOM / menu ===
-let tries = 0;
-const timer = setInterval(async () => {
-  tries++;
-  const menu = document.querySelector(MENU_SELECTOR);
-  if (menu) {
-    clearInterval(timer);
-    coreInit().catch(e => console.error("[EcoV2] coreInit threw:", e));
-  } else if (tries >= RETRY_MAX) {
-    clearInterval(timer);
-    console.warn("[EcoV2] menu not found after retries. Aborting init.");
-    const existing = document.body.querySelector("#eco-error-banner");
-    if (!existing) document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable. Contacter l'admin."));
-  }
-}, RETRY_INTERVAL_MS);
-
-  //-----------------------------------------------------------//
-//  MODULE : GAINS AUTOMATIQUES SUR LES POSTS                //
-//-----------------------------------------------------------//
-console.log("[EcoV2] Module de gains automatiques chargé !");
-
+// ---------- MODULE GAINS AUTOMATIQUES ----------
+/* règles et mapping */
 const GAIN_RULES = {
   presentation_new: 20,
   presentation_reply: 5,
@@ -244,8 +234,6 @@ const GAIN_RULES = {
   houma_terrebonne_reply: 10,
   vote_topic_reply: 2
 };
-
-// correspondances des forums
 const FORUM_IDS = {
   presentations: "/f5-presentations",
   preliens: "/f3-pre-liens",
@@ -262,42 +250,42 @@ function ecoAttachPostListeners() {
     if (f.__eco_listening) return;
     f.__eco_listening = true;
 
-    console.log("[EcoV2] Formulaire de post détecté :", f.action);
+    log("Formulaire de post détecté :", f.action);
 
     f.addEventListener("submit", () => {
       try {
         const isNewTopic = !!f.querySelector("input[name='subject']");
         const forumIdField = f.querySelector("input[name='f']");
         const forumId = forumIdField ? forumIdField.value : location.pathname;
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify({ 
-          t: Date.now(), 
-          newTopic: isNewTopic, 
-          fid: forumId 
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify({
+          t: Date.now(),
+          newTopic: isNewTopic,
+          fid: forumId
         }));
-      } catch(e){ console.error("[EcoV2] ecoAttachPostListeners", e); }
+      } catch(e){ err("ecoAttachPostListeners", e); }
     });
   });
 }
 
-// Vérifie après le chargement de page si un post vient d’être fait
-async function ecoCheckPostGain() {
-  const data = sessionStorage.getItem("ecoJustPosted");
-  if (!data) return;
-  const info = JSON.parse(data);
-  sessionStorage.removeItem("ecoJustPosted");
-
-  if (Date.now() - info.t > 15000) return; // vieux
-
-  const pseudo = getPseudo();
-  if (!pseudo) return;
-
+// Vérification/gain après redirection
+async function ecoCheckPostGain(info) {
   try {
+    // info peut être fourni par l'appelant (lecture de sessionStorage) ou non
+    let data = info || null;
+    if (!data) {
+      const s = sessionStorage.getItem("ecoJustPosted");
+      if (!s) return;
+      data = JSON.parse(s);
+    }
+    const pseudo = getPseudo();
+    if (!pseudo) return;
     const record = await readBin();
+    if (!record) return;
     const membres = record.membres || {};
     if (!membres[pseudo]) return;
 
-    const path = String(info.fid).toLowerCase();
-    const isNew = info.newTopic;
+    const path = String(data.fid).toLowerCase();
+    const isNew = !!data.newTopic;
     let gain = 0;
 
     if (path.includes(FORUM_IDS.presentations)) {
@@ -309,56 +297,64 @@ async function ecoCheckPostGain() {
     } else {
       const topicTitleEl = document.querySelector(".topic-title, h1.topictitle, .page-title");
       const topicTitle = topicTitleEl ? topicTitleEl.textContent.toLowerCase() : "";
-      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) {
-        gain = GAIN_RULES.vote_topic_reply;
-      }
+      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) gain = GAIN_RULES.vote_topic_reply;
     }
-    console.log("[EcoV2] Vérification gain : path =", path, "isNew =", isNew, "gain =", gain);
+
+    log("Vérification gain : path =", path, "isNew =", isNew, "gain =", gain);
 
     if (gain > 0) {
       membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
       await writeBin(record);
-      console.log(`[EcoV2] +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+      log(`+${gain} ${MONNAIE_NAME} pour ${pseudo}`);
       const el = document.querySelector("#sj-dollars");
       if (el) el.textContent = membres[pseudo].dollars;
       const box = document.querySelector("#eco-solde-box");
-      if (box) box.querySelector("div, span, b")?.replaceChildren(`${membres[pseudo].dollars}`);
+      if (box) {
+        // replace the number inside the box: find the first text node and update safely
+        const firstBold = box.querySelector("b");
+        if (firstBold) firstBold.textContent = membres[pseudo].dollars;
+      }
     }
-
   } catch(e){
-    console.error("[EcoV2] ecoCheckPostGain", e);
+    err("ecoCheckPostGain", e);
   }
 }
 
-// Lancer les écouteurs
+// Lancer écouteurs
 ecoAttachPostListeners();
-window.addEventListener("load", ecoCheckPostGain);
 
-
-// --- Vérifie après chargement si un post vient d'être soumis ---
+// Vérification après chargement si post récent (lecture du sessionStorage)
 window.addEventListener("load", async () => {
   const justPosted = sessionStorage.getItem("ecoJustPosted");
   if (!justPosted) return;
-
   try {
     const data = JSON.parse(justPosted);
     const age = Date.now() - data.t;
-    if (age > 30000) { // 30s au lieu de 15 pour être large
-      sessionStorage.removeItem("ecoJustPosted");
-      return;
-    }
-
-    console.log("[EcoV2] Détection d'un post récent :", data);
-
+    if (age > 30000) { sessionStorage.removeItem("ecoJustPosted"); return; }
+    log("Détection d'un post récent :", data);
     await ecoCheckPostGain(data);
     sessionStorage.removeItem("ecoJustPosted");
-  } catch (e) {
-    console.error("[EcoV2] Erreur lecture ecoJustPosted :", e);
+  } catch(e){
+    err("Erreur lecture ecoJustPosted :", e);
     sessionStorage.removeItem("ecoJustPosted");
   }
 });
 
-  })();
+// ---------- Wait-for-menu & boot ----------
+let tries = 0;
+const timer = setInterval(async () => {
+  tries++;
+  const menu = document.querySelector(MENU_SELECTOR);
+  if (menu) {
+    clearInterval(timer);
+    try { await coreInit(); } catch(e){ err("coreInit threw:", e); }
+  } else if (tries >= RETRY_MAX) {
+    clearInterval(timer);
+    warn("menu not found after retries. Aborting init.");
+    const existing = document.body.querySelector("#eco-error-banner");
+    if (!existing) document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable. Contacter l'admin."));
+  }
+}, RETRY_INTERVAL_MS);
 
-
-// === FIN DU SCRIPT ===
+// ---------- END IIFE ----------
+})();
