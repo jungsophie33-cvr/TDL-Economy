@@ -238,35 +238,64 @@ const adminResetContainer = document.createElement("div");
 adminResetContainer.id = "eco-admin-reset";
 
 adminResetContainer.innerHTML = `
-  <strong id="eco-reset-toggle" style="display:block;margin-bottom:6px;cursor:pointer;color:#0056b3;">
-    ▶ Réinitialisations
-  </strong>
-  <div id="eco-reset-panel" style="display:none;margin-top:6px;">
-    <button id="eco-reset-member" style="margin-right:6px;">🔄 Réinit. membre</button>
-    <button id="eco-reset-all-members" style="margin-right:6px;">🧹 Réinit. tous membres</button>
-    <button id="eco-reset-cagnotte" style="margin-right:6px;">💰 Réinit. cagnotte</button>
-    <button id="eco-reset-all-cagnottes">💥 Réinit. toutes cagnottes</button>
+  <strong id="eco-reset-toggle" style="display:block;margin-bottom:6px;cursor:pointer;">▶ Réinitialisations</strong>
+  <div id="eco-reset-panel" style="display:none;">
+    <div style="margin:6px 0;">
+      <label>Membre :</label>
+      <select id="eco-member-select" style="margin-left:6px;"></select>
+      <button id="eco-reset-member" style="margin-left:6px;">🔄 Réinit. membre</button>
+      <button id="eco-reset-all-members" style="margin-left:6px;">🧹 Tous</button>
+    </div>
+    <div style="margin:6px 0;">
+      <label>Cagnotte :</label>
+      <select id="eco-cag-select" style="margin-left:6px;"></select>
+      <button id="eco-reset-cagnotte" style="margin-left:6px;">💰 Réinit. cagnotte</button>
+      <button id="eco-reset-all-cagnottes" style="margin-left:6px;">💥 Toutes</button>
+    </div>
   </div>
 `;
 document.getElementById("eco-admin-bar").appendChild(adminResetContainer);
 
-// --- toggle show/hide ---
-const toggle = adminResetContainer.querySelector("#eco-reset-toggle");
-const panel = adminResetContainer.querySelector("#eco-reset-panel");
-toggle.addEventListener("click", () => {
-  const visible = panel.style.display === "block";
-  panel.style.display = visible ? "none" : "block";
-  toggle.textContent = visible ? "▶ Réinitialisations" : "▼ Réinitialisations";
+// --- Gestion de l’ouverture/fermeture du panneau ---
+document.getElementById("eco-reset-toggle").addEventListener("click", () => {
+  const panel = document.getElementById("eco-reset-panel");
+  const opened = panel.style.display === "block";
+  panel.style.display = opened ? "none" : "block";
+  document.getElementById("eco-reset-toggle").textContent = opened ? "▶ Réinitialisations" : "▼ Réinitialisations";
 });
 
-// ---------- Gestion des clics ----------
-document.getElementById("eco-reset-member").addEventListener("click", async () => {
+// --- Chargement dynamique des listes ---
+(async function populateSelects() {
   const rec = await readBin();
-  if (!rec || !rec.membres) return alert("JSON non lisible !");
-  const noms = Object.keys(rec.membres);
-  const choix = prompt("Membre à réinitialiser :\n" + noms.join(", "));
-  if (!choix || !rec.membres[choix]) return alert("Membre inconnu !");
+  if (!rec) return;
+  const memberSel = document.getElementById("eco-member-select");
+  const cagSel = document.getElementById("eco-cag-select");
+
+  // Liste membres
+  Object.keys(rec.membres || {}).sort().forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    memberSel.appendChild(opt);
+  });
+
+  // Liste cagnottes
+  Object.keys(rec.cagnottes || {}).forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    cagSel.appendChild(opt);
+  });
+})();
+
+// --- Gestion des clics ---
+document.getElementById("eco-reset-member").addEventListener("click", async () => {
+  const memberSel = document.getElementById("eco-member-select");
+  const choix = memberSel.value;
+  if (!choix) return alert("Aucun membre sélectionné !");
   if (!confirm(`Remettre ${choix} à 0 ${MONNAIE_NAME} ?`)) return;
+  const rec = await readBin();
+  if (!rec.membres[choix]) return alert("Membre inconnu !");
   rec.membres[choix].dollars = 0;
   await writeBin(rec);
   alert(`${choix} a été réinitialisé à 0 ${MONNAIE_NAME}.`);
@@ -275,19 +304,17 @@ document.getElementById("eco-reset-member").addEventListener("click", async () =
 document.getElementById("eco-reset-all-members").addEventListener("click", async () => {
   if (!confirm("⚠️ Réinitialiser TOUS les membres à 0 Dollars ?")) return;
   const rec = await readBin();
-  if (!rec || !rec.membres) return alert("JSON non lisible !");
   for (const m in rec.membres) rec.membres[m].dollars = 0;
   await writeBin(rec);
   alert("Tous les membres ont été remis à 0 Dollars.");
 });
 
 document.getElementById("eco-reset-cagnotte").addEventListener("click", async () => {
-  const rec = await readBin();
-  if (!rec || !rec.cagnottes) return alert("JSON non lisible !");
-  const noms = Object.keys(rec.cagnottes);
-  const choix = prompt("Cagnotte à réinitialiser :\n" + noms.join(", "));
-  if (!choix || !rec.cagnottes[choix]) return alert("Cagnotte inconnue !");
+  const cagSel = document.getElementById("eco-cag-select");
+  const choix = cagSel.value;
+  if (!choix) return alert("Aucune cagnotte sélectionnée !");
   if (!confirm(`Remettre la cagnotte de ${choix} à 0 ?`)) return;
+  const rec = await readBin();
   rec.cagnottes[choix] = 0;
   await writeBin(rec);
   alert(`La cagnotte de ${choix} a été réinitialisée.`);
@@ -296,14 +323,11 @@ document.getElementById("eco-reset-cagnotte").addEventListener("click", async ()
 document.getElementById("eco-reset-all-cagnottes").addEventListener("click", async () => {
   if (!confirm("⚠️ Réinitialiser TOUTES les cagnottes à 0 ?")) return;
   const rec = await readBin();
-  if (!rec || !rec.cagnottes) return alert("JSON non lisible !");
   for (const g in rec.cagnottes) rec.cagnottes[g] = 0;
   await writeBin(rec);
-  alert("Toutes les cagnottes ont été réinitialisées à 0.");
+  alert("Toutes les cagnottes ont été remises à 0.");
 });
 
-
-  }
 
   // remove loading
   const lb = document.getElementById("eco-loading");
