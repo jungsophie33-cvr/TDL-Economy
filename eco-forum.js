@@ -202,7 +202,8 @@ async function coreInit() {
         rec.cagnottes[grp] = (rec.cagnottes[grp]||0) + montant;
         await writeBin(rec);
         alert("✅ Don effectué !");
-        document.querySelector("#sj-dollars")?.textContent = rec.membres[pseudo].dollars;
+        const el = document.querySelector("#sj-dollars");
+        if (el) el.textContent = rec.membres[pseudo].dollars;
         const cagEl = document.getElementById(`eco-cag-${grp.replace(/\s/g,'_')}`);
         if (cagEl) cagEl.textContent = rec.cagnottes[grp];
       });
