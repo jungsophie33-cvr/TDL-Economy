@@ -316,14 +316,15 @@ const GAIN_RULES = {
   houma_terrebonne_reply: 10,
   vote_topic_reply: 2
 };
-const FORUM_IDS = {
-  presentations: "/f5-presentations",
-  preliens: "/f3-pre-liens",
-  gestionPersos: "/f6-gestion-des-personnages",
-  houma: "/c4-houma-metropolitan-area",
-  terrebonne: "/c3-terrebonne-parish",
-  voteTopicName: "vote aux top-sites"
-};
+ // --- Catégories RP regroupées ---
+    const RP_ZONES = [
+      "/f7-les-bayous-sauvages",
+      "/f8-downtown-houma",
+      "/f9-bayou-cane",
+      "/f10-bayou-blue",
+      "/f11-mandalay-national-wildlife-refuge",
+      "/f12-terrebonne-bay"
+    ];
 
 // Détection d’un envoi de post
 function ecoAttachPostListeners() {
@@ -374,59 +375,69 @@ function ecoAttachPostListeners() {
 // Vérification/gain après redirection
 async function ecoCheckPostGain(info) {
   try {
-    // info peut être fourni par l'appelant (lecture de sessionStorage) ou non
     let data = info || null;
     if (!data) {
       const s = sessionStorage.getItem("ecoJustPosted");
       if (!s) return;
       data = JSON.parse(s);
     }
+
     const pseudo = getPseudo();
     if (!pseudo) return;
+
     const record = await readBin();
     if (!record) return;
+
     const membres = record.membres || {};
     if (!membres[pseudo]) return;
 
-// Détermination du forum (nouveau sujet/redirection)
-let path = "";
+    // --- Détermination du forum concerné ---
+    let path = "";
 
-// 1) ta breadcrumb personnalisée (après création du sujet)
-const breadcrumb = document.querySelector(".sub-header-path");
-if (breadcrumb) {
-  const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
-  if (forumLink) path = forumLink.getAttribute("href").toLowerCase();
-}
+    // 1) Breadcrumb personnalisée (sur page sujet ou post)
+    const breadcrumb = document.querySelector(".sub-header-path");
+    if (breadcrumb) {
+      const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
+      if (forumLink) path = forumLink.getAttribute("href").toLowerCase();
+    }
 
-// 2) fallback: ce qu'on a stocké au moment du submit
-if (!path && info && info.fid) path = String(info.fid).toLowerCase();
+    // 2) Fallback : forum stocké avant la redirection
+    if (!path && info && info.fid) path = String(info.fid).toLowerCase();
 
-// 3) vraiment rien ? on prend l'URL courante (rare)
-if (!path) path = location.pathname.toLowerCase();
+    // 3) Fallback final : URL courante
+    if (!path) path = location.pathname.toLowerCase();
 
-// 4) si ce n'est pas encore un /f..., on retente une dernière fois la breadcrumb
-if (!path.includes("/f")) {
-  const bc2 = document.querySelector(".sub-header-path");
-  if (bc2) {
-    const forumLink2 = Array.from(bc2.querySelectorAll('a[href*="/f"]')).pop();
-    if (forumLink2) path = forumLink2.getAttribute("href").toLowerCase();
-  }
-}
+    // 4) Dernière tentative via breadcrumb si on n’a pas encore /f...
+    if (!path.includes("/f")) {
+      const bc2 = document.querySelector(".sub-header-path");
+      if (bc2) {
+        const forumLink2 = Array.from(bc2.querySelectorAll('a[href*="/f"]')).pop();
+        if (forumLink2) path = forumLink2.getAttribute("href").toLowerCase();
+      }
+    }
 
-    
     const isNew = !!data.newTopic;
     let gain = 0;
 
+    // Présentations
     if (path.includes(FORUM_IDS.presentations)) {
       gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
+
+    // Pré-liens / gestion persos
     } else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
       gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
-    } else if (path.includes(FORUM_IDS.houma) || path.includes(FORUM_IDS.terrebonne)) {
+
+    // Zones RP (tous les sous-forums de Houma / Terrebonne)
+    } else if (RP_ZONES.some(id => path.includes(id))) {
       gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
+
+    // Sujet des votes
     } else {
       const topicTitleEl = document.querySelector(".topic-title, h1.topictitle, .page-title");
       const topicTitle = topicTitleEl ? topicTitleEl.textContent.toLowerCase() : "";
-      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) gain = GAIN_RULES.vote_topic_reply;
+      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) {
+        gain = GAIN_RULES.vote_topic_reply;
+      }
     }
 
     log("Vérification gain : path =", path, "isNew =", isNew, "gain =", gain);
@@ -434,21 +445,27 @@ if (!path.includes("/f")) {
     if (gain > 0) {
       membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
       await writeBin(record);
-      log(`+${gain} ${MONNAIE_NAME} pour ${pseudo}`);
-      showEcoGain(gain);
+
+      log(`💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+
+      // Met à jour les affichages
       const el = document.querySelector("#sj-dollars");
       if (el) el.textContent = membres[pseudo].dollars;
       const box = document.querySelector("#eco-solde-box");
       if (box) {
-        // replace the number inside the box: find the first text node and update safely
         const firstBold = box.querySelector("b");
         if (firstBold) firstBold.textContent = membres[pseudo].dollars;
       }
+
+      // Petite notification visuelle
+      showFloatingGain(`+${gain} ${MONNAIE_NAME}`);
     }
+
   } catch(e){
     err("ecoCheckPostGain", e);
   }
 }
+
 
 // Lancer écouteurs
 ecoAttachPostListeners();
