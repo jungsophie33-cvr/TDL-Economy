@@ -190,7 +190,21 @@ setTimeout(() => {
 
 
   // admin bar
-  if (ADMIN_USERS.includes(pseudo)) {
+const pseudo = getPseudo();
+const adminBar = document.getElementById("eco-admin-bar");
+if (!adminBar) return; // sécurité
+
+const adminSection = document.getElementById("eco-admin-section");
+
+// Si c’est un admin, on affiche la section complète
+if (ADMIN_USERS.includes(pseudo)) {
+  if (adminSection) adminSection.style.display = "block";
+} else {
+  // sinon, on cache toute la partie admin
+  if (adminSection) adminSection.remove();
+}
+
+
      const adminBar = document.getElementById("eco-admin-bar");
      if (!adminBar) return; // sécurité
     try {
