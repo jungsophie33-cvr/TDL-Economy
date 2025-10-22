@@ -370,6 +370,7 @@ if (!path.includes("/f")) {
       membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
       await writeBin(record);
       log(`+${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+      showEcoGain(gain);
       const el = document.querySelector("#sj-dollars");
       if (el) el.textContent = membres[pseudo].dollars;
       const box = document.querySelector("#eco-solde-box");
@@ -425,6 +426,46 @@ window.addEventListener("load", () => {
     }
   }, 2500); // 2,5 s pour laisser FA afficher la breadcrumb
 });
+
+  // ---------- Notification visuelle des gains ----------
+function showEcoGain(gain) {
+  if (!gain || gain <= 0) return;
+
+  // Crée un élément flottant
+  const notif = document.createElement("div");
+  notif.textContent = `💰 +${gain} ${MONNAIE_NAME}`;
+  notif.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #e6ffe6;
+    color: #075e07;
+    border: 2px solid #6fd36f;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    z-index: 999;
+  `;
+  document.body.appendChild(notif);
+
+  // Animation d'apparition
+  setTimeout(() => {
+    notif.style.opacity = "1";
+    notif.style.transform = "translateX(-50%) translateY(0)";
+  }, 50);
+
+  // Disparition après 2,5 s
+  setTimeout(() => {
+    notif.style.opacity = "0";
+    notif.style.transform = "translateX(-50%) translateY(-20px)";
+    setTimeout(() => notif.remove(), 600);
+  }, 2500);
+}
 
 
 // ---------- END IIFE ----------
