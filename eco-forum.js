@@ -473,7 +473,7 @@ async function ecoCheckPostGain(info) {
       }
 
       // Petite notification visuelle
-      showFloatingGain(`+${gain} ${MONNAIE_NAME}`);
+      showEcoGain(gain);
     }
 
   } catch(e){
