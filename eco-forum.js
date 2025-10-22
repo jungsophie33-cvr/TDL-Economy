@@ -334,6 +334,27 @@ async function ecoCheckPostGain() {
 ecoAttachPostListeners();
 window.addEventListener("load", ecoCheckPostGain);
 
+
+  // --- Vérifie après chargement si un post vient d'être soumis ---
+window.addEventListener("DOMContentLoaded", async () => {
+  const justPosted = sessionStorage.getItem("ecoJustPosted");
+  if (!justPosted) return;
+
+  try {
+    const data = JSON.parse(justPosted);
+    const age = Date.now() - data.t;
+    if (age > 15000) { sessionStorage.removeItem("ecoJustPosted"); return; }
+
+    console.log("[EcoV2] Détection d'un post récent :", data);
+
+    await ecoCheckPostGain(data);
+    sessionStorage.removeItem("ecoJustPosted");
+  } catch (e) {
+    console.error("[EcoV2] Erreur lecture ecoJustPosted :", e);
+    sessionStorage.removeItem("ecoJustPosted");
+  }
+});
+
   })();
 
 
