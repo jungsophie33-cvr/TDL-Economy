@@ -1,16 +1,12 @@
 // === ECONOMIE V2 – ModernBB (version stable) ===
 // Auteur : ChatGPT x THE DROWNED LANDS
-// Objectif : système d’économie complet via JSONBin + intégration ModernBB
-// Héberger ce fichier sur Archive-Host, GitHub Gist, etc.
-// Puis charger sur ton forum via : $.getScript("https://tonurl/eco-forum.js");
 console.log("[EcoV2] >>> début du script");
 (function(){
 
-
 // ---------- CONFIG ----------
-const BIN_ID = "68f92d16d0ea881f40b3f36f"; // fourni
-const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq"; // si tu possèdes une autre clé, change-la ici
-const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/"; // proxy pour contourner CORS
+const BIN_ID = "68f92d16d0ea881f40b3f36f";
+const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
+const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/";
 const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
 const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles"];
 const DEFAULT_DOLLARS = 10;
@@ -22,587 +18,292 @@ const RETRY_MAX = 20;
 // ---------- Helpers & logs ----------
 window.addEventListener("error", e => console.error("[EcoV2] onerror:", e.error || e.message, e));
 window.addEventListener("unhandledrejection", e => console.error("[EcoV2] unhandled:", e.reason));
+function log(...a){try{console.log("[EcoV2]",...a);}catch(e){}}
+function warn(...a){try{console.warn("[EcoV2]",...a);}catch(e){}}
+function err(...a){try{console.error("[EcoV2]",...a);}catch(e){}}
 
-function log(...args){ try{ console.log("[EcoV2]", ...args); }catch(e){} }
-function warn(...args){ try{ console.warn("[EcoV2]", ...args); }catch(e){} }
-function err(...args){ try{ console.error("[EcoV2]", ...args); }catch(e){} }
-
-// ---------- JSONBin helpers (via proxy) ----------
-async function readBin() {
-  try {
-    const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
-    const r = await fetch(url, { method: "GET", headers: { "X-Master-Key": API_KEY }});
-    if (!r.ok) { warn("readBin status", r.status); return null; }
-    const j = await r.json();
-    return j.record || {};
-  } catch (e) {
-    err("readBin error", e);
-    return null;
-  }
+// ---------- JSONBin helpers ----------
+async function readBin(){
+  try{
+    const url=`${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
+    const r=await fetch(url,{method:"GET",headers:{"X-Master-Key":API_KEY}});
+    if(!r.ok){warn("readBin status",r.status);return null;}
+    const j=await r.json();
+    return j.record||{};
+  }catch(e){err("readBin",e);return null;}
 }
-async function writeBin(record) {
-  try {
-    const response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Master-Key": API_KEY,
-        "X-Bin-Versioning": "false"
+async function writeBin(record){
+  try{
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        "X-Master-Key":API_KEY,
+        "X-Bin-Versioning":"false"
       },
-      body: JSON.stringify(record)
+      body:JSON.stringify(record)
     });
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("[EcoV2] writeBin error:", response.status, text);
-      throw new Error("WriteBin failed");
-    }
-    return await response.json();
-  } catch (e) {
-    console.error("[EcoV2] writeBin exception:", e);
-  }
+    if(!r.ok)throw new Error("Write failed");
+    return await r.json();
+  }catch(e){err("writeBin",e);}
 }
 
-
-// ---------- ModernBB extractors ----------
-function getPseudo() {
-  try { return (typeof _userdata !== "undefined" && _userdata.username) ? String(_userdata.username).trim() : null; }
-  catch(e){ return null; }
-}
-function getUserId() {
-  try { return (typeof _userdata !== "undefined" && _userdata.user_id) ? parseInt(_userdata.user_id) : 0; }
-  catch(e){ return 0; }
-}
-function getMessagesCount() {
-  try { return (typeof _userdata !== "undefined" && _userdata.user_posts) ? parseInt(_userdata.user_posts) : 0; }
-  catch(e){ return 0; }
-}
-async function fetchUserGroupFromProfile(userId) {
-  if (!userId) return null;
-  try {
-    const res = await fetch(`/u${userId}`);
-    if (!res.ok) return null;
-    const html = await res.text();
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    const dd = tmp.querySelector("dd, .usergroup, .group, .user-level");
-    if (dd && dd.textContent.trim()) return dd.textContent.trim();
-    const m = html.match(/(Les [A-ZÀ-Ÿa-zà-ÿ0-9_\- ]{2,40})/);
-    return m ? m[1].trim() : null;
-  } catch(e){
-    err("fetchUserGroupFromProfile error", e);
-    return null;
-  }
+// ---------- Extractors ----------
+function getPseudo(){try{return _userdata?.username?.trim()||null;}catch(e){return null;}}
+function getUserId(){try{return parseInt(_userdata?.user_id)||0;}catch(e){return 0;}}
+function getMessagesCount(){try{return parseInt(_userdata?.user_posts)||0;}catch(e){return 0;}}
+async function fetchUserGroupFromProfile(id){
+  if(!id)return null;
+  try{
+    const r=await fetch(`/u${id}`);if(!r.ok)return null;
+    const html=await r.text();const d=document.createElement("div");d.innerHTML=html;
+    const dd=d.querySelector("dd,.usergroup,.group,.user-level");
+    if(dd&&dd.textContent.trim())return dd.textContent.trim();
+    const m=html.match(/(Les [A-ZÀ-Ÿa-zà-ÿ0-9_\- ]{2,40})/);
+    return m?m[1].trim():null;
+  }catch(e){err("fetchUserGroup",e);return null;}
 }
 
 // ---------- DOM helpers ----------
-function insertAfter(target, el) {
-  if (!target || !target.parentNode) return false;
-  target.parentNode.insertBefore(el, target.nextSibling);
-  return true;
-}
-function createErrorBanner(msg) {
-  const b = document.createElement("div");
-  b.style.cssText = "background:#ffdede;color:#600;border:2px solid #f99;padding:8px;text-align:center;margin:6px;";
-  b.textContent = msg;
-  return b;
+function insertAfter(t,e){if(!t||!t.parentNode)return false;t.parentNode.insertBefore(e,t.nextSibling);return true;}
+function createErrorBanner(m){const b=document.createElement("div");b.style.cssText="background:#ffdede;color:#600;border:2px solid #f99;padding:8px;text-align:center;margin:6px;";b.textContent=m;return b;}
+
+// ---------- UPDATE DOLLARS DANS LES POSTS ----------
+async function updatePostDollars(){
+  try{
+    const record=await readBin();if(!record||!record.membres)return;
+    document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
+      const pseudoEl=post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
+      if(!pseudoEl)return;
+      const pseudo=pseudoEl.textContent.trim();
+      const user=record.membres[pseudo];if(!user)return;
+      const val=post.querySelector(".field-dollars span:not(.label)");
+      if(val)val.textContent=user.dollars??0;
+    });
+    log("Màj champs dollars terminée");
+  }catch(e){err("updatePostDollars",e);}
 }
 
 // ---------- CORE INIT ----------
-async function coreInit() {
+async function coreInit(){
   log("Initialisation...");
-  const menu = document.querySelector(MENU_SELECTOR);
-  if (!menu) { warn("Menu non trouvé", MENU_SELECTOR); return; }
+  const menu=document.querySelector(MENU_SELECTOR);
+  if(!menu){warn("Menu non trouvé");return;}
 
-  const loadingBox = document.createElement("div");
-  loadingBox.id = "eco-loading";
-  loadingBox.style.cssText = "background:#fffbe6;padding:6px;text-align:center;border:1px solid #ffecb3;margin-top:6px;";
-  loadingBox.textContent = "Initialisation économie…";
-  insertAfter(menu, loadingBox);
+  const loading=document.createElement("div");
+  loading.id="eco-loading";
+  loading.style.cssText="background:#fffbe6;padding:6px;text-align:center;border:1px solid #ffecb3;margin-top:6px;";
+  loading.textContent="Initialisation économie…";
+  insertAfter(menu,loading);
 
-  const record = await readBin();
-  if (!record) {
-    loadingBox.replaceWith(createErrorBanner("Erreur : lecture JSONBin impossible."));
-    return;
-  }
-
-  // ensure structure
-  record.membres = record.membres || {};
-  record.cagnottes = record.cagnottes || {};
-  GROUPS.forEach(g => { if (record.cagnottes[g] === undefined) record.cagnottes[g] = 0; });
-  record.boutique = record.boutique || {};
+  const record=await readBin();
+  if(!record){loading.replaceWith(createErrorBanner("Erreur : lecture JSONBin impossible."));return;}
+  record.membres=record.membres||{};
+  record.cagnottes=record.cagnottes||{};
+  GROUPS.forEach(g=>{if(record.cagnottes[g]===undefined)record.cagnottes[g]=0;});
+  record.boutique=record.boutique||{};
   await writeBin(record).catch(()=>null);
 
-  const pseudo = getPseudo();
-  const uid = getUserId();
-  if (!pseudo) {
-    loadingBox.replaceWith(createErrorBanner("Connecte-toi pour initialiser l'économie."));
-    return;
-  }
+  const pseudo=getPseudo(),uid=getUserId();
+  if(!pseudo){loading.replaceWith(createErrorBanner("Connecte-toi pour initialiser l'économie."));return;}
 
-  // create or update member
-  if (!record.membres[pseudo]) {
-    const group = await fetchUserGroupFromProfile(uid);
-    record.membres[pseudo] = {
-      dollars: DEFAULT_DOLLARS,
-      messages: getMessagesCount(),
-      group: group || null,
-      lastMessageThresholdAwarded: 0
-    };
+  if(!record.membres[pseudo]){
+    const g=await fetchUserGroupFromProfile(uid);
+    record.membres[pseudo]={dollars:DEFAULT_DOLLARS,messages:getMessagesCount(),group:g||null,lastMessageThresholdAwarded:0};
     await writeBin(record).catch(()=>null);
-    log("Membre ajouté:", pseudo);
-  } else {
-    record.membres[pseudo].messages = getMessagesCount();
-    if (!record.membres[pseudo].group) {
-      const group = await fetchUserGroupFromProfile(uid);
-      if (group) { record.membres[pseudo].group = group; await writeBin(record).catch(()=>null); }
+  }else{
+    record.membres[pseudo].messages=getMessagesCount();
+    if(!record.membres[pseudo].group){
+      const g=await fetchUserGroupFromProfile(uid);
+      if(g){record.membres[pseudo].group=g;await writeBin(record).catch(()=>null);}
     }
   }
 
-// --- Synchronise immédiatement le solde perso avant affichage cagnottes ---
-try {
-  const dollarsActuels = record.membres[pseudo].dollars;
-  const sjDollars = document.querySelector("#sj-dollars");
-  if (sjDollars) {
-    sjDollars.textContent = dollarsActuels;
-    sjDollars.dataset.synced = "true";
-  } else {
-    console.warn("[EcoV2] #sj-dollars introuvable pour la synchro initiale");
-  }
-} catch (e) {
-  console.error("[EcoV2] sync sj-dollars error:", e);
-}
+  try{
+    const sj=document.querySelector("#sj-dollars");
+    if(sj)sj.textContent=record.membres[pseudo].dollars;
+  }catch(e){err("sync sj-dollars",e);}
 
-// --- Afficher solde + cagnottes une fois le DOM prêt ---
-setTimeout(() => {
-  try {
-    const box = document.createElement("div");
-    box.id = "eco-solde-box";
-    let html = `<span id="eco-solde">${record.membres[pseudo].dollars}</span> ${MONNAIE_NAME} — Cagnottes : `;
-    GROUPS.forEach(g => {
-      html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g, '_')}">${record.cagnottes[g] || 0}</b></span>`;
+  setTimeout(()=>{
+    try{
+      const box=document.createElement("div");
+      box.id="eco-solde-box";
+      let html=`<span id="eco-solde">${record.membres[pseudo].dollars}</span> ${MONNAIE_NAME} — Cagnottes : `;
+      GROUPS.forEach(g=>html+=`<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g,"_")}">${record.cagnottes[g]||0}</b></span>`);
+      box.innerHTML=html;insertAfter(menu,box);
+    }catch(e){err("afficher solde",e);}
+  },600);
+
+  // --- ADMIN BAR ---
+  const adminBar=document.getElementById("eco-admin-bar");
+  if(!adminBar)return;
+  const adminSection=document.getElementById("eco-admin-section");
+  if(ADMIN_USERS.includes(pseudo)){if(adminSection)adminSection.style.display="block";}
+  else if(adminSection)adminSection.remove();
+
+  try{
+    document.getElementById("eco-btn-cag")?.addEventListener("click",async()=>{
+      const rec=await readBin();alert("Cagnottes:\n"+JSON.stringify(rec.cagnottes,null,2));
     });
-    box.innerHTML = html;
-    insertAfter(menu, box);
-  } catch (e) {
-    console.error("[EcoV2] afficher solde error:", e);
+    document.getElementById("eco-btn-shop")?.addEventListener("click",async()=>{
+      const rec=await readBin();alert("Boutique:\n"+JSON.stringify(rec.boutique||{},null,2));
+    });
+    document.getElementById("eco-btn-don")?.addEventListener("click",async()=>{
+      const montant=parseInt(prompt("Montant du don :","0"));
+      if(isNaN(montant)||montant<=0)return alert("Montant invalide.");
+      const rec=await readBin();const grp=rec.membres[pseudo]?.group;
+      if(!grp)return alert("Ton groupe est inconnu.");
+      if((rec.membres[pseudo]?.dollars||0)<montant)return alert("Fonds insuffisants !");
+      rec.membres[pseudo].dollars-=montant;
+      rec.cagnottes[grp]=(rec.cagnottes[grp]||0)+montant;
+      await writeBin(rec);alert("✅ Don effectué !");
+      const el=document.querySelector("#sj-dollars");if(el)el.textContent=rec.membres[pseudo].dollars;
+      const cag=document.getElementById(`eco-cag-${grp.replace(/\s/g,"_")}`);if(cag)cag.textContent=rec.cagnottes[grp];
+    });
+  }catch(e){err("adminBar",e);}
+
+  // --- PANEL ADMIN ---
+  const toggle=document.getElementById("eco-reset-toggle");
+  if(toggle){
+    toggle.addEventListener("click",()=>{
+      const p=document.getElementById("eco-reset-panel");
+      const opened=p.style.display==="block";
+      p.style.display=opened?"none":"block";
+      toggle.textContent=opened?"▶ Réinitialisations":"▼ Réinitialisations";
+    });
   }
-}, 600); // délai léger pour stabiliser le DOM
 
+  (async function populateSelects(){
+    const rec=await readBin();if(!rec)return;
+    const msel=document.getElementById("eco-member-select");
+    const csel=document.getElementById("eco-cag-select");
+    if(msel){msel.innerHTML="";Object.keys(rec.membres||{}).sort().forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;msel.appendChild(o);});}
+    if(csel){csel.innerHTML="";Object.keys(rec.cagnottes||{}).forEach(g=>{const o=document.createElement("option");o.value=g;o.textContent=g;csel.appendChild(o);});}
+  })();
 
-  // admin bar
-const adminBar = document.getElementById("eco-admin-bar");
-if (!adminBar) return; // sécurité
-
-const adminSection = document.getElementById("eco-admin-section");
-
-// Si c’est un admin, on affiche la section complète
-if (ADMIN_USERS.includes(pseudo)) {
-  if (adminSection) adminSection.style.display = "block";
-} else {
-  // sinon, on cache toute la partie admin
-  if (adminSection) adminSection.remove();
-}
-
-    try {
-
-      document.getElementById("eco-btn-cag").addEventListener("click", async ()=>{
-        const rec = await readBin();
-        alert("Cagnottes:\n" + JSON.stringify(rec.cagnottes,null,2));
-      });
-
-      document.getElementById("eco-btn-shop").addEventListener("click", async ()=>{
-        const rec = await readBin();
-        alert("Boutique:\n" + JSON.stringify(rec.boutique||{},null,2));
-      });
-
-      document.getElementById("eco-btn-don").addEventListener("click", async ()=>{
-        const montant = parseInt(prompt("Montant du don :","0"));
-        if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-        const rec = await readBin();
-        const grp = rec.membres[pseudo]?.group;
-        if (!grp) return alert("Ton groupe est inconnu.");
-        if ((rec.membres[pseudo]?.dollars || 0) < montant) return alert("Fonds insuffisants !");
-        rec.membres[pseudo].dollars = (rec.membres[pseudo].dollars || 0) - montant;
-        rec.cagnottes[grp] = (rec.cagnottes[grp]||0) + montant;
-        await writeBin(rec);
-        alert("✅ Don effectué !");
-        const el = document.querySelector("#sj-dollars");
-        if (el) el.textContent = rec.membres[pseudo].dollars;
-        const cagEl = document.getElementById(`eco-cag-${grp.replace(/\s/g,'_')}`);
-        if (cagEl) cagEl.textContent = rec.cagnottes[grp];
-      });
-    } catch(e){ err("adminBar error", e); }
-
-// --- OUTILS ADMIN : réinitialisations ---
-// --- Activation du panneau existant dans le template ---
-const resetToggle = document.getElementById("eco-reset-toggle");
-if (resetToggle) {
-  resetToggle.addEventListener("click", () => {
-    const panel = document.getElementById("eco-reset-panel");
-    const opened = panel.style.display === "block";
-    panel.style.display = opened ? "none" : "block";
-    resetToggle.textContent = opened ? "▶ Réinitialisations" : "▼ Réinitialisations";
+  // --- RÉINITIALISATIONS ---
+  document.getElementById("eco-reset-member")?.addEventListener("click",async()=>{
+    const choix=document.getElementById("eco-member-select")?.value;
+    if(!choix)return alert("Aucun membre sélectionné !");
+    if(!confirm(`Remettre ${choix} à 0 ${MONNAIE_NAME} ?`))return;
+    const rec=await readBin();if(!rec.membres[choix])return alert("Membre inconnu !");
+    rec.membres[choix].dollars=0;await writeBin(rec);alert(`${choix} a été réinitialisé.`);
   });
-}
 
-// --- Chargement dynamique des listes ---
-(async function populateSelects() {
-  const rec = await readBin();
-  if (!rec) return;
-  const memberSel = document.getElementById("eco-member-select");
-  const cagSel = document.getElementById("eco-cag-select");
-
-  if (memberSel) {
-    memberSel.innerHTML = ""; // reset
-    Object.keys(rec.membres || {}).sort().forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      memberSel.appendChild(opt);
-    });
-  }
-
-  if (cagSel) {
-    cagSel.innerHTML = "";
-    Object.keys(rec.cagnottes || {}).forEach(g => {
-      const opt = document.createElement("option");
-      opt.value = g;
-      opt.textContent = g;
-      cagSel.appendChild(opt);
-    });
-  }
-})();
-
-// --- Gestion des clics des boutons déjà présents dans le HTML ---
-document.getElementById("eco-reset-member")?.addEventListener("click", async () => {
-  const choix = document.getElementById("eco-member-select")?.value;
-  if (!choix) return alert("Aucun membre sélectionné !");
-  if (!confirm(`Remettre ${choix} à 0 ${MONNAIE_NAME} ?`)) return;
-  const rec = await readBin();
-  if (!rec.membres[choix]) return alert("Membre inconnu !");
-  rec.membres[choix].dollars = 0;
-  await writeBin(rec);
-  alert(`${choix} a été réinitialisé à 0 ${MONNAIE_NAME}.`);
-});
-
-document.getElementById("eco-reset-all-members")?.addEventListener("click", async () => {
-  if (!confirm("⚠️ Réinitialiser TOUS les membres à 0 Dollars ?")) return;
-  const rec = await readBin();
-  for (const m in rec.membres) rec.membres[m].dollars = 0;
-  await writeBin(rec);
-  alert("Tous les membres ont été remis à 0 Dollars.");
-});
-
-document.getElementById("eco-reset-cagnotte")?.addEventListener("click", async () => {
-  const choix = document.getElementById("eco-cag-select")?.value;
-  if (!choix) return alert("Aucune cagnotte sélectionnée !");
-  if (!confirm(`Remettre la cagnotte de ${choix} à 0 ?`)) return;
-  const rec = await readBin();
-  rec.cagnottes[choix] = 0;
-  await writeBin(rec);
-  alert(`La cagnotte de ${choix} a été réinitialisée.`);
-});
-
-document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click", async () => {
-  if (!confirm("⚠️ Réinitialiser TOUTES les cagnottes à 0 ?")) return;
-  const rec = await readBin();
-  for (const g in rec.cagnottes) rec.cagnottes[g] = 0;
-  await writeBin(rec);
-  alert("Toutes les cagnottes ont été remises à 0.");
-});
-
-    // --- Distribution globale ---
-const giveAllBtn = document.getElementById("eco-giveall-btn");
-if (giveAllBtn) {
-  giveAllBtn.addEventListener("click", async () => {
-    const amountField = document.getElementById("eco-giveall-amount");
-    const montant = parseInt(amountField.value, 10);
-
-    if (isNaN(montant) || montant <= 0) {
-      return alert("Veuillez entrer un montant valide supérieur à 0.");
-    }
-
-    if (!confirm(`Ajouter ${montant} ${MONNAIE_NAME} à TOUS les membres ?`)) return;
-
-    try {
-      const rec = await readBin();
-      if (!rec || !rec.membres) return alert("Erreur : impossible de lire les membres du JSON.");
-
-      let count = 0;
-      for (const nom in rec.membres) {
-        rec.membres[nom].dollars = (rec.membres[nom].dollars || 0) + montant;
-        count++;
-      }
-
-      await writeBin(rec);
-      showEcoGain(montant);
-      console.log(`[EcoV2] ${montant} ${MONNAIE_NAME} ajoutés à ${count} membres.`);
-    } catch (e) {
-      err("Erreur distribution globale", e);
-      alert("Une erreur est survenue pendant la distribution.");
-    }
+  document.getElementById("eco-reset-all-members")?.addEventListener("click",async()=>{
+    if(!confirm("⚠️ Réinitialiser TOUS les membres ?"))return;
+    const rec=await readBin();for(const m in rec.membres)rec.membres[m].dollars=0;
+    await writeBin(rec);alert("Tous les membres ont été remis à 0.");
   });
-}
+
+  document.getElementById("eco-reset-cagnotte")?.addEventListener("click",async()=>{
+    const choix=document.getElementById("eco-cag-select")?.value;
+    if(!choix)return alert("Aucune cagnotte sélectionnée !");
+    if(!confirm(`Remettre ${choix} à 0 ?`))return;
+    const rec=await readBin();rec.cagnottes[choix]=0;await writeBin(rec);alert(`Cagnotte ${choix} réinitialisée.`);
+  });
+
+  document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click",async()=>{
+    if(!confirm("⚠️ Tout remettre à 0 ?"))return;
+    const rec=await readBin();for(const g in rec.cagnottes)rec.cagnottes[g]=0;
+    await writeBin(rec);alert("Toutes les cagnottes remises à 0.");
+  });
+
+  // --- DISTRIBUTION GLOBALE ---
+  const giveAll=document.getElementById("eco-giveall-btn");
+  if(giveAll){
+    giveAll.addEventListener("click",async()=>{
+      const val=parseInt(document.getElementById("eco-giveall-amount").value,10);
+      if(isNaN(val)||val<=0)return alert("Montant invalide.");
+      if(!confirm(`Ajouter ${val} ${MONNAIE_NAME} à tous ?`))return;
+      const rec=await readBin();let count=0;
+      for(const n in rec.membres){rec.membres[n].dollars=(rec.membres[n].dollars||0)+val;count++;}
+      await writeBin(rec);showEcoGain(val);updatePostDollars();
+      alert(`${val} ${MONNAIE_NAME} ajoutés à ${count} membres.`);
+    });
   }
+
   // remove loading
-  const lb = document.getElementById("eco-loading");
-  if (lb) lb.remove();
+  loading.remove();
   log("Initialisation terminée.");
+  updatePostDollars(); // <-- affiche les bons montants dans les profils
 } // coreInit end
 
-// ---------- MODULE GAINS AUTOMATIQUES ----------
-/* règles et mapping */
-const GAIN_RULES = {
-  presentation_new: 20,
-  presentation_reply: 5,
-  preliens_or_gestion_new: 10,
-  preliens_or_gestion_reply: 2,
-  houma_terrebonne_new: 15,
-  houma_terrebonne_reply: 10,
-  vote_topic_reply: 2
-};
- // Forums non-RP référencés par le code (gardez uniquement ceux utilisés)
-const FORUM_IDS = {
-  presentations: "/f5-presentations",
-  preliens: "/f3-pre-liens",
-  gestionPersos: "/f6-gestion-des-personnages",
-  voteTopicName: "vote aux top-sites"
-};
+// ---------- GAINS AUTOMATIQUES ----------
+const GAIN_RULES={presentation_new:20,presentation_reply:5,preliens_or_gestion_new:10,preliens_or_gestion_reply:2,houma_terrebonne_new:15,houma_terrebonne_reply:10,vote_topic_reply:2};
+const FORUM_IDS={presentations:"/f5-presentations",preliens:"/f3-pre-liens",gestionPersos:"/f6-gestion-des-personnages",voteTopicName:"vote aux top-sites"};
+const RP_ZONES=["/f7-les-bayous-sauvages","/f8-downtown-houma","/f9-bayou-cane","/f10-bayou-blue","/f11-mandalay-national-wildlife-refuge","/f12-terrebonne-bay"];
 
-// Catégories / sous-forums RP (gains identiques partout)
-const RP_ZONES = [
-  "/f7-les-bayous-sauvages",
-  "/f8-downtown-houma",
-  "/f9-bayou-cane",
-  "/f10-bayou-blue",
-  "/f11-mandalay-national-wildlife-refuge",
-  "/f12-terrebonne-bay"
-];
-
-
-// Détection d’un envoi de post
-function ecoAttachPostListeners() {
-  const forms = document.querySelectorAll("form[name='post'], form#quick_reply, form[action*='post'], form[action*='posting']");
-  forms.forEach(f => {
-    if (f.__eco_listening) return;
-    f.__eco_listening = true;
-
-    log("Formulaire de post détecté :", f.action);
-
-   f.addEventListener("submit", () => {
-  try {
-    const isNewTopic = !!f.querySelector("input[name='subject']");
-    let forumId = null;
-
-    // 1️⃣ priorité : champ caché dans le formulaire
-    const forumIdField = f.querySelector("input[name='f']");
-    if (forumIdField) forumId = forumIdField.value;
-
-    // 2️⃣ sinon : essayer de le déduire depuis la breadcrumb
-    if (!forumId) {
-      const breadcrumb = document.querySelector(".sub-header-path");
-      if (breadcrumb) {
-        const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
-        if (forumLink) forumId = forumLink.getAttribute("href");
-      }
-    }
-
-    // 3️⃣ fallback final
-    if (!forumId) forumId = location.pathname;
-
-    // on stocke tout ça
-    sessionStorage.setItem("ecoJustPosted", JSON.stringify({
-      t: Date.now(),
-      newTopic: isNewTopic,
-      fid: forumId
-    }));
-
-    console.log("[EcoV2] ➕ Post intercepté : forum =", forumId, "isNew =", isNewTopic);
-  } catch(e) {
-    console.error("[EcoV2] ecoAttachPostListeners error", e);
-  }
-});
-
+function ecoAttachPostListeners(){
+  document.querySelectorAll("form[name='post'],form#quick_reply,form[action*='post']").forEach(f=>{
+    if(f.__eco_listening)return;f.__eco_listening=true;
+    f.addEventListener("submit",()=>{
+      try{
+        const isNew=!!f.querySelector("input[name='subject']");
+        let fid=f.querySelector("input[name='f']")?.value||location.pathname;
+        sessionStorage.setItem("ecoJustPosted",JSON.stringify({t:Date.now(),newTopic:isNew,fid}));
+      }catch(e){err("ecoAttachPost",e);}
+    });
   });
 }
 
-// Vérification/gain après redirection
-async function ecoCheckPostGain(info) {
-  try {
-    let data = info || null;
-    if (!data) {
-      const s = sessionStorage.getItem("ecoJustPosted");
-      if (!s) return;
-      data = JSON.parse(s);
+async function ecoCheckPostGain(info){
+  try{
+    const s=info||JSON.parse(sessionStorage.getItem("ecoJustPosted")||"null");
+    if(!s)return;
+    const pseudo=getPseudo();if(!pseudo)return;
+    const record=await readBin();if(!record)return;
+    const membres=record.membres;if(!membres[pseudo])return;
+    let path=location.pathname.toLowerCase();
+    const isNew=!!s.newTopic;let gain=0;
+    if(path.includes(FORUM_IDS.presentations))gain=isNew?GAIN_RULES.presentation_new:GAIN_RULES.presentation_reply;
+    else if(path.includes(FORUM_IDS.preliens)||path.includes(FORUM_IDS.gestionPersos))gain=isNew?GAIN_RULES.preliens_or_gestion_new:GAIN_RULES.preliens_or_gestion_reply;
+    else if(RP_ZONES.some(z=>path.includes(z)))gain=isNew?GAIN_RULES.houma_terrebonne_new:GAIN_RULES.houma_terrebonne_reply;
+    else{
+      const title=document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent.toLowerCase()||"";
+      if(title.includes(FORUM_IDS.voteTopicName)&&!isNew)gain=GAIN_RULES.vote_topic_reply;
     }
-
-    const pseudo = getPseudo();
-    if (!pseudo) return;
-
-    const record = await readBin();
-    if (!record) return;
-
-    const membres = record.membres || {};
-    if (!membres[pseudo]) return;
-
-    // --- Détermination du forum concerné ---
-    let path = "";
-
-    // 1) Breadcrumb personnalisée (sur page sujet ou post)
-    const breadcrumb = document.querySelector(".sub-header-path");
-    if (breadcrumb) {
-      const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
-      if (forumLink) path = forumLink.getAttribute("href").toLowerCase();
+    if(gain>0){
+      membres[pseudo].dollars=(membres[pseudo].dollars||0)+gain;
+      await writeBin(record);showEcoGain(gain);updatePostDollars();
     }
-
-    // 2) Fallback : forum stocké avant la redirection
-    if (!path && info && info.fid) path = String(info.fid).toLowerCase();
-
-    // 3) Fallback final : URL courante
-    if (!path) path = location.pathname.toLowerCase();
-
-    // 4) Dernière tentative via breadcrumb si on n’a pas encore /f...
-    if (!path.includes("/f")) {
-      const bc2 = document.querySelector(".sub-header-path");
-      if (bc2) {
-        const forumLink2 = Array.from(bc2.querySelectorAll('a[href*="/f"]')).pop();
-        if (forumLink2) path = forumLink2.getAttribute("href").toLowerCase();
-      }
-    }
-
-    const isNew = !!data.newTopic;
-    let gain = 0;
-
-    // Présentations
-    if (path.includes(FORUM_IDS.presentations)) {
-      gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
-
-    // Pré-liens / gestion persos
-    } else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
-      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
-
-    // Zones RP (tous les sous-forums de Houma / Terrebonne)
-    } else if (RP_ZONES.some(id => path.includes(id))) {
-      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
-
-    // Sujet des votes
-    } else {
-      const topicTitleEl = document.querySelector(".topic-title, h1.topictitle, .page-title");
-      const topicTitle = topicTitleEl ? topicTitleEl.textContent.toLowerCase() : "";
-      if (topicTitle.includes(FORUM_IDS.voteTopicName) && !isNew) {
-        gain = GAIN_RULES.vote_topic_reply;
-      }
-    }
-
-    log("Vérification gain : path =", path, "isNew =", isNew, "gain =", gain);
-
-    if (gain > 0) {
-      membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
-      await writeBin(record);
-
-      log(`💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
-
-      // Met à jour les affichages
-      const el = document.querySelector("#sj-dollars");
-      if (el) el.textContent = membres[pseudo].dollars;
-      const box = document.querySelector("#eco-solde-box");
-      if (box) {
-        const firstBold = box.querySelector("b");
-        if (firstBold) firstBold.textContent = membres[pseudo].dollars;
-      }
-
-      // Petite notification visuelle
-      showEcoGain(gain);
-    }
-
-  } catch(e){
-    err("ecoCheckPostGain", e);
-  }
+  }catch(e){err("ecoCheckPostGain",e);}
 }
 
-
-// Lancer écouteurs
 ecoAttachPostListeners();
 
-// ---------- Wait-for-menu & boot ----------
-let tries = 0;
-const timer = setInterval(async () => {
+// ---------- BOOT ----------
+let tries=0;
+const timer=setInterval(async()=>{
   tries++;
-  const menu = document.querySelector(MENU_SELECTOR);
-  if (menu) {
-    clearInterval(timer);
-    try { await coreInit(); } catch(e){ err("coreInit threw:", e); }
-  } else if (tries >= RETRY_MAX) {
-    clearInterval(timer);
-    warn("menu not found after retries. Aborting init.");
-    const existing = document.body.querySelector("#eco-error-banner");
-    if (!existing) document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable. Contacter l'admin."));
-  }
-}, RETRY_INTERVAL_MS);
+  const menu=document.querySelector(MENU_SELECTOR);
+  if(menu){clearInterval(timer);try{await coreInit();}catch(e){err("coreInit",e);}}
+  else if(tries>=RETRY_MAX){clearInterval(timer);warn("menu not found");document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable."));}
+},RETRY_INTERVAL_MS);
 
-// ---------- Vérification différée unique après load ----------
-window.addEventListener("load", () => {
-  setTimeout(async () => {
-    console.log("[EcoV2] 🔁 Lancement différé de ecoCheckPostGain");
-    const justPosted = sessionStorage.getItem("ecoJustPosted");
-    if (!justPosted) return;
-
-    try {
-      const data = JSON.parse(justPosted);
-      const age = Date.now() - data.t;
-      if (age > 30000) { sessionStorage.removeItem("ecoJustPosted"); return; }
-
-      console.log("[EcoV2] 🔁 Relance post-delay :", data);
-      await ecoCheckPostGain(data);
-    } catch (e) {
-      console.error("[EcoV2] ecoDelayedCheck error:", e);
-    } finally {
-      // on efface le flag ICI, une seule fois
-      sessionStorage.removeItem("ecoJustPosted");
-    }
-  }, 2500); // 2,5 s pour laisser FA afficher la breadcrumb
+// ---------- POST DELAY ----------
+window.addEventListener("load",()=>{
+  setTimeout(async()=>{
+    const s=sessionStorage.getItem("ecoJustPosted");if(!s)return;
+    const data=JSON.parse(s);if(Date.now()-data.t>30000)return sessionStorage.removeItem("ecoJustPosted");
+    await ecoCheckPostGain(data);sessionStorage.removeItem("ecoJustPosted");
+  },2500);
 });
 
-  // ---------- Notification visuelle des gains ----------
-function showEcoGain(gain) {
-  if (!gain || gain <= 0) return;
-
-  // Crée un élément flottant
-  const notif = document.createElement("div");
-  notif.textContent = `💰 +${gain} ${MONNAIE_NAME}`;
-  notif.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #e6ffe6;
-    color: #075e07;
-    border: 2px solid #6fd36f;
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-weight: 600;
-    font-size: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    opacity: 0;
-    transition: opacity 0.4s ease, transform 0.4s ease;
-    z-index: 999;
-  `;
-  document.body.appendChild(notif);
-
-  // Animation d'apparition
-  setTimeout(() => {
-    notif.style.opacity = "1";
-    notif.style.transform = "translateX(-50%) translateY(0)";
-  }, 50);
-
-  // Disparition après 2,5 s
-  setTimeout(() => {
-    notif.style.opacity = "0";
-    notif.style.transform = "translateX(-50%) translateY(-20px)";
-    setTimeout(() => notif.remove(), 600);
-  }, 2500);
+// ---------- NOTIFICATION ----------
+function showEcoGain(gain){
+  if(!gain||gain<=0)return;
+  const n=document.createElement("div");
+  n.textContent=`💰 +${gain} ${MONNAIE_NAME}`;
+  n.style.cssText=`position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#e6ffe6;color:#075e07;border:2px solid #6fd36f;border-radius:10px;
+    padding:8px 16px;font-weight:600;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,.2);
+    opacity:0;transition:opacity .4s,transform .4s;z-index:999;`;
+  document.body.appendChild(n);
+  setTimeout(()=>{n.style.opacity="1";},50);
+  setTimeout(()=>{n.style.opacity="0";setTimeout(()=>n.remove(),600);},2500);
 }
 
 console.log("[EcoV2] <<< fin du script");
-// ---------- END IIFE ----------
 })();
+
