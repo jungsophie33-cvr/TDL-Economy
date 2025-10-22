@@ -320,8 +320,8 @@ const FORUM_IDS = {
   presentations: "/f5-presentations",
   preliens: "/f3-pre-liens",
   gestionPersos: "/f6-gestion-des-personnages",
-  houma: "Houma_20Metropolitan_20Area",
-  terrebonne: "Terrebonne_20Parish",
+  houma: "/c4-houma-metropolitan-area",
+  terrebonne: "/c3-terrebonne-parish",
   voteTopicName: "vote aux top-sites"
 };
 
