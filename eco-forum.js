@@ -211,17 +211,36 @@ async function writeBin(record, retries = 3) {
         const rec = await readBin(); alert("Boutique:\n"+JSON.stringify(rec.boutique||{},null,2));
       });
       document.getElementById("eco-btn-don")?.addEventListener("click", async()=>{
-        const montant = parseInt(prompt("Montant du don :","0"));
-        if(isNaN(montant)||montant<=0) return alert("Montant invalide.");
-        const rec = await readBin(); const grp = rec.membres[pseudo]?.group;
-        if(!grp) return alert("Ton groupe est inconnu.");
-        if((rec.membres[pseudo]?.dollars||0) < montant) return alert("Fonds insuffisants !");
-        rec.membres[pseudo].dollars -= montant;
-        rec.cagnottes[grp] = (rec.cagnottes[grp]||0) + montant;
-        await writeBin(rec); alert("✅ Don effectué !");
-        const el = document.querySelector("#sj-dollars"); if(el) el.textContent = rec.membres[pseudo].dollars;
-        const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g,"_")}`); if(cag) cag.textContent = rec.cagnottes[grp];
-      });
+  const montant = parseInt(prompt("Montant du don :", "0"));
+  if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+
+  const rec = await readBin();
+  const grp = rec.membres[pseudo]?.group;
+  if (!grp) return alert("Ton groupe est inconnu.");
+  if ((rec.membres[pseudo]?.dollars || 0) < montant) return alert("Fonds insuffisants !");
+
+  // 💰 Débit et ajout à la cagnotte
+  rec.membres[pseudo].dollars -= montant;
+  rec.cagnottes[grp] = (rec.cagnottes[grp] || 0) + montant;
+
+  // 🧾 Journal du don
+  if (!rec.donations) rec.donations = [];
+  rec.donations.push({
+    date: new Date().toISOString(),
+    membre: pseudo,
+    groupe: grp,
+    montant
+  });
+
+  await writeBin(rec);
+
+  alert("✅ Don effectué !");
+  const el = document.querySelector("#sj-dollars");
+  if (el) el.textContent = rec.membres[pseudo].dollars;
+  const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g,"_")}`);
+  if (cag) cag.textContent = rec.cagnottes[grp];
+});
+
     }catch(e){ err("adminBar", e); }
 
     // --- PANEL ADMIN ---
