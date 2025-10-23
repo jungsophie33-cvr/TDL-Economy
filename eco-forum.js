@@ -443,6 +443,24 @@ if (location.href.includes("mode=newtopic")) {
     }, 2500);
   });
 
+  // ---------- FALLBACK GLOBAL (intercepte TOUS les posts avant envoi) ----------
+document.addEventListener("submit", e => {
+  try {
+    const form = e.target;
+    if (!form || !form.action) return;
+    if (!form.action.includes("/post")) return; // seulement les formulaires de post Forumactif
+
+    const isNewTopic = !!form.querySelector("input[name='subject']");
+    let fid = form.querySelector("input[name='f']")?.value || location.pathname;
+    const data = { t: Date.now(), newTopic: isNewTopic, fid };
+
+    sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+    console.log("[EcoV2][GLOBAL-FALLBACK] 💾 Post intercepté juste avant envoi :", data);
+  } catch (err) {
+    console.error("[EcoV2][GLOBAL-FALLBACK] erreur interception submit", err);
+  }
+}, true); // ⚠️ capture phase = true pour être déclenché AVANT la soumission réelle
+
   // ---------- NOTIFICATION ----------
   function showEcoGain(gain){
     if(!gain || gain <= 0) return;
