@@ -365,45 +365,42 @@ function ecoAttachPostListeners() {
     if (btn) btn.addEventListener("click", handler);
 
     // --- Cas spécial : création directe d’un nouveau sujet (sans prévisualisation) ---
-    // --- Cas spécial : création directe d’un nouveau sujet (sans prévisualisation) ---
-if (location.href.includes("mode=newtopic")) {
-  const sendBtn = f.querySelector('input[type="submit"], button[type="submit"], input[name="post"]');
-  if (sendBtn) {
-    // 🧩 on capture avant que la page quitte
-    sendBtn.addEventListener("mousedown", () => {
-      try {
-        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
-        const data = { t: Date.now(), newTopic: true, fid };
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-        console.log("[EcoV2] 🖱️ mousedown enregistré avant envoi :", data);
-      } catch (e) {
-        console.error("[EcoV2] newtopic mousedown error", e);
+    if (location.href.includes("mode=newtopic")) {
+      const sendBtn = f.querySelector('input[type="submit"], button[type="submit"], input[name="post"]');
+      if (sendBtn) {
+        // 🧩 capture avant que la page quitte
+        sendBtn.addEventListener("mousedown", () => {
+          try {
+            const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+            const data = { t: Date.now(), newTopic: true, fid };
+            sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+            console.log("[EcoV2] 🖱️ mousedown enregistré avant envoi :", data);
+          } catch (e) {
+            console.error("[EcoV2] newtopic mousedown error", e);
+          }
+        });
+
+        // 🔹 Sécurité ultime : beforeunload si le navigateur le permet
+        window.addEventListener("beforeunload", () => {
+          try {
+            const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+            const data = { t: Date.now(), newTopic: true, fid };
+            sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+            console.log("[EcoV2] 💾 beforeunload newtopic enregistré (fallback):", data);
+          } catch (e) {
+            console.error("[EcoV2] beforeunload newtopic error", e);
+          }
+        });
       }
-    });
-
-    // 🔹 Sécurité ultime : beforeunload si le navigateur le permet
-    window.addEventListener("beforeunload", () => {
-      try {
-        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
-        const data = { t: Date.now(), newTopic: true, fid };
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-        console.log("[EcoV2] 💾 beforeunload newtopic enregistré (fallback):", data);
-        } catch (e) {
-          console.error("[EcoV2] beforeunload newtopic error", e);
-        }
-      });
     }
-}
-
   });
 }
 
   // Installer les écouteurs AU CHARGEMENT, après un petit délai (FA injecte parfois tard)
   window.addEventListener("load", () => {
-    setTimeout(() => {
-      ecoAttachPostListeners();
-    }, 1500);
-  });
+  setTimeout(() => { ecoAttachPostListeners(); }, 1500);
+});
+
   // Relance légère si rien n’a été intercepté
   setTimeout(() => {
     if (!sessionStorage.getItem("ecoJustPosted")) ecoAttachPostListeners();
