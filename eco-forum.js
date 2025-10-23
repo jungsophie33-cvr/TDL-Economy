@@ -271,20 +271,28 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
+function ecoAttachPostListeners() {
+  const forms = document.querySelectorAll("form[name='post'], form#quick_reply, form[action*='post'], form[action*='posting']");
+  forms.forEach(f => {
+    if (f.__eco_listening) return;
+    f.__eco_listening = true;
+
+    log("Formulaire de post détecté :", f.action);
+
     f.addEventListener("submit", () => {
       try {
-        const isNewTopic = !!f.querySelector('input[name="subject"]');
+        const isNewTopic = !!f.querySelector("input[name='subject']");
         let forumId = null;
 
-        // 1️⃣ priorité : champ caché dans le formulaire
-        const forumIdField = f.querySelector('input[name="f"]');
+        // 1️⃣ priorité : champ caché du formulaire
+        const forumIdField = f.querySelector("input[name='f']");
         if (forumIdField) forumId = forumIdField.value;
 
-        // 2️⃣ sinon : essayer de le déduire depuis la breadcrumb
+        // 2️⃣ sinon, déduction via la breadcrumb (chemin en haut)
         if (!forumId) {
           const breadcrumb = document.querySelector(".sub-header-path");
           if (breadcrumb) {
-            const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
+            const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
             if (forumLink) forumId = forumLink.getAttribute("href");
           }
         }
@@ -292,20 +300,19 @@ function ecoAttachPostListeners() {
         // 3️⃣ fallback final : URL courante
         if (!forumId) forumId = location.pathname;
 
-        // On stocke l’info pour la relance après redirection
-        sessionStorage.setItem(
-          "ecoJustPosted",
-          JSON.stringify({ t: Date.now(), newTopic: isNewTopic, fid: forumId })
-        );
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify({
+          t: Date.now(),
+          newTopic: isNewTopic,
+          fid: forumId
+        }));
 
-        console.log("[EcoV2] ➕ Post intercepté :", forumId, "isNew =", isNewTopic);
+        console.log("[EcoV2] ➕ Post intercepté : forum =", forumId, "isNew =", isNewTopic);
       } catch (e) {
         console.error("[EcoV2] ecoAttachPostListeners error", e);
       }
     });
   });
 }
-
 
 async function ecoCheckPostGain(info){
   try{
@@ -331,6 +338,14 @@ async function ecoCheckPostGain(info){
 }
 
 ecoAttachPostListeners();
+
+    setTimeout(() => {
+  if (!sessionStorage.getItem("ecoJustPosted")) {
+    console.warn("[EcoV2] Aucun post intercepté, vérifie les forms détectés.");
+    ecoAttachPostListeners(); // relance au cas où le DOM a été modifié tardivement
+  }
+}, 3000);
+
 
 // ---------- BOOT ----------
 let tries=0;
