@@ -366,7 +366,15 @@ async function ecoCheckPostGain(info) {
     const membres = record.membres;
     if (!membres[pseudo]) return;
 
-    let path = location.pathname.toLowerCase();
+    // 🧩 Correction ici : uniformisation du forumId
+    let path = s.fid ? String(s.fid).toLowerCase() : location.pathname.toLowerCase();
+
+    // Si le fid est juste un numéro (ex: "8"), on le convertit en "/f8"
+    if (/^\d+$/.test(path)) path = `/f${path}`;
+
+    // Fallback final si jamais le path est vide
+    if (!path) path = location.pathname.toLowerCase();
+
     const isNew = !!s.newTopic;
     let gain = 0;
 
