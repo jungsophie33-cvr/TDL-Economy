@@ -12,7 +12,7 @@ console.log("[EcoV2] >>> début du script");
   // ---------- CONFIG ----------
   const BIN_ID = "68f92d16d0ea881f40b3f36f";
   const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
-  const JSONBIN_PROXY_BASE = "https://api.allorigins.win/raw?url=https://api.jsonbin.io/v3/b/";
+  const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/";
   const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
   const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles"];
   const DEFAULT_DOLLARS = 10;
@@ -28,31 +28,81 @@ console.log("[EcoV2] >>> début du script");
   function warn(...a){try{console.warn("[EcoV2]",...a);}catch(e){}}
   function err(...a){try{console.error("[EcoV2]",...a);}catch(e){}}
 
-  // ---------- JSONBin ----------
-  async function readBin(){
-    try{
-      const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
-      const r = await fetch(url,{ method:"GET", headers:{ "X-Master-Key": API_KEY }});
-      if(!r.ok){ warn("readBin status", r.status); return null; }
-      const j = await r.json();
-      return j.record || {};
-    }catch(e){ err("readBin", e); return null; }
+ // ---------- JSONBin helpers (version robuste avec retry & gestion CORS) ----------
+async function readBin(retries = 3) {
+  const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-Master-Key": API_KEY
+        }
+      });
+
+      if (r.ok) {
+        const j = await r.json();
+        return j.record || {};
+      }
+
+      // Si serveur encore occupé ou erreur temporaire
+      if ([425, 429, 500, 502, 503].includes(r.status)) {
+        console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} échouée (${r.status}), nouvelle tentative dans 1s...`);
+        await new Promise(res => setTimeout(res, 1000));
+        continue;
+      }
+
+      // Si autre erreur → on ne retente pas
+      console.error("[EcoV2] readBin status non géré :", r.status);
+      break;
+
+    } catch (e) {
+      console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} erreur réseau, retry...`, e);
+      await new Promise(res => setTimeout(res, 1000));
+    }
   }
-  async function writeBin(record){
-    try{
-      const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
-        method:"PUT",
-        headers:{
-          "Content-Type":"application/json",
-          "X-Master-Key":API_KEY,
-          "X-Bin-Versioning":"false"
+
+  err("readBin", "Échec après plusieurs tentatives");
+  return null;
+}
+
+async function writeBin(record, retries = 3) {
+  const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": API_KEY,
+          "X-Bin-Versioning": "false"
         },
         body: JSON.stringify(record)
       });
-      if(!r.ok) throw new Error("Write failed");
-      return await r.json();
-    }catch(e){ err("writeBin", e); }
+
+      if (r.ok) {
+        log(`[EcoV2] writeBin succès (tentative ${i + 1})`);
+        return await r.json();
+      }
+
+      if ([425, 429, 500, 502, 503].includes(r.status)) {
+        console.warn(`[EcoV2] writeBin tentative ${i + 1}/${retries} échouée (${r.status}), retry dans 1s...`);
+        await new Promise(res => setTimeout(res, 1000));
+        continue;
+      }
+
+      throw new Error(`writeBin status ${r.status}`);
+
+    } catch (e) {
+      console.warn(`[EcoV2] writeBin tentative ${i + 1}/${retries} erreur, retry...`, e);
+      await new Promise(res => setTimeout(res, 1000));
+    }
   }
+
+  err("writeBin", "Échec après plusieurs tentatives");
+}
 
   // ---------- Extractors ----------
   function getPseudo(){ try{ return _userdata?.username?.trim() || null; }catch(e){ return null; } }
