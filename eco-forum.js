@@ -322,10 +322,21 @@ console.log("[EcoV2] >>> début du script");
       const btn = f.querySelector('input[type="submit"], button[type="submit"]');
       if (btn) btn.addEventListener("click", handler);
 
-      // Cas spécial création directe de sujet
+     // 🧩 Cas spécial création directe de sujet (sauvegarde AVANT le reload)
       if (location.href.includes("mode=newtopic")) {
         const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
-        if (sendBtn) sendBtn.addEventListener("click", handler);
+        if (sendBtn) {
+          sendBtn.addEventListener("mousedown", () => {
+            try {
+              const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+              const data = { t: Date.now(), newTopic: true, fid };
+              sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+              console.log("[EcoV2] 🧷 mousedown sauvegardé juste avant reload :", data);
+            } catch (e) {
+              console.error("[EcoV2] newtopic mousedown error", e);
+            }
+          });
+        }
       }
     });
   }
