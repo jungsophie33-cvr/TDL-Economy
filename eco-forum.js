@@ -322,22 +322,47 @@ console.log("[EcoV2] >>> début du script");
       const btn = f.querySelector('input[type="submit"], button[type="submit"]');
       if (btn) btn.addEventListener("click", handler);
 
-     // 🧩 Cas spécial création directe de sujet (sauvegarde AVANT le reload)
-      if (location.href.includes("mode=newtopic")) {
-        const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
-        if (sendBtn) {
-          sendBtn.addEventListener("mousedown", () => {
-            try {
-              const fid = f.querySelector("input[name='f']")?.value || location.pathname;
-              const data = { t: Date.now(), newTopic: true, fid };
-              sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-              console.log("[EcoV2] 🧷 mousedown sauvegardé juste avant reload :", data);
-            } catch (e) {
-              console.error("[EcoV2] newtopic mousedown error", e);
-            }
-          });
-        }
+     // 🧩 Cas spécial création directe de sujet (trace + sauvegarde avant reload)
+if (location.href.includes("mode=newtopic")) {
+  const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
+  if (sendBtn) {
+    // clic : premier déclenchement standard
+    sendBtn.addEventListener("click", () => {
+      console.log("[EcoV2][DEBUG] click sur Envoyer (newtopic)");
+    });
+
+    // mousedown : devrait se produire AVANT reload
+    sendBtn.addEventListener("mousedown", () => {
+      try {
+        console.log("[EcoV2][DEBUG] mousedown détecté, tentative d'enregistrement ecoJustPosted…");
+        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+        const data = { t: Date.now(), newTopic: true, fid };
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+        console.log("[EcoV2][DEBUG] sessionStorage après mousedown =", sessionStorage.getItem("ecoJustPosted"));
+      } catch (e) {
+        console.error("[EcoV2] newtopic mousedown error", e);
       }
+    });
+
+    // submit : dernier filet
+    f.addEventListener("submit", () => {
+      console.log("[EcoV2][DEBUG] submit détecté sur le form (newtopic)");
+    });
+
+    // beforeunload : tout dernier espoir
+    window.addEventListener("beforeunload", () => {
+      try {
+        console.log("[EcoV2][DEBUG] beforeunload déclenché !");
+        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+        const data = { t: Date.now(), newTopic: true, fid };
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+        console.log("[EcoV2][DEBUG] avant déchargement, sessionStorage =", sessionStorage.getItem("ecoJustPosted"));
+      } catch (e) {
+        console.error("[EcoV2][DEBUG] beforeunload error", e);
+      }
+    });
+  }
+}
     });
   }
 
