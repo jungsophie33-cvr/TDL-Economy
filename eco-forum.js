@@ -308,7 +308,8 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
-    f.addEventListener("submit", () => {
+    // ✅ ton écouteur principal
+    const handler = () => {
       try {
         const isNewTopic = !!f.querySelector("input[name='subject']");
         let forumId = null;
@@ -338,9 +339,17 @@ function ecoAttachPostListeners() {
       } catch (e) {
         console.error("[EcoV2] ecoAttachPostListeners error", e);
       }
-    });
+    };
+
+    // 🔹 écoute normale du submit
+    f.addEventListener("submit", handler);
+
+    // 🔹 ET on ajoute cette ligne pour intercepter les nouveaux sujets (bouton Envoyer)
+    const btn = f.querySelector('input[type="submit"], button[type="submit"]');
+    if (btn) btn.addEventListener("click", handler);
   });
 }
+
 
 // --- VÉRIFICATION APRÈS REDIRECTION ---
 async function ecoCheckPostGain(info) {
