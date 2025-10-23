@@ -158,7 +158,6 @@ async function writeBin(record, retries = 3) {
     record.cagnottes = record.cagnottes || {};
     GROUPS.forEach(g=>{ if(record.cagnottes[g] === undefined) record.cagnottes[g] = 0; });
     record.boutique = record.boutique || {};
-    await writeBin(record).catch(()=>null);
 
     const pseudo = getPseudo(), uid = getUserId();
 
@@ -346,16 +345,35 @@ function ecoAttachPostListeners() {
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
     const handler = () => {
-      try {
-        const isNewTopic = !!f.querySelector("input[name='subject']");
-        let forumId = f.querySelector("input[name='f']")?.value || location.pathname;
-        const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-        console.log("[EcoV2] 🧩 ecoJustPosted enregistré :", data);
-      } catch (e) {
-        console.error("[EcoV2] ecoAttachPostListeners error", e);
-      }
-    };
+  try {
+    const isNewTopic = !!f.querySelector("input[name='subject']");
+
+    // 1) essayer la breadcrumb (forum complet avec slug)
+    let forumId = null;
+    const bc = document.querySelector(".sub-header-path");
+    if (bc) {
+      const links = Array.from(bc.querySelectorAll('a[href*="/f"]'));
+      const last = links.pop();
+      if (last) forumId = last.getAttribute("href"); // ex: /f8-downtown-houma
+    }
+
+    // 2) sinon champ caché "f"
+    if (!forumId) {
+      const fInput = f.querySelector('input[name="f"]');
+      forumId = fInput ? fInput.value : null;          // ex: "8"
+    }
+
+    // 3) fallback final
+    if (!forumId) forumId = location.pathname;         // ex: /post...
+
+    const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
+    sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+    console.log("[EcoV2] 🧩 ecoJustPosted enregistré :", data);
+  } catch (e) {
+    console.error("[EcoV2] ecoAttachPostListeners error", e);
+  }
+};
+
 
     // Capture standard (réponses)
     f.addEventListener("submit", handler);
@@ -419,47 +437,69 @@ function ecoAttachPostListeners() {
   }
 
   // --- VÉRIFICATION APRÈS REDIRECTION ---
-  async function ecoCheckPostGain(info) {
-    try {
-      const s = info || JSON.parse(sessionStorage.getItem("ecoJustPosted") || "null");
-      if (!s) return;
+async function ecoCheckPostGain(info) {
+  try {
+    const s = info || JSON.parse(sessionStorage.getItem("ecoJustPosted") || "null");
+    if (!s) return;
 
-      const pseudo = getPseudo(); if (!pseudo) return;
-      await new Promise(r => setTimeout(r, 1500)); // petit délai anti-425
-      const record = await readBin(); if (!record) return;
-      const membres = record.membres; if (!membres[pseudo]) return;
+    const pseudo = getPseudo();
+    if (!pseudo) return;
 
-      // Uniformiser le forumId
-      let path = s.fid ? String(s.fid).toLowerCase() : location.pathname.toLowerCase();
-      if (/^\d+$/.test(path)) path = `/f${path}`;
-      if (!path) path = location.pathname.toLowerCase();
+    // petite pause pour laisser FA peindre la breadcrumb
+    await new Promise(r => setTimeout(r, 1200));
 
-      const isNew = !!s.newTopic;
-      let gain = 0;
+    const record = await readBin();
+    if (!record) return;
+    const membres = record.membres || {};
+    if (!membres[pseudo]) return;
 
-      if (path.includes(FORUM_IDS.presentations))
-        gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
-      else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos))
-        gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
-      else if (RP_ZONES.some(z => path.includes(z)))
-        gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
-      else {
-        const title = document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent.toLowerCase() || "";
-        if (title.includes(FORUM_IDS.voteTopicName) && !isNew)
-          gain = GAIN_RULES.vote_topic_reply;
-      }
-
-      if (gain > 0) {
-        membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
-        await writeBin(record);
-        showEcoGain(gain);
-        updatePostDollars();
-        console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
-      }
-    } catch (e) {
-      err("ecoCheckPostGain", e);
+    // 1) essayer de récupérer le forum complet depuis la breadcrumb
+    let path = "";
+    const bc = document.querySelector(".sub-header-path");
+    if (bc) {
+      const links = Array.from(bc.querySelectorAll('a[href*="/f"]'));
+      const last = links.pop();
+      if (last) path = last.getAttribute("href").toLowerCase(); // ex: /f8-downtown-houma
     }
+
+    // 2) sinon : ce qu'on a sauvegardé avant envoi
+    if (!path && s.fid) {
+      path = String(s.fid).toLowerCase();
+      // si c'est un numéro, on reconstruit /f8 (mieux que rien)
+      if (/^\d+$/.test(path)) path = `/f${path}`;
+    }
+
+    // 3) fallback ultime : URL courante (souvent /t... donc peu utile)
+    if (!path) path = location.pathname.toLowerCase();
+
+    const isNew = !!s.newTopic;
+    let gain = 0;
+
+    // mapping
+    if (path.includes(FORUM_IDS.presentations)) {
+      gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
+    } else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
+      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
+    } else if (RP_ZONES.some(z => path.includes(z))) {
+      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
+    } else {
+      const title = (document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent || "").toLowerCase();
+      if (title.includes(FORUM_IDS.voteTopicName) && !isNew) gain = GAIN_RULES.vote_topic_reply;
+    }
+
+    console.log("[EcoV2][gain-check] path=", path, "isNew=", isNew, "gain=", gain);
+
+    if (gain > 0) {
+      membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
+      await writeBin(record);
+      showEcoGain(gain);
+      updatePostDollars();
+      console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+    }
+  } catch (e) {
+    err("ecoCheckPostGain", e);
   }
+}
 
   // --- POST-DELAY (après redirection Forumactif) ---
   window.addEventListener("load", () => {
