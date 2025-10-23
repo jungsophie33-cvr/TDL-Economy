@@ -429,6 +429,21 @@ setTimeout(() => {
   }
 }, 3000);
 
+  // 🧩 Fallback ultime : capture avant rechargement (cas Forumactif newtopic sans prévisualisation)
+if (location.href.includes("/post") && location.href.includes("mode=newtopic")) {
+  window.addEventListener("beforeunload", () => {
+    try {
+      const fInput = document.querySelector('input[name="f"]');
+      const fid = fInput ? fInput.value : location.pathname;
+      const data = { t: Date.now(), newTopic: true, fid };
+      sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+      console.log("[EcoV2] 💾 Fallback beforeunload enregistré :", data);
+    } catch (e) {
+      console.error("[EcoV2] beforeunload error", e);
+    }
+  });
+}
+
 // --- POST-DELAY (après redirection Forumactif) ---
 window.addEventListener("load", () => {
   setTimeout(async () => {
