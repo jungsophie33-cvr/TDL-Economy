@@ -328,93 +328,57 @@ async function writeBin(record, retries = 3) {
     "/f12-terrebonne-bay"
   ];
 
-  // --- DÉTECTION DES POSTS (installée au bon moment) ---
-  function ecoAttachPostListeners() {
-    const forms = document.querySelectorAll(
-      'form[name="post"], form#quick_reply, form[action*="post"], form[action*="posting"], form#qrform'
-    );
-    if (!forms.length) { console.warn("[EcoV2] Aucun formulaire de post trouvé (attente DOM)."); return; }
+// --- DÉTECTION DES POSTS (nouveau + correctif newtopic direct) ---
+function ecoAttachPostListeners() {
+  const forms = document.querySelectorAll(
+    'form[name="post"], form#quick_reply, form[action*="post"], form[action*="posting"], form#qrform'
+  );
 
-    forms.forEach(f => {
-      if (f.__eco_listening) return;
-      f.__eco_listening = true;
+  if (!forms.length) {
+    console.warn("[EcoV2] Aucun formulaire de post trouvé (attente DOM).");
+    return;
+  }
 
-      log("Formulaire de post détecté :", f.action || "(aucune action)");
+  forms.forEach(f => {
+    if (f.__eco_listening) return;
+    f.__eco_listening = true;
 
-      const handler = () => {
+    log("Formulaire de post détecté :", f.action || "(aucune action)");
+
+    const handler = () => {
+      try {
+        const isNewTopic = !!f.querySelector("input[name='subject']");
+        let forumId = f.querySelector("input[name='f']")?.value || location.pathname;
+        const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+        console.log("[EcoV2] 🧩 ecoJustPosted enregistré :", data);
+      } catch (e) {
+        console.error("[EcoV2] ecoAttachPostListeners error", e);
+      }
+    };
+
+    // Capture standard (réponses)
+    f.addEventListener("submit", handler);
+
+    // Capture sur clic bouton envoyer
+    const btn = f.querySelector('input[type="submit"], button[type="submit"]');
+    if (btn) btn.addEventListener("click", handler);
+
+    // --- Cas spécial : création directe d’un nouveau sujet (sans prévisualisation) ---
+    if (location.href.includes("mode=newtopic")) {
+      window.addEventListener("beforeunload", () => {
         try {
-          const isNewTopic = !!f.querySelector("input[name='subject']");
-          let forumId = null;
-
-          const forumIdField = f.querySelector("input[name='f']");
-          if (forumIdField) forumId = forumIdField.value;
-
-          if (!forumId) {
-            const breadcrumb = document.querySelector(".sub-header-path");
-            if (breadcrumb) {
-              const forumLink = Array.from(breadcrumb.querySelectorAll("a[href*='/f']")).pop();
-              if (forumLink) forumId = forumLink.getAttribute("href");
-            }
-          }
-
-          if (!forumId) forumId = location.pathname;
-
-          const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
+          const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+          const data = { t: Date.now(), newTopic: true, fid };
           sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-          // log court :
-          // console.log("[EcoV2] post intercepté", data);
+          console.log("[EcoV2] 💾 beforeunload newtopic enregistré :", data);
         } catch (e) {
-          console.error("[EcoV2] ecoAttachPostListeners error", e);
+          console.error("[EcoV2] beforeunload newtopic error", e);
         }
-      };
-
-      f.addEventListener("submit", handler);
-      const btn = f.querySelector('input[type="submit"], button[type="submit"]');
-      if (btn) btn.addEventListener("click", handler);
-
-     // 🧩 Cas spécial création directe de sujet (trace + sauvegarde avant reload)
-if (location.href.includes("mode=newtopic")) {
-  const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
-  if (sendBtn) {
-    // clic : premier déclenchement standard
-    sendBtn.addEventListener("click", () => {
-      console.log("[EcoV2][DEBUG] click sur Envoyer (newtopic)");
-    });
-
-    // mousedown : devrait se produire AVANT reload
-    sendBtn.addEventListener("mousedown", () => {
-      try {
-        console.log("[EcoV2][DEBUG] mousedown détecté, tentative d'enregistrement ecoJustPosted…");
-        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
-        const data = { t: Date.now(), newTopic: true, fid };
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-        console.log("[EcoV2][DEBUG] sessionStorage après mousedown =", sessionStorage.getItem("ecoJustPosted"));
-      } catch (e) {
-        console.error("[EcoV2] newtopic mousedown error", e);
-      }
-    });
-
-    // submit : dernier filet
-    f.addEventListener("submit", () => {
-      console.log("[EcoV2][DEBUG] submit détecté sur le form (newtopic)");
-    });
-
-    // beforeunload : tout dernier espoir
-    window.addEventListener("beforeunload", () => {
-      try {
-        console.log("[EcoV2][DEBUG] beforeunload déclenché !");
-        const fid = f.querySelector("input[name='f']")?.value || location.pathname;
-        const data = { t: Date.now(), newTopic: true, fid };
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
-        console.log("[EcoV2][DEBUG] avant déchargement, sessionStorage =", sessionStorage.getItem("ecoJustPosted"));
-      } catch (e) {
-        console.error("[EcoV2][DEBUG] beforeunload error", e);
-      }
-    });
-  }
+      });
+    }
+  });
 }
-    });
-  }
 
   // Installer les écouteurs AU CHARGEMENT, après un petit délai (FA injecte parfois tard)
   window.addEventListener("load", () => {
