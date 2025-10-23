@@ -3,6 +3,13 @@
 console.log("[EcoV2] >>> début du script");
 (function(){
 
+  // Stop complet si invité
+if (typeof _userdata === "undefined" || !_userdata || _userdata.user_id == -1 || _userdata.username === "anonymous") {
+  console.log("[EcoV2] invité détecté — économie désactivée.");
+  return;
+}
+
+
 // ---------- CONFIG ----------
 const BIN_ID = "68f92d16d0ea881f40b3f36f";
 const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
@@ -104,8 +111,21 @@ async function coreInit(){
   record.boutique=record.boutique||{};
   await writeBin(record).catch(()=>null);
 
-  const pseudo=getPseudo(),uid=getUserId();
-  if(!pseudo){loading.replaceWith(createErrorBanner("Connecte-toi pour initialiser l'économie."));return;}
+const pseudo = getPseudo(), uid = getUserId();
+
+// --- Protection contre les invités / anonymous ---
+if (!pseudo || pseudo.toLowerCase() === "anonymous" || uid === -1) {
+  loading.replaceWith(createErrorBanner("Les invités n'ont pas accès à l'économie."));
+  console.warn("[EcoV2] Ignoré : utilisateur invité (anonymous)");
+  return;
+}
+
+// --- Si jamais pseudo vide (bug temporaire de Forumactif) ---
+if (!pseudo) {
+  loading.replaceWith(createErrorBanner("Connecte-toi pour initialiser l'économie."));
+  return;
+}
+
 
   if(!record.membres[pseudo]){
     const g=await fetchUserGroupFromProfile(uid);
