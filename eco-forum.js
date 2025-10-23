@@ -308,7 +308,6 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
-    // ✅ ton écouteur principal
     const handler = () => {
       try {
         const isNewTopic = !!f.querySelector("input[name='subject']");
@@ -330,46 +329,45 @@ function ecoAttachPostListeners() {
         // 3️⃣ fallback
         if (!forumId) forumId = location.pathname;
 
-        sessionStorage.setItem(
-          "ecoJustPosted",
-          JSON.stringify({ t: Date.now(), newTopic: isNewTopic, fid: forumId })
-        );
-
-        console.log("[EcoV2] ➕ Post intercepté : forum =", forumId, "isNew =", isNewTopic);
+        const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
+        sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+        console.log("[EcoV2] 🧩 handler exécuté, ecoJustPosted =", data);
       } catch (e) {
         console.error("[EcoV2] ecoAttachPostListeners error", e);
       }
-
-      // 🧩 Cas spécial : création directe de sujet (sans prévisualisation)
-  if (location.href.includes("mode=newtopic")) {
-  const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
-  if (sendBtn) {
-    sendBtn.addEventListener("click", () => {
-      try {
-        const forumId = f.querySelector("input[name='f']")?.value || location.pathname;
-        sessionStorage.setItem(
-          "ecoJustPosted",
-          JSON.stringify({ t: Date.now(), newTopic: true, fid: forumId })
-        );
-        console.log("[EcoV2] 📝 Sujet intercepté (envoi direct) :", forumId);
-      } catch (e) {
-        console.error("[EcoV2] newtopic direct error", e);
-      }
-      });
-    }
-  }
-
     };
 
-    // 🔹 écoute normale du submit
+    // 🔹 écouteur standard
     f.addEventListener("submit", handler);
 
-    // 🔹 ET on ajoute cette ligne pour intercepter les nouveaux sujets (bouton Envoyer)
+    // 🔹 écouteur sur le bouton "Envoyer"
     const btn = f.querySelector('input[type="submit"], button[type="submit"]');
-    if (btn) btn.addEventListener("click", handler);
+    if (btn) {
+      btn.addEventListener("click", e => {
+        console.log("[EcoV2] 🖱️ Click détecté sur bouton Envoyer", btn.value);
+        handler(); // on sauve avant rechargement
+      });
+    }
+
+    // 🧩 Cas spécial création directe de sujet
+    if (location.href.includes("mode=newtopic")) {
+      console.log("[EcoV2] mode=newtopic détecté");
+      const sendBtn = f.querySelector('input[name="post"], input[type="submit"], button[type="submit"]');
+      if (sendBtn) {
+        sendBtn.addEventListener("click", () => {
+          try {
+            const fid = f.querySelector("input[name='f']")?.value || location.pathname;
+            const data = { t: Date.now(), newTopic: true, fid };
+            sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
+            console.log("[EcoV2] 📝 Sujet intercepté (envoi direct) :", data);
+          } catch (e) {
+            console.error("[EcoV2] newtopic direct error", e);
+          }
+        });
+      }
+    }
   });
 }
-
 
 // --- VÉRIFICATION APRÈS REDIRECTION ---
 async function ecoCheckPostGain(info) {
