@@ -249,19 +249,56 @@ if (!pseudo) {
   updatePostDollars(); // <-- affiche les bons montants dans les profils
 } // coreInit end
 
+  // ---------- BOOT ----------
+let tries = 0;
+const timer = setInterval(async () => {
+  tries++;
+  const menu = document.querySelector(MENU_SELECTOR);
+  if (menu) {
+    clearInterval(timer);
+    try { await coreInit(); } catch (e) { err("coreInit", e); }
+  } else if (tries >= RETRY_MAX) {
+    clearInterval(timer);
+    warn("menu not found");
+    document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable."));
+  }
+}, RETRY_INTERVAL_MS);
+  
 // ---------- GAINS AUTOMATIQUES ----------
-const GAIN_RULES={presentation_new:20,presentation_reply:5,preliens_or_gestion_new:10,preliens_or_gestion_reply:2,houma_terrebonne_new:15,houma_terrebonne_reply:10,vote_topic_reply:2};
-const FORUM_IDS={presentations:"/f5-presentations",preliens:"/f3-pre-liens",gestionPersos:"/f6-gestion-des-personnages",voteTopicName:"vote aux top-sites"};
-const RP_ZONES=["/f7-les-bayous-sauvages","/f8-downtown-houma","/f9-bayou-cane","/f10-bayou-blue","/f11-mandalay-national-wildlife-refuge","/f12-terrebonne-bay"];
+const GAIN_RULES = {
+  presentation_new: 20,
+  presentation_reply: 5,
+  preliens_or_gestion_new: 10,
+  preliens_or_gestion_reply: 2,
+  houma_terrebonne_new: 15,
+  houma_terrebonne_reply: 10,
+  vote_topic_reply: 2
+};
 
+const FORUM_IDS = {
+  presentations: "/f5-presentations",
+  preliens: "/f3-pre-liens",
+  gestionPersos: "/f6-gestion-des-personnages",
+  voteTopicName: "vote aux top-sites"
+};
+
+const RP_ZONES = [
+  "/f7-les-bayous-sauvages",
+  "/f8-downtown-houma",
+  "/f9-bayou-cane",
+  "/f10-bayou-blue",
+  "/f11-mandalay-national-wildlife-refuge",
+  "/f12-terrebonne-bay"
+];
+
+// --- DÉTECTION DES POSTS ---
 function ecoAttachPostListeners() {
-  // On cherche tous les formulaires de post (nouveau sujet ou réponse rapide)
   const forms = document.querySelectorAll(
-    'form[name="post"], form[id*="post"], form[action*="post"], form[action*="posting"], form#quick_reply, form#qrform'
+    'form[name="post"], form#quick_reply, form[action*="post"], form[action*="posting"], form#qrform'
   );
 
   if (!forms.length) {
-    console.warn("[EcoV2] Aucun formulaire de post trouvé.");
+    console.warn("[EcoV2] Aucun formulaire de post trouvé (attente DOM).");
     return;
   }
 
@@ -271,24 +308,16 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
-function ecoAttachPostListeners() {
-  const forms = document.querySelectorAll("form[name='post'], form#quick_reply, form[action*='post'], form[action*='posting']");
-  forms.forEach(f => {
-    if (f.__eco_listening) return;
-    f.__eco_listening = true;
-
-    log("Formulaire de post détecté :", f.action);
-
     f.addEventListener("submit", () => {
       try {
         const isNewTopic = !!f.querySelector("input[name='subject']");
         let forumId = null;
 
-        // 1️⃣ priorité : champ caché du formulaire
+        // 1️⃣ champ caché
         const forumIdField = f.querySelector("input[name='f']");
         if (forumIdField) forumId = forumIdField.value;
 
-        // 2️⃣ sinon, déduction via la breadcrumb (chemin en haut)
+        // 2️⃣ breadcrumb (fil d’Ariane)
         if (!forumId) {
           const breadcrumb = document.querySelector(".sub-header-path");
           if (breadcrumb) {
@@ -297,14 +326,13 @@ function ecoAttachPostListeners() {
           }
         }
 
-        // 3️⃣ fallback final : URL courante
+        // 3️⃣ fallback
         if (!forumId) forumId = location.pathname;
 
-        sessionStorage.setItem("ecoJustPosted", JSON.stringify({
-          t: Date.now(),
-          newTopic: isNewTopic,
-          fid: forumId
-        }));
+        sessionStorage.setItem(
+          "ecoJustPosted",
+          JSON.stringify({ t: Date.now(), newTopic: isNewTopic, fid: forumId })
+        );
 
         console.log("[EcoV2] ➕ Post intercepté : forum =", forumId, "isNew =", isNewTopic);
       } catch (e) {
@@ -314,55 +342,72 @@ function ecoAttachPostListeners() {
   });
 }
 
-async function ecoCheckPostGain(info){
-  try{
-    const s=info||JSON.parse(sessionStorage.getItem("ecoJustPosted")||"null");
-    if(!s)return;
-    const pseudo=getPseudo();if(!pseudo)return;
-    const record=await readBin();if(!record)return;
-    const membres=record.membres;if(!membres[pseudo])return;
-    let path=location.pathname.toLowerCase();
-    const isNew=!!s.newTopic;let gain=0;
-    if(path.includes(FORUM_IDS.presentations))gain=isNew?GAIN_RULES.presentation_new:GAIN_RULES.presentation_reply;
-    else if(path.includes(FORUM_IDS.preliens)||path.includes(FORUM_IDS.gestionPersos))gain=isNew?GAIN_RULES.preliens_or_gestion_new:GAIN_RULES.preliens_or_gestion_reply;
-    else if(RP_ZONES.some(z=>path.includes(z)))gain=isNew?GAIN_RULES.houma_terrebonne_new:GAIN_RULES.houma_terrebonne_reply;
-    else{
-      const title=document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent.toLowerCase()||"";
-      if(title.includes(FORUM_IDS.voteTopicName)&&!isNew)gain=GAIN_RULES.vote_topic_reply;
+// --- VÉRIFICATION APRÈS REDIRECTION ---
+async function ecoCheckPostGain(info) {
+  try {
+    const s = info || JSON.parse(sessionStorage.getItem("ecoJustPosted") || "null");
+    if (!s) return;
+
+    const pseudo = getPseudo();
+    if (!pseudo) return;
+
+    const record = await readBin();
+    if (!record) return;
+
+    const membres = record.membres;
+    if (!membres[pseudo]) return;
+
+    let path = location.pathname.toLowerCase();
+    const isNew = !!s.newTopic;
+    let gain = 0;
+
+    if (path.includes(FORUM_IDS.presentations))
+      gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
+    else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos))
+      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
+    else if (RP_ZONES.some(z => path.includes(z)))
+      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
+    else {
+      const title = document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent.toLowerCase() || "";
+      if (title.includes(FORUM_IDS.voteTopicName) && !isNew)
+        gain = GAIN_RULES.vote_topic_reply;
     }
-    if(gain>0){
-      membres[pseudo].dollars=(membres[pseudo].dollars||0)+gain;
-      await writeBin(record);showEcoGain(gain);updatePostDollars();
+
+    if (gain > 0) {
+      membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
+      await writeBin(record);
+      showEcoGain(gain);
+      updatePostDollars();
+      console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
     }
-  }catch(e){err("ecoCheckPostGain",e);}
+  } catch (e) {
+    err("ecoCheckPostGain", e);
+  }
 }
-
+  
+// --- ACTIVATION IMMÉDIATE + RELANCE ---
 ecoAttachPostListeners();
-
-    setTimeout(() => {
+setTimeout(() => {
   if (!sessionStorage.getItem("ecoJustPosted")) {
-    console.warn("[EcoV2] Aucun post intercepté, vérifie les forms détectés.");
-    ecoAttachPostListeners(); // relance au cas où le DOM a été modifié tardivement
+    console.warn("[EcoV2] Aucun post intercepté, relance du listener.");
+    ecoAttachPostListeners();
   }
 }, 3000);
 
+// --- POST-DELAY (après redirection Forumactif) ---
+window.addEventListener("load", () => {
+  setTimeout(async () => {
+    const s = sessionStorage.getItem("ecoJustPosted");
+    if (!s) return;
 
-// ---------- BOOT ----------
-let tries=0;
-const timer=setInterval(async()=>{
-  tries++;
-  const menu=document.querySelector(MENU_SELECTOR);
-  if(menu){clearInterval(timer);try{await coreInit();}catch(e){err("coreInit",e);}}
-  else if(tries>=RETRY_MAX){clearInterval(timer);warn("menu not found");document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable."));}
-},RETRY_INTERVAL_MS);
+    const data = JSON.parse(s);
+    const age = Date.now() - data.t;
+    if (age > 30000) return sessionStorage.removeItem("ecoJustPosted");
 
-// ---------- POST DELAY ----------
-window.addEventListener("load",()=>{
-  setTimeout(async()=>{
-    const s=sessionStorage.getItem("ecoJustPosted");if(!s)return;
-    const data=JSON.parse(s);if(Date.now()-data.t>30000)return sessionStorage.removeItem("ecoJustPosted");
-    await ecoCheckPostGain(data);sessionStorage.removeItem("ecoJustPosted");
-  },2500);
+    console.log("[EcoV2] 🔁 Vérif différée du post :", data);
+    await ecoCheckPostGain(data);
+    sessionStorage.removeItem("ecoJustPosted");
+  }, 2500);
 });
 
 // ---------- NOTIFICATION ----------
