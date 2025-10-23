@@ -12,7 +12,7 @@ console.log("[EcoV2] >>> début du script");
   // ---------- CONFIG ----------
   const BIN_ID = "68f92d16d0ea881f40b3f36f";
   const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
-  const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/";
+  const JSONBIN_PROXY_BASE = "https://api.allorigins.win/raw?url=https://api.jsonbin.io/v3/b/";
   const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
   const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles"];
   const DEFAULT_DOLLARS = 10;
@@ -396,6 +396,7 @@ if (location.href.includes("mode=newtopic")) {
       if (!s) return;
 
       const pseudo = getPseudo(); if (!pseudo) return;
+      await new Promise(r => setTimeout(r, 1500)); // petit délai anti-425
       const record = await readBin(); if (!record) return;
       const membres = record.membres; if (!membres[pseudo]) return;
 
@@ -424,6 +425,7 @@ if (location.href.includes("mode=newtopic")) {
         await writeBin(record);
         showEcoGain(gain);
         updatePostDollars();
+        console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
       }
     } catch (e) {
       err("ecoCheckPostGain", e);
