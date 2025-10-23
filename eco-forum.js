@@ -254,18 +254,58 @@ const GAIN_RULES={presentation_new:20,presentation_reply:5,preliens_or_gestion_n
 const FORUM_IDS={presentations:"/f5-presentations",preliens:"/f3-pre-liens",gestionPersos:"/f6-gestion-des-personnages",voteTopicName:"vote aux top-sites"};
 const RP_ZONES=["/f7-les-bayous-sauvages","/f8-downtown-houma","/f9-bayou-cane","/f10-bayou-blue","/f11-mandalay-national-wildlife-refuge","/f12-terrebonne-bay"];
 
-function ecoAttachPostListeners(){
-  document.querySelectorAll("form[name='post'],form#quick_reply,form[action*='post']").forEach(f=>{
-    if(f.__eco_listening)return;f.__eco_listening=true;
-    f.addEventListener("submit",()=>{
-      try{
-        const isNew=!!f.querySelector("input[name='subject']");
-        let fid=f.querySelector("input[name='f']")?.value||location.pathname;
-        sessionStorage.setItem("ecoJustPosted",JSON.stringify({t:Date.now(),newTopic:isNew,fid}));
-      }catch(e){err("ecoAttachPost",e);}
+function ecoAttachPostListeners() {
+  // On cherche tous les formulaires de post (nouveau sujet ou réponse rapide)
+  const forms = document.querySelectorAll(
+    'form[name="post"], form[id*="post"], form[action*="post"], form[action*="posting"], form#quick_reply, form#qrform'
+  );
+
+  if (!forms.length) {
+    console.warn("[EcoV2] Aucun formulaire de post trouvé.");
+    return;
+  }
+
+  forms.forEach(f => {
+    if (f.__eco_listening) return;
+    f.__eco_listening = true;
+
+    log("Formulaire de post détecté :", f.action || "(aucune action)");
+
+    f.addEventListener("submit", () => {
+      try {
+        const isNewTopic = !!f.querySelector('input[name="subject"]');
+        let forumId = null;
+
+        // 1️⃣ priorité : champ caché dans le formulaire
+        const forumIdField = f.querySelector('input[name="f"]');
+        if (forumIdField) forumId = forumIdField.value;
+
+        // 2️⃣ sinon : essayer de le déduire depuis la breadcrumb
+        if (!forumId) {
+          const breadcrumb = document.querySelector(".sub-header-path");
+          if (breadcrumb) {
+            const forumLink = Array.from(breadcrumb.querySelectorAll('a[href*="/f"]')).pop();
+            if (forumLink) forumId = forumLink.getAttribute("href");
+          }
+        }
+
+        // 3️⃣ fallback final : URL courante
+        if (!forumId) forumId = location.pathname;
+
+        // On stocke l’info pour la relance après redirection
+        sessionStorage.setItem(
+          "ecoJustPosted",
+          JSON.stringify({ t: Date.now(), newTopic: isNewTopic, fid: forumId })
+        );
+
+        console.log("[EcoV2] ➕ Post intercepté :", forumId, "isNew =", isNewTopic);
+      } catch (e) {
+        console.error("[EcoV2] ecoAttachPostListeners error", e);
+      }
     });
   });
 }
+
 
 async function ecoCheckPostGain(info){
   try{
