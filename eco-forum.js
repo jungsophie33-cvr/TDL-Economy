@@ -684,7 +684,7 @@ await new Promise(resolve => {
     else if (RP_ZONES.some(z => path.includes(z))) {
       gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
     }
-    else if (path.includes(FORUM_IDS.voteTopicName)) {
+    else if (location.pathname.includes(FORUM_IDS.voteTopicName)) {
     // 💡 votes aux top-sites → uniquement pour les réponses (pas de nouveau sujet)
       if (!isNew) gain = GAIN_RULES.vote_topic_reply;
     }
