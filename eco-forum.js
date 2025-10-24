@@ -599,9 +599,16 @@ async function ecoCheckPostGain(info) {
     const pseudo = getPseudo();
     if (!pseudo) return;
 
+    // --- Ignorer la page de prévisualisation (sauf création de nouveau sujet) ---
+    const isNewTopicPage = location.href.includes("mode=newtopic");
+    const isPreviewPage = document.querySelector('form[name="post"], form[action*="/post"]');
+    if (isPreviewPage && !isNewTopicPage) {
+      console.log("[EcoV2][GAIN] Prévisualisation détectée — aucun gain attribué.");
+      return;
+    }
+
     // petite pause pour laisser FA peindre la breadcrumb
     await new Promise(r => setTimeout(r, 1200));
-
     const record = await readBin();
     if (!record) return;
     const membres = record.membres || {};
