@@ -34,6 +34,7 @@ async function readBin(retries = 3) {
 
   for (let i = 0; i < retries; i++) {
     try {
+      await new Promise(r => setTimeout(r, 1500));
       const r = await fetch(url, {
         method: "GET",
         headers: {
@@ -72,6 +73,7 @@ async function writeBin(record, retries = 3) {
 
   for (let i = 0; i < retries; i++) {
     try {
+      await new Promise(r => setTimeout(r, 1500));
       const r = await fetch(url, {
         method: "PUT",
         headers: {
@@ -693,7 +695,7 @@ try {
       if (age > 30000) return sessionStorage.removeItem("ecoJustPosted");
       await ecoCheckPostGain(data);
       sessionStorage.removeItem("ecoJustPosted");
-    }, 2500);
+    }, 3500);
   });
 
   // ---------- FALLBACK GLOBAL (intercepte TOUS les posts avant envoi) ----------
