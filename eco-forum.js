@@ -719,7 +719,7 @@ try {
     await new Promise(resolve => {
       let tries = 0;
       const iv = setInterval(() => {
-        const posts = document.querySelectorAll(".post, .sj-post");
+        const posts = document.querySelectorAll(".post, .sj-postmsg");
         if (posts.length >= 2 || tries++ > 20) {
           clearInterval(iv);
           resolve();
