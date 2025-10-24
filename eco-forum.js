@@ -498,7 +498,7 @@ function ecoAttachPostListeners() {
 
     const handler = () => {
   try {
-    const isNewTopic = !!f.querySelector("input[name='subject']");
+    const isNewTopic = location.href.includes("mode=newtopic");
 
     // 1) essayer la breadcrumb (forum complet avec slug)
     let forumId = null;
@@ -625,6 +625,11 @@ async function ecoCheckPostGain(info) {
     if (!path) path = location.pathname.toLowerCase();
 
     const isNew = !!s.newTopic;
+    // Sécurité : si on n’est pas en mode "newtopic", on force à false
+    if (!location.href.includes("mode=newtopic")) {
+  isNew = false;
+}
+
     let gain = 0;
 
     // mapping
@@ -641,16 +646,16 @@ async function ecoCheckPostGain(info) {
 
     console.log("[EcoV2][gain-check] path=", path, "isNew=", isNew, "gain=", gain);
 
-    // --- BONUS TAGS ---
+// --- BONUS TAGS (version compatible ModernBB) ---
+let postText = "";
 try {
-  // Récupération du texte du message posté (fonctionne sur la page de redirection ou la page du sujet)
-  const postText = (
-    document.querySelector(".postbody, .content, .post")?.textContent || ""
-  ).toLowerCase();
+  const posts = Array.from(document.querySelectorAll(".sj-post-msg, .postbody, .content, .post, .message"));
+  if (posts.length > 0) {
+    const lastPost = posts[posts.length - 1];
+    postText = lastPost.textContent.toLowerCase();
+  }
 
   let tagBonus = 0;
-
-  // Vérifie la présence de chaque tag
   for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
     if (postText.includes(tag)) {
       tagBonus += bonus;
@@ -660,7 +665,7 @@ try {
 
   if (tagBonus > 0) {
     gain += tagBonus;
-    console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}`);
+    console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}, gain total = ${gain}`);
   }
 } catch (e) {
   console.warn("[EcoV2] erreur détection tags", e);
