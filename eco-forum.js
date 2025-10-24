@@ -618,21 +618,19 @@ async function ecoCheckPostGain(info) {
     const pseudo = getPseudo();
     if (!pseudo) return;
 
-// --- Ignorer la prévisualisation, l’édition et la suppression ---
-const href = location.href;
+// --- Ignorer toute page /post non liée à un envoi réel ---
+const href = location.href.toLowerCase();
 
-// 🧩 Cas 1 : /post sans mode=newtopic → prévisualisation
-// 🧩 Cas 2 : mode=editpost → édition d’un message existant
-// 🧩 Cas 3 : mode=delete → suppression d’un message
-if (
-  href.includes("/post") &&
-  (
-    (!href.includes("mode=newtopic") && !href.includes("mode=reply")) ||
-    href.includes("mode=editpost") ||
-    href.includes("mode=delete")
-  )
-) {
-  console.log("[EcoV2][GAIN] Page /post ignorée (prévisualisation, édition ou suppression).");
+// Liste des cas où il NE FAUT PAS donner de gain
+const isPreview = href.includes("/post") && !href.includes("mode=newtopic") && !href.includes("mode=reply");
+const isEdit = href.includes("mode=editpost");
+const isDelete = href.includes("mode=delete");
+
+// 🧩 Si on est dans l'un de ces cas, on sort immédiatement
+if (isPreview || isEdit || isDelete) {
+  const reason = isPreview ? "prévisualisation" : isEdit ? "édition" : "suppression";
+  console.log(`[EcoV2][GAIN] Action ignorée (${reason}) — aucun gain attribué.`);
+  sessionStorage.removeItem("ecoJustPosted"); // Nettoyage pour éviter les confusions
   return;
 }
 
