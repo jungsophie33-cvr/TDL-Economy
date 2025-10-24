@@ -517,36 +517,42 @@ function ecoAttachPostListeners() {
 
     log("Formulaire de post détecté :", f.action || "(aucune action)");
 
-    const handler = () => {
+const handler = () => {
   try {
-    const isNewTopic = location.href.includes("mode=newtopic");
+    // Détecter le mode à partir de l'URL d'action (ou d'un input caché "mode")
+    const urlObj = new URL(f.action || location.href, location.origin);
+    const mode = (urlObj.searchParams.get("mode") || f.querySelector('input[name="mode"]')?.value || "").toLowerCase();
 
-    // 1) essayer la breadcrumb (forum complet avec slug)
+    // ❌ Ne rien enregistrer pour édition/suppression
+    if (mode === "editpost" || mode === "delete") {
+      sessionStorage.removeItem("ecoJustPosted");
+      console.log("[EcoV2] submit ignoré (", mode, ") — aucun gain.");
+      return;
+    }
+
+    const isNewTopic = location.href.includes("mode=newtopic"); // ou !!f.querySelector('input[name="subject"]')
+    // ForumId : breadcrumb > input hidden f > fallback
     let forumId = null;
     const bc = document.querySelector(".sub-header-path");
     if (bc) {
       const links = Array.from(bc.querySelectorAll('a[href*="/f"]'));
       const last = links.pop();
-      if (last) forumId = last.getAttribute("href"); // ex: /f8-downtown-houma
+      if (last) forumId = last.getAttribute("href");
     }
-
-    // 2) sinon champ caché "f"
     if (!forumId) {
       const fInput = f.querySelector('input[name="f"]');
-      forumId = fInput ? fInput.value : null;          // ex: "8"
+      forumId = fInput ? fInput.value : null;
     }
+    if (!forumId) forumId = location.pathname;
 
-    // 3) fallback final
-    if (!forumId) forumId = location.pathname;         // ex: /post...
-
-    const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId };
+    // On enregistre aussi le "mode" pour que le check ultérieur sache quoi faire
+    const data = { t: Date.now(), newTopic: isNewTopic, fid: forumId, mode };
     sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
     console.log("[EcoV2] 🧩 ecoJustPosted enregistré :", data);
   } catch (e) {
     console.error("[EcoV2] ecoAttachPostListeners error", e);
   }
 };
-
 
     // Capture standard (réponses)
     f.addEventListener("submit", handler);
@@ -615,6 +621,13 @@ async function ecoCheckPostGain(info) {
     const s = info || JSON.parse(sessionStorage.getItem("ecoJustPosted") || "null");
     if (!s) return;
 
+    // 🚫 Sécurité : si le submit provenait d'une édition ou d'une suppression, on n'attribue rien
+if (s.mode === "editpost" || s.mode === "delete") {
+  console.log("[EcoV2][GAIN] Action ignorée (", s.mode, ") — aucun gain attribué.");
+  sessionStorage.removeItem("ecoJustPosted");
+  return;
+}
+
     const pseudo = getPseudo();
     if (!pseudo) return;
 
@@ -681,7 +694,13 @@ await new Promise(resolve => {
     // 3) fallback ultime : URL courante (souvent /t... donc peu utile)
     if (!path) path = location.pathname.toLowerCase();
 
-    let isNew = !!s.newTopic;
+    // isNew fiable : soit le mode explicite "newtopic", soit le flag newTopic
+    let isNew = (s.mode === "newtopic") || (!!s.newTopic && location.href.includes("mode=newtopic"));
+
+    // sécurité additionnelle : si on est clairement en édition/suppression, on force à false
+    if (s.mode === "editpost" || s.mode === "delete") {
+      isNew = false;
+    }
     let gain = 0;
 
     // --- DÉTERMINATION DU GAIN SELON LA ZONE ---
@@ -843,16 +862,27 @@ document.addEventListener("submit", e => {
     if (!form || !form.action) return;
     if (!form.action.includes("/post")) return; // seulement les formulaires de post Forumactif
 
+    // Détecter le mode depuis l'URL ou un input caché
+    const urlObj = new URL(form.action, location.origin);
+    const mode = (urlObj.searchParams.get("mode") || form.querySelector('input[name="mode"]')?.value || "").toLowerCase();
+
+    // ❌ Ignorer édition / suppression
+    if (mode === "editpost" || mode === "delete") {
+      sessionStorage.removeItem("ecoJustPosted");
+      console.log("[EcoV2][GLOBAL-FALLBACK] submit ignoré (", mode, ") — aucun gain.");
+      return;
+    }
+
     const isNewTopic = !!form.querySelector("input[name='subject']");
     let fid = form.querySelector("input[name='f']")?.value || location.pathname;
-    const data = { t: Date.now(), newTopic: isNewTopic, fid };
 
+    const data = { t: Date.now(), newTopic: isNewTopic, fid, mode };
     sessionStorage.setItem("ecoJustPosted", JSON.stringify(data));
     console.log("[EcoV2][GLOBAL-FALLBACK] 💾 Post intercepté juste avant envoi :", data);
   } catch (err) {
     console.error("[EcoV2][GLOBAL-FALLBACK] erreur interception submit", err);
   }
-}, true); // ⚠️ capture phase = true pour être déclenché AVANT la soumission réelle
+}, true);
 
   // ---------- NOTIFICATION ----------
   function showEcoGain(gain){
