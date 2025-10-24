@@ -364,6 +364,16 @@ if (transferBtn) {
 
     cagnottes[from] -= montant;
     cagnottes[to] = (cagnottes[to] || 0) + montant;
+    // 🧾 Journal des transferts entre cagnottes
+if (!rec.transactions_cagnottes) rec.transactions_cagnottes = [];
+rec.transactions_cagnottes.push({
+  date: new Date().toISOString(),
+  de: from,
+  vers: to,
+  montant,
+  effectué_par: pseudo
+});
+
     await writeBin(rec);
 
     alert(`✅ ${montant} Dollars transférés de ${from} vers ${to}.`);
@@ -395,6 +405,15 @@ if (transferMemberBtn) {
 
     membres[from].dollars -= montant;
     membres[to].dollars = (membres[to].dollars || 0) + montant;
+// 🧾 Journal des transactions entre membres
+if (!rec.transactions_membres) rec.transactions_membres = [];
+rec.transactions_membres.push({
+  date: new Date().toISOString(),
+  de: from,
+  vers: to,
+  montant,
+  effectué_par: pseudo // qui a initié la transaction
+});
 
     await writeBin(rec);
     alert(`✅ ${montant} Dollars transférés de ${from} à ${to}.`);
@@ -738,12 +757,22 @@ try {
 
     let tagBonus = 0;
     for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
-      if (text.includes(tag)) {
-        tagBonus += bonus;
-        console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
-      }
-    }
+      if (postText.includes(tag)) {
+          tagBonus += bonus;
+          console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
 
+          // 🧾 Journal des tags utilisés
+      if (!record.tags_usage) record.tags_usage = [];
+        record.tags_usage.push({
+        date: new Date().toISOString(),
+        membre: pseudo,
+        tag,
+        montant: bonus,
+        url: location.href
+      });
+    }
+  }
+    
     if (tagBonus > 0) {
       gain += tagBonus;
       console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}, gain total = ${gain}`);
