@@ -704,30 +704,42 @@ await new Promise(resolve => {
 
     console.log("[EcoV2][gain-check] path=", path, "isNew=", isNew, "gain=", gain);
 
-// --- BONUS TAGS (version compatible ModernBB) ---
-let postText = "";
+// --- BONUS TAGS (ignore les citations ModernBB) ---
 try {
-  const posts = Array.from(document.querySelectorAll(".sj-post-msg, .postbody, .content, .post, .message"));
+  const posts = Array.from(document.querySelectorAll(".sj-postmsg, .sj-post-msg"));
   if (posts.length > 0) {
     const lastPost = posts[posts.length - 1];
-    postText = lastPost.textContent.toLowerCase();
-  }
 
-  let tagBonus = 0;
-  for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
-    if (postText.includes(tag)) {
-      tagBonus += bonus;
-      console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
+    // 🧩 On clone pour travailler sans toucher au DOM
+    const clone = lastPost.cloneNode(true);
+
+    // 🚫 Supprime les citations (ModernBB utilise <blockquote><cite>…</cite>)
+    clone.querySelectorAll("blockquote, cite").forEach(el => el.remove());
+
+    // 🧹 Texte propre du message (sans HTML ni citation)
+    const text = clone.textContent.toLowerCase();
+
+    let tagBonus = 0;
+    for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
+      if (text.includes(tag)) {
+        tagBonus += bonus;
+        console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
+      }
     }
-  }
 
-  if (tagBonus > 0) {
-    gain += tagBonus;
-    console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}, gain total = ${gain}`);
+    if (tagBonus > 0) {
+      gain += tagBonus;
+      console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}, gain total = ${gain}`);
+    } else {
+      console.log("[EcoV2][TAG BONUS] aucun tag valide trouvé dans le message.");
+    }
+  } else {
+    console.log("[EcoV2][TAG BONUS] aucun message trouvé pour analyse.");
   }
 } catch (e) {
   console.warn("[EcoV2] erreur détection tags", e);
 }
+
 // --- BONUS DE RÉACTIVITÉ (RP) ---
 try {
   if (RP_ZONES.some(z => path.includes(z))) {
