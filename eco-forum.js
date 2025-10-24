@@ -599,14 +599,9 @@ async function ecoCheckPostGain(info) {
     const pseudo = getPseudo();
     if (!pseudo) return;
 
-    // --- Ignorer la page de prévisualisation (sauf création de nouveau sujet) ---
-    const url = location.href;
-const isNewTopicPage = url.includes("mode=newtopic");
-const isRealTopicPage = url.includes("/t");
-const isPreviewLike = url.includes("/post") && !isRealTopicPage && !isNewTopicPage;
-
-if (isPreviewLike) {
-  console.log("[EcoV2][GAIN] Prévisualisation détectée — aucun gain attribué.");
+   // --- Ignorer la page de prévisualisation ou d’édition (/post) ---
+if (location.pathname.includes("/post")) {
+  console.log("[EcoV2][GAIN] Page /post détectée (prévisualisation ou édition) — aucun gain attribué.");
   return;
 }
 
