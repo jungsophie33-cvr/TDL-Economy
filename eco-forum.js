@@ -727,7 +727,7 @@ try {
       }, 200);
     });
 
-    const posts = Array.from(document.querySelectorAll(".post, .sj-post"));
+    const posts = Array.from(document.querySelectorAll(".post, .sj-postmsg"));
     if (posts.length >= 2) {
       const prevPost = posts[posts.length - 2];
       const dateEl = prevPost.querySelector(".sj-post-date span:last-child");
