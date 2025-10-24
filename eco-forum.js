@@ -3,12 +3,6 @@
 console.log("[EcoV2] >>> début du script");
 (function(){
 
-  // Stop complet si invité
-  if (typeof _userdata === "undefined" || !_userdata || _userdata.user_id == -1 || _userdata.username === "anonymous") {
-    console.log("[EcoV2] invité détecté — économie désactivée.");
-    return;
-  }
-
   // ---------- CONFIG ----------
   const BIN_ID = "68f92d16d0ea881f40b3f36f";
   const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
@@ -27,7 +21,37 @@ console.log("[EcoV2] >>> début du script");
   function log(...a){try{console.log("[EcoV2]",...a);}catch(e){}}
   function warn(...a){try{console.warn("[EcoV2]",...a);}catch(e){}}
   function err(...a){try{console.error("[EcoV2]",...a);}catch(e){}}
-
+  // ---------- VISITEUR ----------
+  if(typeof _userdata==="undefined"||!_userdata||_userdata.user_id==-1||_userdata.username==="anonymous"){
+  console.log("[EcoV2] invité lecture seule");
+  (async()=>{
+    try{
+      const r=await fetch(`${JSONBIN_PROXY_BASE}${BIN_ID}/latest`,{headers:{"X-Master-Key":API_KEY}});
+      if(!r.ok) return console.warn("[EcoV2] échec lecture JSONBin invité");
+      const j=await r.json();const record=j.record||{};
+      const membres=record.membres||{};
+      // --- MàJ dollars dans les posts ---
+        document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
+          const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
+          if(!pseudoEl) return;
+          const pseudo = pseudoEl.textContent.trim();
+          const user = membres[pseudo]; if(!user) return;
+          const val = post.querySelector(".field-dollars span:not(.label)");
+          if(val) val.textContent = user.dollars ?? 0;
+        });
+        // --- MàJ cagnottes ---
+        if(record.cagnottes){
+          Object.entries(record.cagnottes).forEach(([g,v])=>{
+            const el = document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);
+            if(el) el.textContent = v;
+          });
+        }
+      }catch(e){console.warn("[EcoV2] erreur affichage invité",e);}
+    })();
+    // on ne continue PAS le reste du script
+    return;
+  }
+  
  // ---------- JSONBin helpers (version robuste avec retry & gestion CORS) ----------
 async function readBin(retries = 3) {
   const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
@@ -119,27 +143,6 @@ async function writeBin(record, retries = 3) {
     }catch(e){ err("fetchUserGroup", e); return null; }
   }
   
-// ---------- VISITEUR ----------
-if(typeof _userdata==="undefined"||!_userdata||_userdata.user_id==-1||_userdata.username==="anonymous"){
-  console.log("[EcoV2] invité lecture seule");
-  (async()=>{
-    try{
-      const r=await fetch(`${JSONBIN_PROXY_BASE}${BIN_ID}/latest`,{headers:{"X-Master-Key":API_KEY}});
-      if(!r.ok)return;
-      const j=await r.json();const record=j.record||{};const membres=record.membres||{};
-      document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(p=>{
-        const pe=p.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
-        if(!pe)return;const pseudo=pe.textContent.trim();
-        const val=p.querySelector(".field-dollars span:not(.label)");
-        if(membres[pseudo]&&val)val.textContent=membres[pseudo].dollars??0;
-      });
-      if(record.cagnottes)Object.entries(record.cagnottes).forEach(([g,v])=>{
-        const el=document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);if(el)el.textContent=v;
-      });
-    }catch(e){console.warn("[EcoV2] invité erreur",e);}
-  })();
-  return;
-}
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
   function createErrorBanner(m){ const b=document.createElement("div"); b.style.cssText="background:#ffdede;color:#600;border:2px solid #f99;padding:8px;text-align:center;margin:6px;"; b.textContent=m; return b; }
