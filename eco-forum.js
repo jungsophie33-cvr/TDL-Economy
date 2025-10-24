@@ -185,7 +185,6 @@ async function writeBin(record, retries = 3) {
       if(sj) sj.textContent = record.membres[pseudo].dollars;
     }catch(e){ err("sync sj-dollars", e); }
 
-    setTimeout(() => {
   try {
     GROUPS.forEach(g => {
       const el = document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);
@@ -194,8 +193,6 @@ async function writeBin(record, retries = 3) {
   } catch (e) {
     err("update eco-solde-box", e);
   }
-}, 600);
-
 
     // --- ADMIN BAR (pilotée par le template) ---
     const adminBar = document.getElementById("eco-admin-bar");
