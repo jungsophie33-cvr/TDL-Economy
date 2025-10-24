@@ -346,6 +346,29 @@ if (pseudo === "Mami Wata") {
       });
     }
   });
+    // --- Cagnotte → Membre ---
+const cagToMemberFrom = document.getElementById("eco-transfer-cag-to-member-from");
+if (cagToMemberFrom) {
+  cagToMemberFrom.innerHTML = "";
+  Object.keys(rec.cagnottes || {}).forEach(g => {
+    const o = document.createElement("option");
+    o.value = g;
+    o.textContent = g;
+    cagToMemberFrom.appendChild(o);
+  });
+}
+
+const cagToMemberTo = document.getElementById("eco-transfer-cag-to-member-to");
+if (cagToMemberTo) {
+  cagToMemberTo.innerHTML = "";
+  Object.keys(rec.membres || {}).sort().forEach(n => {
+    const o = document.createElement("option");
+    o.value = n;
+    o.textContent = n;
+    cagToMemberTo.appendChild(o);
+  });
+}
+
 }
     // --- AJUSTEMENT D’UN SOLDE MEMBRE ---
 const adjustBtn = document.getElementById("eco-adjust-btn");
@@ -449,6 +472,52 @@ rec.transactions_membres.push({
     const elTo = document.querySelector(".username strong:contains('" + to + "')");
     if (elFrom || elTo) updatePostDollars();
   });
+}
+    // --- TRANSFERT CAGNOTTE → MEMBRE (réservé admins) ---
+const transferCagToMemberBtn = document.getElementById("eco-transfer-cag-to-member-btn");
+if (transferCagToMemberBtn && ADMIN_USERS.includes(pseudo)) {
+  transferCagToMemberBtn.addEventListener("click", async () => {
+    const from = document.getElementById("eco-transfer-cag-to-member-from")?.value;
+    const to = document.getElementById("eco-transfer-cag-to-member-to")?.value;
+    const montant = parseInt(document.getElementById("eco-transfer-cag-to-member-amount")?.value, 10);
+
+    if (!from || !to) return alert("Sélection invalide (cagnotte ou membre manquant)");
+    if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+
+    const rec = await readBin();
+    const cagnottes = rec.cagnottes || {};
+    const membres = rec.membres || {};
+
+    if ((cagnottes[from] || 0) < montant)
+      return alert(`Fonds insuffisants dans la cagnotte ${from} !`);
+    if (!membres[to]) return alert("Membre inconnu !");
+
+    if (!confirm(`Transférer ${montant} Dollars de la cagnotte ${from} vers ${to} ?`)) return;
+
+    // 💰 Effectue la transaction
+    cagnottes[from] -= montant;
+    membres[to].dollars = (membres[to].dollars || 0) + montant;
+
+    // 🧾 Journal du transfert cagnotte → membre
+    if (!rec.transactions_cagnotte_membre) rec.transactions_cagnotte_membre = [];
+    rec.transactions_cagnotte_membre.push({
+      date: new Date().toISOString(),
+      de: from,
+      vers: to,
+      montant,
+      effectué_par: pseudo
+    });
+
+    await writeBin(rec);
+
+    alert(`✅ ${montant} Dollars transférés de ${from} à ${to}.`);
+    const elFrom = document.getElementById(`eco-cag-${from.replace(/\s/g,"_")}`);
+    if (elFrom) elFrom.textContent = cagnottes[from];
+    updatePostDollars();
+  });
+} else if (transferCagToMemberBtn) {
+  // Si non-admin → on cache le module
+  document.getElementById("eco-transfer-cag-member")?.remove();
 }
 
     // Réinitialisations
