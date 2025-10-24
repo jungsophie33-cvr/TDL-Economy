@@ -179,8 +179,26 @@ async function writeBin(record, retries = 3) {
     if(!record){ loading.replaceWith(createErrorBanner("Erreur : lecture JSONBin impossible.")); return; }
     record.membres = record.membres || {};
     record.cagnottes = record.cagnottes || {};
-    GROUPS.forEach(g=>{ if(record.cagnottes[g] === undefined) record.cagnottes[g] = 0; });
     record.boutique = record.boutique || {};
+    // --- Crée les cagnottes manquantes (y compris Providence) ---
+    let newCagAdded = false;
+    GROUPS.forEach(g => {
+      if (record.cagnottes[g] === undefined) {
+      record.cagnottes[g] = 0;
+      newCagAdded = true;
+      console.log(`[EcoV2] 🪙 Cagnotte créée : ${g}`);
+    }
+    });
+
+// 🧾 Si on a ajouté au moins une cagnotte → on sauvegarde
+if (newCagAdded) {
+  try {
+    await writeBin(record);
+    console.log("[EcoV2] ✅ Nouvelle(s) cagnotte(s) sauvegardée(s).");
+  } catch (e) {
+    console.warn("[EcoV2] ⚠️ Impossible d’écrire les nouvelles cagnottes :", e);
+  }
+}
 
     const pseudo = getPseudo(), uid = getUserId();
 
