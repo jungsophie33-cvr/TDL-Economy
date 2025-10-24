@@ -757,7 +757,7 @@ try {
 
     let tagBonus = 0;
     for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
-      if (postText.includes(tag)) {
+      if (text.includes(tag)) {
           tagBonus += bonus;
           console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
 
