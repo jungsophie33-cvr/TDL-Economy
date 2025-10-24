@@ -626,7 +626,7 @@ async function ecoCheckPostGain(info) {
     // 3) fallback ultime : URL courante (souvent /t... donc peu utile)
     if (!path) path = location.pathname.toLowerCase();
 
-    const isNew = !!s.newTopic;
+    let isNew = !!s.newTopic;
     // Sécurité : si on n’est pas en mode "newtopic", on force à false
     if (!location.href.includes("mode=newtopic")) {
   isNew = false;
