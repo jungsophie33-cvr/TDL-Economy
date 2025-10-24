@@ -185,15 +185,17 @@ async function writeBin(record, retries = 3) {
       if(sj) sj.textContent = record.membres[pseudo].dollars;
     }catch(e){ err("sync sj-dollars", e); }
 
-    setTimeout(()=>{
-      try{
-        const box = document.createElement("div");
-        box.id = "eco-solde-box";
-        let html = `<span id="eco-solde">${record.membres[pseudo].dollars}</span> ${MONNAIE_NAME} — Cagnottes : `;
-        GROUPS.forEach(g => html += `<span style="margin-left:8px">${g}: <b id="eco-cag-${g.replace(/\s/g,"_")}">${record.cagnottes[g]||0}</b></span>`);
-        box.innerHTML = html; insertAfter(menu, box);
-      }catch(e){ err("afficher solde", e); }
-    }, 600);
+    setTimeout(() => {
+  try {
+    GROUPS.forEach(g => {
+      const el = document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);
+      if (el) el.textContent = record.cagnottes[g] || 0;
+    });
+  } catch (e) {
+    err("update eco-solde-box", e);
+  }
+}, 600);
+
 
     // --- ADMIN BAR (pilotée par le template) ---
     const adminBar = document.getElementById("eco-admin-bar");
@@ -254,13 +256,39 @@ async function writeBin(record, retries = 3) {
       });
     }
 
-    (async function populateSelects(){
-      const rec = await readBin(); if(!rec) return;
-      const msel = document.getElementById("eco-member-select");
-      const csel = document.getElementById("eco-cag-select");
-      if(msel){ msel.innerHTML=""; Object.keys(rec.membres||{}).sort().forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; msel.appendChild(o); }); }
-      if(csel){ csel.innerHTML=""; Object.keys(rec.cagnottes||{}).forEach(g=>{ const o=document.createElement("option"); o.value=g; o.textContent=g; csel.appendChild(o); }); }
-    })();
+   async function populateSelects(){
+  const rec = await readBin();
+  if(!rec) return;
+
+  // Membres
+  const membres = Object.keys(rec.membres || {}).sort();
+  ["eco-member-select","eco-adjust-member"].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel){
+      sel.innerHTML="";
+      membres.forEach(n=>{
+        const o=document.createElement("option");
+        o.value=n; o.textContent=n;
+        sel.appendChild(o);
+      });
+    }
+  });
+
+  // Cagnottes
+  const groupes = Object.keys(rec.cagnottes || {});
+  ["eco-cag-select","eco-transfer-from","eco-transfer-to"].forEach(id=>{
+    const sel=document.getElementById(id);
+    if(sel){
+      sel.innerHTML="";
+      groupes.forEach(g=>{
+        const o=document.createElement("option");
+        o.value=g; o.textContent=g;
+        sel.appendChild(o);
+      });
+    }
+  });
+}
+
     // --- AJUSTEMENT D’UN SOLDE MEMBRE ---
 const adjustBtn = document.getElementById("eco-adjust-btn");
 if (adjustBtn) {
@@ -353,7 +381,8 @@ if (transferBtn) {
         alert(`${val} ${MONNAIE_NAME} ajoutés à ${count} membres.`);
       });
     }
-
+    
+    await populateSelects();
     loading.remove();
     log("Initialisation terminée.");
     updatePostDollars();
