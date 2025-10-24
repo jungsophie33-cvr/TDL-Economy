@@ -700,32 +700,42 @@ try {
 }
 // --- BONUS DE RÉACTIVITÉ (RP) ---
 try {
-  // Seulement dans les zones RP
   if (RP_ZONES.some(z => path.includes(z))) {
     const posts = Array.from(document.querySelectorAll(".post, .sj-post"));
     if (posts.length >= 2) {
-      // On cible le post précédent (celui du partenaire)
       const prevPost = posts[posts.length - 2];
       const dateEl = prevPost.querySelector(".sj-post-infotop .sj-post-date span:nth-child(2)");
       if (dateEl) {
-        let prevDate = null;
         const rawText = dateEl.textContent.trim();
+        let prevDate = null;
 
-        // 🧠 Tentative de normalisation (Forumactif FR : "Jeu 24 Oct 2025 - 22:35")
-        // on remplace les tirets et les "à" par un espace pour parse proprement
-        const cleanText = rawText
-          .replace("à", "")
-          .replace("-", "")
-          .replace(/\s{2,}/g, " ")
-          .trim();
+        // 🧠 Parsing "Aujourd'hui à HH:MM" / "Hier à HH:MM" / ou format date FR complet
+        const now = new Date();
+        const matchHour = rawText.match(/(\d{1,2}):(\d{2})/);
+        if (rawText.includes("Aujourd")) {
+          prevDate = new Date(now);
+          if (matchHour) {
+            prevDate.setHours(parseInt(matchHour[1]), parseInt(matchHour[2]), 0, 0);
+          }
+        } else if (rawText.includes("Hier")) {
+          prevDate = new Date(now);
+          prevDate.setDate(now.getDate() - 1);
+          if (matchHour) {
+            prevDate.setHours(parseInt(matchHour[1]), parseInt(matchHour[2]), 0, 0);
+          }
+        } else {
+          // format du type "Lun 20 Oct 2025 à 10:45" ou similaire
+          const clean = rawText
+            .replace("à", "")
+            .replace("-", "")
+            .replace(/\s{2,}/g, " ")
+            .trim();
+          prevDate = new Date(clean);
+        }
 
-        prevDate = new Date(cleanText);
-
-        // Si la date est valide, on calcule la différence
         if (prevDate && !isNaN(prevDate)) {
           const hoursDiff = (Date.now() - prevDate.getTime()) / (1000 * 60 * 60);
           let reactivityBonus = 0;
-
           if (hoursDiff < 24) reactivityBonus = 10;
           else if (hoursDiff < 48) reactivityBonus = 5;
 
