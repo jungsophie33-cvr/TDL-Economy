@@ -455,6 +455,15 @@ if (transferMemberBtn) {
     houma_terrebonne_reply: 10,
     vote_topic_reply: 2
   };
+  // ---------- BONUS PAR TAGS ----------
+const TAG_BONUS = {
+  "#intrigue": 10,
+  "#event": 5,
+  "#enquete": 5,
+  "#solve": 20,
+  "#defi": 5,
+  "#mintrigue": 5
+};
   const FORUM_IDS = {
     presentations: "/f5-presentations",
     preliens: "/f3-pre-liens",
@@ -631,6 +640,31 @@ async function ecoCheckPostGain(info) {
     }
 
     console.log("[EcoV2][gain-check] path=", path, "isNew=", isNew, "gain=", gain);
+
+    // --- BONUS TAGS ---
+try {
+  // Récupération du texte du message posté (fonctionne sur la page de redirection ou la page du sujet)
+  const postText = (
+    document.querySelector(".postbody, .content, .post")?.textContent || ""
+  ).toLowerCase();
+
+  let tagBonus = 0;
+
+  // Vérifie la présence de chaque tag
+  for (const [tag, bonus] of Object.entries(TAG_BONUS)) {
+    if (postText.includes(tag)) {
+      tagBonus += bonus;
+      console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
+    }
+  }
+
+  if (tagBonus > 0) {
+    gain += tagBonus;
+    console.log(`[EcoV2][TAG BONUS] total ajouté = +${tagBonus}`);
+  }
+} catch (e) {
+  console.warn("[EcoV2] erreur détection tags", e);
+}
 
     if (gain > 0) {
       membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
