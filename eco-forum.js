@@ -220,6 +220,14 @@ if (newCagAdded) {
         if(g){ record.membres[pseudo].group = g; await writeBin(record).catch(()=>null); }
       }
     }
+    // --- Assignation forcée de Mami Wata au groupe Providence ---
+if (pseudo === "Mami Wata") {
+  if (record.membres[pseudo].group !== "Providence") {
+    record.membres[pseudo].group = "Providence";
+    console.log("[EcoV2] 🔮 Mami Wata assignée de force à la Providence.");
+    await writeBin(record).catch(()=>null);
+  }
+}
 
     try{
       const sj = document.querySelector("#sj-dollars");
