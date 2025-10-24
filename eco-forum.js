@@ -8,7 +8,7 @@ console.log("[EcoV2] >>> début du script");
   const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
   const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/";
   const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
-  const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles"];
+  const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles","Providence"];
   const DEFAULT_DOLLARS = 10;
   const MONNAIE_NAME = "Dollars";
   const MENU_SELECTOR = "body #sj-main .menu .sj-menu-top";
