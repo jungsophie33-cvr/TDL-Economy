@@ -261,6 +261,59 @@ async function writeBin(record, retries = 3) {
       if(msel){ msel.innerHTML=""; Object.keys(rec.membres||{}).sort().forEach(n=>{ const o=document.createElement("option"); o.value=n; o.textContent=n; msel.appendChild(o); }); }
       if(csel){ csel.innerHTML=""; Object.keys(rec.cagnottes||{}).forEach(g=>{ const o=document.createElement("option"); o.value=g; o.textContent=g; csel.appendChild(o); }); }
     })();
+    // --- AJUSTEMENT D’UN SOLDE MEMBRE ---
+const adjustBtn = document.getElementById("eco-adjust-btn");
+if (adjustBtn) {
+  adjustBtn.addEventListener("click", async () => {
+    const msel = document.getElementById("eco-adjust-member");
+    const valInput = document.getElementById("eco-adjust-amount");
+    const membre = msel?.value;
+    const montant = parseInt(valInput?.value, 10);
+
+    if (!membre) return alert("Aucun membre sélectionné !");
+    if (isNaN(montant) || montant === 0) return alert("Montant invalide.");
+
+    if (!confirm(`${montant > 0 ? "Ajouter" : "Retirer"} ${Math.abs(montant)} Dollars à ${membre} ?`))
+      return;
+
+    const rec = await readBin();
+    if (!rec.membres[membre]) return alert("Membre inconnu !");
+    rec.membres[membre].dollars = (rec.membres[membre].dollars || 0) + montant;
+    if (rec.membres[membre].dollars < 0) rec.membres[membre].dollars = 0; // pas de solde négatif
+    await writeBin(rec);
+    alert(`✅ Solde de ${membre} mis à jour (${montant > 0 ? "+" : ""}${montant} Dollars).`);
+  });
+}
+
+    // --- TRANSFERT ENTRE CAGNOTTES ---
+const transferBtn = document.getElementById("eco-transfer-btn");
+if (transferBtn) {
+  transferBtn.addEventListener("click", async () => {
+    const from = document.getElementById("eco-transfer-from")?.value;
+    const to = document.getElementById("eco-transfer-to")?.value;
+    const montant = parseInt(document.getElementById("eco-transfer-amount")?.value, 10);
+
+    if (!from || !to || from === to) return alert("Sélection invalide (groupes identiques ?)");
+    if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+
+    const rec = await readBin();
+    const cagnottes = rec.cagnottes || {};
+    if ((cagnottes[from] || 0) < montant) return alert(`Fonds insuffisants dans ${from} !`);
+
+    if (!confirm(`Transférer ${montant} Dollars de ${from} → ${to} ?`)) return;
+
+    cagnottes[from] -= montant;
+    cagnottes[to] = (cagnottes[to] || 0) + montant;
+    await writeBin(rec);
+
+    alert(`✅ ${montant} Dollars transférés de ${from} vers ${to}.`);
+    const elFrom = document.getElementById(`eco-cag-${from.replace(/\s/g,"_")}`);
+    const elTo = document.getElementById(`eco-cag-${to.replace(/\s/g,"_")}`);
+    if (elFrom) elFrom.textContent = cagnottes[from];
+    if (elTo) elTo.textContent = cagnottes[to];
+  });
+}
+
 
     // Réinitialisations
     document.getElementById("eco-reset-member")?.addEventListener("click", async()=>{
