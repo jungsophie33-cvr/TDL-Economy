@@ -715,12 +715,28 @@ try {
 // --- BONUS DE RÉACTIVITÉ (RP) ---
 try {
   if (RP_ZONES.some(z => path.includes(z))) {
+    // attendre que les posts soient bien dans le DOM
+    await new Promise(resolve => {
+      let tries = 0;
+      const iv = setInterval(() => {
+        const posts = document.querySelectorAll(".post, .sj-post");
+        if (posts.length >= 2 || tries++ > 20) {
+          clearInterval(iv);
+          resolve();
+        }
+      }, 200);
+    });
+
     const posts = Array.from(document.querySelectorAll(".post, .sj-post"));
     if (posts.length >= 2) {
       const prevPost = posts[posts.length - 2];
       const dateEl = prevPost.querySelector(".sj-post-date span:last-child");
-      if (dateEl) {
+      if (!dateEl) {
+        console.warn("[EcoV2][BONUS RP] ⚠️ Aucun élément .sj-post-date trouvé !");
+      } else {
         const rawText = dateEl.textContent.trim();
+        console.log("[EcoV2][BONUS RP] Texte trouvé :", rawText);
+
         const now = new Date();
         let prevDate = null;
         const matchHour = rawText.match(/(\d{1,2}):(\d{2})/);
@@ -743,6 +759,8 @@ try {
           prevDate = new Date(clean);
         }
 
+        console.log("[EcoV2][BONUS RP] Date interprétée :", prevDate);
+
         if (prevDate && !isNaN(prevDate)) {
           const hoursDiff = (Date.now() - prevDate.getTime()) / 36e5;
           let reactivityBonus = 0;
@@ -751,20 +769,16 @@ try {
 
           if (reactivityBonus > 0) {
             gain += reactivityBonus;
-            console.log(
-              `[EcoV2][BONUS RP] Réponse après ${hoursDiff.toFixed(
-                1
-              )}h → +${reactivityBonus}`
-            );
+            console.log(`[EcoV2][BONUS RP] Réponse ${hoursDiff.toFixed(1)}h après → +${reactivityBonus}`);
           } else {
             console.log(`[EcoV2][BONUS RP] Délai ${hoursDiff.toFixed(1)}h → aucun bonus`);
           }
         } else {
-          console.warn("[EcoV2][BONUS RP] Date invalide :", rawText);
+          console.warn("[EcoV2][BONUS RP] ⚠️ Date invalide :", rawText);
         }
-      } else {
-        console.warn("[EcoV2][BONUS RP] Aucun élément .sj-post-date trouvé dans le post précédent !");
       }
+    } else {
+      console.warn("[EcoV2][BONUS RP] Pas assez de messages détectés :", posts.length);
     }
   }
 } catch (e) {
