@@ -672,11 +672,6 @@ await new Promise(resolve => {
     if (!path) path = location.pathname.toLowerCase();
 
     let isNew = !!s.newTopic;
-    // Sécurité : si on n’est pas en mode "newtopic", on force à false
-    if (!location.href.includes("mode=newtopic")) {
-  isNew = false;
-}
-
     let gain = 0;
 
     // mapping
@@ -723,53 +718,57 @@ try {
     const posts = Array.from(document.querySelectorAll(".post, .sj-post"));
     if (posts.length >= 2) {
       const prevPost = posts[posts.length - 2];
-      const dateEl = prevPost.querySelector(".sj-post-infotop .sj-post-date span:nth-child(2)");
+      const dateEl = prevPost.querySelector(".sj-post-date span:last-child");
       if (dateEl) {
         const rawText = dateEl.textContent.trim();
-        let prevDate = null;
-
-        // 🧠 Parsing "Aujourd'hui à HH:MM" / "Hier à HH:MM" / ou format date FR complet
         const now = new Date();
+        let prevDate = null;
         const matchHour = rawText.match(/(\d{1,2}):(\d{2})/);
-        if (rawText.includes("Aujourd")) {
+
+        if (/Aujourd/i.test(rawText)) {
           prevDate = new Date(now);
-          if (matchHour) {
+          if (matchHour)
             prevDate.setHours(parseInt(matchHour[1]), parseInt(matchHour[2]), 0, 0);
-          }
-        } else if (rawText.includes("Hier")) {
+        } else if (/Hier/i.test(rawText)) {
           prevDate = new Date(now);
           prevDate.setDate(now.getDate() - 1);
-          if (matchHour) {
+          if (matchHour)
             prevDate.setHours(parseInt(matchHour[1]), parseInt(matchHour[2]), 0, 0);
-          }
         } else {
-          // format du type "Lun 20 Oct 2025 à 10:45" ou similaire
           const clean = rawText
-            .replace("à", "")
-            .replace("-", "")
+            .replace(/à/g, "")
+            .replace(/[-–]/g, " ")
             .replace(/\s{2,}/g, " ")
             .trim();
           prevDate = new Date(clean);
         }
 
         if (prevDate && !isNaN(prevDate)) {
-          const hoursDiff = (Date.now() - prevDate.getTime()) / (1000 * 60 * 60);
+          const hoursDiff = (Date.now() - prevDate.getTime()) / 36e5;
           let reactivityBonus = 0;
           if (hoursDiff < 24) reactivityBonus = 10;
           else if (hoursDiff < 48) reactivityBonus = 5;
 
           if (reactivityBonus > 0) {
             gain += reactivityBonus;
-            console.log(`[EcoV2][BONUS RP] Réponse après ${hoursDiff.toFixed(1)}h → +${reactivityBonus}`);
+            console.log(
+              `[EcoV2][BONUS RP] Réponse après ${hoursDiff.toFixed(
+                1
+              )}h → +${reactivityBonus}`
+            );
+          } else {
+            console.log(`[EcoV2][BONUS RP] Délai ${hoursDiff.toFixed(1)}h → aucun bonus`);
           }
         } else {
-          console.warn("[EcoV2][BONUS RP] Date invalide détectée :", rawText);
+          console.warn("[EcoV2][BONUS RP] Date invalide :", rawText);
         }
+      } else {
+        console.warn("[EcoV2][BONUS RP] Aucun élément .sj-post-date trouvé dans le post précédent !");
       }
     }
   }
 } catch (e) {
-  console.warn("[EcoV2] erreur bonus réactivité RP", e);
+  console.warn("[EcoV2][BONUS RP] erreur :", e);
 }
 
     if (gain > 0) {
