@@ -808,8 +808,13 @@ await new Promise(resolve => {
     // 3) fallback ultime : URL courante (souvent /t... donc peu utile)
     if (!path) path = location.pathname.toLowerCase();
 
-    // isNew fiable : soit le mode explicite "newtopic", soit le flag newTopic
-    let isNew = (s.mode === "newtopic") || (!!s.newTopic && location.href.includes("mode=newtopic"));
+    // --- Détermination fiable de isNew ---
+    let isNew = false;
+
+    // Si l’action d’origine ou le flag stocké en session indique une création, on le garde
+    if (s.mode === "newtopic" || s.newTopic) {
+      isNew = true;
+    }
 
     // sécurité additionnelle : si on est clairement en édition/suppression, on force à false
     if (s.mode === "editpost" || s.mode === "delete") {
