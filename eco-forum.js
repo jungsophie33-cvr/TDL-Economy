@@ -339,6 +339,37 @@ if (transferBtn) {
   });
 }
 
+    // --- TRANSFERT ENTRE MEMBRES (réservé admins) ---
+const transferMemberBtn = document.getElementById("eco-transfer-btn-member");
+if (transferMemberBtn) {
+  transferMemberBtn.addEventListener("click", async () => {
+    const from = document.getElementById("eco-transfer-from-member")?.value;
+    const to = document.getElementById("eco-transfer-to-member")?.value;
+    const montant = parseInt(document.getElementById("eco-transfer-amount-member")?.value, 10);
+
+    if (!from || !to || from === to) return alert("Sélection invalide (mêmes membres ?)");
+    if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+
+    const rec = await readBin();
+    const membres = rec.membres || {};
+    if (!membres[from] || !membres[to]) return alert("Membre inconnu !");
+    if ((membres[from].dollars || 0) < montant)
+      return alert(`${from} n’a pas assez de fonds !`);
+
+    if (!confirm(`Transférer ${montant} Dollars de ${from} → ${to} ?`)) return;
+
+    membres[from].dollars -= montant;
+    membres[to].dollars = (membres[to].dollars || 0) + montant;
+
+    await writeBin(rec);
+    alert(`✅ ${montant} Dollars transférés de ${from} à ${to}.`);
+
+    // Mise à jour visuelle si l’un des deux est sur la page
+    const elFrom = document.querySelector(".username strong:contains('" + from + "')");
+    const elTo = document.querySelector(".username strong:contains('" + to + "')");
+    if (elFrom || elTo) updatePostDollars();
+  });
+}
 
     // Réinitialisations
     document.getElementById("eco-reset-member")?.addEventListener("click", async()=>{
