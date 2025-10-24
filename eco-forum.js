@@ -606,7 +606,28 @@ if (location.pathname.includes("/post")) {
 }
 
     // petite pause pour laisser FA peindre la breadcrumb
-    await new Promise(r => setTimeout(r, 1200));
+   // 🕐 Attendre que la breadcrumb soit chargée (max 2s)
+await new Promise(resolve => {
+  // Si la breadcrumb est déjà là → on continue direct
+  if (document.querySelector(".sub-header-path")) return resolve();
+
+  // Sinon on observe le DOM jusqu’à ce qu’elle apparaisse
+  const obs = new MutationObserver(() => {
+    if (document.querySelector(".sub-header-path")) {
+      obs.disconnect();
+      resolve();
+    }
+  });
+
+  obs.observe(document.body, { childList: true, subtree: true });
+
+  // Sécurité : si après 2 secondes elle n'est toujours pas là, on avance quand même
+  setTimeout(() => {
+    obs.disconnect();
+    resolve();
+  }, 2000);
+});
+
     const record = await readBin();
     if (!record) return;
     const membres = record.membres || {};
