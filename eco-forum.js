@@ -674,17 +674,21 @@ await new Promise(resolve => {
     let isNew = !!s.newTopic;
     let gain = 0;
 
-    // mapping
+    // --- DÉTERMINATION DU GAIN SELON LA ZONE ---
     if (path.includes(FORUM_IDS.presentations)) {
       gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
-    } else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
-      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
-    } else if (RP_ZONES.some(z => path.includes(z))) {
-      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
-    } else {
-      const title = (document.querySelector(".topic-title,h1.topictitle,.page-title")?.textContent || "").toLowerCase();
-      if (title.includes(FORUM_IDS.voteTopicName) && !isNew) gain = GAIN_RULES.vote_topic_reply;
     }
+    else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
+      gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
+    }
+    else if (RP_ZONES.some(z => path.includes(z))) {
+      gain = isNew ? GAIN_RULES.houma_terrebonne_new : GAIN_RULES.houma_terrebonne_reply;
+    }
+    else if (path.includes(FORUM_IDS.voteTopicName)) {
+    // 💡 votes aux top-sites → uniquement pour les réponses (pas de nouveau sujet)
+      if (!isNew) gain = GAIN_RULES.vote_topic_reply;
+    }
+
 
     console.log("[EcoV2][gain-check] path=", path, "isNew=", isNew, "gain=", gain);
 
