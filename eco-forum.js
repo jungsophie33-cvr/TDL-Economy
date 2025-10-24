@@ -253,39 +253,53 @@ async function writeBin(record, retries = 3) {
       });
     }
 
-   async function populateSelects(){
+  async function populateSelects() {
   const rec = await readBin();
-  if(!rec) return;
+  if (!rec) return;
 
-  // Membres
+  // --- Membres ---
   const membres = Object.keys(rec.membres || {}).sort();
-  ["eco-member-select","eco-adjust-member"].forEach(id=>{
-    const sel=document.getElementById(id);
-    if(sel){
-      sel.innerHTML="";
-      membres.forEach(n=>{
-        const o=document.createElement("option");
-        o.value=n; o.textContent=n;
+  const memberSelectIds = [
+    "eco-member-select",
+    "eco-adjust-member",
+    "eco-transfer-from-member",
+    "eco-transfer-to-member"
+  ];
+
+  memberSelectIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      sel.innerHTML = "";
+      membres.forEach(n => {
+        const o = document.createElement("option");
+        o.value = n;
+        o.textContent = n;
         sel.appendChild(o);
       });
     }
   });
 
-  // Cagnottes
+  // --- Cagnottes ---
   const groupes = Object.keys(rec.cagnottes || {});
-  ["eco-cag-select","eco-transfer-from","eco-transfer-to"].forEach(id=>{
-    const sel=document.getElementById(id);
-    if(sel){
-      sel.innerHTML="";
-      groupes.forEach(g=>{
-        const o=document.createElement("option");
-        o.value=g; o.textContent=g;
+  const cagnotteSelectIds = [
+    "eco-cag-select",
+    "eco-transfer-from",
+    "eco-transfer-to"
+  ];
+
+  cagnotteSelectIds.forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      sel.innerHTML = "";
+      groupes.forEach(g => {
+        const o = document.createElement("option");
+        o.value = g;
+        o.textContent = g;
         sel.appendChild(o);
       });
     }
   });
 }
-
     // --- AJUSTEMENT D’UN SOLDE MEMBRE ---
 const adjustBtn = document.getElementById("eco-adjust-btn");
 if (adjustBtn) {
