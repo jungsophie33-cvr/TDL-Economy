@@ -600,12 +600,15 @@ async function ecoCheckPostGain(info) {
     if (!pseudo) return;
 
     // --- Ignorer la page de prévisualisation (sauf création de nouveau sujet) ---
-    const isNewTopicPage = location.href.includes("mode=newtopic");
-    const isPreviewPage = document.querySelector('form[name="post"], form[action*="/post"]');
-    if (isPreviewPage && !isNewTopicPage) {
-      console.log("[EcoV2][GAIN] Prévisualisation détectée — aucun gain attribué.");
-      return;
-    }
+    const url = location.href;
+const isNewTopicPage = url.includes("mode=newtopic");
+const isRealTopicPage = url.includes("/t");
+const isPreviewLike = url.includes("/post") && !isRealTopicPage && !isNewTopicPage;
+
+if (isPreviewLike) {
+  console.log("[EcoV2][GAIN] Prévisualisation détectée — aucun gain attribué.");
+  return;
+}
 
     // petite pause pour laisser FA peindre la breadcrumb
     await new Promise(r => setTimeout(r, 1200));
