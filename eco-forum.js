@@ -958,14 +958,65 @@ try {
 } catch (e) {
   console.warn("[EcoV2][BONUS RP] erreur :", e);
 }
+// --- BONUS PALIERS DE MESSAGES ---
+try {
+  const msgCount = getMessagesCount();
+  const user = membres[pseudo];
+  const lastAward = user.lastMessageThresholdAwarded || 0;
 
-    if (gain > 0) {
-      membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
-      await writeBin(record);
-      showEcoGain(gain);
-      updatePostDollars();
-      console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
-    }
+  // 🎯 Liste des paliers et des récompenses associées
+  const MESSAGE_REWARDS = [
+    { threshold: 100, reward: 5 },
+    { threshold: 500, reward: 10 },
+    { threshold: 1000, reward: 15 },
+    { threshold: 1500, reward: 20 },
+    { threshold: 2000, reward: 25 },
+    { threshold: 3000, reward: 30 },
+    { threshold: 4000, reward: 40 },
+    { threshold: 5000, reward: 50 },
+    { threshold: 6000, reward: 60 },
+    { threshold: 7000, reward: 70 },
+    { threshold: 8000, reward: 80 },
+    { threshold: 9000, reward: 90 },
+    { threshold: 10000, reward: 100 }
+  ];
+
+  // 🔎 Vérifie si un nouveau palier est atteint
+  const nextReward = MESSAGE_REWARDS.find(r => msgCount >= r.threshold && r.threshold > lastAward);
+  if (nextReward) {
+    membres[pseudo].dollars = (membres[pseudo].dollars || 0) + nextReward.reward;
+    user.lastMessageThresholdAwarded = nextReward.threshold;
+    console.log(`[EcoV2][PALIER] ${pseudo} a atteint ${nextReward.threshold} messages → +${nextReward.reward}$`);
+
+    // 🧾 Journal des récompenses de palier
+    if (!record.rewards_messages) record.rewards_messages = [];
+    record.rewards_messages.push({
+      date: new Date().toISOString(),
+      membre: pseudo,
+      palier: nextReward.threshold,
+      montant: nextReward.reward
+    });
+
+    showEcoGain(nextReward.reward);
+  }
+} catch (e) {
+  console.warn("[EcoV2] erreur bonus paliers messages", e);
+}
+
+// 🔁 mise à jour du compteur de messages FA
+membres[pseudo].messages = getMessagesCount();
+
+// 💰 appliquer le gain si applicable
+if (gain > 0) {
+  membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
+  showEcoGain(gain);
+  updatePostDollars();
+  console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
+}
+
+// ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
+await writeBin(record);
+
   } catch (e) {
     err("ecoCheckPostGain", e);
   }
