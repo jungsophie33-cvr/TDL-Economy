@@ -1009,6 +1009,14 @@ membres[pseudo].messages = getMessagesCount();
 // 💰 appliquer le gain si applicable
 if (gain > 0) {
   membres[pseudo].dollars = (membres[pseudo].dollars || 0) + gain;
+
+  // 🧾 Mise à jour visuelle immédiate
+  const el1 = document.getElementById("sj-dollars");
+  if (el1) el1.textContent = membres[pseudo].dollars;
+
+  const el2 = document.querySelector(".field-dollars span:nth-child(2)");
+  if (el2) el2.textContent = membres[pseudo].dollars;
+
   showEcoGain(gain);
   updatePostDollars();
   console.log(`[EcoV2] 💰 +${gain} ${MONNAIE_NAME} pour ${pseudo}`);
