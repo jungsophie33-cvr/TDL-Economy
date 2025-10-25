@@ -1014,7 +1014,7 @@ if (gain > 0) {
   const el1 = document.getElementById("sj-dollars");
   if (el1) el1.textContent = membres[pseudo].dollars;
 
-  const el2 = document.querySelector(".field-dollars span:nth-child(2)");
+  const el2 = document.querySelector(".field-dollars span:not(.label)");
   if (el2) el2.textContent = membres[pseudo].dollars;
 
   showEcoGain(gain);
