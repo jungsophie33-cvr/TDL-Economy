@@ -329,7 +329,7 @@ transition:all ease 0.3s;
 .sj-main-linktop div a:hover {color:var(--dark)!important;}
 
 /* ----- TOPIC LIST BOX ----- */
-.sj-wrap {background:var(--clair1opa4); border-radius:10px; padding: 30px; margin-top:20px;}
+.sj-wrap {background:var(--clair1opa4); border-radius:10px; padding: 30px; margin-top:20px; backdrop-filter:blur(2px);}
 #Guidebook #page-desc, #Pr_E9sentations #page-desc {display:none;}
 .sj-wrap .sub-header {max-height: 100px;display: flex;flex-flow: row wrap;justify-content: space-evenly;align-items: center;background: var(--clair1opa8);margin-bottom: 30px; border-radius: 10px;}
 .sj-wrap .sub-header .sub-header-info {float: none;width: 70%;height:100%; display:flex;flex-flow:column wrap;text-align: justify; margin:5px 0 10px 0;}
