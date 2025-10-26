@@ -89,6 +89,26 @@ async function readBin(retries = 3) {
   return null;
 }
 
+  // 🧠 Version "intelligente" avec cache local 60 secondes
+async function safeReadBin() {
+  const now = Date.now();
+  const cached = sessionStorage.getItem("eco_cache_record");
+  const cacheTime = sessionStorage.getItem("eco_cache_time");
+
+  // si on a du cache récent (moins de 60s)
+  if (cached && cacheTime && now - parseInt(cacheTime) < 60000) {
+    return JSON.parse(cached);
+  }
+
+  // sinon, on relit depuis JSONBin
+  const record = await readBin();
+  if (record) {
+    sessionStorage.setItem("eco_cache_record", JSON.stringify(record));
+    sessionStorage.setItem("eco_cache_time", now.toString());
+  }
+  return record;
+}
+
 async function writeBin(record, retries = 3) {
   const url = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 
@@ -150,7 +170,8 @@ async function writeBin(record, retries = 3) {
   // ---------- UPDATE DOLLARS DANS LES POSTS ----------
   async function updatePostDollars(){
     try{
-      const record = await readBin(); if(!record || !record.membres) return;
+      const record = await safeReadBin();
+       if(!record || !record.membres) return;
       document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
         const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
         if(!pseudoEl) return;
@@ -175,7 +196,7 @@ async function writeBin(record, retries = 3) {
     loading.textContent = "Initialisation économie…";
     insertAfter(menu, loading);
 
-    const record = await readBin();
+    const record = await safeReadBin();
     if(!record){ loading.replaceWith(createErrorBanner("Erreur : lecture JSONBin impossible.")); return; }
     record.membres = record.membres || {};
     record.cagnottes = record.cagnottes || {};
@@ -784,7 +805,8 @@ await new Promise(resolve => {
   }, 2000);
 });
 
-    const record = await readBin();
+    const record = await safeReadBin();
+
     if (!record) return;
     const membres = record.membres || {};
     if (!membres[pseudo]) return;
