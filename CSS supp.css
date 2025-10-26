@@ -1,3 +1,11 @@
+/* ----- NAVBAR ----- */
+#sj-nav {position:fixed; top:0; text-align:center; z-index: 999; min-width: 240px; height: 40px; padding:3px; margin:8px 0 8px 30px;; background:var(--dark); border:1px solid var(--clair1opa3);border-radius: 5px;}
+#sj-nav ul { display:flex; list-style:none; margin: 5px 0 5px 55px; height: 20px;}
+#sj-nav ul a { margin: 5px 10px; font-size:23px;  transition: all ease 0.5s; color:var(--clair1)!important;}
+#sj-nav ul a#new_mp {color:var(--clair2)!important;}
+#sj-nav ul a:hover {transition: all ease 0.5s; color:var(--clair2)!important;}
+#sj-nav ul a:hover#new_mp {color:var(--clair1)!important;}
+
 /* ----- TOOLTIP ARROW ----- */
 
 [data-tooltip] {position: relative;pointer: cursor;}
