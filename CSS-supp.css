@@ -302,7 +302,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 .sj-wrap .sub-header > div:nth-child(2) .sj-btn-new {margin-bottom:10px;}
 .sj-wrap .sub-header > div:nth-child(2) .sj-btn-new a {color:var(--clair2)!important);}
 .sj-wrap .sub-header > div:nth-child(2) .sj-btn-new .button1, input[type="submit"], .button, .button1, .button2 {background: var(--gradoc18);box-shadow:none;border-radius: 5px;padding: 5px 15px;font-family: var(--title1);letter-spacing: 1px; transition: all ease 0.5s;}
-.sj-wrap .sub-header > div:nth-child(2) .sj-btn-new .button1:hover, input:hover[type="submit"], .button:hover, button1:hover, .button2:hover {background:var(--gradoc1); transition:all ease 0.5s;box-shadow:none;}
+.sj-wrap .sub-header > div:nth-child(2) .sj-btn-new .button1:hover, input:hover[type="submit"], .button:hover, .button1:hover, .button2:hover {background:var(--gradoc1); transition:all ease 0.5s;box-shadow:none;}
 .sj-wrap .sub-header .poster-list {position:relative; top:-10px;margin:auto; font-family:var(--txt3); align-items:center; padding:0;}
 .poster-list .poster-count {background:var(--cntr); padding:2px 15px; border-radius:5px; line-height:18px; color:var(--clair1opa8); font-family:var(--txt3); font-size:0.9em;}
 .poster-list .poster:before {border:2px solid var(--clair1);}
