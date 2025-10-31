@@ -2,7 +2,9 @@
 html, body, fieldset {font-family: var(--font0) !important; color:var(--txt);}
 body {font-size:1em; line-height:1.3em; text-align:center; margin-top:0!important; min-width:1200px;}
 #wrap {padding:30px 50px;}
-h3, .h3 {color:var(--dark);border-color:var(--dark);font-size:2em;font-family:var(--title4);}
+h3, .h3 {color:var(--dark);border:none;font-size:2em;font-family:var(--title4);}
+.h3 {display:flex; flex-flow:row;align-items:center;gap:20px;}
+.h3:before, .h3:after {content:''; height:1px; background:var(dark); flex: 1 1 auto;}
 dl.postprofile {display:flex;width:100%;float:none;padding:15px;justify-content:space-around;}
 input[type="text"]:hover, .inputbox:hover, input[type="text"]:focus, .inputbox:focus {border-color:var(--dark);}
 #fa_toolbar {z-index:995; padding:8px 5px; background: transparent!important;}
