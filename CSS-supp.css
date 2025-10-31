@@ -347,7 +347,8 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 
 #info_open {display: flex; width: 100%; margin-top: 20px; flex-flow: row wrap; justify-content: space-between;}
 #info_open .block {background-color: var(--clair1);color: var(--txt);border-radius: 10px;box-shadow: 0 0 6px var(--darkopa2);font-size: 1em;overflow: hidden;padding: 10px;width: 32%;font-family: var(--txt2);text-align: left; margin-bottom:0px;}
-#info_open .block .h3 {font-size: 1.em;font-family: var(--font2);margin-top: 0px;text-align: center;border-color: var(--dark);color: var(--dark);}
+#info_open .block .h3 {font-size: 1em;font-family: var(--font2);margin-top: 0px;text-align: center;border: 1px solid var(--dark);color: var(--dark);}
+#info_open .block .h3:before, #info_open .block .h3:after {display:none;}
 #info_open .block > br {display:none;}
 #info_open .block p {line-height: 0.9em;font-size: 1em;margin-bottom: 0;text-align: justify;font-family: var(--txt2);}
 #info_open .block fieldset.jumpbox, #info_open .block fieldset.quickmod {margin:0;text-align:center;}
