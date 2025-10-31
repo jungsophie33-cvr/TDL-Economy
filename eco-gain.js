@@ -457,13 +457,28 @@ console.log("[EcoV2] >>> eco-gain chargé");
         console.log(`[EcoV2] 💰 +${gain} ${window.EcoCore.MONNAIE_NAME} pour ${pseudo}`);
       }
 
-      // ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
-      await writeBin(record);
+    // ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
+await writeBin(record);
 
-    } catch (e) {
-      err("ecoCheckPostGain", e);
+// --- OBSERVATION DOM : met à jour le dollar visuel dès que le nouveau post apparaît ---
+try {
+  const observer = new MutationObserver((mutations, obs) => {
+    if (document.querySelectorAll(".sj-post-proftop, .post, .postprofile").length > 0) {
+      obs.disconnect();
+      console.log("[EcoV2][DOM] Nouveau post détecté → mise à jour des dollars");
+      updatePostDollars();
     }
-  }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+} catch (e) {
+  console.warn("[EcoV2] échec de l'observation DOM pour updatePostDollars :", e);
+}
+
+} catch (e) {
+  err("ecoCheckPostGain", e);
+}
+}
+
 
   // --- POST-DELAY (après redirection Forumactif) ---
   window.addEventListener("load", () => {
