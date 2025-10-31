@@ -259,9 +259,8 @@ div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-subforum, div#Administrat
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-postinfo, div#Administration.sj-main-cate div#\/f5-presentations .sj-postinfo {width:60%;}
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright, div#Administration.sj-main-cate div#\/f5-presentations .sj-cateright {height:40%; width:100%; display:block; filter:none; background: var(--clair1opa7)!important;}
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div, div#Administration.sj-main-cate div#\/f5-presentations .sj-cateright > div {opacity:1;max-height:fit-content;background:none;border-radius:none;box-shadow:none;backdrop-filter:none;margin:10px;  text-align:center; font-family:var(--font2); font-size:92%;}
-div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div, div#Administration.sj-main-cate div#\/f5-presentations .sj-cateright > div > div {background:none;margin:0;display:flex; flex-direction:row; flex-wrap:wrap; justify-content:space-between;}
-div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div > a {display:block; width:48%; background:var(--darkopa8); color:var(--clair1); position:relative; padding:3px 0; margin:2px; border-radius:5px;}
-div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div > a:before {font-family:"uicons-regular-rounded"; content:'\eb4f'; position:absolute; left:3px; margin:2px;}
+div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div, div#Administration.sj-main-cate div#\/f5-presentations .sj-cateright > div > div {background:none;margin:0;}
+div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div > a {position:relative; margin:2px; }
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div > br {display:none;}
 
 div#Pr_E9-liens.sj-main-cate .sj-main-frow {justify-content:space-around;}
