@@ -320,7 +320,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 .sj-topic-listbox .sj-topic-list {display: grid; grid-template-columns: 50px 1fr 90px 1fr; background: var(--clair1opa8); border-radius: 5px; margin-bottom: 20px; align-items: center; border: 1px solid var(--clair1opa3);}
 .sj-topic-listbox .sj-topic-list > div:nth-child(1) {font-size:1.3em;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) {height:75px; width:670px; text-align: justify; background: var(--gradient3);}
-.sj-topic-listbox .sj-topic-list > div:nth-child(2) > span:nth-child(1) {display: inline-block;padding: 2px 15px;margin: 5px;background: var(--dark);border-radius: 5px;position: relative;top: -15px;left: 10px;color: var(--clair1);font-family: var(--font2);text-transform: uppercase;letter-spacing: 1px;font-size: 0.8em;}
+.sj-topic-listbox .sj-topic-list > div:nth-child(2) > span:nth-child(1) {display: inline-block;padding: 3px 10px;margin: 5px;background: var(--dark);border-radius: 5px;position: relative;top: -15px;left: 10px;color: var(--clair1);font-family: var(--txt3);text-transform: uppercase;font-size: 0.7em;font-weight:900;line-height:1em;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > span:nth-child(1):empty {background:none; border:none; height:20px;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > span > strong {font-weight:100;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(2) {position: relative; top: -10px; margin-left: 20px;}
