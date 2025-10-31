@@ -459,6 +459,33 @@ if (transferCagToMemberBtn && ADMIN_USERS.includes(pseudo)) {
     }
     
     await populateSelects();
+
+    // ---------- PROFIL UTILISATEUR : afficher les dollars ----------
+try {
+  // Vérifie qu’on est bien sur une page de profil (ex: /u13-Mami-Wata)
+  if (location.pathname.match(/^\/u\d+/)) {
+    const profilField = document.querySelector(".sj-profil .field-dollars > dd > .field_uneditable");
+    const pseudoEl = document.querySelector(".sj-profil .sj-prpsd > span > strong");
+    if (profilField && pseudoEl) {
+      const pseudo = pseudoEl.textContent.trim();
+      console.log("[EcoV2][Profil] Chargement du solde pour :", pseudo);
+
+      // Lecture des données JSONBin
+      const record = await window.EcoCore.readBin();
+      if (record && record.membres && record.membres[pseudo]) {
+        const dollars = record.membres[pseudo].dollars ?? 0;
+        profilField.textContent = dollars;
+        console.log(`[EcoV2][Profil] ${pseudo} → ${dollars} ${window.EcoCore.MONNAIE_NAME}`);
+      } else {
+        profilField.textContent = "0";
+        console.warn("[EcoV2][Profil] Membre non trouvé dans le JSON :", pseudo);
+      }
+    }
+  }
+} catch (e) {
+  console.warn("[EcoV2][Profil] erreur affichage dollars :", e);
+}
+
     loading.remove();
     log("Initialisation terminée.");
     updatePostDollars();
