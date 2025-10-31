@@ -1,22 +1,27 @@
-// === EcoV2 BOOT ===
-console.log("[EcoV2] Chargement eco-boot.js");
+// === ECONOMIE V2 – BOOT SEQUENCE ===
+// Auteur : ChatGPT x THE DROWNED LANDS
+console.log("[EcoV2] >>> eco-boot chargé");
 
-(async function(){
-  const { createErrorBanner } = window.EcoCore;
+(function(){
+
+  const { warn, err, createErrorBanner, MENU_SELECTOR, RETRY_INTERVAL_MS, RETRY_MAX } = window.EcoCore;
   const { coreInit } = window.EcoUI;
 
-  let tries=0;
-  const max=20;
-  const menuSel="body #sj-main .menu .sj-menu-top";
-  const iv=setInterval(async()=>{
+  // ---------- BOOT (wait menu) ----------
+  let tries = 0;
+  const timer = setInterval(async () => {
     tries++;
-    const menu=document.querySelector(menuSel);
-    if(menu){
-      clearInterval(iv);
-      try{ await coreInit(); }catch(e){ console.error("[EcoV2] coreInit err",e); }
-    }else if(tries>=max){
-      clearInterval(iv);
-      document.body.prepend(createErrorBanner("Économie : menu introuvable."));
+    const menu = document.querySelector(MENU_SELECTOR);
+    if (menu) {
+      clearInterval(timer);
+      try { await coreInit(); } catch (e) { err("coreInit", e); }
+    } else if (tries >= RETRY_MAX) {
+      clearInterval(timer);
+      warn("menu not found");
+      document.body.prepend(createErrorBanner("Initialisation économie : menu introuvable."));
     }
-  },500);
+  }, RETRY_INTERVAL_MS);
+
+  console.log("[EcoV2] <<< eco-boot prêt");
+
 })();
