@@ -36,7 +36,7 @@ console.log("[EcoV2] >>> eco-gain chargé");
   const FORUM_IDS = {
     presentations: "/f5-presentations",
     preliens: "/f4-en-construction",
-    gestionPersos: "/f6-gestion-des-personnages",
+    gestionPersos: "/f33-fiches-de-liens",
     voteTopicName: "/t22-vote-aux-top-sites"
   };
 
