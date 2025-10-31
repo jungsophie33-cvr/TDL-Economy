@@ -23,7 +23,7 @@ console.log("[EcoV2] >>> eco-core chargé");
   function warn(...a){try{console.warn("[EcoV2]",...a);}catch(e){}}
   function err(...a){try{console.error("[EcoV2]",...a);}catch(e){}}
 
-  // ---------- JSONBin helpers ----------
+  // ---------- JSONBin helpers (version robuste avec retry & gestion CORS) ----------
   async function readBin(retries = 3) {
     const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
 
@@ -32,32 +32,46 @@ console.log("[EcoV2] >>> eco-core chargé");
         await new Promise(r => setTimeout(r, 1500));
         const r = await fetch(url, {
           method: "GET",
-          headers: { "X-Master-Key": API_KEY }
+          headers: {
+            "X-Master-Key": API_KEY
+          }
         });
-        if (r.ok) return (await r.json()).record || {};
 
+        if (r.ok) {
+          const j = await r.json();
+          return j.record || {};
+        }
+
+        // Si serveur encore occupé ou erreur temporaire
         if ([425, 429, 500, 502, 503].includes(r.status)) {
-          console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} échouée (${r.status}), retry...`);
+          console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} échouée (${r.status}), nouvelle tentative dans 1s...`);
           await new Promise(res => setTimeout(res, 1000));
           continue;
         }
         break;
+
       } catch (e) {
-        console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} erreur`, e);
+        console.warn(`[EcoV2] readBin tentative ${i + 1}/${retries} erreur réseau, retry...`, e);
         await new Promise(res => setTimeout(res, 1000));
       }
     }
+
     err("readBin", "Échec après plusieurs tentatives");
     return null;
   }
 
+  // 🧠 Version "intelligente" avec cache local 60 secondes
   async function safeReadBin() {
     const now = Date.now();
     const cached = sessionStorage.getItem("eco_cache_record");
     const cacheTime = sessionStorage.getItem("eco_cache_time");
+
+    // si on a du cache récent (moins de 60s)
     if (cached && cacheTime && now - parseInt(cacheTime) < 60000) {
       return JSON.parse(cached);
     }
+
+    // sinon, on relit depuis JSONBin
     const record = await readBin();
     if (record) {
       sessionStorage.setItem("eco_cache_record", JSON.stringify(record));
@@ -81,19 +95,27 @@ console.log("[EcoV2] >>> eco-core chargé");
           },
           body: JSON.stringify(record)
         });
-        if (r.ok) return await r.json();
-        if ([425,429,500,502,503].includes(r.status)) {
-          console.warn(`[EcoV2] writeBin tentative ${i+1}/${retries} échouée (${r.status}), retry...`);
-          await new Promise(res => setTimeout(res,1000));
+
+        if (r.ok) {
+          log(`[EcoV2] writeBin succès (tentative ${i + 1})`);
+          return await r.json();
+        }
+
+        if ([425, 429, 500, 502, 503].includes(r.status)) {
+          console.warn(`[EcoV2] writeBin tentative ${i + 1}/${retries} échouée (${r.status}), retry dans 1s...`);
+          await new Promise(res => setTimeout(res, 1000));
           continue;
         }
+
         throw new Error(`writeBin status ${r.status}`);
-      } catch(e) {
-        console.warn(`[EcoV2] writeBin tentative ${i+1}/${retries} erreur`, e);
-        await new Promise(res=>setTimeout(res,1000));
+
+      } catch (e) {
+        console.warn(`[EcoV2] writeBin tentative ${i + 1}/${retries} erreur, retry...`, e);
+        await new Promise(res => setTimeout(res, 1000));
       }
     }
-    err("writeBin","Échec après plusieurs tentatives");
+
+    err("writeBin", "Échec après plusieurs tentatives");
   }
 
   // ---------- Extractors ----------
@@ -104,15 +126,14 @@ console.log("[EcoV2] >>> eco-core chargé");
     if(!id) return null;
     try{
       const r = await fetch(`/u${id}`); if(!r.ok) return null;
-      const html = await r.text();
-      const d = document.createElement("div"); d.innerHTML = html;
+      const html = await r.text(); const d = document.createElement("div"); d.innerHTML = html;
       const dd = d.querySelector("dd,.usergroup,.group,.user-level");
       if(dd && dd.textContent.trim()) return dd.textContent.trim();
       const m = html.match(/(Les [A-ZÀ-Ÿa-zà-ÿ0-9_\- ]{2,40})/);
       return m ? m[1].trim() : null;
     }catch(e){ err("fetchUserGroup", e); return null; }
   }
-
+  
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
   function createErrorBanner(m){ const b=document.createElement("div"); b.style.cssText="background:#ffdede;color:#600;border:2px solid #f99;padding:8px;text-align:center;margin:6px;"; b.textContent=m; return b; }
@@ -141,4 +162,5 @@ console.log("[EcoV2] >>> eco-core chargé");
     getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
     insertAfter, createErrorBanner, showEcoGain
   };
+
 })();
