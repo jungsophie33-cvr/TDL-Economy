@@ -457,8 +457,12 @@ console.log("[EcoV2] >>> eco-gain chargé");
         console.log(`[EcoV2] 💰 +${gain} ${window.EcoCore.MONNAIE_NAME} pour ${pseudo}`);
       }
 
-    // ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
+// ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
 await writeBin(record);
+
+// 🧹 Nettoyage du cache local (sinon affichera ancienne valeur)
+sessionStorage.removeItem("eco_cache_record");
+sessionStorage.removeItem("eco_cache_time");
 
 // --- OBSERVATION DOM : met à jour le dollar visuel dès que le nouveau post apparaît ---
 try {
@@ -478,7 +482,6 @@ try {
   err("ecoCheckPostGain", e);
 }
 }
-
 
   // --- POST-DELAY (après redirection Forumactif) ---
   window.addEventListener("load", () => {
