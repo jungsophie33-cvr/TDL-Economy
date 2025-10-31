@@ -423,12 +423,12 @@ div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateright > div > div > b
 
 div#Pr_E9-liens.sj-main-cate .sj-main-frow {justify-content:space-around;}
 div#Pr_E9-liens.sj-main-cate div#\/f4-en-construction.sj-caterow, div#Pr_E9-liens.sj-main-cate div#\/f17-predefinis-du-forum.sj-caterow {width:43%;}
-div#Pr_E9-liens.sj-main-cate div#\/f39-familles.sj-caterow, div#Pr_E9-liens.sj-main-cate div#\/f40-amour-ambigu.sj-caterow, div#Pr_E9-liens.sj-main-cate div#\/f41-divers.sj-caterow, div#Gestion_20des_20personnages .sj-caterow {width:32%;}
-div#Pr_E9-liens.sj-main-cate .sj-subforum, div#Gestion_20des_20personnages .sj-subforum {display:none;}
+div#Pr_E9-liens.sj-main-cate div#\/f39-familles.sj-caterow, div#Pr_E9-liens.sj-main-cate div#\/f40-amour-ambigu.sj-caterow, div#Pr_E9-liens.sj-main-cate div#\/f41-divers.sj-caterow, div#Gestion_20des_20personnages .sj-caterow, div#Archives .sj-caterow {width:32%;}
+div#Pr_E9-liens.sj-main-cate .sj-subforum, div#Gestion_20des_20personnages .sj-subforum, div#Archives .sj-subforum {display:none;}
 div#Pr_E9-liens.sj-main-cate div#\/f4-en-construction.sj-caterow .sj-postinfo, div#Pr_E9-liens.sj-main-cate div#\/f17-predefinis-du-forum.sj-caterow .sj-postinfo {width: 64%;}
 div#Pr_E9-liens.sj-main-cate div#\/f4-en-construction.sj-caterow .sj-lastp-avatar, div#Pr_E9-liens.sj-main-cate div#\/f17-predefinis-du-forum.sj-caterow .sj-lastp-avatar {width:90px; height:110px; border-radius:50%; outline: 1px solid var(--darkopa8); outline-offset: 2px;}
 div#Pr_E9-liens.sj-main-cate div#\/f4-en-construction.sj-caterow .sj-lastp-avatar img, div#Pr_E9-liens.sj-main-cate div#\/f17-predefinis-du-forum.sj-caterow .sj-lastp-avatar img {width:90px;height:110px;}
-div#Pr_E9-liens.sj-main-cate div#\/f39-familles.sj-caterow .sj-postinfo, div#Pr_E9-liens.sj-main-cate div#\/f40-amour-ambigu.sj-caterow .sj-postinfo, div#Pr_E9-liens.sj-main-cate div#\/f41-divers.sj-caterow .sj-postinfo, div#Gestion_20des_20personnages .sj-caterow .sj-postinfo {width:50%;}
+div#Pr_E9-liens.sj-main-cate div#\/f39-familles.sj-caterow .sj-postinfo, div#Pr_E9-liens.sj-main-cate div#\/f40-amour-ambigu.sj-caterow .sj-postinfo, div#Pr_E9-liens.sj-main-cate div#\/f41-divers.sj-caterow .sj-postinfo, div#Gestion_20des_20personnages .sj-caterow .sj-postinfo, div#Archives .sj-caterow .sj-postinfo {width:50%;}
 
 
 
