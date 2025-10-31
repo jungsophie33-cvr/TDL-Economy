@@ -393,7 +393,7 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .sj-catestat {display:flex; flex-direction:row; justify-content:space-around; align-items: center;height:45%;}
 .sj-topic, .sj-post {width:120px;background: var(--clair1opa6); border-radius:5px; padding:2px; font-size:70%; font-family: var(--txt3); text-transform:uppercase;}
 
-.sj-subforum {width:35%; max-height:90%; overflow-y:auto;}
+.sj-subforum {width:35%; max-height:90%; overflow-y:auto; overflow-x:hidden;}
 .sj-subforum a {display:block; background: var(--darkopa5); color:var(--clair1); padding:4px; margin:3px 10px; border-radius:3px; font-family: var(--font2); font-size:92%; font-weight:500;width:90%;}
 .sj-subforum a:hover {background:var(--dark); transition: all ease 0.3s;}
 
