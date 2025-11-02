@@ -144,7 +144,6 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .chrono > br {display:none;} 
 .chrono .dates {display:flex; overflow-x:auto; padding-left:30px;} 
 .chrono .madate {position: relative;cursor: pointer;padding: 0 5px 3px 5px;font-family: var(--font2);font-size:1.2em; border-top:1px solid transparent; transition:border 0.5s ease-in-out;}
-.chrono .madate.active {border-color:var(--clair2);}
 .chrono .ligne-chrono {position: absolute;z-index: 990;left: 5px; top:42px;width: 100%;} 
 .chrono .chrono-bulle {position: absolute;bottom: -6px;left:41.5px;width: 12px;height: 12px;background: var(--clair2);border-radius: 50%;transition: left 0.6s cubic-bezier(0.45, 0, 0.25, 1);} 
 @keyframes sideImpactRight {
@@ -162,7 +161,7 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .chrono .chrono-bulle.rebound-left {animation: sideImpactLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-content {position: relative;padding: 10px;min-height: 380px;} 
 .chrono .chrono-content > br {display:none;}
-.chrono .chrono-event { position: absolute; left: 0; width: 97%; background: var(--cntr5); padding: 10px; margin:10px; border-radius: 5px; outline: 1px solid var(--cntr); outline-offset: 5px; opacity: 0; transform: translateX(60px);transition: transform 0.45s ease-out, opacity 0.45s ease-out; pointer-events: none;}
+.chrono .chrono-event {position: absolute; left: 0; width: 97%; background: var(--cntr3); padding: 10px; margin:10px; border-radius: 5px; outline: 1px solid var(--cntr5); outline-offset: 5px; box-shadow:0 0 2px var(--darkopa3); opacity: 0; transform: translateX(60px);transition: transform 0.45s ease-out, opacity 0.45s ease-out; pointer-events: none;}
 .chrono .chrono-event.active {opacity: 1; transform: translateX(0); pointer-events: auto; z-index: 2;}
 .chrono .chrono-event.leaving {opacity: 0;transform: translateX(-50px); transition: transform 0.3s ease-in, opacity 0.3s ease-in;z-index: 1;}
 .chrono year {position: relative;display: block;font-size: 3em;line-height: 1em;font-family: var(--font2);font-style: italic;letter-spacing: -2px;margin: -5px 0 -10px 10px;color: var(--clair2);z-index: 0; opacity:0.6;} 
@@ -175,7 +174,7 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .chrono-event .chrono-detail {transform: translateY(25px); filter: blur(3px);}
 .chrono-event.active year {opacity: 1; transform: translateX(0); filter: blur(0); transition-delay: 0.1s;}
 .chrono-event.active .chrono-detail {opacity: 1; transform: translateY(0); filter: blur(0); transition-delay: 0.4s;}
-.chrono-detail event, .systab event, .cdre event, blockquote event {display: block; background: var(--clair1opa5); padding: 15px 10px; border-radius: 10px; margin: 2px 15px 15px 15px; border-left: 3px solid var(--clair2opa5);}
+.chrono-detail event, .systab event, .cdre event, blockquote event {display: block; background: var(--clair1opa6); padding: 15px 10px; border-radius: 10px; margin: 2px 15px 15px 15px; border-left: 3px solid var(--clair2opa5);}
 .chrono-detail > br, .systab .content .time > br, blockquote:has(event) > br {display:none;}
 .group .madate.active {border-color:var(--groups);}
 .group .chrono-bulle {background:var(--groups);}
@@ -347,7 +346,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 
 #info_open {display: flex; width: 100%; margin-top: 20px; flex-flow: row wrap; justify-content: space-between;}
 #info_open .block {background-color: var(--clair1);color: var(--txt);border-radius: 10px;box-shadow: 0 0 6px var(--darkopa2);font-size: 1em;overflow: hidden;padding: 10px;width: 32%;font-family: var(--txt2);text-align: left; margin-bottom:0px;}
-#info_open .block .h3 {font-size: 1em;font-family: var(--font2);margin-top: 0px;text-align: center;border: 1px solid var(--dark);color: var(--dark);}
+#info_open .block .h3 {display:block;font-size: 1em;font-family: var(--font2);margin-top: 0px;text-align: center;border-bottom: 1px solid var(--dark);color: var(--dark);}
 #info_open .block .h3:before, #info_open .block .h3:after {display:none;}
 #info_open .block > br {display:none;}
 #info_open .block p {line-height: 0.9em;font-size: 1em;margin-bottom: 0;text-align: justify;font-family: var(--txt2);}
