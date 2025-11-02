@@ -208,7 +208,7 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 /* ----- CATÉGORIES ----- */
 .sj-main-cate {width:100%;}
 .sj-catehead {background:var(--bgimg) no-repeat bottom; background-size:100%;text-align:center;width:100%; height:100px; line-height:100px;border:1px solid var(--clair1opa6); border-radius:10px; margin: 10px 0 10px 0; overflow:hidden;}
-.sj-catehead h2, #h1-category {background:var(--darkopa2);text-shadow:0 0 7px var(--cntr); font-family:var(--title2); color: var(--clair1); letter-spacing:3px; font-size: 2.3em; font-weight:900; line-height:100px;}
+.sj-catehead h2, #h1-category {background:var(--cntr2);text-shadow:0 0 7px var(--cntr); font-family:var(--title2); color: var(--clair1); letter-spacing:3px; font-size: 2.3em; font-weight:900; line-height:100px;}
 .sj-main-frow {display:flex; flex-direction:row;  flex-wrap:wrap; justify-content:space-between;}
 
 .sj-caterow {display:flex; flex-direction:row; justify-content:center; width:48%; height:200px; border:1px solid var(--clair1opa6); overflow:hidden; margin:10px 0; border-radius:10px; box-shadow: 0 0 5px var(--darkopa2);}
