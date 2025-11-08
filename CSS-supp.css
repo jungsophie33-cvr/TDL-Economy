@@ -176,7 +176,6 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .chrono-event.active .chrono-detail {opacity: 1; transform: translateY(0); filter: blur(0); transition-delay: 0.4s;}
 .chrono-detail event, .systab event, .cdre event, blockquote event {display: block; background: var(--clair1opa6); padding: 15px 10px; border-radius: 10px; margin: 2px 15px 15px 15px; border-left: 3px solid var(--clair2opa5);}
 .chrono-detail > br, .systab .content .time > br, blockquote:has(event) > br {display:none;}
-.group .madate.active {border-color:var(--groups);}
 .group .chrono-bulle {background:var(--groups);}
 .group .chrono-event {outline-color:var(--groups);}
 .group .chrono-detail event {border-color:var(--groups-40);}
