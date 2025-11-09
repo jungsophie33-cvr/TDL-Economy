@@ -60,6 +60,15 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 [data-tooltip]:not([data-flow]):hover::before, [data-tooltip]:not([data-flow]):hover::after, [data-tooltip][data-flow^="bottom"]:hover::before, [data-tooltip][data-flow^="bottom"]:hover::after {animation: tooltip-vert .5s ease-out forwards;}
 [data-tooltip][data-flow^="left"]:hover::before, [data-tooltip][data-flow^="left"]:hover::after, [data-tooltip][data-flow^="right"]:hover::before, [data-tooltip][data-flow^="right"]:hover::after {animation: tooltip-horz .5s ease-out forwards;}
 
+[data-tooltip]:not([data-flow])::before, [data-tooltip]:not([data-flow])::after, [data-tooltip][data-flow^="top"]::before, [data-tooltip][data-flow^="top"]::after {left: 50%;
+transform: translate(-50%, -.4em);}
+[data-tooltip]:not([data-flow])::before, [data-tooltip][data-flow^="top"]::before {bottom: 100%;
+border-bottom-width: 0;
+border-top-color: var(--clair1);top:-7px;}
+[data-tooltip]:not([data-flow])::after, [data-tooltip][data-flow^="top"]::after {bottom: calc(100% + 5px);}
+.sj-postinfo [data-tooltip]:not([data-flow])::after, .sj-postinfo [data-tooltip][data-flow^="top"]::after {top: -42px;}
+.sj-postinfo [data-tooltip]::after {min-width:200px; white-space:normal; line-height:1em; font-size:0.8em;height:36px;padding:5px;}
+
 /* ----- GENERAL HEADER & BALISES ------ */
 #sj-main {background: var(--bgimg) no-repeat center bottom fixed; background-size:cover;}
 #sj-page-header {text-align:center;}
@@ -135,6 +144,22 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 .sj-intro .sj-intright > span:nth-child(1) {background: var(--dark);text-transform: uppercase; animation-delay: 0s;}
 .sj-intro .sj-intright > span:nth-child(2) { animation-delay: 1s; }
 .sj-intro .sj-intright > span:nth-child(3) { animation-delay: 2s; }
+
+/* ----- TAG MENTION ----- */
+.mentiontag {background-size: 100% .1rem; background-position: 0 100%;transition: all .3s; background-color:transparent; border-radius:0; color:var(--dark2);background-repeat: no-repeat; padding:2px 5px; border-radius:none; border-bottom:1px dotted var(--dark2); font-family:var(--font2);}
+.mentiontag:hover, .mentiontag:active {color: var(--clair1)!important;background-image: var(--gradark); border:none;background-size: 100% 100%!important;border-radius: 3px;background-color:transparent;}
+.mentiontag:link, .mentiontag:visited {color:var(--dark);}
+/* ----- PAGE DISCOVER ----- */
+.activity-feed {background:none;}
+.activity-feed .feed-item {border-color:var(--dark2);display:flex; flex-flow:row-reverse; justify-content:space-between; align-items:center;width:100%;padding:0 20px 20px 0;}
+.activity-feed .feed-item::after {width:50px;height:50px;border-radius:10px; border-color:var(--dark2); position:static; margin-left:-25px;}
+.activity-feed .feed-item.same-user-next {border-color:var(--dark2);}
+.activity-feed .feed-item date1 {margin:0 10px 0 0;}
+.activity-feed .feed-item event {width:92%; display: block;background: var(--clair1opa5);padding: 15px 10px;border-radius: 10px;margin: 0 10px;border-left: 3px solid var(--dark2opa5);}
+.activity-feed .feed-item .text {top:0;font-family:var(--font2);}
+.activity-feed .feed-item:last-of-type {border-left: 2px dotted var(--dark2)!important;}
+.activity-feed .feed-item .text a:last-child {font-family:var(--txt3);font-size:0.8em;text-transform:uppercase;font-weight: 900;background-size: 100% 0.1rem;background-position: 0 100%;transition: all 0.3s;background-repeat: no-repeat;padding: 1px 10px 3px;}
+.activity-feed .feed-item .text a:last-child:hover {color: var(--clair1);background-image: var(--gradark);background-size: 100% 100% !important;border-radius: 3px;}
 
 /* --------------------------------- */
 /* ----- CODES POUR POSTS ----- */
@@ -479,3 +504,24 @@ table.table1 tbody tr:hover, table.table1 tbody tr.hover {background:var(--clair
 
 .sj-about {width: 60%; margin: 0 auto 20px auto; background: var(--clair1opa6); padding: 5px; border-radius: 10px; font-size: 110%;}
 .sj-about br {display:none;}
+
+/* ----- MEP des MP ----- */
+.pm-actions-buttons {display: flex;flex-flow: row wrap;justify-content: space-evenly;align-items: center;}
+.pm-actions-buttons .button1 {background:var(--darkopa2); color:var(--dark);border:1px solid var(--darkopa5);padding:8px 20px; margin:5px 0; min-width:200px; border-radius:2px;font-family:var(--txt3); text-transform:uppercase; font-size:80%; line-height:80%; letter-spacing:1px; transition: all 0.3s;}
+.pm-actions-buttons .button1:hover {background:var(--darkopa8); color:var(--clair1);}
+.sj-mp-top {width: 70%; display: flex; justify-content: space-evenly; padding: 20px 0; align-items: center; font-size: 1em; font-family: var(--font2);}
+.sj-mp-top span {background:var(--darkopa5);border:2px solid var(--dark); border-radius:5px; padding:6px 7px; text-transform:uppercase;color:var(--clair1); transition:all 0.3s;}
+.sj-mp-top span:hover {background:var(--darkopa2); border-color:var(--dark);}
+.sj-mp-top span:hover a {color:var(--clair1)!important;}
+.sj-mp-top > span:has(a) {background:var(--cntr3); border-color:var(--cntr); color:var(--txt);}
+
+.sj-mp {height:60px!important;}
+.sj-mp .sj-post-avatar {float: left;
+margin: 5px 0 0 5px;
+border-radius: 10px;}
+.sj-mp .sj-post-avatar img {width: 50px;
+height: 50px; object-fit: cover;
+border-radius: 10px;}
+.sj-mp .sj-post-proftop-left {padding-left:30px!important;}
+.sj-mp > div:nth-child(2) > div:nth-child(2) {width:100px;padding:20px;font-size:1.5em;}
+.sj-mp2 {height:auto!important; padding: 5px 15px 0 15px;}
