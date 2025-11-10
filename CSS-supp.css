@@ -146,8 +146,8 @@ border-top-color: var(--clair1);top:-7px;}
 .sj-intro .sj-intright > span:nth-child(3) { animation-delay: 2s; }
 
 /* ----- TAG MENTION ----- */
-.mentiontag {background-size: 100% .1rem; background-position: 0 100%;transition: all .3s; background-color:transparent; border-radius:0; color:var(--dark2);background-repeat: no-repeat; padding:2px 5px; border-radius:none; border-bottom:1px dotted var(--dark2); font-family:var(--font2);}
-.mentiontag:hover, .mentiontag:active {color: var(--clair1)!important;background-image: var(--gradark); border:none;background-size: 100% 100%!important;border-radius: 3px;background-color:transparent;}
+.mentiontag {display:inline-block;background-size: 100% .1rem; background-position: 0 100%;transition: all .3s; background-color:transparent; border-radius:0; color:var(--dark2);background-repeat: no-repeat; padding:2px 5px; border-radius:none; border-bottom:1px dotted var(--dark2); font-family:var(--font2);}
+.mentiontag:hover, .mentiontag:active {color: var(--clair1)!important;background-image: var(--gradark); border-color:transparent;background-size: 100% 100%!important;border-radius: 3px;background-color:transparent;}
 .mentiontag:link, .mentiontag:visited {color:var(--dark);}
 /* ----- PAGE DISCOVER ----- */
 .activity-feed {background:none;}
