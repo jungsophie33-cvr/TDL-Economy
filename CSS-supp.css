@@ -184,13 +184,15 @@ border-top-color: var(--clair1);top:-7px;}
 
 .chrono .chrono-bulle.rebound-right {animation: sideImpactRight 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-bulle.rebound-left {animation: sideImpactLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
-.chrono .chrono-content {position: relative;padding: 10px;min-height: 380px;} 
+.chrono .chrono-content {position: relative;padding: 10px;min-height: 500px;} 
+.chrono .chrono-content.rp {min-height:700px;}
+.chrono .rp .chrono-detail {height:670px;}
 .chrono .chrono-content > br {display:none;}
 .chrono .chrono-event {position: absolute; left: 0; width: 97%; background: var(--cntr3); padding: 10px; margin:10px; border-radius: 5px; outline: 1px solid var(--cntr5); outline-offset: 5px; box-shadow:0 0 2px var(--darkopa3); opacity: 0; transform: translateX(60px);transition: transform 0.45s ease-out, opacity 0.45s ease-out; pointer-events: none;}
 .chrono .chrono-event.active {opacity: 1; transform: translateX(0); pointer-events: auto; z-index: 2;}
 .chrono .chrono-event.leaving {opacity: 0;transform: translateX(-50px); transition: transform 0.3s ease-in, opacity 0.3s ease-in;z-index: 1;}
 .chrono year {position: relative;display: block;font-size: 3em;line-height: 1em;font-family: var(--font2);font-style: italic;letter-spacing: -2px;margin: -5px 0 -10px 10px;color: var(--clair2);z-index: 0; opacity:0.6;} 
-.chrono .chrono-detail {height:300px; overflow:hidden auto;}
+.chrono .chrono-detail {height:470px; overflow:hidden auto;}
 .chrono-event year, .chrono-event .chrono-detail {opacity: 0;
   transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
               transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
