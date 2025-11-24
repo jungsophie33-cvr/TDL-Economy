@@ -158,8 +158,8 @@ border-top-color: var(--clair1);top:-7px;}
 .activity-feed .feed-item event {width:92%; display: block;background: var(--clair1opa5);padding: 15px 10px;border-radius: 10px;margin: 0 10px;border-left: 3px solid var(--dark2opa5);}
 .activity-feed .feed-item .text {top:0;font-family:var(--font2);}
 .activity-feed .feed-item:last-of-type {border-left: 2px dotted var(--dark2)!important;}
-.activity-feed .feed-item .text a:last-child {font-family:var(--txt3);font-size:0.8em;text-transform:uppercase;font-weight: 900;background-size: 100% 0.1rem;background-position: 0 100%;transition: all 0.3s;background-repeat: no-repeat;padding: 1px 10px 3px;}
-.activity-feed .feed-item .text a:last-child:hover {color: var(--clair1);background-image: var(--gradark);background-size: 100% 100% !important;border-radius: 3px;}
+.activity-feed .feed-item .text a:last-child, .chrono.rp event a {font-family:var(--txt3);font-size:0.8em;text-transform:uppercase;font-weight: 900;background-size: 100% 0.1rem;background-position: 0 100%;transition: all 0.3s;background-repeat: no-repeat;padding: 1px 10px 3px;}
+.activity-feed .feed-item .text a:last-child:hover, .chrono.rp event a:hover {color: var(--clair1);background-image: var(--gradark);background-size: 100% 100% !important;border-radius: 3px;}
 
 /* --------------------------------- */
 /* ----- CODES POUR POSTS ----- */
