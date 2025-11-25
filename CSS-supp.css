@@ -184,7 +184,7 @@ border-top-color: var(--clair1);top:-7px;}
 
 .chrono .chrono-bulle.rebound-right {animation: sideImpactRight 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-bulle.rebound-left {animation: sideImpactLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
-.chrono .chrono-content {position: relative;padding: 10px;min-height: 500px;} 
+.chrono .chrono-content {position: relative;padding: 10px;min-height: 540px;} 
 .chrono .chrono-content.rp {min-height:700px;}
 .chrono .rp .chrono-detail {height:670px;}
 .chrono .chrono-content > br {display:none;}
