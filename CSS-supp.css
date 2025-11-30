@@ -215,7 +215,6 @@ border-top-color: var(--clair1);top:-7px;}
 .accordion:after {content:"\e090";font-family: "uicons-thin-rounded"; position:absolute;right:20px;top: 50%;transform: translateY(-50%) rotate(0deg); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);transform-origin: center;}
 .accordion.active:after {transform: translateY(-50%) rotate(180deg);}
 .acc_content {width:100%;max-height:0; overflow:hidden;background:none; padding:0;margin:auto;transition: max-height 0.5s ease, opacity 0.4s ease; opacity: 0;}
-.acc_content blockquote {border:none!important;}
 .accordion.active + .acc_content { opacity: 1;max-height: 800px; }
 .acc_content .cdre {transform: translateY(10px); opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;}
 .accordion.active + .acc_content .cdre {transform: translateY(0); opacity: 1; transition-delay: 0.1s;}
