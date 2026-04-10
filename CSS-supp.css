@@ -434,7 +434,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 .sj-post-feels .rep-button i {font-size:1.3em!important; display:inline-block; vertical-align:middle;}
 .fa_like_div div {display: flex; font-size: 0.8em; justify-content: space-between; align-content: flex-start; width: 100%;}
 .fa_like_list, .fa_dislike_list {width:50%;border-left: 1px solid var(--groups); max-height:35px; overflow:auto; margin:5px 5px 0 0; padding-left:5px;}
-.sj-post-msg {padding: 30px 50px; text-align: justify; line-height:150%;}
+.sj-post-msg {padding: 50px; text-align: justify; line-height:150%;}
 
 #quick_reply #textarea_content {overflow:visible;}
 .sceditor-container {background:var(--clair1)!important;}
