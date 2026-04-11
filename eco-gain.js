@@ -49,6 +49,32 @@ console.log("[EcoV2] >>> eco-gain chargé");
     "/f12-terrebonne-bay"
   ];
 
+  function countWordsFromElement(el) {
+  if (!el) return 0;
+
+  // Clone pour nettoyer sans toucher au DOM
+  const clone = el.cloneNode(true);
+
+  // Supprimer citations et éléments non pertinents
+  clone.querySelectorAll("blockquote, cite, .quote, .codebox, .spoiler").forEach(node => node.remove());
+
+  const text = (clone.textContent || "")
+    .replace(/\[.*?\]/g, " ")
+    .replace(/<.*?>/g, " ")
+    .replace(/[\x00-\x40\x5b-\x60\x7b-\x7e]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+return (text.match(/\p{L}[\p{L}\p{N}]*/gu) || []).length;
+}
+
+function getWordCountBonus(words) {
+  if (words > 3000) return 20;
+  if (words > 2000) return 15;
+  if (words > 1000) return 10;
+  return 0;
+}
+
   // --- DÉTECTION DES POSTS (nouveau + correctif newtopic direct) ---
   function ecoAttachPostListeners() {
     const forms = document.querySelectorAll(
@@ -391,6 +417,54 @@ console.log("[EcoV2] >>> eco-gain chargé");
         }
       } catch (e) {
         console.warn("[EcoV2][BONUS RP] erreur :", e);
+      }
+
+            // --- BONUS LONGUEUR RP ---
+      try {
+        if (RP_ZONES.some(z => path.includes(z))) {
+          // attendre que les posts soient bien présents
+          await new Promise(resolve => {
+            let tries = 0;
+            const iv = setInterval(() => {
+              const posts = document.querySelectorAll(".sj-postmsg, .sj-post-msg, .postbody, .content-message");
+              if (posts.length > 0 || tries++ > 20) {
+                clearInterval(iv);
+                resolve();
+              }
+            }, 200);
+          });
+
+          const postBodies = Array.from(document.querySelectorAll(".sj-postmsg, .sj-post-msg, .postbody, .content-message"));
+
+          if (postBodies.length > 0) {
+            const lastPostBody = postBodies[postBodies.length - 1];
+            const wordCount = countWordsFromElement(lastPostBody);
+            const lengthBonus = getWordCountBonus(wordCount);
+
+            console.log(`[EcoV2][BONUS LONGUEUR] ${wordCount} mots détectés`);
+
+            if (lengthBonus > 0) {
+              gain += lengthBonus;
+              console.log(`[EcoV2][BONUS LONGUEUR] Bonus appliqué → +${lengthBonus}`);
+            } else {
+              console.log("[EcoV2][BONUS LONGUEUR] Aucun bonus de longueur");
+            }
+
+            // Journal facultatif
+            if (!record.rewards_wordcount) record.rewards_wordcount = [];
+            record.rewards_wordcount.push({
+              date: new Date().toISOString(),
+              membre: pseudo,
+              mots: wordCount,
+              montant: lengthBonus,
+              url: location.href
+            });
+          } else {
+            console.warn("[EcoV2][BONUS LONGUEUR] Aucun corps de message trouvé");
+          }
+        }
+      } catch (e) {
+        console.warn("[EcoV2][BONUS LONGUEUR] erreur :", e);
       }
 
       // --- BONUS PALIERS DE MESSAGES ---
