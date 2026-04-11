@@ -10,7 +10,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
     getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
     insertAfter, createErrorBanner, showEcoGain,
     MONNAIE_NAME, GROUPS, ADMIN_USERS, DEFAULT_DOLLARS,
-    BIN_ID, API_KEY, JSONBIN_PROXY_BASE
+    BIN_ID, API_KEY, JSONBIN_BASE
   } = window.EcoCore;
 
   // ---------- VISITEUR ----------
@@ -18,7 +18,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
   console.log("[EcoV2] invité lecture seule");
   (async()=>{
     try{
-      const r=await fetch(`${JSONBIN_PROXY_BASE}${BIN_ID}/latest`,{headers:{"X-Master-Key":API_KEY}});
+      const r=await fetch(`${JSONBIN_BASE}${BIN_ID}/latest`,{headers:{"X-Master-Key":API_KEY}});
       if(!r.ok) return console.warn("[EcoV2] échec lecture JSONBin invité");
       const j=await r.json();const record=j.record||{};
       const membres=record.membres||{};
