@@ -7,7 +7,7 @@ console.log("[EcoV2] >>> eco-core chargé");
   // ---------- CONFIG ----------
   const BIN_ID = "68f92d16d0ea881f40b3f36f";
   const API_KEY = "$2a$10$yVl9vTE.d/B4Hbmu8n6pyeHDM9PgPVHCBryetKJ3.wLHr7wa6ivyq";
-  const JSONBIN_PROXY_BASE = "https://corsproxy.io/?url=https://api.jsonbin.io/v3/b/";
+  const JSONBIN_BASE = "https://api.jsonbin.io/v3/b/";  
   const ADMIN_USERS = ["Mami Wata", "Jason Blackford"];
   const GROUPS = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles","Providence"];
   const DEFAULT_DOLLARS = 10;
@@ -25,22 +25,26 @@ console.log("[EcoV2] >>> eco-core chargé");
 
   // ---------- JSONBin helpers (version robuste avec retry & gestion CORS) ----------
   async function readBin(retries = 3) {
-    const url = `${JSONBIN_PROXY_BASE}${BIN_ID}/latest`;
-
+  const url = `${JSONBIN_BASE}${BIN_ID}/latest?_=${Date.now()}`;
+  
     for (let i = 0; i < retries; i++) {
-      try {
-        await new Promise(r => setTimeout(r, 1500));
-        const r = await fetch(url, {
-          method: "GET",
-          headers: {
-            "X-Master-Key": API_KEY
-          }
-        });
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      const r = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-Master-Key": API_KEY,
+          "X-Bin-Meta": "false"
+        },
+      });
 
-        if (r.ok) {
-          const j = await r.json();
-          return j.record || {};
-        }
+      if (r.ok) {
+        const j = await r.json();
+
+        // Avec X-Bin-Meta:false, JSONBin peut renvoyer directement le record,
+        // mais on garde un filet de sécurité si la réponse contient encore "record".
+        return j.record || j || {};
+      }
 
         // Si serveur encore occupé ou erreur temporaire
         if ([425, 429, 500, 502, 503].includes(r.status)) {
@@ -154,7 +158,7 @@ console.log("[EcoV2] >>> eco-core chargé");
 
   // ---------- EXPORT ----------
   window.EcoCore = {
-    BIN_ID, API_KEY, JSONBIN_PROXY_BASE,
+    BIN_ID, API_KEY, JSONBIN_BASE,
     ADMIN_USERS, GROUPS, DEFAULT_DOLLARS, MONNAIE_NAME,
     MENU_SELECTOR, RETRY_INTERVAL_MS, RETRY_MAX,
     log, warn, err,
