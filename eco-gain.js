@@ -17,7 +17,7 @@ console.log("[EcoV2] >>> eco-gain chargé");
     presentation_new: 20,
     presentation_reply: 5,
     preliens_or_gestion_new: 10,
-    preliens_or_gestion_reply: 2,
+    preliens_or_gestion_reply: 5,
     houma_terrebonne_new: 15,
     houma_terrebonne_reply: 10,
     vote_topic_reply: 2
@@ -28,15 +28,17 @@ console.log("[EcoV2] >>> eco-gain chargé");
     "#intrigue": 10,
     "#event": 5,
     "#enquete": 5,
-    "#solve": 20,
+    "#solve": 60,
     "#defi": 5,
-    "#mintrigue": 5
+    "#mintrigue": 5,
+    "#sujet-terminé": 50
   };
 
   const FORUM_IDS = {
     presentations: "/f5-presentations",
     preliens: "/f4-en-construction",
     gestionPersos: "/f33-fiches-de-liens",
+    journalPersos: "/f34-journaux-de-personnages",
     voteTopicName: "/t22-vote-aux-top-sites"
   };
 
@@ -46,7 +48,14 @@ console.log("[EcoV2] >>> eco-gain chargé");
     "/f9-bayou-cane",
     "/f10-bayou-blue",
     "/f11-mandalay-national-wildlife-refuge",
-    "/f12-terrebonne-bay"
+    "/f12-terrebonne-bay",
+    "/f36-la-louisiane",
+    "/f37-la-nouvelle-orleans",
+    "/f45-baton-rouge",
+    "/f29-bourg",
+    "/f30-ashland",
+    "/f31-montegut",
+    "/f38-le-reste-du-monde"
   ];
 
   function countWordsFromElement(el) {
@@ -287,7 +296,7 @@ function getWordCountBonus(words) {
       if (path.includes(FORUM_IDS.presentations)) {
         gain = isNew ? GAIN_RULES.presentation_new : GAIN_RULES.presentation_reply;
       }
-      else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos)) {
+      else if (path.includes(FORUM_IDS.preliens) || path.includes(FORUM_IDS.gestionPersos) || path.includes(FORUM_IDS.journalPersos)) {
         gain = isNew ? GAIN_RULES.preliens_or_gestion_new : GAIN_RULES.preliens_or_gestion_reply;
       }
       else if (RP_ZONES.some(z => path.includes(z))) {
