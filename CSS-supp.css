@@ -438,7 +438,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 
 #quick_reply #textarea_content {overflow:visible;}
 .sceditor-container {background:var(--clair1)!important;}
-.sceditor-container textarea {height:250px!important; background:var(--clair1)!important;}
+.sceditor-container textarea {min-height:250px!important; background:var(--clair1)!important;}
 
 /* ----- MODERATION DES SUJETS ----- */
 
