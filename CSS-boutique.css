@@ -12,7 +12,6 @@
 .b-header {
   text-align: center;
   padding: 2rem 1rem 1.8rem;
-  border-bottom: 1px solid var(--cntr6);
   margin-bottom: 2rem;
 }
 .b-eyebrow {
@@ -50,31 +49,29 @@
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--cntr6);
+  border-bottom: 1px solid var(--darkopa6);
   margin-bottom: 2rem;
 }
 .b-tab {
   padding: 9px 20px;
-  font-family: var(--font0);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .1em;
+  font-family: var(--txt2);
+  font-size: 110%;
+  font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
   border: 1px solid transparent;
   border-bottom: none;
   background: none;
-  color: var(--dark);
   border-radius: 3px 3px 0 0;
   transition: all .18s ease;
   position: relative;
   bottom: -1px;
 }
-.b-tab:hover  { background: var(--clair1opa7); color: var(--txt); }
+.b-tab:hover  { background: var(--clair1opa7); color: var(--dark); }
 .b-tab.active {
   color: var(--dark);
   background: var(--clair1);
-  border-color: var(--cntr6);
+  border-color: var(--darkopa6);
   border-bottom-color: var(--clair1);
   font-weight: 700;
 }
@@ -103,10 +100,10 @@
  
 /* ── SERVICE CARD ── */
 .b-card {
-  background: var(--clair1);
+  background: var(--cntr4);
   border: 1px solid var(--cntr6);
   border-radius: 4px;
-  padding: 15px 13px 13px;
+  padding: 15px 5px;
   cursor: pointer;
   transition: all .18s ease;
   text-align: center;
@@ -115,24 +112,25 @@
   align-items: center;
 }
 .b-card:hover {
-  background: var(--clair1opa8);
-  border-color: var(--cntr4);
+  background: var(--cntr5);
+  border-color: var(--cntr7);
   transform: translateY(-1px);
   box-shadow: 0 3px 10px var(--darkopa2);
 }
 .b-card-name {
-  font-family: var(--txt1);
-  font-size: 14px;
+  font-family: var(--title1);
+  font-size: 110%;
   color: var(--txt);
   line-height: 1.4;
   margin-bottom: 4px;
 }
 .b-card-sub {
-  font-family: var(--font0);
-  font-size: 10px;
-  letter-spacing: .07em;
+  font-family: var(--txt3);
+  font-size: 0.7em;
   text-transform: uppercase;
-  color: var(--dark);
+  background:var(--clair1opa3);
+  padding:1px 5px;
+  border-radius:3px;
   margin-bottom: 9px;
   opacity: .75;
 }
@@ -140,9 +138,8 @@
   display: inline-block;
   background: var(--dark);
   color: var(--clair1);
-  font-family: var(--font0);
-  font-size: 11px;
-  letter-spacing: .06em;
+  font-family: var(--font1);
+  font-size: 10px;
   text-transform: uppercase;
   padding: 3px 10px;
   border-radius: 2px;
