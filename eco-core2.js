@@ -107,11 +107,10 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   // la même structure fetch() qu'avant → compatibilité totale
   const BASE_URL = FIREBASE_CONFIG.databaseURL;
 
-  async function firebaseGet(path) {
+async function firebaseGet(path) {
   await _authPromise;
-  // Token en paramètre URL (obligatoire pour l'auth anonyme Firebase REST)
   const authParam = _authToken ? `?auth=${_authToken}` : "";
-  const url = `${BASE_URL}/${path}.json${authParam}`;
+  const url = `${BASE_URL}/${path}.json${authParam}`; // donne BASE_URL/.json ✓
   const r = await fetch(url);
   if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
   return await r.json();
@@ -190,15 +189,15 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
 
   // ---------- API PUBLIQUE (compatible avec eco-ui.js et eco-gain.js) ----------
   // readBin → lit tout le record
-  async function readBin() {
-    try {
-      const record = await firebaseGet("eco");
-      return record || {};
-    } catch(e) {
-      err("readBin Firebase", e);
-      return null;
-    }
+async function readBin() {
+  try {
+    const record = await firebaseGet(""); // ← racine, pas "eco"
+    return record || {};
+  } catch(e) {
+    err("readBin Firebase", e);
+    return null;
   }
+}
 
   // safeReadBin → avec cache 60s
   async function safeReadBin() {
@@ -210,28 +209,28 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   }
 
   // writeBin → écrit tout le record (compatible API existante)
-  async function writeBin(record) {
-    try {
-      invalidateCache();
-      await firebasePut("eco", record);
-      setCached(record);
-      log("writeBin Firebase OK");
-    } catch(e) {
-      err("writeBin Firebase", e);
-      throw e;
-    }
+async function writeBin(record) {
+  try {
+    invalidateCache();
+    await firebasePut("", record); // ← racine
+    setCached(record);
+    log("writeBin Firebase OK");
+  } catch(e) {
+    err("writeBin Firebase", e);
+    throw e;
   }
+}
 
   // writeField → écriture atomique d'un seul champ (pour les dépenses boutique)
-  async function writeField(path, data) {
-    try {
-      invalidateCache();
-      await firebasePut(`eco/${path}`, data);
-    } catch(e) {
-      err(`writeField ${path}`, e);
-      throw e;
-    }
+async function writeField(path, data) {
+  try {
+    invalidateCache();
+    await firebasePut(path, data); // ← déjà correct, pas de "eco/" à enlever
+  } catch(e) {
+    err(`writeField ${path}`, e);
+    throw e;
   }
+}
 
   // transactDollars → débit/crédit atomique anti-collision
   async function transactDollars(pseudo, delta) {
