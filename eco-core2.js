@@ -108,14 +108,14 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   const BASE_URL = FIREBASE_CONFIG.databaseURL;
 
   async function firebaseGet(path) {
-    await _authPromise; // attend que le token soit prêt
-    const headers = {};
-    if (_authToken) headers["Authorization"] = `Bearer ${_authToken}`;
-    const url = `${BASE_URL}/${path}.json`;
-    const r = await fetch(url, { headers });
-    if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
-    return await r.json();
-  }
+  await _authPromise;
+  // Token en paramètre URL (obligatoire pour l'auth anonyme Firebase REST)
+  const authParam = _authToken ? `?auth=${_authToken}` : "";
+  const url = `${BASE_URL}/${path}.json${authParam}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
+  return await r.json();
+}
 
   async function firebasePut(path, data) {
     await _authPromise;
@@ -138,11 +138,8 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
     // mais on utilise les ETags pour optimistic locking
     const url = `${BASE_URL}/${path}.json`;
     for (let i = 0; i < 5; i++) {
-      const getR = await fetch(url, {
-        headers: {
-          "Authorization": `Bearer ${_authToken}`,
-          "X-Firebase-ETag": "true"
-        }
+      const getR = await fetch(`${url}?auth=${_authToken}&_=${Date.now()}`, {
+        headers: { "X-Firebase-ETag": "true" }
       });
       const etag = getR.headers.get("ETag");
       const current = await getR.json();
