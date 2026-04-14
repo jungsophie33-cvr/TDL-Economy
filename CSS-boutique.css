@@ -50,6 +50,7 @@
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
+  justify-content:center;
   border-bottom: 1px solid var(--darkopa6);
   margin-bottom: 2rem;
 }
