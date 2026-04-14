@@ -7,7 +7,7 @@
   margin: 0 auto;
   padding: 2rem 1.2rem 4rem;
 }
-.boutique .h3 > h3 {font-size:25px; line-height:2.5em;}
+.boutique .h3 > h3 {font-size:25px!important; line-height:2.5em!important;}
  
 /* ── HEADER ── */
 .b-header {
