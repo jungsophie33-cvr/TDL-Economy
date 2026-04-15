@@ -257,7 +257,7 @@ body > .b-overlay.open {
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  max-width:min(920px, 92vw);
+  max-width:920px;
   width: 100%;
   padding: 2.2rem 2.2rem 1.8rem;
   position: relative;
@@ -321,11 +321,12 @@ body > .b-overlay.open {
 .b-success strong { color: #c8e8c8; }
 .b-hidden { display: none !important; }
  
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+  .b-overlay {padding: 40px 8px;}
   .b-title { font-size: 24px; }
   .b-tab   { padding: 8px 11px; font-size: 10px; }
   .b-grid  { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
-  .b-dgrid, .b-f2 { grid-template-columns: 1fr; }
+  .b-dgrid, .b-f2 { grid-template-columns: 1fr 1fr; }
   .b-modal { padding: 1.5rem 1.2rem 1.3rem; }
 }
 ::-webkit-scrollbar { width: 6px; }
