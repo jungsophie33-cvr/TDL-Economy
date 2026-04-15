@@ -233,22 +233,30 @@
 .b-eco-table .hl { color: var(--dark2); font-weight: 600; }
  
 /* ── MODAL ── */
-.b-overlay {
+body > .b-overlay {
   display: none;
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
   background: rgba(53,44,46,.78);
   z-index: 9999;
   align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  align-items: center;
   justify-content: center;
   padding: 40px 16px;
-  overflow-y: auto;
 }
-.b-overlay.open { display: flex; }
+body > .b-overlay.open { 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; }
 .b-modal {
   background: var(--clair1opa8);
   border-radius: 6px;
-  max-width: min(900px, 90vw);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   width: 100%;
   padding: 2.2rem 2.2rem 1.8rem;
   position: relative;
