@@ -257,7 +257,7 @@ body > .b-overlay.open {
   max-height: calc(100vh - 80px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  max-width:min(920px, 92vw)
+  max-width:min(920px, 92vw);
   width: 100%;
   padding: 2.2rem 2.2rem 1.8rem;
   position: relative;
