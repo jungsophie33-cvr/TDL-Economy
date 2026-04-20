@@ -184,7 +184,7 @@ border-top-color: var(--clair1);top:-7px;}
 
 .chrono .chrono-bulle.rebound-right {animation: sideImpactRight 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-bulle.rebound-left {animation: sideImpactLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
-.chrono .chrono-content {position: relative;padding: 0px 10px;min-height: 540px;} 
+.chrono .chrono-content {position: relative;padding: 0px 10px;min-height: 540px; margin-top:15px;} 
 .chrono .chrono-content.rp {min-height:700px;}
 .chrono .rp .chrono-detail {height:670px;}
 .chrono .chrono-content > br {display:none;}
@@ -639,7 +639,7 @@ border-radius: 10px;}
 .sj-fiche .sj-lnk .sj-blclnk:nth-child(4n+3) > div > h4 {top:192px;}
 
 .sj-fiche .chrono {width:100%;}
-.sj-fiche .chrono .chrono-bulle {bottom:-3px;}
+.sj-fiche .chrono .chrono-bulle {bottom:0px;}
 .sj-fiche .chrono .chrono-event.active {background:var(--clair1)!important; box-shadow:none!important;}
 .sj-fiche .chrono-detail event {background:var(--cntr3)!important;}
 .sj-fiche .systab .content p, .sj-fiche .sj-blc p, .sj-fiche .sj-blc1 p, .sj-fiche .sj-blc2 p  {text-indent:0; line-height:1.4em; font-size:inherit; margin:0; padding:0 20px;}
