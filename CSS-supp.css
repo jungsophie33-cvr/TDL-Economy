@@ -185,8 +185,6 @@ border-top-color: var(--clair1);top:-7px;}
 .chrono .chrono-bulle.rebound-right {animation: sideImpactRight 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-bulle.rebound-left {animation: sideImpactLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1);}
 .chrono .chrono-content {position: relative;padding: 0px 10px;min-height: 540px; margin-top:15px;} 
-.chrono.rp .chrono-content, #chronotb .chrono .chrono-content {min-height:700px;}
-.chrono.rp .chrono-detail, #chronotb .chrono .chrono-détail {height:670px;}
 .chrono .chrono-content > br {display:none;}
 .chrono .chrono-event {position: absolute; left: 0; width: 97%; background: var(--cntr3); padding: 10px; margin:10px; border-radius: 5px; outline: 1px solid var(--cntr5); outline-offset: 5px; box-shadow:0 0 2px var(--darkopa3); opacity: 0; transform: translateX(60px);transition: transform 0.45s ease-out, opacity 0.45s ease-out; pointer-events: none;}
 .chrono .chrono-event.active {opacity: 1; transform: translateX(0); pointer-events: auto; z-index: 2;}
@@ -207,6 +205,8 @@ border-top-color: var(--clair1);top:-7px;}
 .group .chrono-event {outline-color:var(--groups-40);}
 .group .chrono-detail event {border-color:var(--groups-40);}
 .group year {color:var(--groups);}
+.chrono.rp .chrono-content, #chronotb .chrono .chrono-content {min-height:700px!important;}
+.chrono.rp .chrono-detail, #chronotb .chrono .chrono-détail {height:670px!important;}
 
 /* ----- ACCORDEON ----- */
 .accordion {cursor:pointer;display:block;position:relative;width:90%;background:var(--cntr3);border-radius:5px; margin:10px auto; padding:10px 20px; font-family:var(--font2);font-size:16px!important; color:var(--txt); text-align:left;border-left: 3px solid transparent;transition: background 0.4s ease, border-left 0.4s ease, color 0.3s ease;}
