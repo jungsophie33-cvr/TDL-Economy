@@ -701,7 +701,7 @@ fb, fb1 {background:var(--cntr3);padding:2px 5px; border-left:3px solid var(--da
 fb1 {border-color:var(--clair2);}
 fb2, fb3 {font-style: italic;background: var(--darkopa6);padding: 1px 3px;font-size: 0.9em;font-family: var(--font1);color: var(--clair1);border-radius: 2px;}
 fb3 {background:var(--cntr);}
-bo, bo1, bo2, bo3 {font-family:var(--txt3); padding:2px 15px; border-radius:20px; border:1px solid var(--txt); margin:3px; text-transform:uppercase; font-size:0.8em;}
+bo, bo1, bo2, bo3 {display:inline-block; font-family:var(--txt3); padding:2px 15px; border-radius:20px; border:1px solid var(--txt); margin:3px; text-transform:uppercase; font-size:0.8em;}
 bo1 {border-color:var(--clair2);} bo2 {border-color:var(--cntr);} bo3 {border-color:var(--dark2);}
 
 d, d1, d2, d3, date, date1 {font-weight:900;text-transform:uppercase; color:var(--txt); font-family:var(--font1); font-size:13px;}
