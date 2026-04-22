@@ -207,6 +207,7 @@ border-top-color: var(--clair1);top:-7px;}
 .group year {color:var(--groups);}
 .chrono.rp .chrono-content, #chrono_terrebonne .chrono-content {min-height:720px!important;}
 .chrono.rp .chrono-detail, #chrono_terrebonne .chrono-detail {height:660px!important;}
+#chrono_terrebonne year {font-size:2.2em; font-family:var(--title3);}
 
 /* ----- ACCORDEON ----- */
 .accordion {cursor:pointer;display:block;position:relative;width:90%;background:var(--cntr3);border-radius:5px; margin:10px auto; padding:10px 20px; font-family:var(--font2);font-size:16px!important; color:var(--txt); text-align:left;border-left: 3px solid transparent;transition: background 0.4s ease, border-left 0.4s ease, color 0.3s ease;}
