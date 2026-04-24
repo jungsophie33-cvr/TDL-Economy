@@ -679,8 +679,8 @@ let3 {float:left;font-size:5em;font-family:var(--font2); font-style:italic; line
 .sj-post-msg .h2 div > span {margin-left:10px;font-family:var(--font1);font-weight:700;text-transform:uppercase;font-size:0.8em;color:var(--txt);}
 .sj-post-msg .h2 div > span:last-child {width:fit-content;background:var(--clair1); border-radius:5px; padding:1px 10px;}
 .sj-post-msg .h3, #boutique_html .sj-postmsg .h3 {width:100%;display:flex; flex-flow: row; gap: 15px; align-items:center;border:none;margin:5px 0;text-transform:uppercase;}
-.sj-post-msg h3, #boutique_html .sj-postmsg h3 {border:none; padding:0;margin:0;line-height:1em; font-family: var(--font2); font-size:30px; color:var(--dark2); transition:all ease 0.5s;}
-.sj-post-msg h3:hover, #boutique_html .sj-postmsg h3:hover {letter-spacing:3px; transition:all ease 0.5s;}
+.sj-post-msg h3, #boutique_html .sj-postmsg h3 {border:none; padding:0;margin:0;line-height:1em; font-family: var(--font2); font-size:0.8em; color:var(--dark2); letter-spacing:1px;transition:all ease 0.5s;}
+.sj-post-msg h3:hover, #boutique_html .sj-postmsg h3:hover {letter-spacing:5px; transition:all ease 0.5s;}
 .sj-post-msg .h3:before, #boutique_html .sj-postmsg .h3:before {height:auto;content: "\0027E2"; font-size:22px; background:var(--gradoc1r);background-clip:text;color:transparent;margin-top:5px; flex:0 1 auto;}
 .sj-post-msg .h3:after, #boutique_html .sj-postmsg .h3:after {content:'';height:1px;background:var(--gradoc1);margin-top:4px; flex: 1 1 auto;}
 .sj-post-msg h4 {padding: 4px 20px; background: var(--gradoc1); width: fit-content; color: var(--clair1); font-family: var(--title3); line-height:1em; font-weight: 100; font-size: 1.7em; border-radius: 5px; margin-left:20px;}
