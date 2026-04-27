@@ -722,8 +722,8 @@ bq3:before {content:'';width: 70%;position: absolute;height: 1px;background: lin
 .sj-post-msg ol li {}
 .sj-post-msg blockquote {margin:0 80px; background:none; border:none; font-size:1em;}
 .sj-post-msg blockquote:before {content:none;}
-.cdre blockquote.warning, .time blockquote.warning {color:var(--txt);margin:15px 60px;}
-.cdre .warning:before, .time .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
+.cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning {color:var(--txt);margin:15px 60px;}
+.cdre .warning:before, .time .warning:before, .systab .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
 .sj-post-msg blockquote:has(cite) {background-color: var(--cntr2);border-left: 3px solid var(--clair2);border-radius: 5px;box-shadow:0 0 2px var(--darkopa3);}
 #codeBox, dl.spoiler, dl.hidecode {background-color: var(--cntr2);border-color: var(--clair2);border-radius: 5px;border-width: 0 0 0 3px;font-size: 0.9em; box-shadow:0 0 2px var(--darkopa3);}
 #codeBox:before, dl.spoiler:before {top:2px; color:var(--clair2opa4);}
