@@ -664,10 +664,10 @@ let2 {float:left;font-size:5em;font-family:var(--title4); line-height:0.9em;marg
 let3 {float:left;font-size:5em;font-family:var(--font2); font-style:italic; line-height:0.8em;margin-right:7px;}
 /* ----- BALISES DE MESSAGES ----- */
 
-.sj-post-msg h1, .sj-wrap h1, #cp-main h1 {border:none;width:fit-content;margin:auto;font-family: var(--title4); font-weight: 100; font-size: 3em; text-align: center; background: var(--gradocr); background-clip: text; color: transparent; line-height: 1em;}
-.sj-post-msg .h1, .sj-wrap .h1 {width:100%;display:flex; flex-flow: row; gap: 20px;align-items:center;}
-.sj-post-msg .h1:before, .sj-post-msg .h1:after, .sj-wrap .h1:before, .sj-wrap .h1:after {content:''; height:1px; background:var(--gradoc1); flex: 1 1 auto;}
-.sj-post-msg .h1:after, .sj-wrap .h1:after {background:var(--gradoc1r);}
+.sj-post-msg h1, .sj-wrap h1, #cp-main h1, .content h1, .panel h1 {border:none;width:fit-content;margin:auto;font-family: var(--title4); font-weight: 100; font-size: 3em; text-align: center; background: var(--gradocr); background-clip: text; color: transparent; line-height: 1em;}
+.sj-post-msg .h1, .sj-wrap .h1, .content .h1, .panel .h1 {width:100%;display:flex; flex-flow: row; gap: 20px;align-items:center;}
+.sj-post-msg .h1:before, .sj-post-msg .h1:after, .sj-wrap .h1:before, .sj-wrap .h1:after, .content .h1:before, .panel .h1:before, .content .h1:after, .panel .h1:after {content:''; height:1px; background:var(--gradoc1); flex: 1 1 auto;}
+.sj-post-msg .h1:after, .sj-wrap .h1:after, .content .h1:after, .panel .h1:after {background:var(--gradoc1r);}
 .sj-post-msg h2 {color:var(--txt);font-size: 2.2em;font-family: var(--title4);background: var(--cntr4);padding-top: 7px;line-height: 1.8em;border-radius: 10px;text-align: center;outline: 1px solid var(--cntr2);outline-offset: 4px; margin-bottom:20px;}
 .sj-post-msg .h2 {display:flex;flex-flow:row wrap;justify-content:start; align-items:center;height:90px;background: var(--cntr4);padding: 15px 20px; margin:15px auto;border-radius: 10px;outline: 1px solid var(--cntr2);outline-offset: 4px;}
 .sj-post-msg .h2 br, .sj-post-msg .cdre > br:nth-child(2) {display:none;}
