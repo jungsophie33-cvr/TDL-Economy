@@ -132,9 +132,12 @@ if (pseudoChange) {
       delete record.doubles_comptes[ancienPseudo];
     }
     // Le pseudo dans les tableaux comptes des autres groupes
+    // versTableau inline : Firebase peut avoir converti comptes en objet
     Object.values(record.doubles_comptes).forEach(groupe => {
-      const idx = groupe.comptes.indexOf(ancienPseudo);
-      if (idx !== -1) groupe.comptes[idx] = pseudo;
+      const arr = Array.isArray(groupe.comptes)
+        ? groupe.comptes : Object.values(groupe.comptes || {});
+      const idx = arr.indexOf(ancienPseudo);
+      if (idx !== -1) { arr[idx] = pseudo; groupe.comptes = arr; }
     });
   }
  
