@@ -79,26 +79,43 @@
     return m ? parseInt(m[1], 10) : null;
   };
 
-  // Poste un message dans un sujet FA via fetch same-origin.
-  // Récupère d'abord la page de reply pour extraire les tokens CSRF avant de POSTer.
-  // [MAJ] La structure du formulaire de réponse de FA (champs cachés, action URL) peut changer.
+  /*
+   * Poste un message dans un sujet FA via fetch same-origin.
+   * ForumActif injecte son formulaire de réponse via JavaScript : fetch() récupère
+   * le HTML initial SANS l'exécution JS, donc le formulaire peut être absent.
+   * Dans ce cas, on lève une erreur FALLBACK_NEEDED que fiche-staff.js intercepte
+   * pour afficher le BBCode dans un textarea copiable.
+   * [MAJ] Les sélecteurs de formulaire et l'URL de posting sont fragiles aux mises à jour FA.
+   */
   FI.posterDansSujet = async function (topicId, contenu) {
     const pageRes = await fetch(`/posting.forum?mode=reply&t=${topicId}`, {
       credentials: "same-origin",
     });
     if (!pageRes.ok) throw new Error(`Erreur fetch page reply : ${pageRes.status}`);
 
-    const doc = new DOMParser().parseFromString(await pageRes.text(), "text/html");
-    const form = doc.querySelector("form[action*='posting']");
-    if (!form) throw new Error("Formulaire de réponse introuvable — vérifier les droits d'accès.");
+    const html = await pageRes.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    // [MAJ] ForumActif peut changer le sélecteur ou l'action du formulaire
+    const form = doc.querySelector("form[action*='posting']")
+               || doc.querySelector("form[action*='post']")
+               || doc.querySelector("#postform")
+               || doc.querySelector("form[method='post']");
+
+    if (!form) {
+      // Le formulaire est injecté par JS et absent du HTML statique.
+      // L'appelant (fiche-staff.js) affichera le message dans un textarea copiable.
+      const err = new Error("FALLBACK_NEEDED");
+      err.contenu = contenu;
+      throw err;
+    }
 
     const corps = new URLSearchParams();
-    // Les champs cachés contiennent les tokens CSRF et IDs forum — indispensables
     form.querySelectorAll("input[type='hidden']").forEach((i) => {
       if (i.name) corps.append(i.name, i.value);
     });
     corps.append("message", contenu);
-    corps.append("post", "Envoyer"); // [MAJ] Valeur du bouton submit de FA
+    corps.append("post", "Envoyer"); // [MAJ] Valeur du bouton submit FA
 
     const action = form.getAttribute("action") || `/posting.forum?mode=reply&t=${topicId}`;
     const postRes = await fetch(action, {
