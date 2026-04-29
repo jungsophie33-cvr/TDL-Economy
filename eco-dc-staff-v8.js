@@ -83,8 +83,12 @@
 
   async function traiter(id, decision, listeEl) {
     const motif = decision === "refusee" ? prompt(T.STAFF_PROMPT_REFUS, "") : null;
-    // L'utilisateur a annulé la saisie du motif via "Annuler" dans prompt()
     if (decision === "refusee" && motif === null) return;
+
+    // Invalider le cache sessionStorage AVANT la lecture pour forcer un aller-retour Firebase.
+    // Cela réduit la fenêtre de la race condition entre deux admins : sans ça, un admin
+    // pourrait lire une version mise en cache 30s plus tôt et écraser le changement de l'autre.
+    if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
     const rec = await window.EcoCore.readBin();
     rec.doubles_comptes = rec.doubles_comptes || {};
@@ -92,6 +96,15 @@
 
     const idx = rec.demandes_dc.findIndex((d) => d.id === id);
     if (idx === -1) return;
+
+    // Vérifier que la demande est toujours en attente — un autre admin a peut-être agi entre-temps
+    if (rec.demandes_dc[idx].statut !== "en_attente") {
+      const resultatEl = listeEl.querySelector(`.dc-resultat-${id}`);
+      if (resultatEl) DC.afficherResultat(resultatEl, "info",
+        "⚠️ Cette demande a déjà été traitée par un autre admin. Actualisation en cours…");
+      setTimeout(() => chargerListe(listeEl), 1500);
+      return;
+    }
 
     const demande      = rec.demandes_dc[idx];
     const staffPseudo  = window.EcoCore.getPseudo();
@@ -108,6 +121,7 @@
     }
 
     await window.EcoCore.writeBin(rec);
+    if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
     const monnaie = window.EcoCore.MONNAIE_NAME;
     DC.preremplirReponse(DC.msgStaff(demande, decision, motif, staffPseudo, monnaie));
@@ -130,8 +144,9 @@
       if (carte) setTimeout(() => carte.remove(), 1500);
 
     } else {
-      // Pour un refus, aucun formulaire persistant : on peut relancer la liste proprement.
-      setTimeout(() => chargerListe(listeEl), 2000);
+      // Délai de 3s : laisse Firebase propager l'écriture avant que l'autre admin
+      // ne voie la liste actualisée, réduisant la fenêtre de race condition.
+      setTimeout(() => chargerListe(listeEl), 3000);
     }
   }
 
