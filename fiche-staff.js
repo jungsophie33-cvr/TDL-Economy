@@ -139,13 +139,21 @@
     const topicId    = FI.extraireTopicId(demande.lien_fiche);
     const staffPseudo = window.EcoCore.getPseudo();
 
+    const bbcode = FI.bbcodeValidation(demande, msgPerso, staffPseudo);
     try {
       if (!topicId) throw new Error("ID de sujet introuvable dans l'URL de la fiche.");
-      await FI.posterDansSujet(topicId, FI.bbcodeValidation(demande, msgPerso, staffPseudo));
+      await FI.posterDansSujet(topicId, bbcode);
     } catch (e) {
-      FI.afficherResultat(resultatEl, "erreur",
-        `${T.STAFF_ERR_POSTING}<br><small>${e.message}</small>`);
-      return false;
+      if (e.message === "FALLBACK_NEEDED") {
+        // ForumActif injecte le formulaire via JS : le posting automatique est impossible.
+        // On affiche le BBCode dans un textarea pour que le staff le colle manuellement.
+        afficherFallbackPosting(resultatEl, bbcode, demande.lien_fiche);
+        // On continue quand même pour mettre à jour le statut dans le JSONBin
+      } else {
+        FI.afficherResultat(resultatEl, "erreur",
+          `${T.STAFF_ERR_POSTING}<br><small>${e.message}</small>`);
+        return false;
+      }
     }
 
     const rec = await window.EcoCore.readBin();
@@ -215,6 +223,23 @@
     if (!comptes.includes(d.pseudo)) comptes.push(d.pseudo);
     groupe.comptes = comptes;
     delete groupe.slot_en_attente;
+  }
+
+  /* === FALLBACK POSTING === */
+
+  // Affiché quand le posting automatique échoue (form introuvable).
+  // Le staff voit le BBCode et l'URL de la fiche pour coller manuellement.
+  function afficherFallbackPosting(conteneurEl, bbcode, lienFiche) {
+    conteneurEl.className = "fi-resultat info";
+    conteneurEl.style.display = "block";
+    conteneurEl.innerHTML = `
+      <p style="margin:0 0 8px;">
+        ⚠️ Le posting automatique n'a pas fonctionné (formulaire FA non accessible via fetch).<br>
+        <strong><a href="${lienFiche}" target="_blank">Ouvrez la fiche ici</a></strong>
+        et collez le message ci-dessous dans la réponse rapide :
+      </p>
+      <textarea style="width:100%;box-sizing:border-box;height:180px;font-size:.85em;
+        border:1px solid #90caf9;border-radius:4px;padding:6px;" readonly>${bbcode}</textarea>`;
   }
 
   /* === INIT === */
