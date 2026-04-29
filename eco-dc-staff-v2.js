@@ -112,17 +112,27 @@
     const monnaie = window.EcoCore.MONNAIE_NAME;
     DC.preremplirReponse(DC.msgStaff(demande, decision, motif, staffPseudo, monnaie));
 
-    const confirmation = decision === "validee"
-      ? `✅ Demande validée.${demande.paiement_requis ? " Paiement débité." : ""}`
-      : "✅ Demande refusée.";
-    DC.afficherResultat(resultatEl, "succes", confirmation);
+    DC.afficherResultat(resultatEl, "succes",
+      decision === "validee"
+        ? `✅ Demande validée.${demande.paiement_requis ? " Paiement débité." : ""}`
+        : "✅ Demande refusée."
+    );
 
     if (decision === "validee") {
-      afficherFormulaireAjout(resultatEl, demande.compte_racine, demande.numero_dc);
-    }
+      // Le formulaire d'ajout est ancré dans le panel (pas dans la carte) pour survivre
+      // au rechargement de la liste — la carte disparaît, le formulaire reste.
+      const panelEl = listeEl.closest("#dc-staff-panel") || listeEl.parentElement;
+      afficherFormulaireAjout(panelEl, demande.compte_racine, demande.numero_dc);
 
-    // Rechargement de la liste après un court délai pour permettre la lecture du résultat
-    setTimeout(() => chargerListe(listeEl), 2500);
+      // On retire seulement la carte traitée sans reconstruire toute la liste,
+      // ce qui détruirait le formulaire d'ajout qu'on vient d'insérer.
+      const carte = listeEl.querySelector(`.dc-resultat-${id}`)?.closest(".dc-staff-carte");
+      if (carte) setTimeout(() => carte.remove(), 1500);
+
+    } else {
+      // Pour un refus, aucun formulaire persistant : on peut relancer la liste proprement.
+      setTimeout(() => chargerListe(listeEl), 2000);
+    }
   }
 
   function enregistrerDecision(rec, idx, decision, staffPseudo, motif) {
@@ -172,21 +182,24 @@
 
   /* === AJOUT PSEUDO === */
 
-  // Formulaire affiché après validation pour associer le pseudo du nouveau compte créé
-  function afficherFormulaireAjout(ancrage, racine, numeroDC) {
+  // Formulaire affiché après validation pour associer le pseudo du nouveau compte créé.
+  // Inséré directement dans le panel (pas dans la carte) pour survivre au rechargement.
+  function afficherFormulaireAjout(panelEl, racine, numeroDC) {
     const cle = `ajout-${racine}-${numeroDC}`;
-    if (ancrage.querySelector(`[data-cle="${cle}"]`)) return;
+    // Guard global : si ce formulaire existe déjà n'importe où dans le panel, on ne recrée pas
+    if (document.querySelector(`[data-cle="${cle}"]`)) return;
 
     const div = document.createElement("div");
     div.className = "dc-ajout-pseudo";
     div.dataset.cle = cle;
     div.innerHTML = `
+      <p style="margin:8px 0 4px;"><strong>➕ Nouveau compte validé pour le groupe de ${racine}</strong></p>
       <label class="dc-label">${T.STAFF_LABEL_AJOUT}</label>
       <input type="text" placeholder="Pseudo du nouveau compte">
       <button class="dc-btn-enregistrer">${T.STAFF_BTN_AJOUT}</button>
       <span class="dc-ajout-resultat"></span>
     `;
-    ancrage.appendChild(div);
+    panelEl.appendChild(div);
     div.querySelector(".dc-btn-enregistrer")
        .addEventListener("click", () => enregistrerPseudo(div, racine));
   }
