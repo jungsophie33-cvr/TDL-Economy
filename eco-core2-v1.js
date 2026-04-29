@@ -12,7 +12,7 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   const DB_PATH = "https://thedrownedlands-b35b4.firebaseio.com"; // même que databaseURL
 
   // ---------- CONFIG FORUM ----------
-  const ADMIN_USERS       = ["Mami Wata", "Jason Blackford"];
+  const ADMIN_USERS       = ["Mami Wata", "Jason Blackford", "Alyssia Desrosiers"];
   const GROUPS            = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles","Providence"];
   const DEFAULT_DOLLARS   = 10;
   const MONNAIE_NAME      = "Dollars";
