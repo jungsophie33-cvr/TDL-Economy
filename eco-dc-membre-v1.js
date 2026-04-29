@@ -241,7 +241,7 @@
     const wrapper = creerBouton();
     const overlay = creerModal(monnaie);
 
-    ancrage.parentNode.insertBefore(wrapper, ancrage);
+    ancrage.appendChild(wrapper);
     document.body.appendChild(overlay);
 
     bindFermeture(overlay);
