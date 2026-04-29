@@ -238,7 +238,26 @@
     if (document.getElementById("dc-staff-panel")) return;
     const panel = creerPanel();
     ancrage.appendChild(panel);
+    // Les deux chargements sont indépendants : les demandes en attente d'un côté,
+    // les slots en attente d'ajout de pseudo de l'autre (survivent aux rechargements de page).
     chargerListe(panel.querySelector("#dc-staff-liste"));
+    chargerSlotsEnAttente(panel);
   };
+
+  // Relit le JSONBin au chargement et réaffiche un formulaire d'ajout pour chaque
+  // groupe dont la demande a été validée mais dont le nouveau pseudo n'est pas encore enregistré.
+  // C'est ce mécanisme qui rend le formulaire persistant après rechargement de page.
+  async function chargerSlotsEnAttente(panelEl) {
+    const rec = await window.EcoCore.safeReadBin();
+    if (!rec?.doubles_comptes) return;
+
+    Object.entries(rec.doubles_comptes).forEach(([racine, groupe]) => {
+      if (!groupe.slot_en_attente) return;
+
+      // Extraire le numéro du DC depuis "NOUVEAU_COMPTE_3" → 3
+      const numeroDC = parseInt(groupe.slot_en_attente.replace("NOUVEAU_COMPTE_", ""), 10);
+      afficherFormulaireAjout(panelEl, racine, numeroDC);
+    });
+  }
 
 })(window.DC, window.DC.CFG, window.DC.TEXTES);
