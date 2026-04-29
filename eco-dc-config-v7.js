@@ -19,6 +19,7 @@ window.DC.CFG = {
 
   /* Paramètres du jeu — à adapter */
   TOPIC_SLUG:      "/t63-",          // Partie de l'URL qui identifie le sujet DC
+  BOTTIN_SLUG:     "/t50-",          // [MAJ] Partie de l'URL du sujet bottin des MC — à adapter
   STAFF_USERS:     ["Mami Wata", "Jason Blackford"],        // Pseudos staff (s'ajoutent à EcoCore.ADMIN_USERS)
   MOIS_ANCIENNETE: 1,
   RP_MINIMUM:      15,
@@ -37,7 +38,8 @@ window.DC.CFG = {
      * en HTML/BBCode par l'admin. Si elle est renommée ou supprimée, rien ne s'affiche.
      * Chemin complet dans le DOM : .sj-postmsg .sj-post-msg div .demande-dc
      */
-    ZONE_INJECTION:   ".demande-dc",     // [MAJ] Div placée dans le corps du post
+    ZONE_INJECTION:   ".demande-dc",     // [MAJ] Div placée dans le corps du post DC
+    ZONE_BOTTIN:      ".affichage-dc",   // [MAJ] Div placée dans le corps du post bottin
     // [MAJ] SCEditor (éditeur WYSIWYG de ForumActif) génère son textarea dans ce conteneur
     TEXTAREA_REPONSE: "#quick_reply .sceditor-container textarea",
 
@@ -90,6 +92,15 @@ window.DC.TEXTES = {
     ${paiement ? `<br>💰 Le paiement de ${cout} ${monnaie} sera débité automatiquement à la validation.` : ""}
     <br><br>Un message récapitulatif a été pré-rempli ci-dessous —
     <strong>cliquez sur "Répondre"</strong> pour le poster dans le sujet.`,
+
+  /* Panel staff — gestion des groupes */
+  STAFF_GESTION_TITRE:    "🗂 Gestion des groupes multi-comptes",
+  STAFF_GESTION_VIDE:     "Aucun groupe enregistré.",
+  STAFF_CONFIRM_SUPPRESSION: (pseudo) => `Supprimer "${pseudo}" de ce groupe ?`,
+  STAFF_CONFIRM_GROUPE:   (racine) => `Supprimer TOUT le groupe de "${racine}" ? Cette action est irréversible.`,
+  STAFF_SUPPR_OK:         (pseudo) => `✅ "${pseudo}" supprimé du groupe.`,
+  STAFF_SUPPR_GROUPE_OK:  (racine) => `✅ Groupe de "${racine}" entièrement supprimé.`,
+  STAFF_ERR_SUPPR:        "❌ Erreur lors de la suppression.",
 
   /* Panel staff */
   STAFF_TITRE:          "🔐 Panel Staff — Demandes de multi-compte en attente",
