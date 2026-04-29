@@ -105,6 +105,21 @@
     return { racine, comptes: rec.doubles_comptes[racine].comptes, estNouveau: false };
   };
 
+  /* === INDEX UID ↔ PSEUDO === */
+
+  // Retourne le pseudo actuel d'un UID depuis uid_index
+  DC.pseudoDepuisUID = function (rec, uid) {
+    return rec.uid_index?.[String(uid)] || null;
+  };
+
+  // Retourne l'UID d'un pseudo depuis membres[pseudo].uid ou uid_index inversé
+  DC.uidDepuisPseudo = function (rec, pseudo) {
+    if (rec.membres?.[pseudo]?.uid) return rec.membres[pseudo].uid;
+    // Fallback : recherche inversée dans uid_index (si uid pas encore stocké dans membres)
+    const entree = Object.entries(rec.uid_index || {}).find(([, p]) => p === pseudo);
+    return entree ? parseInt(entree[0], 10) : null;
+  };
+
   DC.genId = function () {
     return "dc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   };
