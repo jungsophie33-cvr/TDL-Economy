@@ -63,7 +63,8 @@
   /* === RENDER === */
 
   function formaterLigne(racine, groupe, uid_index) {
-    const autres = groupe.comptes.filter((c) => c !== racine);
+    // Normalisation : Firebase peut avoir converti comptes en objet {0:…, 1:…}
+    const autres = DC.versTableau(groupe.comptes).filter((c) => c !== racine);
     if (!autres.length) return null;
 
     // L'UID est résolu depuis uid_index (rempli automatiquement par eco-ui.js au login)
