@@ -32,8 +32,8 @@
     return panel;
   }
 
-  async function chargerListe(listeEl) {
-    const rec = await window.EcoCore.safeReadBin();
+  async function chargerListe(listeEl, recExistant) {
+    const rec = recExistant || await window.EcoCore.safeReadBin();
     if (!rec) { listeEl.textContent = T.ERR_DONNEES; return; }
 
     const demandes = (rec.demandes_dc || []).filter((d) => d.statut === "en_attente");
@@ -246,22 +246,25 @@
     if (document.getElementById("dc-staff-panel")) return;
     const panel = creerPanel();
     ancrage.appendChild(panel);
-    chargerListe(panel.querySelector("#dc-staff-liste"));
-    chargerSlotsEnAttente(panel);
 
-    // Section gestion des groupes — insérée après le panel des demandes
     const sectionGestion = creerSectionGestion();
     ancrage.appendChild(sectionGestion);
-    chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"));
-
     ancrage.appendChild(creerSectionSuppression());
+
+    // Une seule lecture JSONBin partagée : évite 3 appels Firebase simultanés
+    // qui peuvent déclencher du rate-limiting ou bloquer la file de requêtes.
+    window.EcoCore.safeReadBin().then((rec) => {
+      chargerListe(panel.querySelector("#dc-staff-liste"), rec);
+      chargerSlotsEnAttente(panel, rec);
+      chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"), rec);
+    });
   };
 
   // Relit le JSONBin au chargement et réaffiche un formulaire d'ajout pour chaque
   // groupe dont la demande a été validée mais dont le nouveau pseudo n'est pas encore enregistré.
   // C'est ce mécanisme qui rend le formulaire persistant après rechargement de page.
-  async function chargerSlotsEnAttente(panelEl) {
-    const rec = await window.EcoCore.safeReadBin();
+  async function chargerSlotsEnAttente(panelEl, recExistant) {
+    const rec = recExistant || await window.EcoCore.safeReadBin();
     if (!rec?.doubles_comptes) return;
 
     Object.entries(rec.doubles_comptes).forEach(([racine, groupe]) => {
@@ -287,11 +290,14 @@
     return section;
   }
 
-  async function chargerGroupes(groupesEl) {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec?.doubles_comptes) { groupesEl.textContent = T.ERR_DONNEES; return; }
+  async function chargerGroupes(groupesEl, recExistant) {
+    // recExistant permet de réutiliser une lecture déjà faite par initStaff
+    // et d'éviter un appel Firebase supplémentaire.
+    const rec = recExistant || await window.EcoCore.safeReadBin();
+    if (!rec) { groupesEl.textContent = T.ERR_DONNEES; return; }
 
-    const entrees = Object.entries(rec.doubles_comptes)
+    // doubles_comptes absent = aucun DC validé, pas une erreur
+    const entrees = Object.entries(rec.doubles_comptes || {})
       .sort(([a], [b]) => a.localeCompare(b, "fr"));
 
     if (!entrees.length) { groupesEl.innerHTML = `<em>${T.STAFF_GESTION_VIDE}</em>`; return; }
