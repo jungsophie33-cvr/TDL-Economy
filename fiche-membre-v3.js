@@ -2,11 +2,9 @@
  * fiche-membre.js — Formulaire de demande de validation de fiche · TDL
  *
  * CE QUE CE FICHIER FAIT : bouton déclencheur, modale avec les 14 champs de la demande,
- * toggles conditionnels, validation des champs, écriture JSONBin et pré-remplissage du textarea.
+ * toggles conditionnels, vérification de doublon, validation des champs,
+ * écriture JSONBin et pré-remplissage du textarea.
  * CE QU'IL NE FAIT PAS : aucune logique staff, aucune action post-validation.
- *
- * NOTE TAILLE : 3 fonctions de rendu HTML séparées (principal, détails, modal) sont nécessaires
- * pour que chacune reste sous 50 lignes et couvre les 14 champs du formulaire.
  *
  * CARTE DES BLOCS :
  *   RENDER BOUTON    — bouton déclencheur
@@ -15,7 +13,7 @@
  *   RENDER MODAL     — assemblage complet de la modale
  *   EVENTS FERMETURE — binding fermeture (✕, Annuler, Échap, overlay)
  *   EVENTS TOGGLES   — affichage conditionnel des sous-champs
- *   CHARGEMENT       — chargement asynchrone des listes membres
+ *   CHARGEMENT       — vérification doublon + chargement des listes membres
  *   LECTURE          — extraction des valeurs du formulaire
  *   VALIDATION       — vérification des champs obligatoires
  *   SOUMISSION       — écriture JSONBin et pré-remplissage
@@ -26,9 +24,6 @@
 
 (function (FI, CFG, T) {
   "use strict";
-
-  // Ce try/catch expose toute erreur silencieuse qui empêcherait FI.initMembre d'être assigné
-  try {
 
   /* === RENDER BOUTON === */
 
@@ -141,6 +136,7 @@
       <div class="dc-boite fi-boite">
         <button class="dc-btn-fermer">${T.BTN_FERMER}</button>
         <h3 class="dc-titre">${T.TITRE_MODAL}</h3>
+        <div id="fi-info-doublon" class="dc-zone-info" style="display:none;"></div>
         <div id="fi-champs" class="fi-champs">
           ${htmlSectionPrincipale()}
           ${htmlSectionDetails()}
@@ -188,22 +184,27 @@
 
   /* === CHARGEMENT === */
 
+  // Vérifie si une demande existe déjà pour ce membre (en_attente ou validee).
+  // Retourne un message HTML ou null.
+  async function verifierDoublon(pseudo) {
+    const rec = await window.EcoCore.safeReadBin();
+    if (!rec) return null;
+    const demande = FI.versTableau(rec.demandes_fiche).find(
+      (d) => d.pseudo === pseudo && (d.statut === "en_attente" || d.statut === "validee")
+    );
+    if (!demande) return null;
+    return demande.statut === "en_attente"
+      ? "⏳ Vous avez déjà une demande de validation en cours. Attendez la décision du staff."
+      : "✅ Votre fiche a déjà été validée. Contactez un admin si vous avez besoin d'aide.";
+  }
+
   async function chargerListesMembres(overlay, pseudo) {
-    // Vérifie d'abord qu'il n'existe pas déjà une demande pour ce membre
-    const blocage = await verifierDemandeExistante(pseudo);
-    if (blocage) {
-      const champsEl = overlay.querySelector("#fi-champs");
-      // Injecter la zone d'info si absente du template (rétrocompatibilité)
-      let zoneInfo = overlay.querySelector("#fi-zone-info");
-      if (!zoneInfo) {
-        zoneInfo = document.createElement("div");
-        zoneInfo.id = "fi-zone-info";
-        zoneInfo.className = "dc-zone-info";
-        champsEl.parentNode.insertBefore(zoneInfo, champsEl);
-      }
-      zoneInfo.style.display = "block";
-      zoneInfo.innerHTML = blocage;
-      champsEl.style.display = "none";
+    const doublon = await verifierDoublon(pseudo);
+    if (doublon) {
+      const info = overlay.querySelector("#fi-info-doublon");
+      info.textContent = doublon;
+      info.style.display = "block";
+      overlay.querySelector("#fi-champs").style.display = "none";
       return;
     }
 
@@ -222,19 +223,6 @@
     overlay.querySelector("#fi-premier-compte").innerHTML =
       `<option value="">${msgVide}</option>` +
       racinesDC.map((m) => `<option value="${m}">${m}</option>`).join("");
-  }
-
-  // Retourne un message HTML si le membre a déjà une demande active ou validée, null sinon.
-  async function verifierDemandeExistante(pseudo) {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) return null; // Si lecture échoue, on laisse passer plutôt que de bloquer
-    const demande = FI.versTableau(rec.demandes_fiche).find(
-      (d) => d.pseudo === pseudo && (d.statut === "en_attente" || d.statut === "validee")
-    );
-    if (!demande) return null;
-    return demande.statut === "en_attente"
-      ? "⏳ Vous avez déjà une demande de validation en cours. Attendez la décision du staff."
-      : "✅ Votre fiche a déjà été validée. Contactez un admin si vous avez besoin d'aide.";
   }
 
   /* === LECTURE === */
@@ -338,7 +326,6 @@
     bouton.querySelector(".fi-btn-ouvrir").addEventListener("click", () => {
       overlay.classList.add("actif");
       document.body.style.overflow = "hidden";
-      // Chargement différé : une seule requête JSONBin à la première ouverture
       if (!overlay.dataset.initialise) {
         overlay.dataset.initialise = "1";
         chargerListesMembres(overlay, pseudo);
@@ -348,12 +335,5 @@
     overlay.querySelector("#fi-btn-soumettre")
       .addEventListener("click", () => soumettre(overlay, pseudo));
   };
-
-  } catch (e) {
-    // Affiche l'erreur dans la console ET dans la div .validation-fiche si elle existe
-    console.error("[fiche-membre] Erreur au chargement :", e.message, e.stack);
-    const z = document.querySelector(".validation-fiche");
-    if (z) z.innerHTML = '<div style="color:red;padding:8px;border:1px solid red;border-radius:4px;">❌ [fiche-membre] ' + e.message + '</div>';
-  }
 
 })(window.FI, window.FI.CFG, window.FI.TEXTES);
