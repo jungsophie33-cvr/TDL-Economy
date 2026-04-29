@@ -40,8 +40,16 @@ window.DC.CFG = {
     ZONE_INJECTION:   ".demande-dc",     // [MAJ] Div placée dans le corps du post
     // [MAJ] SCEditor (éditeur WYSIWYG de ForumActif) génère son textarea dans ce conteneur
     TEXTAREA_REPONSE: "#quick_reply .sceditor-container textarea",
-    PROFIL_DATE:      ".field-date-dinscription dd div",  // champ profil personnalisé FA
-    PROFIL_RP:        ".field-rp dd div",                 // champ profil personnalisé FA
+
+    /*
+     * [MAJ] IDs natifs ForumActif des champs personnalisés.
+     * Ces IDs sont stables (définis dans Admin > Profils > Champs personnalisés).
+     * Attention : les classes comme .field-date-dinscription sont ajoutées par le JS
+     * du thème sj-* au DOMContentLoaded — elles sont absentes du HTML fetché par fetch().
+     * On cible donc les IDs bruts + .field_uneditable qui contient la valeur affichée.
+     */
+    PROFIL_DATE:      "#field_id-4 .field_uneditable",   // Champ "Date d'inscription"
+    PROFIL_RP:        "#field_id-13 .field_uneditable",  // Champ "RP"
   },
 };
 
