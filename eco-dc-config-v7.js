@@ -20,7 +20,7 @@ window.DC.CFG = {
   /* Paramètres du jeu — à adapter */
   TOPIC_SLUG:      "/t63-",          // Partie de l'URL qui identifie le sujet DC
   BOTTIN_SLUG:     "/t50-",          // [MAJ] Partie de l'URL du sujet bottin des MC — à adapter
-  STAFF_USERS:     ["Mami Wata", "Jason Blackford"],        // Pseudos staff (s'ajoutent à EcoCore.ADMIN_USERS)
+  STAFF_USERS:     [],        // Pseudos staff (s'ajoutent à EcoCore.ADMIN_USERS)
   MOIS_ANCIENNETE: 1,
   RP_MINIMUM:      15,
   COUT_DC:         150,              // En monnaie du jeu, à partir du 3e compte
