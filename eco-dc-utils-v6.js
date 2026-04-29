@@ -18,6 +18,19 @@
 (function (DC, CFG) {
   "use strict";
 
+  /* === NORMALISATION FIREBASE === */
+
+  /*
+   * Firebase Realtime Database sérialise les tableaux JS en objets {0:{…}, 1:{…}}.
+   * Toute valeur lue depuis rec qui devrait être un tableau doit passer par cette fonction
+   * avant d'utiliser .find(), .filter(), .forEach(), etc.
+   */
+  DC.versTableau = function (valeur) {
+    if (!valeur) return [];
+    if (Array.isArray(valeur)) return valeur;
+    return Object.values(valeur);
+  };
+
   /* === PROFIL === */
 
   // Cache partagé : une seule requête /u{id} par chargement de page.
@@ -107,7 +120,7 @@
   DC.trouverGroupe = function (rec, pseudo) {
     const dcs = rec.doubles_comptes || {};
     for (const racine in dcs) {
-      if (dcs[racine].comptes.includes(pseudo)) return racine;
+      if (DC.versTableau(dcs[racine].comptes).includes(pseudo)) return racine;
     }
     return null;
   };
@@ -115,7 +128,9 @@
   DC.infosGroupe = function (rec, pseudo) {
     const racine = DC.trouverGroupe(rec, pseudo);
     if (!racine) return { racine: pseudo, comptes: [pseudo], estNouveau: true };
-    return { racine, comptes: rec.doubles_comptes[racine].comptes, estNouveau: false };
+    // Normalisation : Firebase peut retourner comptes comme objet {0:…, 1:…}
+    const comptes = DC.versTableau(rec.doubles_comptes[racine].comptes);
+    return { racine, comptes, estNouveau: false };
   };
 
   /* === INDEX UID ↔ PSEUDO === */
