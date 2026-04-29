@@ -89,7 +89,10 @@
     // Chargement différé : fetch profil seulement si le membre ouvre réellement la modale
     if (!overlay.dataset.initialise) {
       overlay.dataset.initialise = "1";
-      chargerConditions(overlay, pseudo);
+      chargerConditions(overlay, pseudo).catch((e) => {
+        const z = overlay.querySelector("#dc-zone-info");
+        if (z) z.innerHTML = `<span style="color:red">❌ Erreur : ${e.message}</span>`;
+      });
     }
   }
 
