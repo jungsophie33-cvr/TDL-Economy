@@ -27,16 +27,29 @@
   DC.fetchProfil = async function () {
     if (_profilCache) return _profilCache;
 
-    // _userdata["user_id"] est un objet global injecté par ForumActif sur toutes les pages
-    // pour les membres connectés. Plus fiable que EcoCore.getUserId() qui dépend du DOM.
-    // [MAJ] Si ForumActif renomme cette variable globale, mettre à jour ici.
+    // [MAJ] Si ForumActif renomme _userdata, mettre à jour ici.
     const uid = window._userdata?.["user_id"];
     if (!uid || uid <= 0) return null;
 
-    const rep = await fetch("/u" + uid, { credentials: "same-origin" });
-    if (!rep.ok) return null;
-    _profilCache = new DOMParser().parseFromString(await rep.text(), "text/html");
-    return _profilCache;
+    // AbortController avec timeout : sans ça, fetch() peut rester en attente indéfiniment
+    // si ForumActif est lent ou rate-limite la requête sur /u{id}.
+    const ctrl = new AbortController();
+    const minuterie = setTimeout(() => ctrl.abort(), 6000);
+
+    try {
+      const rep = await fetch("/u" + uid, {
+        credentials: "same-origin",
+        signal: ctrl.signal,
+      });
+      clearTimeout(minuterie);
+      if (!rep.ok) return null;
+      _profilCache = new DOMParser().parseFromString(await rep.text(), "text/html");
+      return _profilCache;
+    } catch (_) {
+      // Timeout (AbortError) ou erreur réseau → on continue avec null (affichera "?")
+      clearTimeout(minuterie);
+      return null;
+    }
   };
 
   DC.lireDateInscription = async function () {
