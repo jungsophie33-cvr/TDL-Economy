@@ -118,24 +118,42 @@
     el.innerHTML = html;
   };
 
-  // Pré-remplit le textarea de réponse ForumActif ou ouvre la réponse rapide si absent
-  // [MAJ] Les sélecteurs TEXTAREA_REPONSE et BTN_REPONDRE sont fragiles aux mises à jour FA
+  /*
+   * Pré-remplit le textarea de la réponse rapide avec le texte BBCode généré.
+   *
+   * ForumActif utilise SCEditor (éditeur WYSIWYG) dont le textarea réel est caché
+   * sous #quick_reply .sceditor-container textarea.
+   * Écrire dans .value ne suffit pas : SCEditor maintient son propre état interne.
+   * Il faut passer par son API (sceditor.instance) pour que le contenu soit
+   * effectivement envoyé lors du clic sur "Envoyer".
+   *
+   * [MAJ] Le sélecteur TEXTAREA_REPONSE et l'API sceditor sont fragiles aux mises
+   * à jour de ForumActif. Si le texte n'apparaît plus, vérifier ces deux points.
+   */
   DC.preremplirReponse = function (texte) {
     const ta = document.querySelector(CFG.SEL.TEXTAREA_REPONSE);
-    if (ta) {
-      ta.value = texte;
-      ta.dispatchEvent(new Event("input"));
-      ta.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
+    if (!ta) return;
+
+    // Méthode 1 : API SCEditor (méthode fiable — synchronise l'état interne de l'éditeur)
+    // [MAJ] SCEditor expose son instance via sceditor.instance(element)
+    if (window.sceditor) {
+      const instance = window.sceditor.instance(ta);
+      if (instance) {
+        instance.val(texte);
+        ta.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
     }
-    const btn = document.querySelector(CFG.SEL.BTN_REPONDRE);
-    if (!btn) return;
-    btn.click();
-    // [MAJ] Délai empirique — ForumActif anime l'ouverture de la réponse rapide
-    setTimeout(() => {
-      const ta2 = document.querySelector(CFG.SEL.TEXTAREA_REPONSE);
-      if (ta2) { ta2.value = texte; ta2.dispatchEvent(new Event("input")); }
-    }, 800);
+
+    // Méthode 2 : écriture directe + événements natifs (fallback si SCEditor absent)
+    // Nécessaire pour que le framework JS de FA détecte le changement de valeur
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype, "value"
+    ).set;
+    nativeInputValueSetter.call(ta, texte);
+    ta.dispatchEvent(new Event("input",  { bubbles: true }));
+    ta.dispatchEvent(new Event("change", { bubbles: true }));
+    ta.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   /* === MESSAGES BBCode === */
