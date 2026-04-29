@@ -224,7 +224,7 @@
   DC.initStaff = function (ancrage) {
     if (document.getElementById("dc-staff-panel")) return;
     const panel = creerPanel();
-    ancrage.parentNode.insertBefore(panel, ancrage);
+    ancrage.appendChild(panel);
     chargerListe(panel.querySelector("#dc-staff-liste"));
   };
 
