@@ -238,10 +238,13 @@
     if (document.getElementById("dc-staff-panel")) return;
     const panel = creerPanel();
     ancrage.appendChild(panel);
-    // Les deux chargements sont indépendants : les demandes en attente d'un côté,
-    // les slots en attente d'ajout de pseudo de l'autre (survivent aux rechargements de page).
     chargerListe(panel.querySelector("#dc-staff-liste"));
     chargerSlotsEnAttente(panel);
+
+    // Section gestion des groupes — insérée après le panel des demandes
+    const sectionGestion = creerSectionGestion();
+    ancrage.appendChild(sectionGestion);
+    chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"));
   };
 
   // Relit le JSONBin au chargement et réaffiche un formulaire d'ajout pour chaque
@@ -258,6 +261,120 @@
       const numeroDC = parseInt(groupe.slot_en_attente.replace("NOUVEAU_COMPTE_", ""), 10);
       afficherFormulaireAjout(panelEl, racine, numeroDC);
     });
+  }
+
+  /* === GESTION DES GROUPES === */
+
+  function creerSectionGestion() {
+    const section = document.createElement("div");
+    section.id = "dc-staff-gestion";
+    section.className = "dc-staff-panel";
+    section.style.marginTop = "14px";
+    section.innerHTML = `
+      <h3 class="dc-staff-titre">${T.STAFF_GESTION_TITRE}</h3>
+      <div id="dc-staff-groupes">Chargement…</div>
+    `;
+    return section;
+  }
+
+  async function chargerGroupes(groupesEl) {
+    const rec = await window.EcoCore.safeReadBin();
+    if (!rec?.doubles_comptes) { groupesEl.textContent = T.ERR_DONNEES; return; }
+
+    const entrees = Object.entries(rec.doubles_comptes)
+      .sort(([a], [b]) => a.localeCompare(b, "fr"));
+
+    if (!entrees.length) { groupesEl.innerHTML = `<em>${T.STAFF_GESTION_VIDE}</em>`; return; }
+
+    groupesEl.innerHTML = "";
+    entrees.forEach(([racine, groupe]) => {
+      groupesEl.appendChild(creerCarteGroupe(racine, groupe.comptes));
+    });
+  }
+
+  function creerCarteGroupe(racine, comptes) {
+    const carte = document.createElement("div");
+    carte.className = "dc-staff-carte";
+    carte.dataset.racine = racine;
+
+    const pseudosHTML = comptes.map((pseudo) => `
+      <span class="dc-groupe-pseudo">
+        ${pseudo === racine ? `<strong>${pseudo}</strong> (racine)` : pseudo}
+        <button class="dc-btn-suppr-pseudo" data-pseudo="${pseudo}" data-racine="${racine}"
+          title="Retirer ce pseudo du groupe">✕</button>
+      </span>
+    `).join(" · ");
+
+    carte.innerHTML = `
+      <div style="margin-bottom:8px;">${pseudosHTML}</div>
+      <button class="dc-btn-suppr-groupe" data-racine="${racine}"
+        style="background:#7b1f1f;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:.85em;">
+        🗑 Supprimer tout le groupe
+      </button>
+      <span class="dc-gestion-resultat-${racine.replace(/\s/g,'-')}" style="margin-left:8px;font-size:.9em;"></span>
+    `;
+
+    carte.querySelectorAll(".dc-btn-suppr-pseudo").forEach((btn) =>
+      btn.addEventListener("click", () =>
+        supprimerPseudo(btn.dataset.racine, btn.dataset.pseudo, carte))
+    );
+    carte.querySelector(".dc-btn-suppr-groupe")
+      .addEventListener("click", () => supprimerGroupe(racine, carte));
+
+    return carte;
+  }
+
+  async function supprimerPseudo(racine, pseudo, carteEl) {
+    if (!confirm(T.STAFF_CONFIRM_SUPPRESSION(pseudo))) return;
+
+    const resultatSel = `.dc-gestion-resultat-${racine.replace(/\s/g,'-')}`;
+    const resultatEl  = carteEl.querySelector(resultatSel);
+
+    try {
+      const rec = await window.EcoCore.readBin();
+      const groupe = rec.doubles_comptes?.[racine];
+      if (!groupe) return;
+
+      groupe.comptes = groupe.comptes.filter((c) => c !== pseudo);
+
+      // Si on retire le compte racine, le premier compte restant devient la nouvelle racine
+      if (pseudo === racine && groupe.comptes.length) {
+        const nouvelleRacine = groupe.comptes[0];
+        rec.doubles_comptes[nouvelleRacine] = { ...groupe };
+        delete rec.doubles_comptes[racine];
+      } else if (!groupe.comptes.length) {
+        // Plus personne dans le groupe : on supprime la clé entièrement
+        delete rec.doubles_comptes[racine];
+      }
+
+      await window.EcoCore.writeBin(rec);
+      if (resultatEl) resultatEl.style.color = "green", resultatEl.textContent = T.STAFF_SUPPR_OK(pseudo);
+      window.DC.rafraichirBottin?.();
+      // Recharger la section gestion pour refléter la nouvelle structure
+      setTimeout(() => chargerGroupes(document.getElementById("dc-staff-groupes")), 1200);
+
+    } catch (_) {
+      if (resultatEl) resultatEl.style.color = "red", resultatEl.textContent = T.STAFF_ERR_SUPPR;
+    }
+  }
+
+  async function supprimerGroupe(racine, carteEl) {
+    if (!confirm(T.STAFF_CONFIRM_GROUPE(racine))) return;
+
+    const resultatSel = `.dc-gestion-resultat-${racine.replace(/\s/g,'-')}`;
+    const resultatEl  = carteEl.querySelector(resultatSel);
+
+    try {
+      const rec = await window.EcoCore.readBin();
+      delete rec.doubles_comptes[racine];
+      await window.EcoCore.writeBin(rec);
+      if (resultatEl) resultatEl.style.color = "green", resultatEl.textContent = T.STAFF_SUPPR_GROUPE_OK(racine);
+      window.DC.rafraichirBottin?.();
+      setTimeout(() => chargerGroupes(document.getElementById("dc-staff-groupes")), 1200);
+
+    } catch (_) {
+      if (resultatEl) resultatEl.style.color = "red", resultatEl.textContent = T.STAFF_ERR_SUPPR;
+    }
   }
 
 })(window.DC, window.DC.CFG, window.DC.TEXTES);
