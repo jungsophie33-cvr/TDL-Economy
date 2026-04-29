@@ -36,7 +36,7 @@
     const rec = recExistant || await window.EcoCore.safeReadBin();
     if (!rec) { listeEl.textContent = T.ERR_DONNEES; return; }
 
-    const demandes = (rec.demandes_dc || []).filter((d) => d.statut === "en_attente");
+    const demandes = DC.versTableau(rec.demandes_dc).filter((d) => d.statut === "en_attente");
     if (!demandes.length) { listeEl.innerHTML = `<em>${T.STAFF_AUCUNE}</em>`; return; }
 
     listeEl.innerHTML = "";
@@ -88,7 +88,7 @@
 
     const rec = await window.EcoCore.readBin();
     rec.doubles_comptes = rec.doubles_comptes || {};
-    rec.demandes_dc     = rec.demandes_dc     || [];
+    rec.demandes_dc = DC.versTableau(rec.demandes_dc);
 
     const idx = rec.demandes_dc.findIndex((d) => d.id === id);
     if (idx === -1) return;
@@ -152,7 +152,7 @@
     if (solde < CFG.COUT_DC) return T.STAFF_ERR_SOLDE(compte_demandeur, solde);
 
     rec.membres[compte_demandeur].dollars -= CFG.COUT_DC;
-    rec.transactions_membres = rec.transactions_membres || [];
+    rec.transactions_membres = DC.versTableau(rec.transactions_membres);
     rec.transactions_membres.push({
       date:    new Date().toISOString(),
       de:      compte_demandeur,
@@ -226,7 +226,10 @@
     if (!rec.doubles_comptes[racine]) {
       rec.doubles_comptes[racine] = { comptes: [racine] };
     }
-    rec.doubles_comptes[racine].comptes.push(nouveauPseudo);
+    // Normalisation avant push — Firebase peut avoir converti comptes en objet
+    const comptesCourants = DC.versTableau(rec.doubles_comptes[racine].comptes);
+    comptesCourants.push(nouveauPseudo);
+    rec.doubles_comptes[racine].comptes = comptesCourants;
     delete rec.doubles_comptes[racine].slot_en_attente;
 
     // L'UID est résolu automatiquement depuis uid_index (rempli par eco-ui.js au login du membre)
@@ -318,7 +321,7 @@
     carte.className = "dc-staff-carte";
     carte.dataset.racine = racine;
 
-    const pseudosHTML = comptes.map((pseudo) => `
+    const pseudosHTML = DC.versTableau(comptes).map((pseudo) => `
       <span class="dc-groupe-pseudo">
         ${pseudo === racine ? `<strong>${pseudo}</strong> (racine)` : pseudo}
         <button class="dc-btn-suppr-pseudo" data-pseudo="${pseudo}" data-racine="${racine}"
@@ -356,17 +359,15 @@
       const groupe = rec.doubles_comptes?.[racine];
       if (!groupe) return;
 
-      groupe.comptes = groupe.comptes.filter((c) => c !== pseudo);
-      // Nettoyer le UID correspondant s'il existe
+      // Normalisation : Firebase peut avoir converti comptes en objet
+      const comptesNorm = DC.versTableau(groupe.comptes).filter((c) => c !== pseudo);
+      groupe.comptes = comptesNorm;
       if (groupe.uids) delete groupe.uids[pseudo];
 
-      if (groupe.comptes.length <= 1) {
-        // Un seul compte restant = plus de multi-compte : on supprime tout le groupe.
-        // L'admin n'a pas à penser à cette étape supplémentaire.
+      if (comptesNorm.length <= 1) {
         delete rec.doubles_comptes[racine];
       } else if (pseudo === racine) {
-        // Le compte racine supprimé mais d'autres existent : le premier restant devient racine
-        const nouvelleRacine = groupe.comptes[0];
+        const nouvelleRacine = comptesNorm[0];
         rec.doubles_comptes[nouvelleRacine] = { ...groupe };
         delete rec.doubles_comptes[racine];
       }
@@ -436,6 +437,7 @@
     if (!confirm(`⚠️ Supprimer TOUTES les données de "${pseudo}" ? Cette action est irréversible.`)) return;
 
     const rec = await window.EcoCore.readBin();
+    rec.demandes_dc = DC.versTableau(rec.demandes_dc);
     const uid = DC.uidDepuisPseudo(rec, pseudo);
     let actions = [];
 
@@ -460,11 +462,12 @@
       }
       // Si c'est un membre dans un groupe
       Object.entries(rec.doubles_comptes).forEach(([racine, groupe]) => {
-        const idx = groupe.comptes.indexOf(pseudo);
+        const comptesArr = DC.versTableau(groupe.comptes);
+        const idx = comptesArr.indexOf(pseudo);
         if (idx === -1) return;
-        groupe.comptes.splice(idx, 1);
-        // Si plus qu'un compte restant → supprimer tout le groupe
-        if (groupe.comptes.length <= 1) {
+        comptesArr.splice(idx, 1);
+        groupe.comptes = comptesArr;
+        if (comptesArr.length <= 1) {
           delete rec.doubles_comptes[racine];
           actions.push("groupe DC (membre → groupe vidé)");
         } else {
