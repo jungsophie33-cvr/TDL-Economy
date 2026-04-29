@@ -251,13 +251,18 @@
     ancrage.appendChild(sectionGestion);
     ancrage.appendChild(creerSectionSuppression());
 
-    // Une seule lecture JSONBin partagée : évite 3 appels Firebase simultanés
-    // qui peuvent déclencher du rate-limiting ou bloquer la file de requêtes.
-    window.EcoCore.safeReadBin().then((rec) => {
-      chargerListe(panel.querySelector("#dc-staff-liste"), rec);
-      chargerSlotsEnAttente(panel, rec);
-      chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"), rec);
-    });
+    // Une seule lecture JSONBin partagée : évite 3 appels Firebase simultanés.
+    // Le catch explicite remplace le silence des erreurs dans les Promise async.
+    window.EcoCore.safeReadBin()
+      .then((rec) => {
+        chargerListe(panel.querySelector("#dc-staff-liste"), rec);
+        chargerSlotsEnAttente(panel, rec);
+        chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"), rec);
+      })
+      .catch((e) => {
+        const listeEl = panel.querySelector("#dc-staff-liste");
+        if (listeEl) listeEl.textContent = T.ERR_DONNEES + " (erreur : " + e.message + ")";
+      });
   };
 
   // Relit le JSONBin au chargement et réaffiche un formulaire d'ajout pour chaque
