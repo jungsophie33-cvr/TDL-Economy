@@ -26,8 +26,13 @@
 
   DC.fetchProfil = async function () {
     if (_profilCache) return _profilCache;
-    const uid = window.EcoCore.getUserId();
-    if (!uid || uid === -1) return null;
+
+    // _userdata["user_id"] est un objet global injecté par ForumActif sur toutes les pages
+    // pour les membres connectés. Plus fiable que EcoCore.getUserId() qui dépend du DOM.
+    // [MAJ] Si ForumActif renomme cette variable globale, mettre à jour ici.
+    const uid = window._userdata?.["user_id"];
+    if (!uid || uid <= 0) return null;
+
     const rep = await fetch("/u" + uid, { credentials: "same-origin" });
     if (!rep.ok) return null;
     _profilCache = new DOMParser().parseFromString(await rep.text(), "text/html");
