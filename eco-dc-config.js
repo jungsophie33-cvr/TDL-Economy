@@ -18,8 +18,8 @@ window.DC = {};
 window.DC.CFG = {
 
   /* Paramètres du jeu — à adapter */
-  TOPIC_SLUG:      "/t42-",          // Partie de l'URL qui identifie le sujet DC
-  STAFF_USERS:     ["Admin"],        // Pseudos staff (s'ajoutent à EcoCore.ADMIN_USERS)
+  TOPIC_SLUG:      "/t63-",          // Partie de l'URL qui identifie le sujet DC
+  STAFF_USERS:     ["Mami Wata", "Jason Blackford"],        // Pseudos staff (s'ajoutent à EcoCore.ADMIN_USERS)
   MOIS_ANCIENNETE: 1,
   RP_MINIMUM:      15,
   COUT_DC:         150,              // En monnaie du jeu, à partir du 3e compte
