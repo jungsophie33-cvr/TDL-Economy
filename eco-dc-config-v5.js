@@ -40,8 +40,8 @@ window.DC.CFG = {
     ZONE_INJECTION:   ".demande-dc",     // [MAJ] Div placée dans le corps du post
     // [MAJ] SCEditor (éditeur WYSIWYG de ForumActif) génère son textarea dans ce conteneur
     TEXTAREA_REPONSE: "#quick_reply .sceditor-container textarea",
-    PROFIL_DATE:      ".field-date-dinscription dd",  // champ profil personnalisé FA
-    PROFIL_RP:        ".field-rp dd",                 // champ profil personnalisé FA
+    PROFIL_DATE:      ".field-date-dinscription dd div",  // champ profil personnalisé FA
+    PROFIL_RP:        ".field-rp dd div",                 // champ profil personnalisé FA
   },
 };
 
