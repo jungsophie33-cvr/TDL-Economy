@@ -182,22 +182,25 @@
 
   /* === AJOUT PSEUDO === */
 
-  // Formulaire affiché après validation pour associer le pseudo du nouveau compte créé.
-  // Inséré directement dans le panel (pas dans la carte) pour survivre au rechargement.
+  // Formulaire affiché après validation pour associer le pseudo + UID du nouveau compte.
+  // Inséré dans le panel (pas dans la carte) pour survivre aux rechargements de page.
   function afficherFormulaireAjout(panelEl, racine, numeroDC) {
     const cle = `ajout-${racine}-${numeroDC}`;
-    // Guard global : si ce formulaire existe déjà n'importe où dans le panel, on ne recrée pas
     if (document.querySelector(`[data-cle="${cle}"]`)) return;
 
     const div = document.createElement("div");
     div.className = "dc-ajout-pseudo";
     div.dataset.cle = cle;
     div.innerHTML = `
-      <p style="margin:8px 0 4px;"><strong>➕ Nouveau compte validé pour le groupe de ${racine}</strong></p>
+      <p style="margin:8px 0 6px;"><strong>➕ Nouveau compte validé pour le groupe de ${racine}</strong></p>
       <label class="dc-label">${T.STAFF_LABEL_AJOUT}</label>
-      <input type="text" placeholder="Pseudo du nouveau compte">
+      <input class="dc-input-pseudo" type="text" placeholder="Pseudo du nouveau compte"
+        style="margin-bottom:8px;">
       <button class="dc-btn-enregistrer">${T.STAFF_BTN_AJOUT}</button>
       <span class="dc-ajout-resultat"></span>
+      <div class="dc-ajout-uid-info" style="font-size:.85em;color:#666;margin-top:4px;">
+        L'UID sera récupéré automatiquement à la première connexion du membre.
+      </div>
     `;
     panelEl.appendChild(div);
     div.querySelector(".dc-btn-enregistrer")
@@ -205,9 +208,8 @@
   }
 
   async function enregistrerPseudo(div, racine) {
-    const input        = div.querySelector("input");
-    const resultatSpan = div.querySelector(".dc-ajout-resultat");
-    const nouveauPseudo = input.value.trim();
+    const resultatSpan  = div.querySelector(".dc-ajout-resultat");
+    const nouveauPseudo = div.querySelector(".dc-input-pseudo").value.trim();
 
     if (!nouveauPseudo) { resultatSpan.textContent = T.STAFF_ERR_PSEUDO_VIDE; return; }
 
@@ -227,7 +229,13 @@
     rec.doubles_comptes[racine].comptes.push(nouveauPseudo);
     delete rec.doubles_comptes[racine].slot_en_attente;
 
+    // L'UID est résolu automatiquement depuis uid_index (rempli par eco-ui.js au login du membre)
+    // Si le membre ne s'est pas encore connecté depuis le patch, uid_index ne contiendra pas
+    // encore son entrée — le bottin utilisera @"Pseudo" en attendant, puis basculera en mentiontag
+    // automatiquement à la première connexion du nouveau compte.
+
     await window.EcoCore.writeBin(rec);
+    window.DC.rafraichirBottin?.();
     resultatSpan.style.color = "green";
     resultatSpan.textContent = T.STAFF_AJOUT_OK(nouveauPseudo, racine);
   }
@@ -245,6 +253,8 @@
     const sectionGestion = creerSectionGestion();
     ancrage.appendChild(sectionGestion);
     chargerGroupes(sectionGestion.querySelector("#dc-staff-groupes"));
+
+    ancrage.appendChild(creerSectionSuppression());
   };
 
   // Relit le JSONBin au chargement et réaffiche un formulaire d'ajout pour chaque
@@ -336,14 +346,17 @@
       if (!groupe) return;
 
       groupe.comptes = groupe.comptes.filter((c) => c !== pseudo);
+      // Nettoyer le UID correspondant s'il existe
+      if (groupe.uids) delete groupe.uids[pseudo];
 
-      // Si on retire le compte racine, le premier compte restant devient la nouvelle racine
-      if (pseudo === racine && groupe.comptes.length) {
+      if (groupe.comptes.length <= 1) {
+        // Un seul compte restant = plus de multi-compte : on supprime tout le groupe.
+        // L'admin n'a pas à penser à cette étape supplémentaire.
+        delete rec.doubles_comptes[racine];
+      } else if (pseudo === racine) {
+        // Le compte racine supprimé mais d'autres existent : le premier restant devient racine
         const nouvelleRacine = groupe.comptes[0];
         rec.doubles_comptes[nouvelleRacine] = { ...groupe };
-        delete rec.doubles_comptes[racine];
-      } else if (!groupe.comptes.length) {
-        // Plus personne dans le groupe : on supprime la clé entièrement
         delete rec.doubles_comptes[racine];
       }
 
@@ -375,6 +388,94 @@
     } catch (_) {
       if (resultatEl) resultatEl.style.color = "red", resultatEl.textContent = T.STAFF_ERR_SUPPR;
     }
+  }
+
+  /* === SUPPRESSION COMPLETE D'UN MEMBRE === */
+
+  function creerSectionSuppression() {
+    const section = document.createElement("div");
+    section.id = "dc-staff-suppression";
+    section.className = "dc-staff-panel";
+    section.style.marginTop = "14px";
+    section.innerHTML = `
+      <h3 class="dc-staff-titre" style="color:#7b1f1f;">🗑 Suppression complète d'un membre</h3>
+      <p style="font-size:.9em;color:#555;margin:0 0 10px;">
+        Supprime toutes les données du membre dans le JSONBin : économie, multi-comptes et index UID.
+        À utiliser uniquement si le membre a définitivement quitté le forum.
+      </p>
+      <label class="dc-label">Pseudo exact du membre à supprimer :</label>
+      <input id="dc-suppr-input" type="text" placeholder="Pseudo exact"
+        style="border:1px solid #f99;border-radius:4px;padding:5px 8px;width:220px;margin-right:8px;">
+      <button id="dc-suppr-btn"
+        style="background:#7b1f1f;color:#fff;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:bold;">
+        Supprimer tout
+      </button>
+      <div id="dc-suppr-resultat" class="dc-resultat" style="margin-top:10px;"></div>
+    `;
+    section.querySelector("#dc-suppr-btn")
+      .addEventListener("click", () => supprimerMembreComplet(section));
+    return section;
+  }
+
+  async function supprimerMembreComplet(section) {
+    const pseudo     = section.querySelector("#dc-suppr-input").value.trim();
+    const resultatEl = section.querySelector("#dc-suppr-resultat");
+
+    if (!pseudo) { DC.afficherResultat(resultatEl, "erreur", "Pseudo vide."); return; }
+    if (!confirm(`⚠️ Supprimer TOUTES les données de "${pseudo}" ? Cette action est irréversible.`)) return;
+
+    const rec = await window.EcoCore.readBin();
+    const uid = DC.uidDepuisPseudo(rec, pseudo);
+    let actions = [];
+
+    // Supprimer de membres
+    if (rec.membres?.[pseudo]) {
+      delete rec.membres[pseudo];
+      actions.push("économie");
+    }
+
+    // Supprimer de uid_index
+    if (uid && rec.uid_index?.[uid]) {
+      delete rec.uid_index[uid];
+      actions.push("index UID");
+    }
+
+    // Supprimer du groupe DC (clé racine ou membre d'un groupe)
+    if (rec.doubles_comptes) {
+      // Si c'est la racine d'un groupe
+      if (rec.doubles_comptes[pseudo]) {
+        delete rec.doubles_comptes[pseudo];
+        actions.push("groupe DC (racine)");
+      }
+      // Si c'est un membre dans un groupe
+      Object.entries(rec.doubles_comptes).forEach(([racine, groupe]) => {
+        const idx = groupe.comptes.indexOf(pseudo);
+        if (idx === -1) return;
+        groupe.comptes.splice(idx, 1);
+        // Si plus qu'un compte restant → supprimer tout le groupe
+        if (groupe.comptes.length <= 1) {
+          delete rec.doubles_comptes[racine];
+          actions.push("groupe DC (membre → groupe vidé)");
+        } else {
+          actions.push("groupe DC (membre retiré)");
+        }
+      });
+    }
+
+    if (!actions.length) {
+      DC.afficherResultat(resultatEl, "info", `"${pseudo}" introuvable dans le JSONBin.`);
+      return;
+    }
+
+    await window.EcoCore.writeBin(rec);
+    window.DC.rafraichirBottin?.();
+    DC.afficherResultat(resultatEl, "succes",
+      `✅ "${pseudo}" supprimé (${actions.join(", ")}).`);
+    section.querySelector("#dc-suppr-input").value = "";
+
+    // Rafraîchir la section gestion des groupes
+    const groupesEl = document.getElementById("dc-staff-groupes");
+    if (groupesEl) chargerGroupes(groupesEl);
   }
 
 })(window.DC, window.DC.CFG, window.DC.TEXTES);
