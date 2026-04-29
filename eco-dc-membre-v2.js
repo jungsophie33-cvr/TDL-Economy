@@ -113,11 +113,17 @@
     const paiementRequis = numeroDC >= 3;
     const solde = rec.membres?.[pseudo]?.dollars ?? 0;
 
-    // Les deux lectures fetchent /u{id} avec cache — une seule requête réseau
+    // fetchProfil a un timeout de 6s — si dépassé, les deux valeurs seront null.
     const [dateInscription, nbRP] = await Promise.all([
       DC.lireDateInscription(),
       DC.lireNbRP(),
     ]);
+
+    // Si les deux sont null, c'est un échec réseau (profil introuvable ou timeout)
+    if (dateInscription === null && nbRP === null) {
+      zoneInfo.innerHTML = "<span style=\"color:#b87700;\">⚠️ Impossible de lire votre profil (délai dépassé ou erreur réseau).<br>Rechargez la page et réessayez. Si le problème persiste, contactez un admin.</span>";
+      return;
+    }
 
     const ancienneteMois = dateInscription ? DC.ancienneteEnMois(dateInscription) : null;
     const toutOk = afficherRecapConditions(zoneInfo, ancienneteMois, nbRP, paiementRequis, solde, numeroDC);
