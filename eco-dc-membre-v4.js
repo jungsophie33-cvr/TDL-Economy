@@ -106,7 +106,8 @@
     if (!rec) { zoneInfo.innerHTML = T.ERR_DONNEES; return; }
 
     rec.doubles_comptes = rec.doubles_comptes || {};
-    rec.demandes_dc     = rec.demandes_dc     || [];
+    // Firebase retourne les tableaux comme objets {0:{…}, 1:{…}} — normalisation obligatoire
+    rec.demandes_dc = DC.versTableau(rec.demandes_dc);
 
     const { racine, comptes, estNouveau } = DC.infosGroupe(rec, pseudo);
     const blocage = verifierEligibilite(pseudo, rec, racine, comptes, estNouveau);
@@ -207,6 +208,7 @@
       }
 
       const demande = construireDemande(pseudo, racine, numeroDC, paiementRequis, solde, resume, avatar);
+      rec.demandes_dc = DC.versTableau(rec.demandes_dc);
       rec.demandes_dc.push(demande);
 
       if (!rec.doubles_comptes[racine]) {
