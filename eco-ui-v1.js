@@ -108,17 +108,71 @@ console.log("[EcoV2] >>> eco-ui chargé");
       return;
     }
 
-    if(!record.membres[pseudo]){
-      const g = await fetchUserGroupFromProfile(uid);
-      record.membres[pseudo] = { dollars: DEFAULT_DOLLARS, messages: getMessagesCount(), group: g || null, lastMessageThresholdAwarded: 0 };
-      await writeBin(record).catch(()=>null);
-    }else{
-      record.membres[pseudo].messages = getMessagesCount();
-      if(!record.membres[pseudo].group){
-        const g = await fetchUserGroupFromProfile(uid);
-        if(g){ record.membres[pseudo].group = g; await writeBin(record).catch(()=>null); }
-      }
+// ---------- PATCH : gestion UID + sync changement de pseudo ----------
+// À insérer dans coreInit(), après `const pseudo = getPseudo(), uid = getUserId();`
+// et avant le bloc de création/mise à jour du membre.
+ 
+record.uid_index = record.uid_index || {};
+ 
+// Détecte un changement de pseudo : l'UID connu pointe vers un ancien pseudo
+const ancienPseudo = record.uid_index[uid];
+const pseudoChange = ancienPseudo && ancienPseudo !== pseudo && record.membres[ancienPseudo];
+ 
+if (pseudoChange) {
+  // Renommage transparent : on migre toutes les données sous le nouveau pseudo
+  record.membres[pseudo] = record.membres[ancienPseudo];
+  delete record.membres[ancienPseudo];
+  record.uid_index[uid] = pseudo;
+ 
+  // Propager le nouveau pseudo dans doubles_comptes
+  if (record.doubles_comptes) {
+    // La clé racine du groupe
+    if (record.doubles_comptes[ancienPseudo]) {
+      record.doubles_comptes[pseudo] = record.doubles_comptes[ancienPseudo];
+      delete record.doubles_comptes[ancienPseudo];
     }
+    // Le pseudo dans les tableaux comptes des autres groupes
+    Object.values(record.doubles_comptes).forEach(groupe => {
+      const idx = groupe.comptes.indexOf(ancienPseudo);
+      if (idx !== -1) groupe.comptes[idx] = pseudo;
+    });
+  }
+ 
+  await writeBin(record).catch(() => null);
+  log(`[uid-sync] Pseudo renommé : ${ancienPseudo} → ${pseudo}`);
+}
+ 
+// ---------- Création ou mise à jour standard du membre ----------
+if (!record.membres[pseudo]) {
+  const g = await fetchUserGroupFromProfile(uid);
+  record.membres[pseudo] = {
+    uid,                                          // ← stocké dès la création
+    dollars: DEFAULT_DOLLARS,
+    messages: getMessagesCount(),
+    group: g || null,
+    lastMessageThresholdAwarded: 0,
+  };
+  record.uid_index[uid] = pseudo;
+  await writeBin(record).catch(() => null);
+ 
+} else {
+  record.membres[pseudo].messages = getMessagesCount();
+ 
+  // Enrichir les entrées existantes qui n'ont pas encore d'uid
+  if (!record.membres[pseudo].uid) {
+    record.membres[pseudo].uid = uid;
+    record.uid_index[uid] = pseudo;
+  }
+ 
+  if (!record.membres[pseudo].group) {
+    const g = await fetchUserGroupFromProfile(uid);
+    if (g) { record.membres[pseudo].group = g; }
+  }
+ 
+  await writeBin(record).catch(() => null);
+}
+// ---------- FIN DU PATCH ----------
+    
     // --- Assignation forcée de Mami Wata au groupe Providence ---
 if (pseudo === "Mami Wata") {
   if (record.membres[pseudo].group !== "Providence") {
