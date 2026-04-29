@@ -31,7 +31,14 @@ window.DC.CFG = {
    * et le textarea de réponse rapide. Ils sont les points de fragilité les plus probables.
    */
   SEL: {
-    ANCRAGE_SUJET:    ".postbody, .post-body, #topic-container, .first-post",
+    /*
+     * [MAJ] Tous ces sélecteurs sont spécifiques à ForumActif et à ce forum.
+     * POST_CIBLE cible le post précis qui contient le bouton et le panel staff :
+     * ForumActif génère un id "p{numéro}" sur chaque post (ex : post #251 → id="p251").
+     * Si ce post est supprimé et recréé, son numéro changera — mettre à jour POST_CIBLE.
+     */
+    POST_CIBLE:       "#p251",           // Post qui accueille le bouton + panel staff
+    CONTENU_POST:     ".postbody",       // Zone de contenu à l'intérieur du post [MAJ]
     TEXTAREA_REPONSE: "textarea#message, textarea[name='message'], #textarea_wysiwyg",
     BTN_REPONDRE:     "a[href*='posting.forum?mode=reply'], .bouton-repondre, #post-reply",
     PROFIL_DATE:      ".field-date-dinscription dd",  // champ profil personnalisé FA
