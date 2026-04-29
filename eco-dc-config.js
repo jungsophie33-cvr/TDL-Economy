@@ -37,12 +37,12 @@ window.DC.CFG = {
      * ForumActif génère un id "p{numéro}" sur chaque post (ex : post #251 → id="p251").
      * Si ce post est supprimé et recréé, son numéro changera — mettre à jour POST_CIBLE.
      */
-    POST_CIBLE:       "#p251",           // Post qui accueille le bouton + panel staff
-    CONTENU_POST:     ".postbody",       // Zone de contenu à l'intérieur du post [MAJ]
+    POST_CIBLE:       "#251",           // Post qui accueille le bouton + panel staff
+    CONTENU_POST:     ".sj-post-msg",       // Zone de contenu à l'intérieur du post [MAJ]
     TEXTAREA_REPONSE: "textarea#message, textarea[name='message'], #textarea_wysiwyg",
     BTN_REPONDRE:     "a[href*='posting.forum?mode=reply'], .bouton-repondre, #post-reply",
-    PROFIL_DATE:      ".field-date-dinscription dd",  // champ profil personnalisé FA
-    PROFIL_RP:        ".field-rp dd",                 // champ profil personnalisé FA
+    PROFIL_DATE:      ".field-date-dinscription dd div",  // champ profil personnalisé FA
+    PROFIL_RP:        ".field-rp dd div",                 // champ profil personnalisé FA
   },
 };
 
