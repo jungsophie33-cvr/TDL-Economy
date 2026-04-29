@@ -148,6 +148,7 @@
       `[b]Arrivé(e) grâce à :[/b] ${parrainLigne}`,
       `[b]Multi-compte :[/b] ${dcLigne}`,
       `[b]Faceclaim :[/b] ${d.faceclaim}`,
+      `[code]<fb>${d.faceclaim}</fb> — @"${d.pseudo}"}[/code]`,
       `[b]Groupe :[/b] ${d.groupe}`,
       `[b]Bande hors-la-loi :[/b] ${bandeLigne}`,
       `[b]Métier :[/b] ${d.lieu_metier} — ${d.societe} — ${d.emploi}`,
@@ -164,8 +165,6 @@
       `Bienvenue sur The Drowned Lands, [b]${d.pseudo}[/b] !`,
       "",
       msgPerso,
-      "",
-      `[code]<fb>${d.faceclaim}</fb> — ${d.pseudo}[/code]`,
       "",
       `[i]Validée par ${staffPseudo} le ${new Date().toLocaleDateString("fr-FR")}[/i]`,
     ].join("\n");
