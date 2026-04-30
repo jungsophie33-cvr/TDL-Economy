@@ -72,8 +72,8 @@ window.FI.CFG = {
 window.FI.TEXTES = {
 
   /* Bouton et modale membre */
-  BTN_OUVRIR:    "📋 Demander la validation de ma fiche",
-  TITRE_MODAL:   "📋 Demande de validation de fiche",
+  BTN_OUVRIR:    "Demander la validation de ma fiche",
+  TITRE_MODAL:   "Demande de validation de fiche",
   BTN_SOUMETTRE: "Envoyer ma demande",
   BTN_ANNULER:   "Annuler",
   BTN_FERMER:    "✕",
@@ -81,13 +81,13 @@ window.FI.TEXTES = {
 
   /* Labels des champs */
   L_LIEN_FICHE:      "Lien vers ta fiche de présentation *",
-  L_PRE_LIEN:        "Pré-lien ?",
+  L_PRE_LIEN:        "Ton personnage est-il un pré-lien ?",
   L_LIEN_PRE_LIEN:   "Lien vers le pré-lien",
   L_PARRAIN:         "Tu es arrivé(e) sur le forum grâce à :",
-  L_MULTICOMPTE:     "Multi-compte ?",
-  L_PREMIER_COMPTE:  "Compte racine de ton groupe (premier compte créé) :",
-  L_FACECLAIM:       "Barre de faceclaim *",
-  L_GROUPE:          "Groupe *",
+  L_MULTICOMPTE:     "Ton personnage est-il un multi-compte ?",
+  L_PREMIER_COMPTE:  "Ton premier compte créé :",
+  L_FACECLAIM:       "Faceclaim choisi *",
+  L_GROUPE:          "Communauté (groupe) *",
   L_BANDE:           "Appartenance à une bande hors-la-loi ?",
   L_NOM_BANDE:       "Nom de la bande :",
   L_ROLE_BANDE:      "Rôle dans la bande :",
@@ -116,7 +116,7 @@ window.FI.TEXTES = {
   CONFIRMATION: "✅ Ta demande a été envoyée ! Clique sur « Envoyer » dans la réponse rapide ci-dessous.",
 
   /* Panel staff */
-  STAFF_TITRE:           "🔐 Panel Staff — Fiches en attente de validation",
+  STAFF_TITRE:           "Panel Staff — Fiches en attente de validation",
   STAFF_AUCUNE:          "Aucune demande en attente.",
   STAFF_TITRE_MODAL:     (pseudo) => `✅ Valider la fiche de ${pseudo}`,
   STAFF_LABEL_MSG:       "Message personnalisé (apparaîtra dans le post de validation) :",
