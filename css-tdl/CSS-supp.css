@@ -216,7 +216,7 @@ div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateleft, div#Terrebonne_20Pari
 
 div#Premiers_20pas, div#Administration {display: flex; flex-wrap: wrap;}
 div#Premiers_20pas.sj-main-cate .sj-main-frow, div#Administration.sj-main-cate .sj-main-frow {flex: 50%; flex-direction: column; height: 440px; justify-content: space-between; align-content: space-between;}
-div#Premiers_20pas.sj-main-cate div#\/f14-annonces, div#Premiers_20pas.sj-main-cate div#\/f15-invites, div#Administration.sj-main-cate div#\/f3-pre-liens, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages{width:58%;}
+div#Premiers_20pas.sj-main-cate div#\/f14-panneau-d-affichage, div#Premiers_20pas.sj-main-cate div#\/f15-invites, div#Administration.sj-main-cate div#\/f3-pre-liens, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages{width:58%;}
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook, div#Administration.sj-main-cate div#\/f5-presentations {height:420px; width:40%; flex-direction:column;}
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-cateleft, div#Administration.sj-main-cate div#\/f5-presentations .sj-cateleft {height:60%;}
 div#Premiers_20pas.sj-main-cate div#\/f1-guidebook .sj-catetitre, div#Administration.sj-main-cate div#\/f5-presentations .sj-catetitre {height:25%;}
