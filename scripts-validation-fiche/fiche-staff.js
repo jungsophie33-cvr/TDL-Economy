@@ -50,7 +50,7 @@
       <div class="fi-carte-entete">
         <strong>${d.pseudo}</strong>
         <span class="dc-staff-carte-meta">${new Date(d.date).toLocaleDateString("fr-FR")}</span>
-        — <a href="${d.lien_fiche}" target="_blank">📄 Voir la fiche</a>
+        — <a href="${d.lien_fiche}" target="_blank">Voir la fiche</a>
       </div>
       <div class="fi-carte-grille">
         <span><em>Pré-lien</em></span>       <span>${prelienHtml}</span>
