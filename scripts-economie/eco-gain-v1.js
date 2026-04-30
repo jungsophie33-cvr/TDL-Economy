@@ -541,6 +541,15 @@ function getWordCountBonus(words) {
         console.log(`[EcoV2] 💰 +${gain} ${window.EcoCore.MONNAIE_NAME} pour ${pseudo}`);
       }
 
+      // 📅 Recensement mensuel — trace RP atomique dans le même writeBin
+      if (RP_ZONES.some(z => path.includes(z))) {
+        const moisCle = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,"0")}`;
+        if (!membres[pseudo].rp_par_mois || Array.isArray(membres[pseudo].rp_par_mois))
+        membres[pseudo].rp_par_mois = {};
+        membres[pseudo].rp_par_mois[moisCle] = (membres[pseudo].rp_par_mois[moisCle] || 0) + 1;
+        membres[pseudo].dernier_rp = new Date().toISOString();
+      }
+
 // ✍️ Écriture unique dans le JSON (gain, compteur, paliers, etc.)
 await writeBin(record);
 
