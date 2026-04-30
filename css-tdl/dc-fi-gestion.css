@@ -1,0 +1,339 @@
+/* DEMANDE DOUBLE COMPTE */
+/*
+ * eco-dc.css — Styles du système multi-compte · The Drowned Lands
+ */
+
+/* === OVERLAY ET BOÎTE MODALE === */
+.dc-overlay {
+  position: fixed;
+  background: rgba(20,16,14,0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  inset: 0;
+  z-index: 999;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.dc-overlay.actif { opacity: 1; visibility: visible; }
+
+.dc-boite {
+  background: var(--clair1);
+  border: 2px solid var(--clair2);
+  border-radius: 10px;
+  padding: 40px 50px;
+  margin: 0 auto;
+  position: relative;
+  font-size:1.3em;
+  box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  width:100%;
+  max-width: 900px;
+  max-height: calc(100vh - 80px); /* ne dépasse jamais l'écran */
+  overflow-y: auto;  
+  -webkit-overflow-scrolling: touch;
+}
+
+.dc-titre {
+  margin: 0 0 20px;
+  color: var(--dark);
+  border-bottom: 1px solid var(--dark);
+  padding-bottom: 6px;
+  font-size: 1.8em;
+  line-height:1.1em;
+}
+
+.dc-btn-fermer {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.5em;
+  cursor: pointer;
+  color: var(--cntr);
+  line-height: 1;
+}
+.dc-btn-fermer:hover { color: var(--txt); }
+
+/* === ZONE D'INFO ET STATUT === */
+.dc-zone-info {
+  background: var(--cntr3);
+  border: 1px solid var(--dark2opa5);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 0.9em;
+  color: var(--txt);
+}
+.dc-zone-info ul { padding: 0; display:flex; justify-content:space-around; }
+.dc-zone-info li { list-style: none; margin: 10px 0; }
+
+/* === CHAMPS DU FORMULAIRE === */
+.dc-champs { display: none; }
+
+/* === AVERTISSEMENT PAIEMENT === */
+.dc-avertissement-paiement {
+  display: none;
+  background: var(--gr1-40);
+  border: 1px solid var(--gr1-color);
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 14px;
+}
+
+/* === BOUTONS D'ACTION === */
+.dc-actions { display: flex; gap: 10px; justify-content:center;flex-wrap: wrap; align-items: center; margin-top:10px; }
+
+.dc-btn-soumettre {
+  background: var(--darkopa7);
+  color: var(--clair1);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: bold;
+}
+.dc-btn-soumettre:disabled { opacity: .6; cursor: not-allowed; }
+.dc-btn-soumettre:not(:disabled):hover { background: var(--dark); }
+
+.dc-btn-annuler {
+  background: none;
+  border: 1px solid var(--dark);
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-size: 0.95em;
+  cursor: pointer;
+  color: var(--txt);
+}
+.dc-btn-annuler:hover { border-color: #888; }
+
+
+/* === PANEL STAFF === */
+.dc-staff-panel {
+  background: var(--cntr2);
+  border: 1px solid var(--dark2opa7);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.dc-staff-titre { margin: 0 0 10px; color: #1a3080; }
+
+.dc-staff-carte {
+  background: var(--clair1);
+  border: 1px solid var(--dark);
+  border-radius: 6px;
+  padding: 12px;
+  margin: 10px;
+  font-size: 0.92em;
+}
+.dc-staff-carte-meta { color: var(--txt); font-size: .85em; margin-left: 8px; }
+.dc-staff-carte-paiement { color: #8a5e00; margin: 4px 0; }
+
+.dc-staff-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top:10px; }
+.dc-btn-valider { background: var(--gr2-40); color: var(--gr2-color); border: none; border-radius: 4px; padding: 7px 16px; cursor: pointer; font-weight: bold; }
+.dc-btn-refuser  { background: var(--dark2opa4); color: var(--dark2); border: none; border-radius: 4px; padding: 7px 16px; cursor: pointer; font-weight: bold; }
+
+/* === FORMULAIRE AJOUT PSEUDO (staff post-validation) === */
+.dc-ajout-pseudo { margin-top: 10px; }
+.dc-ajout-pseudo input {
+  border: 1px solid var(--dark);
+  border-radius: 4px;
+  padding: 5px 8px;
+  width: 200px;
+  margin-right: 6px;
+  margin-top: 4px;
+}
+.dc-btn-enregistrer {
+  background: #1565c0;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.dc-ajout-resultat { margin-left: 8px; font-size: .9em; }
+
+/* === BOTTIN DES MULTI-COMPTES === */
+.dc-bottin-ligne {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+ 
+/* === GESTION DES GROUPES (panel staff) === */
+.dc-groupe-pseudo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2ff;
+  border: 1px solid #c5cff5;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: .9em;
+  margin: 2px;
+}
+ 
+.dc-btn-suppr-pseudo {
+  background: none;
+  border: none;
+  color: #b0392a;
+  cursor: pointer;
+  font-size: .85em;
+  padding: 0 2px;
+  line-height: 1;
+}
+.dc-btn-suppr-pseudo:hover { color: #7b1f1f; font-weight: bold; }
+.dc-suppr-btn1 {background:var(--dark2);color:#fff;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:bold;}
+
+.dc-btn-suppr-groupe {background:var(--dark2);color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:.85em;}
+
+/* VALIDATION FICHE DE PRÉSENTATION */
+/*
+ * fiche.css — Styles du système de validation de fiche · The Drowned Lands
+ * Ce fichier ne définit que les classes fi-* spécifiques à la validation de fiche.
+ */
+
+/* === BOUTON DÉCLENCHEUR === */
+.fi-btn-ouvrir, .dc-btn-ouvrir {
+  background: var(--dark2);
+  color: var(--clair1);
+  border: none;
+  border-radius: 8px;
+  padding: 11px 28px;
+  font-size: 1em;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0,0,0,.18);
+  letter-spacing: .03em;
+  display: block;
+  margin: 12px auto;
+}
+.fi-btn-ouvrir:hover, .dc-btn-ouvrir:hover { background: var(--dark); }
+
+/* === BOÎTE MODALE (extension de .dc-boite) === */
+.fi-boite { }
+
+/* === LABELS ET CHAMPS === */
+.fi-label, .dc-label {
+  display: block;
+  font-weight: bold;
+  margin: 10px 0 6px;
+  color: var(--dark2);
+  font-size: 1.1em;
+  font-family: var(--txt2);
+}
+
+.fi-input, .dc-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--dark2opa5)!important;
+  border-radius: 4px;
+  padding: 7px 10px!important;
+  font-size: 1em!important;
+  margin-bottom: 4px;
+  background: var(--cntr3)!important;
+  color: var(--txt)!important;
+}
+.fi-input:focus, .dc-input:focus { outline: 2px solid var(--dark2opa5); outline-offset: 1px; }
+
+.fi-select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--dark2opa5);
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: .95em;
+  margin-bottom: 4px;
+  background: var(--cntr3);
+  color: var(--txt);
+}
+.fi-select:focus { outline: 2px solid var(--dark2opa5); outline-offset: 1px; }
+
+.fi-textarea, .dc-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--dark2opa5);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: .95em;
+  resize: vertical;
+  background: var(--cntr3);
+  color: var(--txt);
+  margin-bottom:10px;
+}
+
+/* === RANGÉE DE RADIOS === */
+.fi-rangee {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 10px 0 4px;
+}
+.fi-rangee .fi-label { margin: 0; flex-shrink: 0; }
+.fi-rangee label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: .95em;
+}
+
+/* === CHAMPS CONDITIONNELS === */
+.fi-conditionnel {
+  display: none;
+  padding: 8px 12px;
+  background: var(--cntr2);
+  border-left: 3px solid var(--dark2opa5);
+  border-radius: 0 4px 4px 0;
+  margin: 10px 0;
+}
+.fi-conditionnel.fi-visible { display: block; }
+
+/* === FIELDSETS MÉTIER ET HABITATION === */
+.fi-fieldset {
+  border: 1px solid var(--dark2opa5);
+  border-radius: 6px;
+  padding: 10px 15px;
+  margin: 16px 0 5px;
+  background: var(--clair1);
+}
+.fi-fieldset legend {
+  padding: 0 10px;
+  font-weight: bold;
+  color: var(--dark2);
+  font-size: 1.5em;
+  font-family:var(--title1);
+}
+
+/* === RÉSULTATS (succes / erreur / info) === */
+.fi-resultat, .dc-resultat { display: none; padding: 10px; border-radius: 4px; margin-top: 10px; }
+.fi-resultat.succes, .dc-resultat.succes { display: block; background: var(--gr2-40); border: 1px solid var(--gr2-color); color: var(--gr2-color); }
+.fi-resultat.erreur, .dc-resultat.erreur { display: block; background: var(--dark2opa2); border: 1px solid var(--dark2); color: var(--dark2); }
+.fi-resultat.info, .dc-resultat.info   { display: block; background: var(--cntr2); border: 1px solid var(--cntr); color: var(--txt); }
+
+/* === CARTES STAFF === */
+.fi-carte { font-size: .92em; }
+
+.fi-carte-entete {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.fi-carte-grille {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 3px 10px;
+  margin-bottom: 8px;
+  font-size: .92em;
+}
+.fi-carte-grille span:nth-child(odd) { color: #555; }
+
+#fi-staff-panel { margin-bottom: 12px; }
