@@ -58,7 +58,6 @@
       ${d.paiement_requis
         ? `<div class="dc-staff-carte-paiement">💰 Paiement de ${CFG.COUT_DC} ${monnaie} requis (solde au dépôt : ${d.solde_avant} ${monnaie})</div>`
         : ""}
-      <div class="dc-staff-carte-ref">Réf. : ${d.id}</div>
       <div class="dc-staff-actions">
         <button class="dc-btn-valider" data-id="${d.id}">✅ Valider</button>
         <button class="dc-btn-refuser"  data-id="${d.id}">❌ Refuser</button>
