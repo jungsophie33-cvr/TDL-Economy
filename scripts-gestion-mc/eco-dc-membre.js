@@ -46,8 +46,8 @@
             placeholder="${T.PH_RESUME}"></textarea>
 
           <label class="dc-label">${T.LABEL_AVATAR}</label>
-          <textarea id="dc-avatar" class="dc-textarea" rows="3"
-            placeholder="${T.PH_AVATAR}"></textarea>
+          <input id="dc-avatar" class="dc-input" type="text"
+            placeholder="${T.PH_AVATAR}">
 
           <div id="dc-avert-paiement" class="dc-avertissement-paiement">
             ⚠️ À partir du 3e compte, un paiement de
