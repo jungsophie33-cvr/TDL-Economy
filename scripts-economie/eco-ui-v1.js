@@ -18,9 +18,9 @@ console.log("[EcoV2] >>> eco-ui chargé");
   console.log("[EcoV2] invité lecture seule");
   (async()=>{
     try{
-      const r=await fetch(`${JSONBIN_BASE}${BIN_ID}/latest`,{headers:{"X-Master-Key":API_KEY}});
-      if(!r.ok) return console.warn("[EcoV2] échec lecture JSONBin invité");
-      const j=await r.json();const record=j.record||{};
+      // APRÈS — safeReadBin est déjà destructuré en haut du fichier
+      const record = await safeReadBin();
+      if(!record) return console.warn("[EcoV2] échec lecture Firebase invité");
       const membres=record.membres||{};
       // --- MàJ dollars dans les posts ---
         document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
