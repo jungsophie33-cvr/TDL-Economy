@@ -23,7 +23,7 @@
   window.RC.CFG = {
     // Slugs des sujets dédiés [MAJ si les topics changent]
     TOPIC_SLUG:         "/t66-",
-    TOPIC_ABSENCE_SLUG: "/t67-",
+    TOPIC_ABSENCE_SLUG: "/t68-",
 
     /*
      * [MAJ] Sélecteurs dépendants du thème sj-* et de ForumActif.
