@@ -1,0 +1,690 @@
+/*
+ * recensement-absence.css — Styles du panneau absences et du recensement · TDL
+ * Variables TDL : --dark, --dark2, --clair1, --clair2, --cntr, --cntr3/4/5/6/7,
+ *                 --txt, --title1, --font0, --txt1/2/3, --darkopa2, --dark2opa4/5
+ */
+
+/* =============================================
+   RECENSEMENT — SECTIONS EMPILÉES (/t66-)
+   ============================================= */
+
+.rc-titre-mois {
+  font-family: var(--title1);
+  color: var(--dark);
+  font-size: 1.1em;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--dark2opa4);
+  padding-bottom: 6px;
+}
+
+/* Sections empilées verticalement — pas de colonnes côte à côte */
+.rc-grille {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* Chaque section : bloc horizontal pleine largeur */
+.rc-col {
+  width: 100%;
+  border-left: 3px solid transparent;
+  padding: 8px 12px;
+  background: var(--cntr3);
+  border-radius: 0 4px 4px 0;
+  box-sizing: border-box;
+}
+
+.rc-col--recenses    { border-color: #3d7a3d; }
+.rc-col--menaces     { border-color: var(--dark2); }
+.rc-col--absents     { border-color: var(--cntr); }
+.rc-col--nouveaux    { border-color: #1a5fa8; }
+.rc-col--suppression { border-color: #5c1a1a; }
+
+/* Titre de section — p, pas h4 */
+.rc-col-titre {
+  font-family: var(--txt3);
+  font-size: .76em;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  margin: 0 0 7px;
+  font-weight: 700;
+}
+
+.rc-col--recenses    .rc-col-titre { color: #3d7a3d; }
+.rc-col--menaces     .rc-col-titre { color: var(--dark2); }
+.rc-col--absents     .rc-col-titre { color: #666; }
+.rc-col--nouveaux    .rc-col-titre { color: #1a5fa8; }
+.rc-col--suppression .rc-col-titre { color: #5c1a1a; }
+
+/* Pseudos en flex-wrap — badges sur une ligne, jamais coupés */
+.rc-col-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.rc-col-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-family: var(--font0);
+  font-size: .87em;
+  color: var(--txt);
+  white-space: nowrap;
+}
+
+/* Bouton override staff — intégré dans le badge */
+.rc-btn-override {
+  background: var(--cntr5);
+  border: 1px solid var(--cntr7);
+  border-radius: 3px;
+  padding: 2px 7px;
+  cursor: pointer;
+  font-family: var(--txt3);
+  font-size: .65em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--dark);
+  transition: background .12s, color .12s;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+.rc-btn-override:hover {
+  background: var(--dark);
+  color: var(--clair1);
+  border-color: var(--dark);
+}
+
+/* Panel staff recensement */
+.rc-staff-panel {
+  border: 1px solid var(--cntr6);
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: var(--cntr3);
+  border-radius: 4px;
+}
+
+/* Titre staff — p, pas h4 */
+.rc-staff-titre {
+  font-family: var(--txt3);
+  font-size: .76em;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--dark);
+  margin: 0 0 10px;
+  font-weight: 700;
+}
+
+.rc-btn-action {
+  background: var(--dark);
+  color: var(--clair1);
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-family: var(--txt3);
+  font-size: .82em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-right: 8px;
+}
+.rc-btn-action:hover { background: var(--dark2); }
+
+.rc-staff-note { font-size: .8em; color: var(--cntr); margin: 6px 0 0; font-family: var(--font0); }
+.rc-staff-ok   { font-size: .85em; color: #3d7a3d; margin: 0; font-family: var(--font0); }
+.rc-chargement { font-size: .85em; color: var(--cntr); font-family: var(--font0); }
+.rc-erreur     { font-size: .85em; color: var(--dark2); font-family: var(--font0); }
+
+/* =============================================
+   ABSENCES — PANNEAU D'AFFICHAGE (/t68-)
+   ============================================= */
+
+.abs-section { margin-bottom: 24px; }
+
+.abs-section-titre {
+  font-family: var(--title1);
+  font-size: .93em;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--dark);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.abs-section-titre::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--dark2opa4);
+}
+.abs-section--suppression .abs-section-titre { color: #5c1a1a; }
+.abs-section--reduite     .abs-section-titre { color: #2a5a5a; }
+
+.abs-grille { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.abs-card {
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 170px;
+  max-width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: box-shadow .18s ease;
+}
+.abs-card:hover { box-shadow: 0 3px 10px var(--darkopa2); }
+.abs-card--expire { background: rgba(120,30,30,.08); border-color: var(--dark2); }
+.abs-section--suppression .abs-card { background: rgba(92,26,26,.07); border-color: rgba(92,26,26,.3); }
+
+.abs-card-pseudo {
+  font-family: var(--txt2);
+  font-size: .95em;
+  color: var(--dark);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.abs-card-dates { font-family: var(--font0); font-size: .78em; color: var(--cntr); }
+.abs-card-lien {
+  font-family: var(--txt3);
+  font-size: .72em;
+  color: var(--dark2);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: 2px;
+}
+.abs-card-lien:hover { text-decoration: underline; }
+
+.abs-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cntr6);
+}
+
+.abs-btn {
+  border: none;
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: var(--txt3);
+  font-size: .72em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  transition: opacity .15s;
+}
+.abs-btn:hover { opacity: .8; }
+.abs-btn--nouvelles { background: var(--dark2); color: var(--clair1); }
+.abs-btn--prolonger { background: var(--cntr5); color: var(--dark); border: 1px solid var(--cntr7); }
+.abs-btn--cloturer  { background: #3d7a3d; color: var(--clair1); }
+.abs-btn--confirmer { background: var(--dark); color: var(--clair1); margin-left: 4px; }
+
+.abs-prolonger-zone { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.abs-vide { font-family: var(--font0); font-size: .9em; color: var(--cntr); text-align: center; padding: 20px; }
+
+/* =============================================
+   FORMULAIRE DE DÉCLARATION — PLEINE LARGEUR
+   ============================================= */
+
+.abs-separateur { border: none; border-top: 1px solid var(--dark2opa4); margin: 28px 0; }
+
+.abs-form { width: 100%; }
+
+.abs-form-titre {
+  font-family: var(--title1);
+  font-size: .93em;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--dark);
+  margin: 0 0 16px;
+}
+
+.abs-form-field { margin-bottom: 14px; }
+
+.abs-form-label {
+  display: block;
+  font-family: var(--txt3);
+  font-size: .74em;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--dark2);
+  margin-bottom: 5px;
+}
+
+/* Dates de début et fin côte à côte */
+.abs-dates-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.abs-dates-row .abs-form-field {
+  flex: 1;
+  min-width: 160px;
+  margin-bottom: 0;
+}
+
+.abs-input-date,
+.abs-input-text {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--dark2opa5);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: .92em;
+  background: var(--cntr3);
+  color: var(--txt);
+  font-family: var(--font0);
+  display: block;
+}
+.abs-input-date:focus,
+.abs-input-text:focus { outline: 2px solid var(--dark2opa4); outline-offset: 1px; }
+
+/* Sélecteur de type */
+.abs-types { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.abs-type-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 5px;
+  padding: 10px 14px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 160px;
+  transition: border-color .15s, background .15s;
+}
+.abs-type-option:has(input:checked) { border-color: var(--dark); background: var(--clair1); }
+.abs-type-option input { display: none; }
+
+.abs-type-nom {
+  font-family: var(--txt2);
+  font-size: .87em;
+  color: var(--dark);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.abs-type-desc { font-family: var(--font0); font-size: .76em; color: var(--cntr); line-height: 1.45; }
+
+.abs-dc-option { display: block; font-family: var(--font0); font-size: .88em; color: var(--txt); margin: 4px 0; cursor: pointer; }
+.abs-form-note { font-family: var(--font0); font-size: .82em; color: var(--cntr); margin: 4px 0; }
+
+/* Bouton de soumission centré */
+.abs-form-submit-wrap { text-align: center; margin-top: 20px; }
+.abs-btn--soumettre {
+  background: var(--dark);
+  color: var(--clair1);
+  border: none;
+  border-radius: 4px;
+  padding: 9px 28px;
+  font-family: var(--txt3);
+  font-size: .85em;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  cursor: pointer;
+  display: inline-block;
+}
+.abs-btn--soumettre:hover { background: var(--dark2); }
+
+.abs-result { font-family: var(--font0); font-size: .88em; margin-top: 8px; color: var(--dark); text-align: center; }.rc-col--menaces     { border-color: var(--dark2); }
+.rc-col--absents     { border-color: var(--cntr); }
+.rc-col--nouveaux    { border-color: #1a5fa8; }
+.rc-col--suppression { border-color: #5c1a1a; }
+
+.rc-col-titre {
+  font-family: var(--txt3);
+  font-size: .88em;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin: 0 0 8px;
+}
+
+.rc-col--recenses    .rc-col-titre { color: #3d7a3d; }
+.rc-col--menaces     .rc-col-titre { color: var(--dark2); }
+.rc-col--absents     .rc-col-titre { color: var(--cntr); }
+.rc-col--nouveaux    .rc-col-titre { color: #1a5fa8; }
+.rc-col--suppression .rc-col-titre { color: #5c1a1a; }
+
+.rc-col-liste {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: .88em;
+}
+
+.rc-col-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 0;
+  font-family: var(--font0);
+  color: var(--txt);
+}
+
+.rc-btn-override {
+  font-size: .68em;
+  padding: 1px 5px;
+  cursor: pointer;
+  opacity: .6;
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 3px;
+  font-family: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.rc-btn-override:hover { opacity: 1; }
+
+/* Panel staff recensement */
+.rc-staff-panel {
+  border: 1px solid var(--cntr6);
+  padding: 12px 16px;
+  margin-top: 16px;
+  background: var(--cntr3);
+  border-radius: 4px;
+}
+
+.rc-staff-titre {
+  font-family: var(--txt3);
+  font-size: .88em;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--dark);
+  margin: 0 0 10px;
+}
+
+.rc-btn-action {
+  background: var(--dark);
+  color: var(--clair1);
+  border: none;
+  border-radius: 4px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-family: var(--txt3);
+  font-size: .85em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-right: 8px;
+}
+.rc-btn-action:hover { background: var(--dark2); }
+
+.rc-staff-note { font-size: .8em; color: var(--cntr); margin: 6px 0 0; font-family: var(--font0); }
+.rc-staff-ok   { font-size: .88em; color: #3d7a3d; margin: 0; font-family: var(--font0); }
+.rc-chargement { font-size: .88em; color: var(--cntr); font-family: var(--font0); }
+.rc-erreur     { font-size: .88em; color: var(--dark2); font-family: var(--font0); }
+
+/* =============================================
+   ABSENCES — SECTIONS (/t68-)
+   ============================================= */
+
+.abs-section {
+  margin-bottom: 24px;
+}
+
+.abs-section-titre {
+  font-family: var(--title1);
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--dark);
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.abs-section-titre::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--dark2opa4);
+}
+
+.abs-section--suppression .abs-section-titre { color: #5c1a1a; }
+.abs-section--reduite     .abs-section-titre { color: #2a5a5a; }
+
+/* Grille de cartes — inspirée du screen (4 colonnes, flex-wrap) */
+.abs-grille {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Carte d'absence */
+.abs-card {
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 6px;
+  padding: 14px 16px;
+  min-width: 170px;
+  max-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: default;
+  transition: box-shadow .18s ease;
+}
+.abs-card:hover { box-shadow: 0 3px 10px var(--darkopa2); }
+
+/* Carte expirée : alerte visible par tous */
+.abs-card--expire {
+  background: rgba(120, 30, 30, .08);
+  border-color: var(--dark2);
+}
+
+.abs-section--suppression .abs-card {
+  background: rgba(92, 26, 26, .07);
+  border-color: rgba(92, 26, 26, .3);
+}
+
+.abs-card-pseudo {
+  font-family: var(--txt2);
+  font-size: 1em;
+  color: var(--dark);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.abs-card-dates {
+  font-family: var(--font0);
+  font-size: .78em;
+  color: var(--cntr);
+}
+
+.abs-card-lien {
+  font-family: var(--txt3);
+  font-size: .72em;
+  color: var(--dark2);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: 2px;
+}
+.abs-card-lien:hover { text-decoration: underline; }
+
+/* Actions admin dans la carte */
+.abs-admin {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--cntr6);
+}
+
+.abs-btn {
+  border: none;
+  border-radius: 3px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-family: var(--txt3);
+  font-size: .72em;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  transition: opacity .15s;
+}
+.abs-btn:hover { opacity: .8; }
+
+.abs-btn--nouvelles { background: var(--dark2); color: var(--clair1); }
+.abs-btn--prolonger { background: var(--cntr5); color: var(--dark); border: 1px solid var(--cntr7); }
+.abs-btn--cloturer  { background: #3d7a3d; color: var(--clair1); }
+.abs-btn--confirmer { background: var(--dark); color: var(--clair1); margin-left: 4px; }
+.abs-btn--soumettre {
+  background: var(--dark);
+  color: var(--clair1);
+  padding: 8px 18px;
+  font-size: .85em;
+  border-radius: 4px;
+  margin-top: 8px;
+  display: block;
+}
+
+.abs-prolonger-zone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.abs-vide {
+  font-family: var(--font0);
+  font-size: .9em;
+  color: var(--cntr);
+  text-align: center;
+  padding: 20px;
+}
+
+/* =============================================
+   FORMULAIRE DE DÉCLARATION
+   ============================================= */
+
+.abs-separateur {
+  border: none;
+  border-top: 1px solid var(--dark2opa4);
+  margin: 28px 0;
+}
+
+.abs-form {
+  max-width: 560px;
+}
+
+.abs-form-titre {
+  font-family: var(--title1);
+  font-size: 1em;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--dark);
+  margin: 0 0 16px;
+}
+
+.abs-form-field {
+  margin-bottom: 14px;
+}
+
+.abs-form-label {
+  display: block;
+  font-family: var(--txt3);
+  font-size: .78em;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: var(--dark2);
+  margin-bottom: 5px;
+}
+
+.abs-input-date,
+.abs-input-text {
+  border: 1px solid var(--dark2opa5);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: .92em;
+  background: var(--cntr3);
+  color: var(--txt);
+  font-family: var(--font0);
+  display: block;
+}
+.abs-input-date:focus,
+.abs-input-text:focus  { outline: 2px solid var(--dark2opa4); outline-offset: 1px; }
+
+.abs-input-text { width: 100%; box-sizing: border-box; }
+
+/* Sélecteur de type : options radio stylées */
+.abs-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.abs-type-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--cntr4);
+  border: 1px solid var(--cntr6);
+  border-radius: 5px;
+  padding: 10px 12px;
+  cursor: pointer;
+  flex: 1;
+  min-width: 150px;
+  transition: border-color .15s, background .15s;
+}
+.abs-type-option:has(input:checked) {
+  border-color: var(--dark);
+  background: var(--clair1);
+}
+
+.abs-type-option input { display: none; }
+
+.abs-type-nom {
+  font-family: var(--txt2);
+  font-size: .88em;
+  color: var(--dark);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.abs-type-desc {
+  font-family: var(--font0);
+  font-size: .76em;
+  color: var(--cntr);
+  line-height: 1.4;
+}
+
+.abs-dc-zone { }
+.abs-dc-option {
+  display: block;
+  font-family: var(--font0);
+  font-size: .88em;
+  color: var(--txt);
+  margin: 4px 0;
+  cursor: pointer;
+}
+
+.abs-form-note {
+  font-family: var(--font0);
+  font-size: .82em;
+  color: var(--cntr);
+  margin: 4px 0;
+}
+
+.abs-result {
+  font-family: var(--font0);
+  font-size: .88em;
+  margin-top: 8px;
+  color: var(--dark);
+}
