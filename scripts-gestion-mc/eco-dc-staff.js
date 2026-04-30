@@ -50,11 +50,11 @@
     carte.className = "dc-staff-carte";
     carte.innerHTML = `
       <div>
-        <strong>${d.compte_demandeur}</strong> → <strong>${d.numero_dc}e compte</strong>
+        <f4>${d.compte_demandeur}</f4> → <strong>${d.numero_dc}e compte</strong>
         <span class="dc-staff-carte-meta">${new Date(d.date).toLocaleDateString("fr-FR")}</span>
       </div>
-      <div><em>Résumé :</em> ${d.resume.slice(0, 150)}${d.resume.length > 150 ? "…" : ""}</div>
-      <div><em>Avatar :</em> ${d.avatar_reserve}</div>
+      <div><fb1>Résumé du personnage</fb1> ${d.resume.slice(0, 150)}${d.resume.length > 150 ? "…" : ""}</div>
+      <div><fb>Faceclaim à réserver</fb> ${d.avatar_reserve}</div>
       ${d.paiement_requis
         ? `<div class="dc-staff-carte-paiement">💰 Paiement de ${CFG.COUT_DC} ${monnaie} requis (solde au dépôt : ${d.solde_avant} ${monnaie})</div>`
         : ""}
@@ -345,9 +345,8 @@
 
     carte.innerHTML = `
       <div style="margin-bottom:8px;">${pseudosHTML}</div>
-      <button class="dc-btn-suppr-groupe" data-racine="${racine}"
-        style="background:#7b1f1f;color:#fff;border:none;border-radius:4px;padding:5px 12px;cursor:pointer;font-size:.85em;">
-        🗑 Supprimer tout le groupe
+      <button class="dc-btn-suppr-groupe" data-racine="${racine}">
+        Supprimer tout le groupe
       </button>
       <span class="dc-gestion-resultat-${racine.replace(/\s/g,'-')}" style="margin-left:8px;font-size:.9em;"></span>
     `;
@@ -424,7 +423,7 @@
     section.className = "dc-staff-panel";
     section.style.marginTop = "14px";
     section.innerHTML = `
-      <h3 class="dc-staff-titre" style="color:#7b1f1f;">🗑 Suppression complète d'un membre</h3>
+      <h3 class="dc-staff-titre">Suppression complète d'un membre</h3>
       <p style="font-size:.9em;color:#555;margin:0 0 10px;">
         Supprime toutes les données du membre dans le JSONBin : économie, multi-comptes et index UID.
         À utiliser uniquement si le membre a définitivement quitté le forum.
@@ -432,8 +431,7 @@
       <label class="dc-label">Pseudo exact du membre à supprimer :</label>
       <input id="dc-suppr-input" type="text" placeholder="Pseudo exact"
         style="border:1px solid #f99;border-radius:4px;padding:5px 8px;width:220px;margin-right:8px;">
-      <button id="dc-suppr-btn"
-        style="background:#7b1f1f;color:#fff;border:none;border-radius:4px;padding:7px 14px;cursor:pointer;font-weight:bold;">
+      <button id="dc-suppr-btn" class="dc-suppr-btn1">
         Supprimer tout
       </button>
       <div id="dc-suppr-resultat" class="dc-resultat" style="margin-top:10px;"></div>
