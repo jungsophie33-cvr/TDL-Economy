@@ -57,6 +57,7 @@ console.log("[EcoV2] >>> eco-gain chargé");
     "/f31-montegut",
     "/f38-le-reste-du-monde"
   ];
+  window.EcoCore.RP_ZONES = RP_ZONES;
 
   function countWordsFromElement(el) {
   if (!el) return 0;
