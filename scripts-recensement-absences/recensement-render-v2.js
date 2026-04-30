@@ -181,9 +181,19 @@
 
   /* === AFFICHAGE === */
 
+  // Invalidate le cache avant une relecture pour avoir des données fraîches.
+  // safeReadBin() utilise un cache sessionStorage 60s — on le vide pour le polling.
+  function lireFrais() {
+    window.EcoCore.invalidateCache?.();
+    return window.EcoCore.readBin();
+  }
+
   async function afficherRecensement(zone) {
-    zone.innerHTML = "<p class='rc-chargement'>Chargement du recensement…</p>";
-    const rec = await window.EcoCore.safeReadBin();
+    // Préserver la barre de statut si elle existe déjà (évite le flash au refresh)
+    const ancienStatut = zone.querySelector(".rc-statut");
+    if (!ancienStatut) zone.innerHTML = "<p class='rc-chargement'>Chargement du recensement…</p>";
+
+    const rec = await lireFrais();
     if (!rec) { zone.innerHTML = `<p class='rc-erreur'>${T().ERR_DONNEES}</p>`; return; }
 
     const now     = new Date();
@@ -191,10 +201,28 @@
     const snp     = rec.recensement?.[moisKey];
 
     zone.innerHTML = "";
+
+    // En-tête : titre + horodatage + bouton de rafraîchissement manuel
+    const entete = document.createElement("div");
+    entete.className = "rc-entete";
+
     const titre = document.createElement("h3");
     titre.className = "rc-titre-mois";
     titre.textContent = `Recensement — ${moisLabel(now)}`;
-    zone.appendChild(titre);
+
+    const statut = document.createElement("span");
+    statut.className = "rc-statut";
+    statut.textContent = `Mis à jour à ${now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+
+    const btnRefresh = document.createElement("button");
+    btnRefresh.className = "rc-btn-refresh";
+    btnRefresh.title = "Rafraîchir maintenant";
+    btnRefresh.textContent = "↻";
+    // Rafraîchissement manuel — utile entre deux cycles de polling
+    btnRefresh.addEventListener("click", () => afficherRecensement(zone));
+
+    entete.append(titre, statut, btnRefresh);
+    zone.appendChild(entete);
 
     let listes = window.RC.Calcul.calculerListes(rec, now);
     if (snp?.overrides_staff) listes = window.RC.Calcul.appliquerOverrides(listes, snp.overrides_staff);
@@ -219,6 +247,15 @@
 
   /* === INIT === */
 
-  window.RC.initRender = function (zone) { afficherRecensement(zone); };
+  // POLL_INTERVAL : rafraîchissement automatique toutes les 5 minutes.
+  // Garantit que la liste reste à jour même si la page est laissée ouverte.
+  // La liste s'actualise aussi à chaque chargement de page (comportement de base).
+  const POLL_INTERVAL_MS = 5 * 60 * 1000;
+
+  window.RC.initRender = function (zone) {
+    afficherRecensement(zone);
+    // Le polling est lancé une seule fois par session de page
+    setInterval(() => afficherRecensement(zone), POLL_INTERVAL_MS);
+  };
 
 })();
