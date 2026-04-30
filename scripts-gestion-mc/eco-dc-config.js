@@ -59,14 +59,14 @@ window.DC.CFG = {
 window.DC.TEXTES = {
 
   /* Bouton et modale membre */
-  BTN_OUVRIR:           "📋 Faire une demande de multi-compte",
-  TITRE_MODAL:          "📋 Demande de multi-compte",
+  BTN_OUVRIR:           "Faire une demande de multi-compte",
+  TITRE_MODAL:          "Demande de multi-compte",
   CHARGEMENT:           "Chargement de vos informations…",
   CHARGEMENT_PROFIL:    "Lecture de votre profil en cours…",
-  LABEL_RESUME:         "🖊 Résumé de vos idées pour le nouveau personnage *",
-  LABEL_AVATAR:         "🖼 Demande de réservation d'avatar *",
+  LABEL_RESUME:         "Résumé de vos idées pour le mc *",
+  LABEL_AVATAR:         "Demande de réservation d'avatar *",
   PH_RESUME:            "Décrivez votre idée de personnage, son background, ses motivations…",
-  PH_AVATAR:            "Nom/description de l'avatar souhaité (acteur·ice, personnage, etc.)",
+  PH_AVATAR:            "Nom de l'avatar souhaité",
   BTN_SOUMETTRE:        "Envoyer ma demande",
   BTN_ANNULER:          "Annuler",
   BTN_FERMER:           "✕",
@@ -94,7 +94,7 @@ window.DC.TEXTES = {
     <strong>cliquez sur "Répondre"</strong> pour le poster dans le sujet.`,
 
   /* Panel staff — gestion des groupes */
-  STAFF_GESTION_TITRE:    "🗂 Gestion des groupes multi-comptes",
+  STAFF_GESTION_TITRE:    "Gestion des groupes multi-comptes",
   STAFF_GESTION_VIDE:     "Aucun groupe enregistré.",
   STAFF_CONFIRM_SUPPRESSION: (pseudo) => `Supprimer "${pseudo}" de ce groupe ?`,
   STAFF_CONFIRM_GROUPE:   (racine) => `Supprimer TOUT le groupe de "${racine}" ? Cette action est irréversible.`,
@@ -103,7 +103,7 @@ window.DC.TEXTES = {
   STAFF_ERR_SUPPR:        "❌ Erreur lors de la suppression.",
 
   /* Panel staff */
-  STAFF_TITRE:          "🔐 Panel Staff — Demandes de multi-compte en attente",
+  STAFF_TITRE:          "Panel Staff — Demandes de multi-compte en attente",
   STAFF_AUCUNE:         "Aucune demande en attente.",
   STAFF_PROMPT_REFUS:   "Motif du refus (inclus dans le message automatique) :",
   STAFF_ERR_SOLDE:      (pseudo, s) =>
