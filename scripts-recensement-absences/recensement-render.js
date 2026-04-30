@@ -75,13 +75,13 @@
   function creerColonne(titre, pseudos, modCss) {
     const div = document.createElement("div");
     div.className = `rc-col rc-col--${modCss}`;
-    const h = document.createElement("h4");
-    h.className = "rc-col-titre";
+    const h = document.createElement("p");
+    h.className = `rc-col-titre rc-col-titre--${modCss}`;
     h.textContent = `${titre} (${pseudos.length})`;
-    const ul = document.createElement("ul");
+    const ul = document.createElement("div");
     ul.className = "rc-col-liste";
     trier(pseudos).forEach(p => {
-      const li = document.createElement("li");
+      const li = document.createElement("span");
       li.className = "rc-col-item";
       li.dataset.pseudo = p;
       li.textContent = p;
@@ -94,7 +94,7 @@
   function ajouterBtnOverride(colonne, cibleOverride, rec, moisKey, zone) {
     if (!estStaff()) return;
     const label = cibleOverride === "recense" ? T().BTN_VERS_RECENSE : T().BTN_VERS_MENACE;
-    colonne.querySelectorAll(".rc-col-item[data-pseudo]").forEach(li => {
+    colonne.querySelectorAll(".rc-col-item[data-pseudo]").forEach(item => {
       const btn = document.createElement("button");
       btn.className = "rc-btn-override";
       btn.textContent = label;
@@ -102,11 +102,11 @@
         const r   = await window.EcoCore.readBin();
         const snp = (r.recensement = r.recensement || {})[moisKey] =
           r.recensement[moisKey] || {};
-        (snp.overrides_staff = snp.overrides_staff || {})[li.dataset.pseudo] = cibleOverride;
+        (snp.overrides_staff = snp.overrides_staff || {})[item.dataset.pseudo] = cibleOverride;
         await window.EcoCore.writeBin(r);
         afficherRecensement(zone);
       });
-      li.appendChild(btn);
+      item.appendChild(btn);
     });
   }
 
@@ -140,7 +140,7 @@
     const panel = document.createElement("div");
     panel.className = "rc-staff-panel";
 
-    const titre = document.createElement("h4");
+    const titre = document.createElement("p");
     titre.className = "rc-staff-titre";
     titre.textContent = "🔐 Actions staff — Recensement";
     panel.appendChild(titre);
