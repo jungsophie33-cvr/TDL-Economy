@@ -103,7 +103,7 @@
       </div>
 
       <fieldset class="fi-fieldset">
-        <legend>💼 Métier</legend>
+        <legend>Métier</legend>
         <label class="fi-label">${T.L_LIEU_METIER}</label>
         <select id="fi-lieu-metier" class="fi-select">${optsAvecVide(CFG.LISTES.LIEUX_METIER)}</select>
         <label class="fi-label">${T.L_SOCIETE}</label>
@@ -114,7 +114,7 @@
       </fieldset>
 
       <fieldset class="fi-fieldset">
-        <legend>🏠 Habitation</legend>
+        <legend>Habitation</legend>
         <label class="fi-label">${T.L_LIEU_HAB}</label>
         <select id="fi-lieu-habitation" class="fi-select">
           ${optsAvecVide(CFG.LISTES.LIEUX_HABITATION)}
