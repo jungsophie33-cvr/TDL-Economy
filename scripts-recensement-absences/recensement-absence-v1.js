@@ -295,13 +295,15 @@
             </label>`).join("")}
         </div>
       </div>
-      <div class="abs-form-field">
-        <label class="abs-form-label">${T().LABEL_DEBUT}</label>
-        <input id="abs-debut" type="date" class="abs-input-date" value="${today()}">
-      </div>
-      <div class="abs-form-field">
-        <label class="abs-form-label">${T().LABEL_FIN}</label>
-        <input id="abs-fin" type="date" class="abs-input-date">
+      <div class="abs-dates-row">
+        <div class="abs-form-field">
+          <label class="abs-form-label">${T().LABEL_DEBUT}</label>
+          <input id="abs-debut" type="date" class="abs-input-date" value="${today()}">
+        </div>
+        <div class="abs-form-field">
+          <label class="abs-form-label">${T().LABEL_FIN}</label>
+          <input id="abs-fin" type="date" class="abs-input-date">
+        </div>
       </div>
       <div class="abs-form-field">
         <label class="abs-form-label">${T().LABEL_LIEN}</label>
@@ -327,17 +329,18 @@
       r.addEventListener("change", () => { zoneDC.hidden = r.value !== TYPES().SUPPRESSION; })
     );
 
+    const submitWrap = document.createElement("div");
+    submitWrap.className = "abs-form-submit-wrap";
     const btnEnvoi = document.createElement("button");
     btnEnvoi.className = "abs-btn abs-btn--soumettre";
     btnEnvoi.textContent = T().BTN_SOUMETTRE;
+    submitWrap.appendChild(btnEnvoi);
     btnEnvoi.addEventListener("click", () => {
       const type = form.querySelector("[name='abs-type']:checked")?.value;
       if (!type) return;
       const debut = form.querySelector("#abs-debut").value;
       const data = {
-        pseudo,
-        type,
-        debut,
+        pseudo, type, debut,
         fin:        form.querySelector("#abs-fin").value || null,
         lien_sujet: form.querySelector("#abs-lien").value.trim() || null,
         suppression_totale: type === TYPES().SUPPRESSION
@@ -349,10 +352,9 @@
       };
       soumettreDeclaration(data, zone, pseudo);
     });
-
     const result = document.createElement("div");
     result.className = "abs-result";
-    form.append(btnEnvoi, result);
+    form.append(submitWrap, result);
     return form;
   }
 
