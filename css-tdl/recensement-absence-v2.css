@@ -179,15 +179,10 @@
    ABSENCES — PANNEAU D'AFFICHAGE (/t68-)
    ============================================= */
 
-.abs-section { margin-bottom: 24px; }
+.abs-section { margin: 24px auto; }
 
 .abs-section-titre {
-  font-family: var(--title1);
-  font-size: .93em;
   text-transform: uppercase;
-  letter-spacing: .1em;
-  color: var(--dark);
-  margin: 0 0 10px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -201,11 +196,12 @@
 .abs-section--suppression .abs-section-titre { color: #5c1a1a; }
 .abs-section--reduite     .abs-section-titre { color: #2a5a5a; }
 
-.abs-grille { display: flex; flex-wrap: wrap; gap: 12px; }
+.abs-grille { display: flex; flex-wrap: wrap; gap: 12px; margin:10px auto; }
 
 .abs-card {
-  background: var(--cntr4);
-  border: 1px solid var(--cntr6);
+  background: var(--cntr2);
+  border: 1px solid var(--cntr8);
+  text-align:center;
   border-radius: 6px;
   padding: 14px 16px;
   min-width: 170px;
@@ -221,12 +217,11 @@
 
 .abs-card-pseudo {
   font-family: var(--txt2);
-  font-size: .95em;
   color: var(--dark);
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-.abs-card-dates { font-family: var(--font0); font-size: .78em; color: var(--cntr); }
+.abs-card-dates { font-family: var(--font0); font-size: 0.8em; color: var(--darkopa6); }
 .abs-card-lien {
   font-family: var(--txt3);
   font-size: .72em;
@@ -241,6 +236,7 @@
 .abs-admin {
   display: flex;
   flex-direction: column;
+   justify-content:center;
   gap: 4px;
   margin-top: 8px;
   padding-top: 8px;
@@ -262,9 +258,9 @@
 .abs-btn--nouvelles { background: var(--dark2); color: var(--clair1); }
 .abs-btn--prolonger { background: var(--cntr5); color: var(--dark); border: 1px solid var(--cntr7); }
 .abs-btn--cloturer  { background: #3d7a3d; color: var(--clair1); }
-.abs-btn--confirmer { background: var(--dark); color: var(--clair1); margin-left: 4px; }
+.abs-btn--confirmer { background: var(--dark); color: var(--clair1); margin-left: 0px; }
 
-.abs-prolonger-zone { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.abs-prolonger-zone { display: flex; align-items: center; justify-content:center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .abs-vide { font-family: var(--font0); font-size: .9em; color: var(--cntr); text-align: center; padding: 20px; }
 
 /* =============================================
@@ -315,11 +311,12 @@
   box-sizing: border-box;
   border: 1px solid var(--dark2opa5);
   border-radius: 4px;
-  padding: 6px 10px;
+  padding: 2px 5px;
   font-size: .92em;
   background: var(--cntr3);
   color: var(--txt);
   font-family: var(--font0);
+   text-align:center;
   display: block;
 }
 .abs-input-date:focus,
