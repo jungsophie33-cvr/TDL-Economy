@@ -61,7 +61,7 @@
   window.RC.T = {
     // Colonnes du recensement
     TITRE_RECENSES:    "Membres recensés",
-    TITRE_MENACES:     "Menacés par le Doyen",   // Anciennement "en danger"
+    TITRE_MENACES:     "Membres menacés par le Doyen",   // Anciennement "en danger"
     TITRE_ABSENTS:     "Membres absents",
     TITRE_NOUVEAUX:    "Fiches validées après le 15",
     TITRE_SUPPRESSION: "Futurs repas du Doyen",
@@ -69,8 +69,8 @@
     // Actions staff — recensement
     BTN_GENERER:      "Générer la liste du recensement",
     BTN_FINALISER:    "Publier la liste finale (1er du mois)",
-    BTN_VERS_RECENSE: "↑ Recenser",
-    BTN_VERS_MENACE:  "↓ Menacer",
+    BTN_VERS_RECENSE: "↑",
+    BTN_VERS_MENACE:  "↓",
 
     // Types d'absence (libellés UI)
     TYPE_LABEL_ABSENCE:     "Absence totale",
@@ -79,7 +79,7 @@
 
     TYPE_DESC_ABSENCE:     "Absence complète du forum. Date de retour estimée facultative.",
     TYPE_DESC_REDUITE:     "Rythme ralenti, présence moins fréquente. Dates de début et de fin.",
-    TYPE_DESC_SUPPRESSION: "Souhait de quitter le forum. La suppression sera effective fin de mois.",
+    TYPE_DESC_SUPPRESSION: "Souhait de quitter le forum. La suppression sera effective fin du mois.",
 
     // Actions admin — panneau absences
     BTN_CLOTURER:          "Absence terminée",
