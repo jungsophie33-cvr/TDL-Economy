@@ -8,11 +8,11 @@
    RECENSEMENT — SECTIONS EMPILÉES (/t66-)
    ============================================= */
 
+.zone-recensement h3, .zone-absence h3 {
+   font-size:1.2em !important;
+}
 .rc-titre-mois {
-  font-family: var(--title1);
   color: var(--dark);
-  font-size: 1.1em;
-  letter-spacing: .07em;
   text-transform: uppercase;
   margin: 0;
   border: none;
@@ -55,8 +55,8 @@
 .rc-grille {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 15px;
+  margin-bottom: 25px;
 }
 
 /* Chaque section : bloc horizontal pleine largeur */
@@ -69,27 +69,27 @@
   box-sizing: border-box;
 }
 
-.rc-col--recenses    { border-color: #3d7a3d; }
+.rc-col--recenses    { border-color: var(--gr2-color); }
 .rc-col--menaces     { border-color: var(--dark2); }
-.rc-col--absents     { border-color: var(--cntr); }
-.rc-col--nouveaux    { border-color: #1a5fa8; }
-.rc-col--suppression { border-color: #5c1a1a; }
+.rc-col--absents     { border-color: var(--gr4-color); }
+.rc-col--nouveaux    { border-color: var(--gr3-color); }
+.rc-col--suppression { border-color: var(--gr6-color); }
 
 /* Titre de section — p, pas h4 */
 .rc-col-titre {
   font-family: var(--txt3);
-  font-size: .76em;
+  font-size: 0.9em;
   text-transform: uppercase;
   letter-spacing: .09em;
-  margin: 0 0 7px;
+  margin: 5px 0 10px;
   font-weight: 700;
 }
 
-.rc-col--recenses    .rc-col-titre { color: #3d7a3d; }
+.rc-col--recenses    .rc-col-titre { color: var(--gr2-color); }
 .rc-col--menaces     .rc-col-titre { color: var(--dark2); }
-.rc-col--absents     .rc-col-titre { color: #666; }
-.rc-col--nouveaux    .rc-col-titre { color: #1a5fa8; }
-.rc-col--suppression .rc-col-titre { color: #5c1a1a; }
+.rc-col--absents     .rc-col-titre { color: var(--gr4-color); }
+.rc-col--nouveaux    .rc-col-titre { color: var(--gr3-color); }
+.rc-col--suppression .rc-col-titre { color: var(--gr6-color); }
 
 /* Pseudos en flex-wrap — badges sur une ligne, jamais coupés */
 .rc-col-liste {
@@ -103,12 +103,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--cntr4);
+  background: var(--clair1opa3);
   border: 1px solid var(--cntr6);
   border-radius: 4px;
   padding: 3px 10px;
-  font-family: var(--font0);
-  font-size: .87em;
+  font-family: var(--font2);
+  font-size: .9em;
   color: var(--txt);
   white-space: nowrap;
 }
@@ -147,7 +147,7 @@
 /* Titre staff — p, pas h4 */
 .rc-staff-titre {
   font-family: var(--txt3);
-  font-size: .76em;
+  font-size: .9em;
   text-transform: uppercase;
   letter-spacing: .09em;
   color: var(--dark);
@@ -163,7 +163,7 @@
   padding: 7px 14px;
   cursor: pointer;
   font-family: var(--txt3);
-  font-size: .82em;
+  font-size: .9em;
   text-transform: uppercase;
   letter-spacing: .05em;
   margin-right: 8px;
