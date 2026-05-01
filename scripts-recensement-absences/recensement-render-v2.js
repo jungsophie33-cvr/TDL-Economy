@@ -59,7 +59,7 @@
   function genBBCodeMenaces(pseudos, labelDate) {
     const lignes = trier(pseudos).map(p => `  • @"${p}"`).join("\n");
     return [
-      `[b]━━━ ⚠️ MENACÉS PAR LE DOYEN — snapshot du ${labelDate} ━━━[/b]`,
+      `[b]━━━ MEMBRES MENACÉS PAR LE DOYEN — liste du ${labelDate} ━━━[/b]`,
       "",
       "[color=#7b1f1f]Ces membres n'ont pas posté de RP entre le 1er et le 25 du mois.",
       "Vous avez jusqu'au dernier jour du mois pour régulariser votre situation.[/color]",
@@ -142,7 +142,7 @@
 
     const titre = document.createElement("p");
     titre.className = "rc-staff-titre";
-    titre.textContent = "🔐 Actions staff — Recensement";
+    titre.textContent = "Actions staff — Recensement";
     panel.appendChild(titre);
 
     const jourd = new Date().getDate();
