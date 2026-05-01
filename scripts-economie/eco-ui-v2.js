@@ -209,8 +209,8 @@ if (pseudo === "Mami Wata") {
       document.getElementById("eco-btn-cag")?.addEventListener("click", async()=>{
         const rec = await readBin(); alert("Cagnottes:\n"+JSON.stringify(rec.cagnottes,null,2));
       });
-      document.getElementById("eco-btn-shop")?.addEventListener("click", async()=>{
-        const rec = await readBin(); alert("Boutique:\n"+JSON.stringify(rec.boutique||{},null,2));
+      document.getElementById("eco-btn-shop")?.addEventListener("click", () => {
+        location.href = "https://thedrownedlands.forumactif.com/h2-boutique-tdl";
       });
       document.getElementById("eco-btn-don")?.addEventListener("click", async()=>{
   const montant = parseInt(prompt("Montant du don :", "0"));
