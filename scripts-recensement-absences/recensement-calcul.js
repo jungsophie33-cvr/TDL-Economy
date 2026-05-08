@@ -43,9 +43,11 @@
   /* === ABSENTS === */
 
   // Retourne vrai si le membre a une absence ou présence réduite "en_cours"
-  // démarrée il y a plus de SEUIL_ABSENCE_JOURS au moment de dateRef.
-  // Prioritaire sur les listes menacés/recensés — sauf si RP posté dans le mois.
-  function estEnAbsenceLongue(pseudo, rec, dateRef) {
+  // démarrée il y a plus de `seuil` jours au moment de dateRef.
+  // seuil est optionnel : utilise SEUIL_ABSENCE_JOURS (15) par défaut.
+  // Le snapshot du 25 passe SEUIL_ABSENCE_SNAPSHOT (10) pour un calcul plus souple.
+  function estEnAbsenceLongue(pseudo, rec, dateRef, seuil) {
+    const seuilEffectif = seuil ?? CFG().SEUIL_ABSENCE_JOURS;
     const T = CFG().TYPES_ABSENCE;
     const abs = versTableau(rec.absences).find(a =>
       a.pseudo === pseudo &&
@@ -54,7 +56,7 @@
     );
     if (!abs) return false;
     const diffJours = (dateRef - new Date(abs.debut)) / 86400000;
-    return diffJours > CFG().SEUIL_ABSENCE_JOURS;
+    return diffJours >= seuilEffectif; // ≥ pour inclure exactement 10j au snapshot
   }
 
   /* === SUPPRESSIONS === */
@@ -86,7 +88,11 @@
 
   // Retourne { recenses, menaces, absents, nouveaux, suppressions }.
   // dateRef : Date JS (new Date() live, ou date figée snapshot).
-  function calculerListes(rec, dateRef) {
+  // seuilAbsence : optionnel — remplace SEUIL_ABSENCE_JOURS pour ce calcul.
+  //   → Affichage quotidien : non passé (défaut 15j)
+  //   → Snapshot du 25 : passer SEUIL_ABSENCE_SNAPSHOT (10j)
+  //   → Liste finale du 1er : non passé (défaut 15j, staff gère les cas limites)
+  function calculerListes(rec, dateRef, seuilAbsence) {
     const annee     = dateRef.getFullYear();
     const mois      = dateRef.getMonth();
     const moisKey   = cleMois(dateRef);
@@ -98,9 +104,10 @@
       // Priorité 1 : demande de suppression → colonne dédiée, hors autres listes
       if (suppressions.includes(pseudo)) return;
 
-      // Priorité 2 : absence longue active → absents (si pas de RP dans le mois)
+      // Priorité 2 : absence suffisamment longue → absents (si pas de RP dans le mois)
+      // Le seuil varie selon le contexte (quotidien 15j / snapshot 25 → 10j)
       const rpCount = rec.membres[pseudo].rp_par_mois?.[moisKey] || 0;
-      if (estEnAbsenceLongue(pseudo, rec, dateRef) && rpCount < 1) {
+      if (estEnAbsenceLongue(pseudo, rec, dateRef, seuilAbsence) && rpCount < 1) {
         absents.push(pseudo); return;
       }
 
