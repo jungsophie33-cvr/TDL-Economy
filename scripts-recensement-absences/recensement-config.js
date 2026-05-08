@@ -50,10 +50,11 @@
 
     JOUR_RECENSEMENT:    25,
     SEUIL_ABSENCE_JOURS: 15,  // absence > 15j → liste "absents" (si pas de RP)
+    SEUIL_ABSENCE_SNAPSHOT:10, // seuil snapshot 25: ≥ 10j → absent (exclu BBCode) ; < 10j → menacé (tagué)
     SEUIL_FICHE_TARD:    15,  // fiche validée ≥ 15 du mois → recensé sans RP requis
     ALERTE_FIN_JOURS:    1,   // carte rouge J+1 après la date de fin d'absence
 
-    STAFF_USERS: ["Mami Wata", "Jason Blackford"], // [MAJ]
+    STAFF_USERS: ["Mami Wata", "Jason Blackford", "Alyssa Desrosiers"], // [MAJ]
   };
 
   /* === TEXTES === */
