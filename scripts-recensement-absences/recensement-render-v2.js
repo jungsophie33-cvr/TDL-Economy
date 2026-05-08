@@ -59,7 +59,7 @@
   function genBBCodeMenaces(pseudos, labelDate) {
     const lignes = trier(pseudos).map(p => `  • @"${p}"`).join("\n");
     return [
-      `[b]━━━ MEMBRES MENACÉS PAR LE DOYEN — liste du ${labelDate} ━━━[/b]`,
+      `[b]━━━ MENACÉS PAR LE DOYEN — snapshot du ${labelDate} ━━━[/b]`,
       "",
       "[color=#7b1f1f]Ces membres n'ont pas posté de RP entre le 1er et le 25 du mois.",
       "Vous avez jusqu'au dernier jour du mois pour régulariser votre situation.[/color]",
@@ -112,17 +112,27 @@
 
   /* === EVENTS === */
 
-  async function genererSnapshot(rec, moisKey, listes, zone) {
+  async function genererSnapshot(rec, moisKey, zone) {
     const snp = (rec.recensement = rec.recensement || {})[moisKey] =
       rec.recensement[moisKey] || {};
     const now = new Date();
+
+    // Le snapshot du 25 utilise un seuil d'absence réduit (≥ 10j) :
+    // absence déclarée depuis ≥ 10j → exclu du BBCode "menacés"
+    // absence < 10j → toujours dans "menacés" et tagué dans la notification
+    // Le calcul final du 1er utilisera le seuil normal (15j) avec cas par cas staff.
+    const listesSnap = window.RC.Calcul.calculerListes(
+      rec, now, CFG().SEUIL_ABSENCE_SNAPSHOT
+    );
+    if (snp?.overrides_staff) window.RC.Calcul.appliquerOverrides(listesSnap, snp.overrides_staff);
+
     Object.assign(snp, {
       genere_le:       now.toISOString(),
       genere_le_label: now.toLocaleDateString("fr-FR"),
-      recenses:        [...listes.recenses],
-      menaces_25:      [...listes.menaces],   // Anciennement en_danger_25
-      absents:         [...listes.absents],
-      suppressions:    [...listes.suppressions],
+      recenses:        [...listesSnap.recenses],
+      menaces_25:      [...listesSnap.menaces],
+      absents:         [...listesSnap.absents],
+      suppressions:    [...listesSnap.suppressions],
     });
     await window.EcoCore.writeBin(rec);
     preremplirReponse(genBBCodeMenaces(snp.menaces_25, snp.genere_le_label));
@@ -152,7 +162,7 @@
       const btn = document.createElement("button");
       btn.className = "rc-btn-action";
       btn.textContent = T().BTN_GENERER;
-      btn.addEventListener("click", () => genererSnapshot(rec, moisKey, listes, zone));
+      btn.addEventListener("click", () => genererSnapshot(rec, moisKey, zone));
       const note = document.createElement("p");
       note.className = "rc-staff-note";
       note.textContent = "Le BBCode sera automatiquement inséré dans la réponse rapide.";
