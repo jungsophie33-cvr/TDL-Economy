@@ -1,0 +1,302 @@
+/* === JAUGES DE TERREBONNE — STYLES ===
+   Auteur : Claude x THE DROWNED LANDS
+   Couvre : panneau staff (tdl-js-*) + widget accueil (tdl-ja-*)
+   Toutes les couleurs de fond/texte utilisent les variables du thème FA.
+   Les couleurs des jauges elles-mêmes sont injectées par JS (style inline).
+   ================================================================ */
+
+
+/* ────────────────────────────────────────────────────────────────
+   PANNEAU STAFF
+   ──────────────────────────────────────────────────────────────── */
+
+.tdl-js-panel {
+  background    : var(--dark, #1a1a1a);
+  border        : 1px solid var(--cntr3, #444);
+  border-radius : 6px;
+  padding       : 20px 24px;
+  max-width     : 580px;
+  margin        : 0 auto;
+  font-family   : var(--font0, Arial, sans-serif);
+}
+
+.tdl-js-title {
+  color       : var(--txt2, #d4b483);
+  font-size   : 1.05em;
+  font-weight : bold;
+  margin      : 0 0 4px;
+}
+
+.tdl-js-subtitle {
+  color       : var(--txt3, #888);
+  font-size   : 0.78em;
+  margin      : 0 0 20px;
+}
+
+.tdl-js-access-denied {
+  color     : var(--txt3, #888);
+  font-size : 0.85em;
+  padding   : 12px;
+}
+
+/* Bloc par jauge */
+
+.tdl-js-bloc {
+  margin-bottom  : 20px;
+  padding-bottom : 18px;
+  border-bottom  : 1px solid var(--cntr3, #333);
+}
+
+.tdl-js-bloc:last-child {
+  border-bottom  : none;
+  margin-bottom  : 0;
+  padding-bottom : 0;
+}
+
+.tdl-js-bloc-header {
+  display     : flex;
+  align-items : baseline;
+  gap         : 10px;
+  margin-bottom : 8px;
+}
+
+.tdl-js-bloc-label {
+  font-weight : bold;
+  font-size   : 0.92em;
+  /* color injecté inline par JS */
+}
+
+.tdl-js-bloc-info {
+  font-size : 0.76em;
+  color     : var(--txt3, #888);
+}
+
+/* Ligne de contrôle */
+
+.tdl-js-bloc-controls {
+  display     : flex;
+  align-items : center;
+  gap         : 8px;
+}
+
+.tdl-js-segments {
+  display : flex;
+  gap     : 4px;
+  flex    : 1;
+}
+
+.tdl-js-segment {
+  flex          : 1;
+  height        : 24px;
+  border-radius : 3px;
+  background    : var(--cntr4, #2a2a2a);
+  border        : 1px solid var(--cntr3, #383838);
+  cursor        : help;
+  transition    : opacity 0.15s, transform 0.1s;
+}
+
+.tdl-js-segment:hover {
+  opacity   : 0.75;
+  transform : scaleY(1.1);
+}
+
+.tdl-js-seg-active {
+  opacity : 1;
+}
+
+/* Boutons +/- */
+
+.tdl-js-btn {
+  width         : 30px;
+  height        : 30px;
+  flex-shrink   : 0;
+  border        : 1px solid var(--cntr3, #444);
+  border-radius : 4px;
+  background    : var(--cntr4, #2a2a2a);
+  color         : var(--txt2, #d4b483);
+  font-size     : 1.15em;
+  font-weight   : bold;
+  cursor        : pointer;
+  display       : flex;
+  align-items   : center;
+  justify-content : center;
+  transition    : background 0.15s;
+  line-height   : 1;
+}
+
+.tdl-js-btn:hover {
+  background : var(--cntr5, #3a3a3a);
+}
+
+.tdl-js-btn:active {
+  background : var(--cntr6, #4a4a4a);
+}
+
+/* Horodatage */
+
+.tdl-js-last {
+  font-size  : 0.7em;
+  color      : var(--txt3, #666);
+  margin-top : 5px;
+  text-align : right;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   OVERLAY DE CONFIRMATION (appendé sur body)
+   ──────────────────────────────────────────────────────────────── */
+
+.tdl-js-overlay {
+  position        : fixed;
+  inset           : 0;
+  background      : rgba(0, 0, 0, 0.65);
+  z-index         : 9999;
+  display         : flex;
+  align-items     : center;
+  justify-content : center;
+}
+
+.tdl-js-confirm-box {
+  background    : var(--dark, #1e1e1e);
+  border        : 1px solid var(--cntr3, #555);
+  border-radius : 6px;
+  padding       : 24px 28px;
+  max-width     : 380px;
+  width         : 90%;
+  text-align    : center;
+  font-family   : var(--font0, Arial, sans-serif);
+}
+
+.tdl-js-confirm-msg {
+  color       : var(--txt2, #d4b483);
+  font-size   : 0.88em;
+  margin      : 0 0 18px;
+  line-height : 1.5;
+}
+
+.tdl-js-confirm-btn {
+  margin        : 0 6px;
+  padding       : 7px 18px;
+  border-radius : 4px;
+  font-size     : 0.84em;
+  cursor        : pointer;
+  border        : 1px solid var(--cntr3, #555);
+  font-family   : var(--font0, Arial, sans-serif);
+  transition    : background 0.15s;
+}
+
+.tdl-js-confirm-ok {
+  background : var(--cntr5, #3a3a3a);
+  color      : var(--txt2, #d4b483);
+}
+
+.tdl-js-confirm-ok:hover {
+  background : var(--cntr6, #4a4a4a);
+}
+
+.tdl-js-confirm-cancel {
+  background : transparent;
+  color      : var(--txt3, #888);
+}
+
+.tdl-js-confirm-cancel:hover {
+  background : var(--cntr4, #2a2a2a);
+}
+
+/* ────────────────────────────────────────────────────────────────
+   TOOLTIP PARTAGÉ (appendé sur body, utilisé par staff + accueil)
+   ──────────────────────────────────────────────────────────────── */
+
+.tdl-js-tooltip {
+  position       : absolute;
+  background     : var(--dark2opa5, rgba(15, 15, 15, 0.97));
+  color          : var(--txt2, #d4b483);
+  border         : 1px solid var(--cntr3, #555);
+  border-radius  : 4px;
+  padding        : 6px 10px;
+  font-family    : var(--font0, Arial, sans-serif);
+  font-size      : 0.76em;
+  max-width      : 300px;
+  line-height    : 1.45;
+  pointer-events : none;
+  z-index        : 10000;
+  white-space    : normal;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   WIDGET PAGE D'ACCUEIL
+   ──────────────────────────────────────────────────────────────── */
+
+.tdl-ja-wrapper {
+  background    : var(--darkopa2, rgba(10, 10, 10, 0.55));
+  border        : 1px solid var(--cntr3, #333);
+  border-radius : 6px;
+  padding       : 14px 18px 12px;
+  font-family   : var(--font0, Arial, sans-serif);
+}
+
+.tdl-ja-title {
+  color          : var(--txt2, #d4b483);
+  font-size      : 0.72em;
+  text-transform : uppercase;
+  letter-spacing : 0.09em;
+  font-weight    : bold;
+  margin-bottom  : 12px;
+}
+
+.tdl-ja-gauges {
+  display        : flex;
+  flex-direction : column;
+  gap            : 9px;
+}
+
+.tdl-ja-row {
+  display     : flex;
+  align-items : center;
+  gap         : 10px;
+}
+
+/* Nom de la jauge */
+.tdl-ja-label {
+  width       : 155px;
+  flex-shrink : 0;
+  font-size   : 0.75em;
+  color       : var(--txt3, #aaa);
+  line-height : 1.2;
+}
+
+/* Barre */
+.tdl-ja-bar-wrap {
+  flex : 1;
+}
+
+.tdl-ja-segments {
+  display : flex;
+  gap     : 3px;
+}
+
+.tdl-ja-segment {
+  flex          : 1;
+  height        : 11px;
+  border-radius : 2px;
+  background    : var(--cntr4, #2a2a2a);
+  border        : 1px solid var(--cntr3, #333);
+  cursor        : help;
+  transition    : opacity 0.2s;
+}
+
+.tdl-ja-segment:hover {
+  opacity : 0.72;
+}
+
+.tdl-ja-seg-active {
+  opacity : 1;
+}
+
+/* Indicateur numérique */
+.tdl-ja-niveau {
+  width       : 34px;
+  flex-shrink : 0;
+  text-align  : right;
+  font-size   : 0.68em;
+  color       : var(--txt3, #666);
+}
