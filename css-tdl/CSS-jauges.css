@@ -11,24 +11,24 @@
    ──────────────────────────────────────────────────────────────── */
 
 .tdl-js-panel {
-  background    : var(--dark, #1a1a1a);
-  border        : 1px solid var(--cntr3, #444);
-  border-radius : 6px;
-  padding       : 20px 24px;
+  background    : var(--cntr3);
+  border        : 1px solid var(--cntr5);
+  border-radius : 10px;
+  padding       : 20px 25px;
   max-width     : 580px;
   margin        : 0 auto;
-  font-family   : var(--font0, Arial, sans-serif);
+  font-family   : var(--font2);
 }
 
 .tdl-js-title {
-  color       : var(--txt2, #d4b483);
+  color       : var(#d4b483);
   font-size   : 1.05em;
   font-weight : bold;
   margin      : 0 0 4px;
 }
 
 .tdl-js-subtitle {
-  color       : var(--txt3, #888);
+  color       : var(--cntr);
   font-size   : 0.78em;
   margin      : 0 0 20px;
 }
@@ -227,18 +227,17 @@
    ──────────────────────────────────────────────────────────────── */
 
 .tdl-ja-wrapper {
-  background    : var(--darkopa2, rgba(10, 10, 10, 0.55));
-  border        : 1px solid var(--cntr3, #333);
-  border-radius : 6px;
-  padding       : 14px 18px 12px;
-  font-family   : var(--font0, Arial, sans-serif);
+  background    : none;
+  border        : none;
+  font-family   : var(--font2);
 }
 
 .tdl-ja-title {
-  color          : var(--txt2, #d4b483);
-  font-size      : 0.72em;
+  font-family    : var(--title2);
+  color          : #d4b483;
+  font-size      : 1.1em;
   text-transform : uppercase;
-  letter-spacing : 0.09em;
+  letter-spacing : 0.2em;
   font-weight    : bold;
   margin-bottom  : 12px;
 }
@@ -253,7 +252,13 @@
   display     : flex;
   align-items : center;
   gap         : 10px;
+  padding: 10px;
+  background: var(--clair1);
+  border-radius: 5px;
+  border-left: 3px solid var(--gr1-color);
 }
+.tdl-ja-gauges:nth-child(2) {border-color: var(--gr6-color);}
+.tdl-ja-gauges:nth-child(3) {border-color: var(--gr5-color);}
 
 /* Nom de la jauge */
 .tdl-ja-label {
