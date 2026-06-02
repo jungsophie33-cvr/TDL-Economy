@@ -208,13 +208,12 @@
 
 .tdl-js-tooltip {
   position       : absolute;
-  background     : var(--dark2opa5, rgba(15, 15, 15, 0.97));
-  color          : var(--txt2, #d4b483);
+  background     : var(--clair1);
   border         : 1px solid var(--cntr3, #555);
   border-radius  : 4px;
   padding        : 6px 10px;
   font-family    : var(--font0, Arial, sans-serif);
-  font-size      : 0.76em;
+  font-size      : 0.9em;
   max-width      : 300px;
   line-height    : 1.45;
   pointer-events : none;
@@ -233,9 +232,8 @@
 }
 
 .tdl-ja-title {
-  font-family    : var(--title2);
-  color          : #d4b483;
-  font-size      : 1.1em;
+  font-family    : var(txt2);
+  font-size      : 0.9em;
   text-transform : uppercase;
   letter-spacing : 0.2em;
   font-weight    : bold;
@@ -253,7 +251,7 @@
   align-items : center;
   gap         : 10px;
   padding: 10px;
-  background: var(--clair1);
+  background: var(--clair1opa7);
   border-radius: 5px;
   border-left: 3px solid var(--gr1-color);
 }
@@ -262,11 +260,11 @@
 
 /* Nom de la jauge */
 .tdl-ja-label {
-  width       : 155px;
+  width       : 130px;
   flex-shrink : 0;
-  font-size   : 0.75em;
-  color       : var(--txt3, #aaa);
+  font-size   : 0.9em;
   line-height : 1.2;
+   text-align:left;
 }
 
 /* Barre */
@@ -281,10 +279,9 @@
 
 .tdl-ja-segment {
   flex          : 1;
-  height        : 11px;
-  border-radius : 2px;
-  background    : var(--cntr4, #2a2a2a);
-  border        : 1px solid var(--cntr3, #333);
+  height        : 15px;
+  border-radius : 4px;
+  background    : var(--cntr4);
   cursor        : help;
   transition    : opacity 0.2s;
 }
@@ -302,6 +299,6 @@
   width       : 34px;
   flex-shrink : 0;
   text-align  : right;
-  font-size   : 0.68em;
-  color       : var(--txt3, #666);
+  font-size   : 1em;
+font-weight:bold;
 }
