@@ -199,8 +199,7 @@
   border-radius  : 4px;
   padding        : 8px 11px 9px;
   font-family    : var(--font2);
-  font-size      : 0.9em;
-  max-width      : 300px;
+  width      : 300px;
   line-height    : 1.45;
   pointer-events : none;
   z-index        : 10000;
@@ -219,6 +218,7 @@
 .tdl-tt-niveau {
   font-style   : normal;
   font-family  : var(--txt3);
+   font-size: 0.9em;
   font-variant : small-caps;
   color        : var(--dark2);
   font-weight  : 900;
