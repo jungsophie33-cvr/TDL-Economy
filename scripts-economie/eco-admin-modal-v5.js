@@ -192,6 +192,7 @@
         var rec = await core.readBin(); var count = 0;
         for (var n in rec.membres) { rec.membres[n].dollars = (rec.membres[n].dollars || 0) + val; count++; }
         await core.writeBin(rec);
+        core.invalidateCache();
         if (core.showEcoGain) core.showEcoGain(val);
         if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
         alert(val + " " + core.MONNAIE_NAME + " ajoutés à " + count + " membres.");
@@ -211,6 +212,7 @@
         if (!rec.membres[membre]) return alert("Membre inconnu.");
         rec.membres[membre].dollars = Math.max(0, (rec.membres[membre].dollars || 0) + montant);
         await core.writeBin(rec);
+        core.invalidateCache();
         alert("✅ Solde de " + membre + " mis à jour (" + (montant > 0 ? "+" : "") + montant + ").");
       });
     }
@@ -224,6 +226,7 @@
       if (!rec.membres[choix]) return alert("Membre inconnu.");
       rec.membres[choix].dollars = 0;
       await core.writeBin(rec);
+        core.invalidateCache();
       alert(choix + " réinitialisé.");
     });
 
@@ -233,6 +236,7 @@
       var rec = await core.readBin();
       for (var m in rec.membres) rec.membres[m].dollars = 0;
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("Tous les membres remis à 0.");
     });
 
@@ -244,6 +248,7 @@
       var rec = await core.readBin();
       rec.cagnottes[choix] = 0;
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("Cagnotte " + choix + " réinitialisée.");
     });
 
@@ -253,6 +258,7 @@
       var rec = await core.readBin();
       for (var g in rec.cagnottes) rec.cagnottes[g] = 0;
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("Toutes les cagnottes remises à 0.");
     });
 
@@ -271,6 +277,7 @@
       if (!rec.transactions_cagnottes) rec.transactions_cagnottes = [];
       rec.transactions_cagnottes.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("✅ " + montant + " transférés de " + from + " vers " + to + ".");
       var elF = document.getElementById("eco-cag-" + from.replace(/\s/g, "_"));
       var elT = document.getElementById("eco-cag-" + to.replace(/\s/g, "_"));
@@ -294,6 +301,7 @@
       if (!rec.transactions_membres) rec.transactions_membres = [];
       rec.transactions_membres.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("✅ " + montant + " transférés de " + from + " à " + to + ".");
       if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
     });
@@ -314,6 +322,7 @@
       if (!rec.transactions_cagnotte_membre) rec.transactions_cagnotte_membre = [];
       rec.transactions_cagnotte_membre.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
       await core.writeBin(rec);
+        core.invalidateCache();
       alert("✅ " + montant + " transférés de " + from + " à " + to + ".");
       var elF = document.getElementById("eco-cag-" + from.replace(/\s/g, "_"));
       if (elF) elF.textContent = rec.cagnottes[from];
