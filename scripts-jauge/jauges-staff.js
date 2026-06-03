@@ -204,8 +204,9 @@
     if (!seg) return;
     const key  = seg.getAttribute("data-key");
     const n    = parseInt(seg.getAttribute("data-n"), 10);
-    const nDef = window.TDLJauges.CFG[key].niveaux[n - 1];
-    afficherTooltip(e, "Niveau " + n + " — " + nDef.label + " : " + nDef.desc);
+    const entry = _data[key] || {};
+    const nAct  = Math.min(5, Math.max(1, parseInt(entry.niveau) || 1));
+    afficherTooltip(e, key, n, nAct);
   }
 
   function deleguerSortie(e) {
@@ -228,9 +229,9 @@
     document.body.appendChild(_tooltip); // escape stacking context ForumActif
   }
 
-  function afficherTooltip(e, texte) {
+  function afficherTooltip(e, key, n, nAct) {
     if (!_tooltip) return;
-    _tooltip.textContent   = texte;
+    _tooltip.innerHTML     = window.TDLJauges.construireTooltip(key, n, nAct);
     _tooltip.style.display = "block";
     deplacerTooltip(e);
   }
