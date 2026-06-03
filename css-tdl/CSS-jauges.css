@@ -20,21 +20,24 @@
 
 .tdl-js-title {
   /* CORRIGÉ : var(#d4b483) est invalide — var() n'accepte pas de valeur hex directe */
-  color       : #d4b483;
-  font-size   : 1.05em;
-  font-weight : bold;
+  color       : var(--dark2);
+  font-family:var(--font2)!important;
+  font-size   : 1.15em;
   margin      : 0 0 4px;
+  letter-spacing:1px!important;
+}
+.tdl-js-title {
+   letter-spacing:1px!iportant;
 }
 
 .tdl-js-subtitle {
-  /* CORRIGÉ : var(--cntr) n'existe pas — remplacé par --cntr4 */
-  color     : var(--cntr4);
-  font-size : 0.78em;
+  color     : var(--cntr);
+  font-size : 0.9em;
   margin    : 0 0 20px;
 }
 
 .tdl-js-access-denied {
-  color     : var(--txt3);
+  color     : var(--dark2);
   font-size : 0.85em;
   padding   : 12px;
 }
