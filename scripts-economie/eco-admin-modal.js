@@ -207,7 +207,8 @@
   }
 
   // ── INIT ─────────────────────────────────────────────────────
-  // DOMContentLoaded — aligné sur fl-modal.
+  // Guard readyState : si DOMContentLoaded a déjà tiré (cas FA async),
+  // on init immédiatement. Sinon on attend l'événement.
 
   function init() {
     chargerFlaticon();
@@ -216,7 +217,11 @@
     console.log(MODULE, "Prêt.");
   }
 
-  document.addEventListener("DOMContentLoaded", init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
 
   // API publique
   window.EcoAdminModal = { ouvrir: ouvrir, fermer: fermer };
