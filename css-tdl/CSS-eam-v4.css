@@ -295,10 +295,11 @@ f4.eam-section-title {
   justify-content : center;
   background      : var(--darkopa7);
   border-radius   : 5px;
-  color           : var(--dark2);
+  color           : var(--clair1);
   cursor          : pointer;
   font-size       : 1.5em;
   transition      : background 0.15s, border-color 0.15s;
+   padding: 10px;
 }
 
 .eam-trigger-btn:hover {
