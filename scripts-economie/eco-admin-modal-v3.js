@@ -1,10 +1,7 @@
 // === ECO ADMIN MODAL — AUTONOME ===
 // Auteur : Claude x THE DROWNED LANDS
-// Version auto-suffisante : gère la population des selects et tous les listeners
-// sans dépendre du câblage de eco-ui.js.
-// Le HTML est injecté IMMÉDIATEMENT dans l'IIFE — pas de callback asynchrone.
-// eco-ui.js doit être modifié : entourer sa section admin d'un guard
-//   if (!window.EcoAdminModal) { ... }
+// Flaticon CDN déjà chargé dans <head> — aucun chargement dynamique ici.
+// HTML injecté immédiatement dans l'IIFE (pas de callback).
 
 (function () {
   "use strict";
@@ -13,24 +10,18 @@
   var TRIGGER_ID = "eco-admin-modal-trigger";
   var OVERLAY_ID = "eco-admin-modal-overlay";
 
-  // ── FLATICON CDN ────────────────────────────────────────────────
-  function chargerFlaticon() {
-    var ID  = "tdl-flaticon-css";
-    var URL = "https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-straight/css/uicons-solid-straight.css";
-    if (document.getElementById(ID)) return;
-    var l = document.createElement("link");
-    l.id = ID; l.rel = "stylesheet"; l.href = URL;
-    document.head.appendChild(l);
-  }
-
   // ── HTML DU MODAL ────────────────────────────────────────────────
+  var ARR = '<i class="fi fi-rr-angle-double-small-right eam-arrow" aria-hidden="true"></i>';
+
   var MODAL_HTML = [
     '<div id="', OVERLAY_ID, '" class="eam-overlay" role="dialog" aria-modal="true" aria-label="Administration Économie">',
       '<div class="eam-modal">',
+
         '<div class="eam-header">',
           '<span class="eam-title">Administration · Économie</span>',
           '<button class="eam-close" id="eco-admin-modal-close" aria-label="Fermer">&#10005;</button>',
         '</div>',
+
         '<div class="eam-tabs" role="tablist">',
           '<button class="eam-tab eam-tab-active" data-tab="distribution" role="tab" aria-selected="true">',
             '<i class="fi fi-ss-coin" aria-hidden="true"></i> Distribution',
@@ -42,70 +33,77 @@
             '<i class="fi fi-ss-arrows-repeat" aria-hidden="true"></i> Transferts',
           '</button>',
         '</div>',
+
         '<div class="eam-body">',
 
+          // ── DISTRIBUTION ──
           '<div class="eam-panel" data-panel="distribution">',
-            '<div class="eam-section-title">Globale</div>',
+
+            '<f4 class="eam-section-title">Globale</f4>',
             '<div class="eam-row" id="eco-admin-giveall">',
-              '<label class="eam-label">Montant :</label>',
               '<input type="number" id="eco-giveall-amount" class="eam-input" min="1" value="10"/>',
               '<button id="eco-giveall-btn" class="eam-btn eam-btn-primary">Distribuer à tous</button>',
             '</div>',
-            '<div class="eam-section-title">Individuelle</div>',
+
+            '<f4 class="eam-section-title">Individuelle</f4>',
             '<div class="eam-row" id="eco-adjust-box">',
               '<select id="eco-adjust-member" class="eam-select"></select>',
               '<input id="eco-adjust-amount" type="number" class="eam-input" placeholder="Montant (+ ou -)"/>',
               '<button id="eco-adjust-btn" class="eam-btn eam-btn-primary">Valider</button>',
             '</div>',
             '<p class="eam-hint">Positif pour ajouter, négatif pour retirer.</p>',
+
           '</div>',
 
+          // ── RÉINITIALISATIONS ──
           '<div class="eam-panel eam-panel-hidden" data-panel="reinit">',
-            '<div class="eam-section-title">Membres</div>',
+
+            '<f4 class="eam-section-title">Membres</f4>',
             '<div class="eam-row" id="eco-reset-panel">',
-              '<select id="eco-member-select" class="eam-select"></select>',
+              '<select id="eco-member-select" class="eam-select eam-select-wide"></select>',
               '<button id="eco-reset-member" class="eam-btn">Réinit. membre</button>',
               '<button id="eco-reset-all-members" class="eam-btn eam-btn-danger">Tous</button>',
             '</div>',
-            '<div class="eam-section-title">Cagnottes</div>',
+
+            '<f4 class="eam-section-title">Cagnottes</f4>',
             '<div class="eam-row">',
-              '<select id="eco-cag-select" class="eam-select"></select>',
+              '<select id="eco-cag-select" class="eam-select eam-select-wide"></select>',
               '<button id="eco-reset-cagnotte" class="eam-btn">Réinit. cagnotte</button>',
               '<button id="eco-reset-all-cagnottes" class="eam-btn eam-btn-danger">Toutes</button>',
             '</div>',
+
           '</div>',
 
+          // ── TRANSFERTS ──
           '<div class="eam-panel eam-panel-hidden" data-panel="transferts">',
-            '<div class="eam-section-title">Entre cagnottes</div>',
+
+            '<f4 class="eam-section-title">Entre cagnottes</f4>',
             '<div class="eam-row" id="eco-transfer-box">',
-              '<label class="eam-label">Débiter :</label>',
               '<select id="eco-transfer-from" class="eam-select"></select>',
-              '<span class="eam-arrow">&#8594;</span>',
-              '<label class="eam-label">Créditer :</label>',
+              ARR,
               '<select id="eco-transfer-to" class="eam-select"></select>',
               '<input id="eco-transfer-amount" type="number" class="eam-input" placeholder="Montant"/>',
               '<button id="eco-transfer-btn" class="eam-btn eam-btn-primary">Transférer</button>',
             '</div>',
-            '<div class="eam-section-title">Entre membres</div>',
+
+            '<f4 class="eam-section-title">Entre membres</f4>',
             '<div class="eam-row" id="eco-transfer-member-panel">',
-              '<label class="eam-label">De :</label>',
               '<select id="eco-transfer-from-member" class="eam-select"></select>',
-              '<span class="eam-arrow">&#8594;</span>',
-              '<label class="eam-label">Vers :</label>',
+              ARR,
               '<select id="eco-transfer-to-member" class="eam-select"></select>',
               '<input id="eco-transfer-amount-member" type="number" class="eam-input" min="1" placeholder="Montant"/>',
               '<button id="eco-transfer-btn-member" class="eam-btn eam-btn-primary">Transférer</button>',
             '</div>',
-            '<div class="eam-section-title">Cagnotte &#8594; Membre</div>',
+
+            '<f4 class="eam-section-title">Cagnotte &#8594; Membre</f4>',
             '<div class="eam-row" id="eco-transfer-cag-member">',
-              '<label class="eam-label">Cagnotte :</label>',
               '<select id="eco-transfer-cag-to-member-from" class="eam-select"></select>',
-              '<span class="eam-arrow">&#8594;</span>',
-              '<label class="eam-label">Membre :</label>',
+              ARR,
               '<select id="eco-transfer-cag-to-member-to" class="eam-select"></select>',
-              '<input type="number" id="eco-transfer-cag-to-member-amount" class="eam-input" value="0"/>',
+              '<input type="number" id="eco-transfer-cag-to-member-amount" class="eam-input" placeholder="Montant"/>',
               '<button id="eco-transfer-cag-to-member-btn" class="eam-btn eam-btn-primary">Transférer</button>',
             '</div>',
+
           '</div>',
 
         '</div>',
@@ -118,8 +116,7 @@
     if (document.getElementById(OVERLAY_ID)) return;
     var tmp = document.createElement("div");
     tmp.innerHTML = MODAL_HTML;
-    var overlay = tmp.firstChild;
-    document.body.appendChild(overlay);
+    document.body.appendChild(tmp.firstChild);
     console.log(MODULE, "Overlay injecté sur body.");
   }
 
@@ -130,7 +127,6 @@
     if (overlay.parentNode !== document.body) document.body.appendChild(overlay);
     overlay.classList.add("active");
     document.documentElement.style.overflow = "hidden";
-    // Rafraîchit les selects à chaque ouverture
     populerSelects();
   }
 
@@ -156,16 +152,11 @@
   }
 
   // ── POPULATION DES SELECTS ────────────────────────────────────────
-  // Appelé à chaque ouverture du modal pour avoir des données fraîches.
   function populerSelects() {
     var core = window.EcoCore;
-    if (!core || !core.safeReadBin) {
-      console.warn(MODULE, "EcoCore non disponible pour populerSelects.");
-      return;
-    }
+    if (!core || !core.safeReadBin) return;
     core.safeReadBin().then(function (rec) {
       if (!rec) return;
-
       var membres = Object.keys(rec.membres || {}).sort();
       var groupes = Object.keys(rec.cagnottes || {});
 
@@ -177,27 +168,20 @@
         }).join("");
       }
 
-      // Selects membres
       ["eco-adjust-member", "eco-member-select",
        "eco-transfer-from-member", "eco-transfer-to-member",
        "eco-transfer-cag-to-member-to"].forEach(function (id) { remplir(id, membres); });
 
-      // Selects cagnottes
       ["eco-cag-select", "eco-transfer-from",
        "eco-transfer-to", "eco-transfer-cag-to-member-from"].forEach(function (id) { remplir(id, groupes); });
 
-    }).catch(function (e) {
-      console.warn(MODULE, "Erreur populerSelects :", e);
-    });
+    }).catch(function (e) { console.warn(MODULE, "populerSelects :", e); });
   }
 
-  // ── LISTENERS DES BOUTONS ADMIN ───────────────────────────────────
-  // Câblés une seule fois à l'init. Utilisent window.EcoCore directement.
+  // ── LISTENERS BOUTONS ADMIN ───────────────────────────────────────
   function bindBoutonsAdmin() {
-
     var c = function () { return window.EcoCore; };
 
-    // -- Distribution globale --
     var giveAll = document.getElementById("eco-giveall-btn");
     if (giveAll) {
       giveAll.addEventListener("click", async function () {
@@ -214,7 +198,6 @@
       });
     }
 
-    // -- Ajustement individuel --
     var adjustBtn = document.getElementById("eco-adjust-btn");
     if (adjustBtn) {
       adjustBtn.addEventListener("click", async function () {
@@ -232,7 +215,6 @@
       });
     }
 
-    // -- Réinit. membre --
     document.getElementById("eco-reset-member")?.addEventListener("click", async function () {
       var choix = document.getElementById("eco-member-select")?.value;
       if (!choix) return alert("Aucun membre sélectionné.");
@@ -242,20 +224,18 @@
       if (!rec.membres[choix]) return alert("Membre inconnu.");
       rec.membres[choix].dollars = 0;
       await core.writeBin(rec);
-      alert(choix + " a été réinitialisé.");
+      alert(choix + " réinitialisé.");
     });
 
-    // -- Réinit. tous membres --
     document.getElementById("eco-reset-all-members")?.addEventListener("click", async function () {
       if (!confirm("⚠️ Réinitialiser TOUS les membres ?")) return;
       var core = c(); if (!core) return;
       var rec = await core.readBin();
       for (var m in rec.membres) rec.membres[m].dollars = 0;
       await core.writeBin(rec);
-      alert("Tous les membres ont été remis à 0.");
+      alert("Tous les membres remis à 0.");
     });
 
-    // -- Réinit. cagnotte --
     document.getElementById("eco-reset-cagnotte")?.addEventListener("click", async function () {
       var choix = document.getElementById("eco-cag-select")?.value;
       if (!choix) return alert("Aucune cagnotte sélectionnée.");
@@ -267,7 +247,6 @@
       alert("Cagnotte " + choix + " réinitialisée.");
     });
 
-    // -- Réinit. toutes cagnottes --
     document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click", async function () {
       if (!confirm("⚠️ Remettre toutes les cagnottes à 0 ?")) return;
       var core = c(); if (!core) return;
@@ -277,7 +256,6 @@
       alert("Toutes les cagnottes remises à 0.");
     });
 
-    // -- Transfert entre cagnottes --
     document.getElementById("eco-transfer-btn")?.addEventListener("click", async function () {
       var from    = document.getElementById("eco-transfer-from")?.value;
       var to      = document.getElementById("eco-transfer-to")?.value;
@@ -300,7 +278,6 @@
       if (elT) elT.textContent = rec.cagnottes[to];
     });
 
-    // -- Transfert entre membres --
     document.getElementById("eco-transfer-btn-member")?.addEventListener("click", async function () {
       var from    = document.getElementById("eco-transfer-from-member")?.value;
       var to      = document.getElementById("eco-transfer-to-member")?.value;
@@ -321,7 +298,6 @@
       if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
     });
 
-    // -- Transfert cagnotte → membre --
     document.getElementById("eco-transfer-cag-to-member-btn")?.addEventListener("click", async function () {
       var from    = document.getElementById("eco-transfer-cag-to-member-from")?.value;
       var to      = document.getElementById("eco-transfer-cag-to-member-to")?.value;
@@ -332,7 +308,7 @@
       var rec = await core.readBin();
       if ((rec.cagnottes[from] || 0) < montant) return alert("Fonds insuffisants dans la cagnotte " + from + ".");
       if (!rec.membres[to]) return alert("Membre inconnu.");
-      if (!confirm("Transférer " + montant + " de la cagnotte " + from + " vers " + to + " ?")) return;
+      if (!confirm("Transférer " + montant + " de " + from + " vers " + to + " ?")) return;
       rec.cagnottes[from] -= montant;
       rec.membres[to].dollars = (rec.membres[to].dollars || 0) + montant;
       if (!rec.transactions_cagnotte_membre) rec.transactions_cagnotte_membre = [];
@@ -347,7 +323,7 @@
     console.log(MODULE, "Boutons admin câblés.");
   }
 
-  // ── EVENTS MODAL (UI) ─────────────────────────────────────────────
+  // ── EVENTS MODAL ──────────────────────────────────────────────────
   function bindEvents() {
     var overlay = document.getElementById(OVERLAY_ID);
     if (!overlay) return;
@@ -369,20 +345,15 @@
         if (btn) activerOnglet(btn.getAttribute("data-tab"));
       });
 
-    // Bouton déclencheur — délégation sur document
     document.addEventListener("click", function (e) {
       if (e.target.closest("#" + TRIGGER_ID)) ouvrir();
     });
   }
 
-  // ── INIT ─────────────────────────────────────────────────────────
-  // INJECTION IMMÉDIATE — pas de callback.
-  // FA charge les scripts après que document.body est disponible.
-  chargerFlaticon();
+  // ── INIT IMMÉDIAT ────────────────────────────────────────────────
   creerModal();
   bindEvents();
   bindBoutonsAdmin();
-
   console.log(MODULE, "Prêt.");
 
   window.EcoAdminModal = { ouvrir: ouvrir, fermer: fermer };
