@@ -17,7 +17,7 @@
   // Cache local des données lues depuis Firebase
   let _data = {};
 
-  // ---------- INIT (pattern eco-dc-init.js : poll 200ms + délai 600ms) ----------
+  // ---------- INIT ----------
 
   function toutPret() {
     return !!(
@@ -30,16 +30,35 @@
     );
   }
 
-  const _poll = setInterval(function () {
-    const container = document.getElementById(CONTAINER_ID);
-    if (!container) return;
-    if (!toutPret())  return;
-    clearInterval(_poll);
-    setTimeout(function () {
-      creerTooltip();
-      verifierAcces(container);
-    }, 600);
-  }, 200);
+  function demarrerPoll() {
+    var tentatives = 0;
+    var MAX = 100;
+
+    var _poll = setInterval(function () {
+      tentatives++;
+      if (tentatives > MAX) {
+        clearInterval(_poll);
+        console.warn(MODULE, "Timeout — container ou dépendances introuvables.");
+        return;
+      }
+
+      var container = document.getElementById(CONTAINER_ID);
+      if (!container) return;
+      if (!toutPret())  return;
+
+      clearInterval(_poll);
+      setTimeout(function () {
+        creerTooltip();
+        verifierAcces(container);
+      }, 300);
+    }, 200);
+  }
+
+  if (document.readyState === "complete") {
+    demarrerPoll();
+  } else {
+    window.addEventListener("load", demarrerPoll);
+  }
 
   // ---------- ACCÈS STAFF ----------
 
@@ -239,7 +258,7 @@
   function deplacerTooltip(e) {
     if (!_tooltip) return;
     _tooltip.style.left = (e.pageX + 14) + "px";
-    _tooltip.style.top  = (e.pageY - 36) + "px";
+    _tooltip.style.top  = (e.pageY - 10) + "px";
   }
 
   function cacherTooltip() {
