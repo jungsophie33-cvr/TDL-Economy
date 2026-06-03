@@ -1,0 +1,239 @@
+// === ECONOMIE V2 – UI ===
+// Auteur : ChatGPT x THE DROWNED LANDS
+// Modifié : Claude x THE DROWNED LANDS
+// La section admin (selects, boutons, transferts, réinitialisations) a été
+// extraite vers eco-admin-modal.js qui gère le panneau admin de façon autonome.
+console.log("[EcoV2] >>> eco-ui chargé");
+
+(function(){
+
+  const {
+    log, warn, err,
+    readBin, writeBin, safeReadBin,
+    getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
+    insertAfter, createErrorBanner, showEcoGain,
+    MONNAIE_NAME, GROUPS, ADMIN_USERS, DEFAULT_DOLLARS,
+    BIN_ID, API_KEY, JSONBIN_BASE
+  } = window.EcoCore;
+
+  // ---------- VISITEUR ----------
+  if(typeof _userdata==="undefined"||!_userdata||_userdata.user_id==-1||_userdata.username==="anonymous"){
+    console.log("[EcoV2] invité lecture seule");
+    (async()=>{
+      try{
+        const record = await safeReadBin();
+        if(!record) return console.warn("[EcoV2] échec lecture Firebase invité");
+        const membres = record.membres || {};
+        document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
+          const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
+          if(!pseudoEl) return;
+          const pseudo = pseudoEl.textContent.trim();
+          const user = membres[pseudo]; if(!user) return;
+          const val = post.querySelector(".field-dollars span:not(.label)");
+          if(val) val.textContent = user.dollars ?? 0;
+        });
+        if(record.cagnottes){
+          Object.entries(record.cagnottes).forEach(([g,v])=>{
+            const el = document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);
+            if(el) el.textContent = v;
+          });
+        }
+      }catch(e){ console.warn("[EcoV2] erreur affichage invité",e); }
+    })();
+    return;
+  }
+
+  // ---------- UPDATE DOLLARS DANS LES POSTS ----------
+  async function updatePostDollars(){
+    try{
+      const record = await safeReadBin();
+      if(!record || !record.membres) return;
+      document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
+        const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
+        if(!pseudoEl) return;
+        const pseudo = pseudoEl.textContent.trim();
+        const user = record.membres[pseudo]; if(!user) return;
+        const val = post.querySelector(".field-dollars span:not(.label)");
+        if(val) val.textContent = user.dollars ?? 0;
+      });
+      log("Màj champs dollars terminée");
+    }catch(e){ err("updatePostDollars", e); }
+  }
+
+  // ---------- CORE INIT ----------
+  async function coreInit(){
+    log("Initialisation...");
+    const menu = document.querySelector(window.EcoCore.MENU_SELECTOR);
+    if(!menu){ warn("Menu non trouvé"); return; }
+
+    const loading = document.createElement("div");
+    loading.id = "eco-loading";
+    loading.style.cssText = "background:#fffbe6;padding:6px;text-align:center;border:1px solid #ffecb3;margin-top:6px;";
+    loading.textContent = "Initialisation économie…";
+    insertAfter(menu, loading);
+
+    const record = await safeReadBin();
+    if(!record){ loading.replaceWith(createErrorBanner("Erreur : lecture Firebase impossible.")); return; }
+    record.membres   = record.membres   || {};
+    record.cagnottes = record.cagnottes || {};
+    record.boutique  = record.boutique  || {};
+
+    // --- Crée les cagnottes manquantes ---
+    let newCagAdded = false;
+    GROUPS.forEach(g => {
+      if(record.cagnottes[g] === undefined){
+        record.cagnottes[g] = 0;
+        newCagAdded = true;
+        console.log(`[EcoV2] 🪙 Cagnotte créée : ${g}`);
+      }
+    });
+    if(newCagAdded){
+      try{ await writeBin(record); console.log("[EcoV2] ✅ Cagnotte(s) sauvegardée(s)."); }
+      catch(e){ console.warn("[EcoV2] ⚠️ Impossible d'écrire les cagnottes :", e); }
+    }
+
+    const pseudo = getPseudo(), uid = getUserId();
+
+    if(!pseudo || pseudo.toLowerCase() === "anonymous" || uid === -1){
+      loading.replaceWith(createErrorBanner("Les invités n'ont pas accès à l'économie."));
+      console.warn("[EcoV2] Ignoré : utilisateur invité (anonymous)");
+      return;
+    }
+
+    // --- Patch : gestion UID + sync changement de pseudo ---
+    record.uid_index = record.uid_index || {};
+    const ancienPseudo = record.uid_index[uid];
+    const pseudoChange = ancienPseudo && ancienPseudo !== pseudo && record.membres[ancienPseudo];
+
+    if(pseudoChange){
+      record.membres[pseudo] = record.membres[ancienPseudo];
+      delete record.membres[ancienPseudo];
+      record.uid_index[uid] = pseudo;
+      if(record.doubles_comptes){
+        if(record.doubles_comptes[ancienPseudo]){
+          record.doubles_comptes[pseudo] = record.doubles_comptes[ancienPseudo];
+          delete record.doubles_comptes[ancienPseudo];
+        }
+        Object.values(record.doubles_comptes).forEach(groupe => {
+          const arr = Array.isArray(groupe.comptes)
+            ? groupe.comptes : Object.values(groupe.comptes || {});
+          const idx = arr.indexOf(ancienPseudo);
+          if(idx !== -1){ arr[idx] = pseudo; groupe.comptes = arr; }
+        });
+      }
+      await writeBin(record).catch(()=>null);
+      log(`[uid-sync] Pseudo renommé : ${ancienPseudo} → ${pseudo}`);
+    }
+
+    // --- Création ou mise à jour standard du membre ---
+    if(!record.membres[pseudo]){
+      const g = await fetchUserGroupFromProfile(uid);
+      record.membres[pseudo] = {
+        uid,
+        dollars: DEFAULT_DOLLARS,
+        messages: getMessagesCount(),
+        group: g || null,
+        lastMessageThresholdAwarded: 0,
+      };
+      record.uid_index[uid] = pseudo;
+      await writeBin(record).catch(()=>null);
+    } else {
+      record.membres[pseudo].messages = getMessagesCount();
+      if(!record.membres[pseudo].uid){
+        record.membres[pseudo].uid = uid;
+        record.uid_index[uid] = pseudo;
+      }
+      if(!record.membres[pseudo].group){
+        const g = await fetchUserGroupFromProfile(uid);
+        if(g) record.membres[pseudo].group = g;
+      }
+      await writeBin(record).catch(()=>null);
+    }
+
+    // --- Assignation forcée Mami Wata ---
+    if(pseudo === "Mami Wata" && record.membres[pseudo].group !== "Providence"){
+      record.membres[pseudo].group = "Providence";
+      console.log("[EcoV2] 🔮 Mami Wata assignée de force à la Providence.");
+      await writeBin(record).catch(()=>null);
+    }
+
+    // --- Affichage solde courant ---
+    try{
+      const sj = document.querySelector("#sj-dollars");
+      if(sj) sj.textContent = record.membres[pseudo].dollars;
+    }catch(e){ err("sync sj-dollars", e); }
+
+    // --- Affichage cagnottes ---
+    try{
+      GROUPS.forEach(g => {
+        const el = document.getElementById(`eco-cag-${g.replace(/\s/g,"_")}`);
+        if(el) el.textContent = record.cagnottes[g] || 0;
+      });
+    }catch(e){ err("update eco-solde-box", e); }
+
+    // --- Admin bar & trigger modal ---
+    const adminBar     = document.getElementById("eco-admin-bar");
+    const adminSection = document.getElementById("eco-admin-section");
+    if(adminBar) adminBar.style.display = "flex";
+    if(adminSection){
+      if(ADMIN_USERS.includes(pseudo)) adminSection.style.display = "flex";
+      else adminSection.remove();
+    }
+
+    // --- Boutons barre membre (non-admin) ---
+    try{
+      document.getElementById("eco-btn-cag")?.addEventListener("click", async()=>{
+        const rec = await readBin();
+        alert("Cagnottes:\n" + JSON.stringify(rec.cagnottes, null, 2));
+      });
+      document.getElementById("eco-btn-shop")?.addEventListener("click", ()=>{
+        location.href = "https://thedrownedlands.forumactif.com/h2-boutique-tdl";
+      });
+      document.getElementById("eco-btn-don")?.addEventListener("click", async()=>{
+        const montant = parseInt(prompt("Montant du don :", "0"));
+        if(isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+        const rec  = await readBin();
+        const grp  = rec.membres[pseudo]?.group;
+        if(!grp) return alert("Ton groupe est inconnu.");
+        if((rec.membres[pseudo]?.dollars || 0) < montant) return alert("Fonds insuffisants !");
+        rec.membres[pseudo].dollars -= montant;
+        rec.cagnottes[grp] = (rec.cagnottes[grp] || 0) + montant;
+        if(!rec.donations) rec.donations = [];
+        rec.donations.push({ date: new Date().toISOString(), membre: pseudo, groupe: grp, montant });
+        await writeBin(rec);
+        alert("✅ Don effectué !");
+        const el  = document.querySelector("#sj-dollars");
+        if(el) el.textContent = rec.membres[pseudo].dollars;
+        const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g,"_")}`);
+        if(cag) cag.textContent = rec.cagnottes[grp];
+      });
+    }catch(e){ err("adminBar", e); }
+
+    // --- Affichage dollars page profil ---
+    try{
+      if(location.pathname.match(/^\/u\d+/)){
+        const profilField = document.querySelector(".sj-profil .field-dollars > dd > .field_uneditable");
+        const pseudoEl    = document.querySelector(".sj-profil .sj-prpsd > span > strong");
+        if(profilField && pseudoEl){
+          const p = pseudoEl.textContent.trim();
+          console.log("[EcoV2][Profil] Chargement du solde pour :", p);
+          const rec = await window.EcoCore.readBin();
+          if(rec && rec.membres && rec.membres[p]){
+            profilField.textContent = rec.membres[p].dollars ?? 0;
+            console.log(`[EcoV2][Profil] ${p} → ${rec.membres[p].dollars} ${MONNAIE_NAME}`);
+          } else {
+            profilField.textContent = "0";
+            console.warn("[EcoV2][Profil] Membre non trouvé :", p);
+          }
+        }
+      }
+    }catch(e){ console.warn("[EcoV2][Profil] erreur :", e); }
+
+    loading.remove();
+    log("Initialisation terminée.");
+    updatePostDollars();
+  }
+
+  window.EcoUI = { coreInit, updatePostDollars };
+
+})();
