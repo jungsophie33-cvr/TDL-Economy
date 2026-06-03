@@ -116,32 +116,4 @@
 
   console.log("[TDLJauges] Core config chargée.");
 
-})();      color  : "#8F565F",
-      fbPath : "jauges/activite_clandestine",
-      niveaux: [
-        { n: 1, label: "Discrétion",              desc: "Les activités illégales sont rarement évoquées." },
-        { n: 2, label: "Rumeurs",                 desc: "On parle d'activités clandestines proches de chez nous." },
-        { n: 3, label: "Mouvement",               desc: "Les réseaux s'activent, sentiment d'insécurité croissant." },
-        { n: 4, label: "Escalade",                desc: "Sabotages et intimidations se multiplient — le bureau du shérif est débordé." },
-        { n: 5, label: "Guerre hors de l'ombre",  desc: "Les réseaux en conflit agissent ouvertement dans Terrebonne." }
-      ]
-    },
-
-    pression_bayou: {
-      label  : "Pression du Bayou",
-      color  : "#579C8E",
-      fbPath : "jauges/pression_bayou",
-      niveaux: [
-        { n: 1, label: "Équilibre",          desc: "La région est stable." },
-        { n: 2, label: "Instabilité",        desc: "Des tensions apparaissent à plusieurs niveaux." },
-        { n: 3, label: "Pression",           desc: "Plusieurs crises se superposent dans la région." },
-        { n: 4, label: "Tempête imminente",  desc: "La situation devient explosive — une crise majeure approche." },
-        { n: 5, label: "Ouragan",            desc: "Crise majeure touchant toute la paroisse de Terrebonne." }
-      ]
-    }
-
-  };
-
-  console.log("[TDLJauges] Core config chargée.");
-
 })();
