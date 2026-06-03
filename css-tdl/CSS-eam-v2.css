@@ -55,13 +55,14 @@
   border-bottom : 1px solid var(--cntr3);
   text-align    : center;
   flex-shrink   : 0;
+   line-height: 2em;
 }
 
 .eam-title {
   font-family    : var(--title1);
   font-size      : 2em;
   text-transform : uppercase;
-  letter-spacing : 3em;
+  letter-spacing : 3px;
   color          : var(--dark);
 }
 
@@ -109,7 +110,7 @@
   font-size       : 0.7em;
   letter-spacing  : 0.06em;
   text-transform  : uppercase;
-  color           : var(--cntr6);
+  color           : var(--cntr);
   background      : transparent;
   border          : none;
   border-bottom   : 2px solid transparent;
@@ -127,7 +128,7 @@
 
 .eam-tab-active {
   color         : var(--dark);
-  border-color  : var(--clair2);
+  border-color  : var(--dark2);
   background    : var(--clair1opa8);
 }
 
@@ -158,12 +159,12 @@
 
 f4.eam-section-title {
   display        : block;
+   width: fit-content;
   margin: 10px auto;
 }
 
 .eam-panel > f4.eam-section-title:first-child {
   border-top  : none;
-  padding-top : 12px;
 }
 
 
@@ -202,7 +203,7 @@ f4.eam-section-title {
   font-family   : var(--font0);
   font-size     : 0.8em;
   padding       : 6px 10px;
-  border-radius : 20px;
+  border-radius : 5px;
   border        : 1px solid var(--cntr4);
   background    : var(--clair1);
   color         : var(--dark);
@@ -221,7 +222,7 @@ f4.eam-section-title {
   font-family   : var(--font0);
   font-size     : 0.8em;
   padding       : 6px 10px;
-  border-radius : 20px;
+  border-radius : 5px;
   border        : 1px solid var(--cntr4);
   background    : var(--clair1);
   color         : var(--dark);
@@ -249,7 +250,7 @@ f4.eam-section-title {
   font-size     : 0.72em;
   letter-spacing: 0.04em;
   padding       : 6px 14px;
-  border-radius : 20px;
+  border-radius : 5px;
   border        : 1px solid var(--cntr4);
   background    : var(--clair1opa6);
   color         : var(--dark);
