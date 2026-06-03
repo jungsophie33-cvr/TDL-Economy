@@ -1,119 +1,214 @@
-// === JAUGES DE TERREBONNE — CORE CONFIG ===
+// === JAUGES DE TERREBONNE — AFFICHAGE PAGE D'ACCUEIL ===
 // Auteur : Claude x THE DROWNED LANDS
-// Charge les données de configuration des trois jauges collectives.
-// Ne contient aucune logique Firebase ni DOM.
-// Dépendances : aucune.
+// Widget lecture seule — affichage dynamique des trois jauges collectives.
+// Rafraîchissement automatique toutes les 60 secondes.
+// Dépendances : jauges-core.js, eco-core2.js (window.EcoCore)
+// Ancrage DOM : <div id="tdl-jauges-accueil"></div>
 
 (function () {
   "use strict";
 
-  // ---------- CONFIG DONNÉES ----------
+  const MODULE       = "[JaugesAccueil]";
+  const CONTAINER_ID = "tdl-jauges-accueil";
+  const REFRESH_MS   = 60000; // Rafraîchissement toutes les 60 secondes
 
-  window.TDLJauges = window.TDLJauges || {};
+  let _tooltip       = null;
+  let _refreshTimer  = null;
 
-  window.TDLJauges.KEYS = [
-    "climat_social",
-    "activite_clandestine",
-    "pression_bayou"
-  ];
+  // ---------- INIT ----------
+  // On attend window 'load' — FA réécrit le DOM après DOMContentLoaded,
+  // ce qui efface tout contenu injecté trop tôt.
+  // Le poll démarre uniquement une fois FA terminé.
 
-  window.TDLJauges.CFG = {
+  function toutPret() {
+    return !!(
+      window.EcoCore &&
+      window.EcoCore.safeReadBin &&
+      window.TDLJauges &&
+      window.TDLJauges.CFG
+    );
+  }
 
-    climat_social: {
-      label  : "Climat Social",
-      color  : "#C97F10",
-      fbPath : "jauges/climat_social",
-      niveaux: [
-        { n: 1, label: "Harmonie relative",  desc: "La cohabitation est paisible entre les communautés." },
-        { n: 2, label: "Murmures",           desc: "Des rumeurs et tensions commencent à circuler." },
-        { n: 3, label: "Frictions",          desc: "Conflits locaux et rivalités visibles entre groupes." },
-        { n: 4, label: "Crise sociale",      desc: "Manifestations, boycotts, sabotages de projets communautaires." },
-        { n: 5, label: "Rupture",            desc: "Le conflit devient ouvert entre les communautés de Terrebonne." }
-      ]
-    },
+  function demarrerPoll() {
+    var tentatives = 0;
+    var MAX = 100; // 100 x 200ms = 20 secondes max
 
-    activite_clandestine: {
-      label  : "Activité Clandestine",
-      color  : "#8F565F",
-      fbPath : "jauges/activite_clandestine",
-      niveaux: [
-        { n: 1, label: "Discrétion",              desc: "Les activités illégales sont rarement évoquées." },
-        { n: 2, label: "Rumeurs",                 desc: "On parle d'activités clandestines proches de chez nous." },
-        { n: 3, label: "Mouvement",               desc: "Les réseaux s'activent, sentiment d'insécurité croissant." },
-        { n: 4, label: "Escalade",                desc: "Sabotages et intimidations se multiplient — le bureau du shérif est débordé." },
-        { n: 5, label: "Guerre hors de l'ombre",  desc: "Les réseaux en conflit agissent ouvertement dans Terrebonne." }
-      ]
-    },
+    var _poll = setInterval(function () {
+      tentatives++;
+      if (tentatives > MAX) {
+        clearInterval(_poll);
+        console.warn(MODULE, "Timeout — container ou dépendances introuvables.");
+        return;
+      }
 
-    pression_bayou: {
-      label  : "Pression du Bayou",
-      color  : "#579C8E",
-      fbPath : "jauges/pression_bayou",
-      niveaux: [
-        { n: 1, label: "Équilibre",          desc: "La région est stable." },
-        { n: 2, label: "Instabilité",        desc: "Des tensions apparaissent à plusieurs niveaux." },
-        { n: 3, label: "Pression",           desc: "Plusieurs crises se superposent dans la région." },
-        { n: 4, label: "Tempête imminente",  desc: "La situation devient explosive — une crise majeure approche." },
-        { n: 5, label: "Ouragan",            desc: "Crise majeure touchant toute la paroisse de Terrebonne." }
-      ]
-    }
+      var container = document.getElementById(CONTAINER_ID);
+      if (!container) return;
+      if (!toutPret())  return;
 
-  };
+      clearInterval(_poll);
+      setTimeout(function () {
+        creerTooltip();
+        render(container);
+        chargerDonnees(container);
+        _refreshTimer = setInterval(function () {
+          chargerDonnees(container);
+        }, REFRESH_MS);
+      }, 300);
+    }, 200);
+  }
 
-  // ---------- CHARGEMENT FLATICON CDN ----------
-  // Insère la feuille UIcons une seule fois dans <head>.
-  // Pattern identique au chargement Firebase SDK dans eco-core2.js.
+  if (document.readyState === "complete") {
+    // Page déjà chargée (ex : script injecté dynamiquement après load)
+    demarrerPoll();
+  } else {
+    window.addEventListener("load", demarrerPoll);
+  }
 
-  window.TDLJauges.chargerFlaticon = function () {
-    const CDN_ID  = "tdl-flaticon-css";
-    const CDN_URL = "https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-straight/css/uicons-solid-straight.css";
-    if (document.getElementById(CDN_ID)) return; // déjà chargé
-    var link = document.createElement("link");
-    link.id   = CDN_ID;
-    link.rel  = "stylesheet";
-    link.href = CDN_URL;
-    document.head.appendChild(link);
-  };
+  // ---------- FIREBASE (lecture publique) ----------
 
-  window.TDLJauges.chargerFlaticon();
+  function chargerDonnees(container) {
+    window.EcoCore.safeReadBin()
+      .then(function (rec) {
+        const data = (rec && rec.jauges) ? rec.jauges : {};
+        mettreAJourAffichage(data);
+      })
+      .catch(function (e) {
+        console.error(MODULE, "Lecture Firebase :", e);
+      });
+  }
 
-  // ---------- CONSTRUCTEUR TOOLTIP ----------
-  //
-  // Retourne le HTML interne du tooltip pour un niveau donné.
-  // key     : clé de la jauge ("climat_social", etc.)
-  // n       : numéro du niveau survolé (1–5)
-  // nActif  : niveau actuellement actif pour cette jauge
-  //
-  // Structure produite :
-  //   [NIVEAU N]   📍 (si niveau actif — icône Flaticon)
-  //   <f3|f4> Label </f3|f4>
-  //   Description
-  //
-  // Pour changer l'icône : modifier la classe fi-ss-map-marker ci-dessous.
-  // Autres options UIcons : fi-ss-circle-dot, fi-ss-target, fi-ss-diamond
+  // ---------- RENDER (structure statique posée une seule fois) ----------
 
-  window.TDLJauges.construireTooltip = function (key, n, nActif) {
-    var cfg    = window.TDLJauges.CFG[key];
-    var nDef   = cfg.niveaux[n - 1];
-    var isActif = (n === nActif);
+  function render(container) {
+    const keys = window.TDLJauges.KEYS;
+    const cfg  = window.TDLJauges.CFG;
 
-    // Balise de label : <f3> niveaux 1–3 / <f4> niveaux 4–5
-    var fontTag = (n >= 4) ? "f4" : "f3";
+    let html = '<div class="tdl-ja-wrapper">';
+    html    += '<div class="tdl-ja-title">Équilibres de Terrebonne</div>';
+    html    += '<div class="tdl-ja-gauges">';
 
-    // Icône "niveau actuel" — Flaticon UIcons CDN solid-straight
-    // Couleur de la jauge appliquée en inline style
-    var iconActuel = isActif
-      ? '<i class="fi fi-ss-map-marker tdl-tt-pin" style="color:' + cfg.color + '" aria-hidden="true"></i>'
-      : "";
+    keys.forEach(function (key) {
+      const c = cfg[key];
+      html += '<div class="tdl-ja-row">';
 
-    return '<div class="tdl-tt-top">'
-         +   '<span class="tdl-tt-niveau">[NIVEAU ' + n + ']</span>'
-         +   '<' + fontTag + ' class="tdl-tt-label">' + nDef.label + '</' + fontTag + '>'
-         +   iconActuel
-         + '</div>'
-         + '<div class="tdl-tt-desc">' + nDef.desc + '</div>';
-  };
+      // Nom de la jauge
+      html += '<div class="tdl-ja-label">' + c.label + '</div>';
 
-  console.log("[TDLJauges] Core config chargée.");
+      // Barre de segments
+      html += '<div class="tdl-ja-bar-wrap">';
+      html += '<div class="tdl-ja-segments">';
+      for (let i = 1; i <= 5; i++) {
+        html += '<div class="tdl-ja-segment"'
+              + ' id="ja-seg-' + key + '-' + i + '"'
+              + ' data-key="' + key + '"'
+              + ' data-n="' + i + '"'
+              + ' role="img"'
+              + ' aria-label="Niveau ' + i + '">'
+              + '</div>';
+      }
+      html += '</div>'; // .tdl-ja-segments
+      html += '</div>'; // .tdl-ja-bar-wrap
+
+      // Indicateur numérique
+      html += '<div class="tdl-ja-niveau" id="ja-niv-' + key + '">—</div>';
+
+      html += '</div>'; // .tdl-ja-row
+    });
+
+    html += '</div>'; // .tdl-ja-gauges
+    html += '</div>'; // .tdl-ja-wrapper
+
+    container.innerHTML = html;
+
+    // Délégation événements pour tooltip au survol
+    container.addEventListener("mouseover",  deleguerSurvol);
+    container.addEventListener("mouseout",   deleguerSortie);
+    container.addEventListener("mousemove",  deleguerDeplacement);
+  }
+
+  // ---------- MISE À JOUR SEGMENTS ----------
+
+  function mettreAJourAffichage(data) {
+    const keys = window.TDLJauges.KEYS;
+    const cfg  = window.TDLJauges.CFG;
+
+    keys.forEach(function (key) {
+      const entry = data[key] || {};
+      const n     = Math.min(5, Math.max(1, parseInt(entry.niveau) || 1));
+      const c     = cfg[key];
+
+      // Couleur des segments
+      for (let i = 1; i <= 5; i++) {
+        const seg = document.getElementById("ja-seg-" + key + "-" + i);
+        if (!seg) continue;
+        if (i <= n) {
+          seg.style.backgroundColor = c.color;
+          seg.classList.add("tdl-ja-seg-active");
+        } else {
+          seg.style.backgroundColor = "";
+          seg.classList.remove("tdl-ja-seg-active");
+        }
+        // Stocker le niveau courant pour le tooltip
+        seg.setAttribute("data-niveau-actif", n);
+      }
+
+      // Indicateur numérique
+      const niv = document.getElementById("ja-niv-" + key);
+      if (niv) niv.textContent = n + " / 5";
+    });
+  }
+
+  // ---------- DÉLÉGATION ÉVÉNEMENTS ----------
+
+  function deleguerSurvol(e) {
+    const seg = e.target.closest(".tdl-ja-segment");
+    if (!seg) return;
+    const key  = seg.getAttribute("data-key");
+    const n    = parseInt(seg.getAttribute("data-n"), 10);
+    const nAct = parseInt(seg.getAttribute("data-niveau-actif") || "1", 10);
+    afficherTooltip(e, key, n, nAct);
+  }
+
+  function deleguerSortie(e) {
+    if (!e.target.closest(".tdl-ja-segment")) return;
+    cacherTooltip();
+  }
+
+  function deleguerDeplacement(e) {
+    if (!e.target.closest(".tdl-ja-segment")) return;
+    deplacerTooltip(e);
+  }
+
+  // ---------- TOOLTIP (déplacé sur body) ----------
+
+  function creerTooltip() {
+    if (_tooltip) return;
+    _tooltip = document.createElement("div");
+    _tooltip.className     = "tdl-js-tooltip"; // classe partagée avec jauges-staff.js
+    _tooltip.style.display = "none";
+    document.body.appendChild(_tooltip); // escape stacking context ForumActif
+  }
+
+  function afficherTooltip(e, key, n, nAct) {
+    if (!_tooltip) return;
+    _tooltip.innerHTML     = window.TDLJauges.construireTooltip(key, n, nAct);
+    _tooltip.style.display = "block";
+    deplacerTooltip(e);
+  }
+
+  function deplacerTooltip(e) {
+    if (!_tooltip) return;
+    // Pointe de la flèche à curseur + 5px
+    // La flèche fait 9px → boîte commence à curseur + 5 + 9 = +14px
+    // La flèche est à top:10px dans la boîte → on remonte de 10px verticalement
+    _tooltip.style.left = (e.pageX + 14) + "px";
+    _tooltip.style.top  = (e.pageY - 10) + "px";
+  }
+
+  function cacherTooltip() {
+    if (_tooltip) _tooltip.style.display = "none";
+  }
+
+  console.log("[TDLJauges] Accueil module chargé.");
 
 })();
