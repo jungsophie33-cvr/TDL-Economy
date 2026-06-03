@@ -18,26 +18,23 @@
   font-family   : var(--font2);
 }
 
-h3.tdl-js-title {
-  color       : var(--dark2);
-  font-size   : 1.2em!important;
-   font-family:var(--font2)!important;
-   font-style:italic;
+.tdl-js-title {
+  /* CORRIGÉ : var(#d4b483) est invalide — var() n'accepte pas de valeur hex directe */
+  color       : #d4b483;
+  font-size   : 1.05em;
+  font-weight : bold;
   margin      : 0 0 4px;
-   text-align:center;
-}
-h3.tdl-js-title:hover {
-   letter-spacing:0px;
 }
 
 .tdl-js-subtitle {
-  color     : var(--cntr);
-  font-size : 1em;
+  /* CORRIGÉ : var(--cntr) n'existe pas — remplacé par --cntr4 */
+  color     : var(--cntr4);
+  font-size : 0.78em;
   margin    : 0 0 20px;
 }
 
 .tdl-js-access-denied {
-  color     : var(--dark2);
+  color     : var(--txt3);
   font-size : 0.85em;
   padding   : 12px;
 }
@@ -155,7 +152,7 @@ h3.tdl-js-title:hover {
 }
 
 .tdl-js-confirm-box {
-  background    : var(--clair1);
+  background    : var(--dark);
   border        : 1px solid var(--cntr3);
   border-radius : 6px;
   padding       : 24px 28px;
@@ -166,7 +163,8 @@ h3.tdl-js-title:hover {
 }
 
 .tdl-js-confirm-msg {
-  font-size   : 1em;
+  color       : var(--txt2);
+  font-size   : 0.88em;
   margin      : 0 0 18px;
   line-height : 1.5;
 }
@@ -178,7 +176,7 @@ h3.tdl-js-title:hover {
   font-size     : 0.84em;
   cursor        : pointer;
   border        : 1px solid var(--cntr3);
-  font-family   : var(--font3);
+  font-family   : var(--font0);
   transition    : background 0.15s;
 }
 
@@ -198,8 +196,8 @@ h3.tdl-js-title:hover {
   border         : 1px solid var(--cntr3);
   border-radius  : 4px;
   padding        : 8px 11px 9px;
-  font-family    : var(--font0);
-  font-size      : 0.76em;
+  font-family    : var(--font2);
+  font-size      : 0.9em;
   max-width      : 300px;
   line-height    : 1.45;
   pointer-events : none;
@@ -245,8 +243,7 @@ f4.tdl-tt-label {
 
 /* Description */
 .tdl-tt-desc {
-  color       : var(--txt3);
-  font-size   : 0.92em;
+  font-size   : 1em;
   line-height : 1.4;
 }
 
@@ -328,318 +325,4 @@ f4.tdl-tt-label {
   text-align  : right;
   font-size   : 1em;
   font-weight : bold;
-}  color     : var(--txt3, #888);
-  font-size : 0.85em;
-  padding   : 12px;
-}
-
-/* Bloc par jauge */
-
-.tdl-js-bloc {
-  margin-bottom  : 20px;
-  padding-bottom : 18px;
-  border-bottom  : 1px solid var(--cntr3, #333);
-}
-
-.tdl-js-bloc:last-child {
-  border-bottom  : none;
-  margin-bottom  : 0;
-  padding-bottom : 0;
-}
-
-.tdl-js-bloc-header {
-  display     : flex;
-  align-items : baseline;
-  gap         : 10px;
-  margin-bottom : 8px;
-}
-
-.tdl-js-bloc-label {
-  font-weight : bold;
-  font-size   : 0.92em;
-  /* color injecté inline par JS */
-}
-
-.tdl-js-bloc-info {
-  font-size : 0.76em;
-  color     : var(--txt3, #888);
-}
-
-/* Ligne de contrôle */
-
-.tdl-js-bloc-controls {
-  display     : flex;
-  align-items : center;
-  gap         : 8px;
-}
-
-.tdl-js-segments {
-  display : flex;
-  gap     : 4px;
-  flex    : 1;
-}
-
-.tdl-js-segment {
-  flex          : 1;
-  height        : 24px;
-  border-radius : 3px;
-  background    : var(--cntr4, #2a2a2a);
-  border        : 1px solid var(--cntr3, #383838);
-  cursor        : help;
-  transition    : opacity 0.15s, transform 0.1s;
-}
-
-.tdl-js-segment:hover {
-  opacity   : 0.75;
-  transform : scaleY(1.1);
-}
-
-.tdl-js-seg-active {
-  opacity : 1;
-}
-
-/* Boutons +/- */
-
-.tdl-js-btn {
-  width         : 30px;
-  height        : 30px;
-  flex-shrink   : 0;
-  border        : 1px solid var(--cntr3, #444);
-  border-radius : 4px;
-  background    : var(--cntr4, #2a2a2a);
-  color         : var(--txt2, #d4b483);
-  font-size     : 1.15em;
-  font-weight   : bold;
-  cursor        : pointer;
-  display       : flex;
-  align-items   : center;
-  justify-content : center;
-  transition    : background 0.15s;
-  line-height   : 1;
-}
-
-.tdl-js-btn:hover {
-  background : var(--cntr5, #3a3a3a);
-}
-
-.tdl-js-btn:active {
-  background : var(--cntr6, #4a4a4a);
-}
-
-/* Horodatage */
-
-.tdl-js-last {
-  font-size  : 0.7em;
-  color      : var(--txt3, #666);
-  margin-top : 5px;
-  text-align : right;
-}
-
-/* ────────────────────────────────────────────────────────────────
-   OVERLAY DE CONFIRMATION (appendé sur body)
-   ──────────────────────────────────────────────────────────────── */
-
-.tdl-js-overlay {
-  position        : fixed;
-  inset           : 0;
-  background      : rgba(0, 0, 0, 0.65);
-  z-index         : 9999;
-  display         : flex;
-  align-items     : center;
-  justify-content : center;
-}
-
-.tdl-js-confirm-box {
-  background    : var(--dark, #1e1e1e);
-  border        : 1px solid var(--cntr3, #555);
-  border-radius : 6px;
-  padding       : 24px 28px;
-  max-width     : 380px;
-  width         : 90%;
-  text-align    : center;
-  font-family   : var(--font0, Arial, sans-serif);
-}
-
-.tdl-js-confirm-msg {
-  color       : var(--txt2, #d4b483);
-  font-size   : 0.88em;
-  margin      : 0 0 18px;
-  line-height : 1.5;
-}
-
-.tdl-js-confirm-btn {
-  margin        : 0 6px;
-  padding       : 7px 18px;
-  border-radius : 4px;
-  font-size     : 0.84em;
-  cursor        : pointer;
-  border        : 1px solid var(--cntr3, #555);
-  font-family   : var(--font0, Arial, sans-serif);
-  transition    : background 0.15s;
-}
-
-.tdl-js-confirm-ok {
-  background : var(--cntr5, #3a3a3a);
-  color      : var(--txt2, #d4b483);
-}
-
-.tdl-js-confirm-ok:hover {
-  background : var(--cntr6, #4a4a4a);
-}
-
-.tdl-js-confirm-cancel {
-  background : transparent;
-  color      : var(--txt3, #888);
-}
-
-.tdl-js-confirm-cancel:hover {
-  background : var(--cntr4, #2a2a2a);
-}
-
-/* ────────────────────────────────────────────────────────────────
-   TOOLTIP PARTAGÉ (appendé sur body, utilisé par staff + accueil)
-   ──────────────────────────────────────────────────────────────── */
- 
-.tdl-js-tooltip {
-  position       : absolute;
-  background     : var(--dark2opa5, rgba(15, 15, 15, 0.97));
-  border         : 1px solid var(--cntr3, #555);
-  border-radius  : 4px;
-  padding        : 8px 11px 9px;
-  font-family    : var(--font0, Arial, sans-serif);
-  font-size      : 0.76em;
-  max-width      : 300px;
-  line-height    : 1.45;
-  pointer-events : none;
-  z-index        : 10000;
-  white-space    : normal;
-}
- 
-/* Ligne du haut : [NIVEAU N] + icône actuel */
-.tdl-tt-top {
-  display     : flex;
-  align-items : center;
-  gap         : 7px;
-  margin-bottom : 3px;
-}
- 
-/* [NIVEAU N] — spec demandée par Sophie */
-/* Note : font-family: var(--txt3) est implémenté tel que demandé.
-   --txt3 est une variable couleur dans le thème TDL.
-   Si l'affichage est incorrect, remplacer par var(--font0). */
-.tdl-tt-niveau {
-  font-style   : normal;
-  font-family  : var(--txt3);
-  font-variant : small-caps;
-  color        : var(--dark2, #c0a060);
-  font-weight  : 900;
-  line-height  : 1;
-}
- 
-/* Icône "niveau actuel" — <i class="fi"> Flaticon UIcons */
-.tdl-tt-pin {
-  font-size      : 0.9em;
-  vertical-align : middle;
-  flex-shrink    : 0;
-  line-height    : 1;
-  /* color injecté inline par JS (couleur de la jauge) */
-}
- 
-/* Label du niveau — affiché via <f3> ou <f4> */
-f3.tdl-tt-label,
-f4.tdl-tt-label {
-  display     : block;
-  line-height : 1.3;
-  margin-bottom : 4px;
-  color       : var(--txt2, #d4b483);
-}
- 
-/* Description */
-.tdl-tt-desc {
-  color      : var(--txt3, #999);
-  font-size  : 0.92em;
-  line-height : 1.4;
-}
- 
-
-/* ────────────────────────────────────────────────────────────────
-   WIDGET PAGE D'ACCUEIL
-   ──────────────────────────────────────────────────────────────── */
-
-.tdl-ja-wrapper {
-  background    : none;
-  border        : none;
-  font-family   : var(--font2);
-}
-
-.tdl-ja-title {
-  font-family    : var(txt2);
-  font-size      : 0.9em;
-  text-transform : uppercase;
-  letter-spacing : 0.2em;
-  font-weight    : bold;
-  margin-bottom  : 12px;
-}
-
-.tdl-ja-gauges {
-  display        : flex;
-  flex-direction : column;
-  gap            : 9px;
-}
-
-.tdl-ja-row {
-  display     : flex;
-  align-items : center;
-  gap         : 10px;
-  padding: 10px;
-  background: var(--clair1opa7);
-  border-radius: 5px;
-  border-left: 3px solid var(--gr1-color);
-}
-.tdl-ja-gauges:nth-child(2) {border-color: var(--gr6-color);}
-.tdl-ja-gauges:nth-child(3) {border-color: var(--gr5-color);}
-
-/* Nom de la jauge */
-.tdl-ja-label {
-  width       : 130px;
-  flex-shrink : 0;
-  font-size   : 0.9em;
-  line-height : 1.2;
-   text-align:left;
-}
-
-/* Barre */
-.tdl-ja-bar-wrap {
-  flex : 1;
-}
-
-.tdl-ja-segments {
-  display : flex;
-  gap     : 3px;
-}
-
-.tdl-ja-segment {
-  flex          : 1;
-  height        : 15px;
-  border-radius : 4px;
-  background    : var(--cntr4);
-  cursor        : help;
-  transition    : opacity 0.2s;
-}
-
-.tdl-ja-segment:hover {
-  opacity : 0.72;
-}
-
-.tdl-ja-seg-active {
-  opacity : 1;
-}
-
-/* Indicateur numérique */
-.tdl-ja-niveau {
-  width       : 34px;
-  flex-shrink : 0;
-  text-align  : right;
-  font-size   : 1em;
-font-weight:bold;
 }
