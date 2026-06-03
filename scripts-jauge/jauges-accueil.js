@@ -143,12 +143,7 @@
     const key  = seg.getAttribute("data-key");
     const n    = parseInt(seg.getAttribute("data-n"), 10);
     const nAct = parseInt(seg.getAttribute("data-niveau-actif") || "1", 10);
-    const cfg  = window.TDLJauges.CFG[key];
-    const nDef = cfg.niveaux[n - 1];
-
-    // Infobullet : description du niveau survolé + marqueur si c'est le niveau actuel
-    const actuelTag = (n === nAct) ? " ← niveau actuel" : "";
-    afficherTooltip(e, "Niveau " + n + " — " + nDef.label + actuelTag + " : " + nDef.desc);
+    afficherTooltip(e, key, n, nAct);
   }
 
   function deleguerSortie(e) {
@@ -171,9 +166,9 @@
     document.body.appendChild(_tooltip); // escape stacking context ForumActif
   }
 
-  function afficherTooltip(e, texte) {
+  function afficherTooltip(e, key, n, nAct) {
     if (!_tooltip) return;
-    _tooltip.textContent   = texte;
+    _tooltip.innerHTML     = window.TDLJauges.construireTooltip(key, n, nAct);
     _tooltip.style.display = "block";
     deplacerTooltip(e);
   }
