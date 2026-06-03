@@ -108,9 +108,9 @@
 
     return '<div class="tdl-tt-top">'
          +   '<span class="tdl-tt-niveau">[NIVEAU ' + n + ']</span>'
+         +   '<' + fontTag + ' class="tdl-tt-label">' + nDef.label + '</' + fontTag + '>'
          +   iconActuel
          + '</div>'
-         + '<' + fontTag + ' class="tdl-tt-label">' + nDef.label + '</' + fontTag + '>'
          + '<div class="tdl-tt-desc">' + nDef.desc + '</div>';
   };
 
