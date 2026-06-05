@@ -69,52 +69,27 @@
 
     /* 1. Sujet lié */
     if (fullText.indexOf('Sujets li') >= 0) {
-      /* Titre du topic */
-      var aEl = tmp.querySelector('a');
-      var topicTitle = '';
-      if (aEl) topicTitle = aEl.textContent.trim();
-      if (!topicTitle) {
-        var pEl = tmp.querySelector('p');
-        topicTitle = pEl ? pEl.textContent.trim() : '';
-      }
-      if (!topicTitle) {
-        var spanEl = tmp.querySelector('span, strong');
-        topicTitle = spanEl ? spanEl.textContent.trim() : '';
-      }
+      /* Structure FA confirmée :
+         <p class="title-overview row2"> [INTRIGUE] Test calendrier</p>
+         <p class="left-overview"><strong>Sujets liés:</strong> 05 Juin 2026<br />
+         <strong>Auteur:</strong> Mami Wata<br /></p> */
 
-      var dateEl = tmp.querySelector('i');
+      /* Titre : dans .title-overview */
+      var titleOvEl = tmp.querySelector('.title-overview');
+      var topicTitle = titleOvEl ? titleOvEl.textContent.trim() : '';
 
-      /* Auteur : dans le HTML FA des sujets liés, le pseudo est en texte brut
-         sur la ligne "Auteur: PseudoIci" sans balise autour.
-         On travaille sur le HTML brut (avant querySelector) pour couper
-         proprement à la balise <br> ou <p> suivante. */
-      var author = '';
+      /* Date : texte brut après <strong>Sujets liés:</strong> */
+      var dateM = html.match(/<strong>Sujets li[^<]*<\/strong>\s*([^<]+)/i);
+      var topicDate = dateM ? dateM[1].trim() : '';
 
-      /* Extraire depuis le HTML brut : "Auteur:" suivi du texte jusqu'au
-         prochain <br>, <p, </ ou fin de chaîne */
-      var rawAuthorM = html.match(/Auteur\s*:\s*([^<\r\n]+)/i);
-      if (rawAuthorM) {
-        author = rawAuthorM[1].trim();
-      }
-
-      /* Fallback : lien profil */
-      if (!author) {
-        var profileLinks = tmp.querySelectorAll('a[href*="/u"], a[href*="profile"], a[href*="member"]');
-        if (profileLinks.length > 0) {
-          author = profileLinks[profileLinks.length - 1].textContent.trim();
-        }
-      }
-
-      /* Fallback : .usr_grp_clr */
-      if (!author) {
-        var usrEl = tmp.querySelector('.usr_grp_clr, .name_bold_color');
-        if (usrEl) author = usrEl.textContent.trim();
-      }
+      /* Auteur : texte brut après <strong>Auteur:</strong> */
+      var authorM = html.match(/<strong>Auteur:<\/strong>\s*([^<]+)/i);
+      var author = authorM ? authorM[1].trim() : '';
 
       return {
         type   : 'topic',
         title  : topicTitle,
-        date   : dateEl ? dateEl.textContent.trim() : '',
+        date   : topicDate,
         author : author
       };
     }
