@@ -84,36 +84,31 @@
 
       var dateEl = tmp.querySelector('i');
 
-      /* Auteur : FA injecte le pseudo dans un lien vers le profil
-         /u + chiffres ou /profile?
-         Sinon chercher .usr_grp_clr ou strong
-         En dernier recours : regex strict sur 1 à 4 mots après "Auteur :" */
+      /* Auteur : dans le HTML FA des sujets liés, le pseudo est en texte brut
+         sur la ligne "Auteur: PseudoIci" sans balise autour.
+         On travaille sur le HTML brut (avant querySelector) pour couper
+         proprement à la balise <br> ou <p> suivante. */
       var author = '';
 
-      /* Lien profil : href contenant /u ou /member */
-      var profileLinks = tmp.querySelectorAll('a[href*="/u"], a[href*="profile"], a[href*="member"]');
-      if (profileLinks.length > 0) {
-        author = profileLinks[profileLinks.length - 1].textContent.trim();
+      /* Extraire depuis le HTML brut : "Auteur:" suivi du texte jusqu'au
+         prochain <br>, <p, </ ou fin de chaîne */
+      var rawAuthorM = html.match(/Auteur\s*:\s*([^<\r\n]+)/i);
+      if (rawAuthorM) {
+        author = rawAuthorM[1].trim();
+      }
+
+      /* Fallback : lien profil */
+      if (!author) {
+        var profileLinks = tmp.querySelectorAll('a[href*="/u"], a[href*="profile"], a[href*="member"]');
+        if (profileLinks.length > 0) {
+          author = profileLinks[profileLinks.length - 1].textContent.trim();
+        }
       }
 
       /* Fallback : .usr_grp_clr */
       if (!author) {
         var usrEl = tmp.querySelector('.usr_grp_clr, .name_bold_color');
         if (usrEl) author = usrEl.textContent.trim();
-      }
-
-      /* Fallback : strong hors du titre */
-      if (!author) {
-        var strongs = tmp.querySelectorAll('strong');
-        if (strongs.length > 0) {
-          author = strongs[strongs.length - 1].textContent.trim();
-        }
-      }
-
-      /* Dernier recours : regex strict — 1 à 3 mots maximum après "Auteur" */
-      if (!author) {
-        var authorM = fullText.match(/Auteur\s*[:\-]?\s*([\w\-éèêëàâùûüîïôœçÉÈÊËÀÂÙÛÜÎÏÔŒÇ]+(?:\s[\w\-éèêëàâùûüîïôœçÉÈÊËÀÂÙÛÜÎÏÔŒÇ]+){0,2})/i);
-        if (authorM) author = authorM[1].trim();
       }
 
       return {
