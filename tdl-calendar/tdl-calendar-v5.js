@@ -1,5 +1,5 @@
 /* ============================================================
-   THE DROWNED LANDS — Calendrier custom v10.2
+   THE DROWNED LANDS — Calendrier custom v10.3
    tdl-calendar.js
    ============================================================ */
 
@@ -69,12 +69,27 @@
 
     /* 1. Sujet lié */
     if (fullText.indexOf('Sujets li') >= 0) {
-      var aEl     = tmp.querySelector('a');
+      /* Titre du topic : chercher dans <a>, dans le texte titre, partout */
+      var aEl = tmp.querySelector('a');
+      var topicTitle = '';
+      if (aEl) {
+        topicTitle = aEl.textContent.trim();
+      }
+      /* Si vide ou trop court, chercher dans le premier paragraphe */
+      if (!topicTitle) {
+        var pEl = tmp.querySelector('p');
+        topicTitle = pEl ? pEl.textContent.trim() : '';
+      }
+      /* Chercher aussi dans les spans ou titres */
+      if (!topicTitle) {
+        var spanEl = tmp.querySelector('span, strong');
+        topicTitle = spanEl ? spanEl.textContent.trim() : '';
+      }
       var dateEl  = tmp.querySelector('i');
       var authorM = fullText.match(/Auteur\s*[:\-]?\s*([^\n<\r]+)/i);
       return {
         type   : 'topic',
-        title  : aEl ? aEl.textContent.trim() : '',
+        title  : topicTitle,
         date   : dateEl ? dateEl.textContent.trim() : '',
         author : authorM ? authorM[1].trim() : ''
       };
@@ -111,26 +126,35 @@
 
   /* ----------------------------------------------------------
      RÉSOLUTION TYPE + CLASSE
-     Pour les sujets liés : lire le tag dans le titre du sujet.
+     Pour les sujets liés : on cherche le tag dans TOUTES
+     les sources disponibles dans l'ordre de priorité.
   ---------------------------------------------------------- */
-  function resolveDot(href, ovData, eventsData) {
+  function resolveDot(href, rawTitle, ovData, eventsData) {
     /* Anniversaire — priorité absolue */
     if (ovData && ovData.type === 'anniv') {
       return { cls: 'dot-anniv', label: 'Anniversaire' };
     }
 
-    /* Titre disponible pour détecter le tag */
-    var title = (ovData && ovData.title) ? ovData.title : '';
+    /* Construire une liste de titres candidates à inspecter */
+    var candidates = [];
 
-    /* Enrichir depuis /events si possible */
+    /* 1. data-title de l'élément source (passé depuis le template FA) */
+    if (rawTitle) candidates.push(rawTitle);
+
+    /* 2. Titre extrait du onmouseover */
+    if (ovData && ovData.title) candidates.push(ovData.title);
+
+    /* 3. Cache /events */
     var evKey = (href || '').replace(/^https?:\/\/[^/]+/, '');
     if (eventsData && eventsData[evKey] && eventsData[evKey].title) {
-      title = eventsData[evKey].title;
+      candidates.push(eventsData[evKey].title);
     }
 
-    /* Détecter le tag dans le titre — vaut pour événements ET sujets liés */
-    var typeMatch = resolveTypeFromTitle(title);
-    if (typeMatch) return { cls: typeMatch.cls, label: typeMatch.label };
+    /* Chercher un tag dans chaque candidat */
+    for (var i = 0; i < candidates.length; i++) {
+      var typeMatch = resolveTypeFromTitle(candidates[i]);
+      if (typeMatch) return { cls: typeMatch.cls, label: typeMatch.label };
+    }
 
     /* Sujet lié sans tag reconnu */
     if (ovData && ovData.type === 'topic') {
@@ -164,7 +188,7 @@
       );
     }
 
-    /* Sujet lié — titre + type + auteur, pas de description ni image */
+    /* Sujet lié — titre + type + auteur, centré */
     if (ovData.type === 'topic') {
       var typeLabel = dotInfo ? dotInfo.label : 'Autre';
       var typeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
@@ -177,7 +201,7 @@
       );
     }
 
-    /* Événement FA standard — titre + type + date + image + description */
+    /* Événement FA standard */
     var evTypeLabel = dotInfo ? dotInfo.label : (ovData.cat || 'Événement');
     var evTypeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
     return (
@@ -204,6 +228,30 @@
   function padDay(n) { return n < 10 ? '0' + n : '' + n; }
 
   /* ----------------------------------------------------------
+     DÉTECTION DU MOIS AFFICHÉ
+     Lire le select mois et année du formulaire FA pour savoir
+     si le mois affiché est le mois courant.
+  ---------------------------------------------------------- */
+  function getCurrentMonthDay() {
+    var now = new Date();
+    return { month: now.getMonth() + 1, year: now.getFullYear(), day: now.getDate() };
+  }
+
+  function getDisplayedMonthYear() {
+    /* FA génère deux selects dans #tdl-cal-form :
+       premier = mois (option value = 1-12)
+       second  = année (option value = YYYY) */
+    var form = document.getElementById('tdl-cal-form');
+    if (!form) return null;
+    var selects = form.querySelectorAll('select');
+    if (selects.length < 2) return null;
+    var month = parseInt(selects[0].value, 10);
+    var year  = parseInt(selects[1].value, 10);
+    if (!month || !year) return null;
+    return { month: month, year: year };
+  }
+
+  /* ----------------------------------------------------------
      CONSTRUCTION DE LA GRILLE
   ---------------------------------------------------------- */
   function buildCalendar(eventsData) {
@@ -218,12 +266,21 @@
     var tds = src.querySelectorAll('tbody td');
     var html = '';
 
+    /* Déterminer si on affiche le mois courant */
+    var now      = getCurrentMonthDay();
+    var displayed = getDisplayedMonthYear();
+    var isCurrentMonth = displayed &&
+      displayed.month === now.month &&
+      displayed.year  === now.year;
+
+    /* En-tête */
     html += '<div class="tdl-cal-header">';
     days.forEach(function (d) {
       html += '<div class="tdl-cal-hcell">' + d + '</div>';
     });
     html += '</div>';
 
+    /* Grille */
     html += '<div class="tdl-cal-grid">';
 
     var colIndex = 0;
@@ -240,24 +297,26 @@
       }
 
       dayCount++;
+      var isToday = isCurrentMonth && dayCount === now.day;
       var dayNum  = padDay(dayCount);
       var anchors = td.querySelectorAll('li[data-ev="1"] a');
       var dotsHtml = '';
 
       anchors.forEach(function (a) {
-        var href    = a.getAttribute('href') || '#';
-        var title   = (a.getAttribute('data-title') || a.textContent || '').trim();
-        var ovHtml  = extractOvHtml(a);
-        var ovData  = parseOvHtml(ovHtml);
-        var dotInfo = resolveDot(href, ovData, eventsData);
-        var tipHtml = buildTipHtml(ovData, dotInfo, title);
+        var href     = a.getAttribute('href') || '#';
+        /* rawTitle = data-title injecté dans le template depuis EVENT_TITLE */
+        var rawTitle = (a.getAttribute('data-title') || a.textContent || '').trim();
+        var ovHtml   = extractOvHtml(a);
+        var ovData   = parseOvHtml(ovHtml);
+        var dotInfo  = resolveDot(href, rawTitle, ovData, eventsData);
+        var tipHtml  = buildTipHtml(ovData, dotInfo, rawTitle);
 
         var ttCls = 'tdl-tt' + (isEdge ? ' tdl-tt-edge' : '');
         var arCls = 'tdl-tt-arrow' + (isEdge ? ' tdl-tt-arrow-edge' : '');
 
         dotsHtml +=
           '<div class="tdl-ev-wrap">' +
-            '<a href="' + href + '" class="tdl-dot ' + dotInfo.cls + '" aria-label="' + esc(title) + '"></a>' +
+            '<a href="' + href + '" class="tdl-dot ' + dotInfo.cls + '" aria-label="' + esc(rawTitle) + '"></a>' +
             '<div class="' + ttCls + '">' +
               '<div class="tdl-tt-inner">' + tipHtml + '</div>' +
               '<div class="' + arCls + '"></div>' +
@@ -266,7 +325,7 @@
       });
 
       html +=
-        '<div class="tdl-cal-cell">' +
+        '<div class="tdl-cal-cell' + (isToday ? ' tdl-today' : '') + '">' +
           '<span class="tdl-day-num">' + dayNum + '</span>' +
           (dotsHtml ? '<div class="tdl-dots">' + dotsHtml + '</div>' : '') +
         '</div>';
@@ -274,6 +333,7 @@
 
     html += '</div>';
 
+    /* Légende */
     html +=
       '<div class="tdl-legend">' +
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-anniv"></div>Anniversaire</div>' +
