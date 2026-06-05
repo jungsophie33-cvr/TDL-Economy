@@ -1,16 +1,11 @@
 /* ============================================================
-   THE DROWNED LANDS — Calendrier custom v10.1
+   THE DROWNED LANDS — Calendrier custom v10.2
    tdl-calendar.js
    ============================================================ */
 
 (function () {
   'use strict';
 
-  /* ----------------------------------------------------------
-     MAPPING TYPES → CLASSES CSS
-     Détection via tag dans le titre : [INTRIGUE] [EV. MEMBRE]
-     [TRADITION] [LORE]
-  ---------------------------------------------------------- */
   var TYPE_MAP = [
     { tag: '[INTRIGUE]',   cls: 'dot-intrigue',  label: 'Intrigue'   },
     { tag: '[EV. MEMBRE]', cls: 'dot-membre',    label: 'Év. Membre' },
@@ -45,9 +40,7 @@
           if (!a) return;
           var key = (a.getAttribute('href') || '').replace(/^https?:\/\/[^/]+/, '');
           var titleEl = row.querySelector('.event_title, h3, h2');
-          if (titleEl && key) {
-            cache[key] = { title: titleEl.textContent.trim() };
-          }
+          if (titleEl && key) cache[key] = { title: titleEl.textContent.trim() };
         });
         return cache;
       })
@@ -66,7 +59,7 @@
   }
 
   /* ----------------------------------------------------------
-     PARSING HTML FA — trois structures
+     PARSING HTML FA
   ---------------------------------------------------------- */
   function parseOvHtml(html) {
     if (!html) return null;
@@ -74,15 +67,14 @@
     tmp.innerHTML = html;
     var fullText = tmp.textContent || '';
 
-    /* 1. Sujet lié — priorité sur anniversaire */
+    /* 1. Sujet lié */
     if (fullText.indexOf('Sujets li') >= 0) {
-      var aEl    = tmp.querySelector('a');
-      var dateEl = tmp.querySelector('i');
+      var aEl     = tmp.querySelector('a');
+      var dateEl  = tmp.querySelector('i');
       var authorM = fullText.match(/Auteur\s*[:\-]?\s*([^\n<\r]+)/i);
-      var topicTitle = aEl ? aEl.textContent.trim() : '';
       return {
         type   : 'topic',
-        title  : topicTitle,
+        title  : aEl ? aEl.textContent.trim() : '',
         date   : dateEl ? dateEl.textContent.trim() : '',
         author : authorM ? authorM[1].trim() : ''
       };
@@ -119,21 +111,32 @@
 
   /* ----------------------------------------------------------
      RÉSOLUTION TYPE + CLASSE
+     Pour les sujets liés : lire le tag dans le titre du sujet.
   ---------------------------------------------------------- */
   function resolveDot(href, ovData, eventsData) {
+    /* Anniversaire — priorité absolue */
     if (ovData && ovData.type === 'anniv') {
       return { cls: 'dot-anniv', label: 'Anniversaire' };
     }
+
+    /* Titre disponible pour détecter le tag */
     var title = (ovData && ovData.title) ? ovData.title : '';
+
+    /* Enrichir depuis /events si possible */
     var evKey = (href || '').replace(/^https?:\/\/[^/]+/, '');
     if (eventsData && eventsData[evKey] && eventsData[evKey].title) {
       title = eventsData[evKey].title;
     }
+
+    /* Détecter le tag dans le titre — vaut pour événements ET sujets liés */
     var typeMatch = resolveTypeFromTitle(title);
     if (typeMatch) return { cls: typeMatch.cls, label: typeMatch.label };
+
+    /* Sujet lié sans tag reconnu */
     if (ovData && ovData.type === 'topic') {
-      return { cls: 'dot-topic', label: 'Sujet lié' };
+      return { cls: 'dot-other', label: 'Autre' };
     }
+
     return { cls: 'dot-other', label: 'Autre' };
   }
 
@@ -144,6 +147,8 @@
     if (!ovData) {
       return '<div class="tt-ev-title">' + esc(fallbackTitle) + '</div>';
     }
+
+    /* Anniversaire */
     if (ovData.type === 'anniv') {
       return (
         '<div class="tt-anniv-wrap">' +
@@ -158,19 +163,28 @@
         '</div>'
       );
     }
+
+    /* Sujet lié — titre + type + auteur, pas de description ni image */
     if (ovData.type === 'topic') {
+      var typeLabel = dotInfo ? dotInfo.label : 'Autre';
+      var typeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
       return (
-        '<div class="tt-ev-title">' + esc(ovData.title || fallbackTitle) + '</div>' +
-        '<div class="tt-ev-type tt-type-topic">Sujet lié</div>' +
-        (ovData.date   ? '<div class="tt-date">' + esc(ovData.date) + '</div>' : '') +
+        '<div class="tt-centered">' +
+          '<div class="tt-ev-title">' + esc(ovData.title || fallbackTitle) + '</div>' +
+          '<div class="tt-ev-type ' + typeCls + '">' + esc(typeLabel) + '</div>' +
+        '</div>' +
         (ovData.author ? '<div class="tt-author">par ' + esc(ovData.author) + '</div>' : '')
       );
     }
-    var typeLabel = dotInfo ? dotInfo.label : (ovData.cat || 'Événement');
-    var typeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
+
+    /* Événement FA standard — titre + type + date + image + description */
+    var evTypeLabel = dotInfo ? dotInfo.label : (ovData.cat || 'Événement');
+    var evTypeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
     return (
-      '<div class="tt-ev-title">' + esc(ovData.title || fallbackTitle) + '</div>' +
-      '<div class="tt-ev-type ' + typeCls + '">' + esc(typeLabel) + '</div>' +
+      '<div class="tt-centered">' +
+        '<div class="tt-ev-title">' + esc(ovData.title || fallbackTitle) + '</div>' +
+        '<div class="tt-ev-type ' + evTypeCls + '">' + esc(evTypeLabel) + '</div>' +
+      '</div>' +
       (ovData.date ? '<div class="tt-date">' + esc(ovData.date) + '</div>' : '') +
       ((ovData.img || ovData.desc)
         ? '<div class="tt-body">' +
@@ -187,15 +201,7 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* ----------------------------------------------------------
-     NUMÉRO DU JOUR — compteur JS
-     On incrémente un compteur sur chaque td non-vide,
-     indépendamment de data-date (qui peut être vide ou mal encodé).
-     Le premier jour du mois correspond à la première td non-vide.
-  ---------------------------------------------------------- */
-  function padDay(n) {
-    return n < 10 ? '0' + n : '' + n;
-  }
+  function padDay(n) { return n < 10 ? '0' + n : '' + n; }
 
   /* ----------------------------------------------------------
      CONSTRUCTION DE LA GRILLE
@@ -212,18 +218,16 @@
     var tds = src.querySelectorAll('tbody td');
     var html = '';
 
-    /* En-tête */
     html += '<div class="tdl-cal-header">';
     days.forEach(function (d) {
       html += '<div class="tdl-cal-hcell">' + d + '</div>';
     });
     html += '</div>';
 
-    /* Grille */
     html += '<div class="tdl-cal-grid">';
 
     var colIndex = 0;
-    var dayCount = 0; /* compteur JS des jours du mois */
+    var dayCount = 0;
 
     tds.forEach(function (td) {
       var isEmpty = td.getAttribute('data-empty') === '1';
@@ -235,11 +239,9 @@
         return;
       }
 
-      /* Incrémenter le compteur de jour */
       dayCount++;
-      var dayNum = padDay(dayCount);
-
-      var anchors  = td.querySelectorAll('li[data-ev="1"] a');
+      var dayNum  = padDay(dayCount);
+      var anchors = td.querySelectorAll('li[data-ev="1"] a');
       var dotsHtml = '';
 
       anchors.forEach(function (a) {
@@ -272,7 +274,6 @@
 
     html += '</div>';
 
-    /* Légende */
     html +=
       '<div class="tdl-legend">' +
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-anniv"></div>Anniversaire</div>' +
@@ -280,7 +281,6 @@
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-membre"></div>Év. Membre</div>' +
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-tradition"></div>Tradition</div>' +
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-lore"></div>Lore</div>' +
-        '<div class="tdl-leg"><div class="tdl-leg-dot dot-topic"></div>Sujet lié</div>' +
         '<div class="tdl-leg"><div class="tdl-leg-dot dot-other"></div>Autre</div>' +
       '</div>';
 
