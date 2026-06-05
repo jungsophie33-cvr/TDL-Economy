@@ -69,29 +69,58 @@
 
     /* 1. Sujet lié */
     if (fullText.indexOf('Sujets li') >= 0) {
-      /* Titre du topic : chercher dans <a>, dans le texte titre, partout */
+      /* Titre du topic */
       var aEl = tmp.querySelector('a');
       var topicTitle = '';
-      if (aEl) {
-        topicTitle = aEl.textContent.trim();
-      }
-      /* Si vide ou trop court, chercher dans le premier paragraphe */
+      if (aEl) topicTitle = aEl.textContent.trim();
       if (!topicTitle) {
         var pEl = tmp.querySelector('p');
         topicTitle = pEl ? pEl.textContent.trim() : '';
       }
-      /* Chercher aussi dans les spans ou titres */
       if (!topicTitle) {
         var spanEl = tmp.querySelector('span, strong');
         topicTitle = spanEl ? spanEl.textContent.trim() : '';
       }
-      var dateEl  = tmp.querySelector('i');
-      var authorM = fullText.match(/Auteur\s*[:\-]?\s*([^\n<\r]+)/i);
+
+      var dateEl = tmp.querySelector('i');
+
+      /* Auteur : FA injecte le pseudo dans un lien vers le profil
+         /u + chiffres ou /profile?
+         Sinon chercher .usr_grp_clr ou strong
+         En dernier recours : regex strict sur 1 à 4 mots après "Auteur :" */
+      var author = '';
+
+      /* Lien profil : href contenant /u ou /member */
+      var profileLinks = tmp.querySelectorAll('a[href*="/u"], a[href*="profile"], a[href*="member"]');
+      if (profileLinks.length > 0) {
+        author = profileLinks[profileLinks.length - 1].textContent.trim();
+      }
+
+      /* Fallback : .usr_grp_clr */
+      if (!author) {
+        var usrEl = tmp.querySelector('.usr_grp_clr, .name_bold_color');
+        if (usrEl) author = usrEl.textContent.trim();
+      }
+
+      /* Fallback : strong hors du titre */
+      if (!author) {
+        var strongs = tmp.querySelectorAll('strong');
+        if (strongs.length > 0) {
+          author = strongs[strongs.length - 1].textContent.trim();
+        }
+      }
+
+      /* Dernier recours : regex strict — 1 à 3 mots maximum après "Auteur" */
+      if (!author) {
+        var authorM = fullText.match(/Auteur\s*[:\-]?\s*([\w\-éèêëàâùûüîïôœçÉÈÊËÀÂÙÛÜÎÏÔŒÇ]+(?:\s[\w\-éèêëàâùûüîïôœçÉÈÊËÀÂÙÛÜÎÏÔŒÇ]+){0,2})/i);
+        if (authorM) author = authorM[1].trim();
+      }
+
       return {
         type   : 'topic',
         title  : topicTitle,
         date   : dateEl ? dateEl.textContent.trim() : '',
-        author : authorM ? authorM[1].trim() : ''
+        author : author
       };
     }
 
