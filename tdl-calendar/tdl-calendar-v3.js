@@ -1,5 +1,5 @@
 /* ============================================================
-   THE DROWNED LANDS — Calendrier custom v10
+   THE DROWNED LANDS — Calendrier custom v10.1
    tdl-calendar.js
    ============================================================ */
 
@@ -8,15 +8,14 @@
 
   /* ----------------------------------------------------------
      MAPPING TYPES → CLASSES CSS
-     Lire le titre de l'événement pour détecter le tag.
-     Tags définis par S&L : [INTRIGUE] [EV. MEMBRE] [TRADITION] [LORE]
-     Anniversaires : détectés via structure HTML FA
+     Détection via tag dans le titre : [INTRIGUE] [EV. MEMBRE]
+     [TRADITION] [LORE]
   ---------------------------------------------------------- */
   var TYPE_MAP = [
-    { tag: '[INTRIGUE]',   cls: 'dot-intrigue',  label: 'Intrigue'    },
-    { tag: '[EV. MEMBRE]', cls: 'dot-membre',    label: 'Év. Membre'  },
-    { tag: '[TRADITION]',  cls: 'dot-tradition', label: 'Tradition'   },
-    { tag: '[LORE]',       cls: 'dot-lore',      label: 'Lore'        },
+    { tag: '[INTRIGUE]',   cls: 'dot-intrigue',  label: 'Intrigue'   },
+    { tag: '[EV. MEMBRE]', cls: 'dot-membre',    label: 'Év. Membre' },
+    { tag: '[TRADITION]',  cls: 'dot-tradition', label: 'Tradition'  },
+    { tag: '[LORE]',       cls: 'dot-lore',      label: 'Lore'       },
   ];
 
   function resolveTypeFromTitle(title) {
@@ -28,11 +27,8 @@
   }
 
   /* ----------------------------------------------------------
-     CACHE DES DONNÉES /events
-     Fetché une fois, stocké en mémoire pour le reste de la session.
-     Clé : href de l'événement → { title, cat, desc, img, date }
+     CACHE /events
   ---------------------------------------------------------- */
-  var eventsCache = null;  /* null = pas encore chargé */
   var eventsPromise = null;
 
   function loadEventsPage() {
@@ -43,48 +39,24 @@
         var tmp = document.createElement('div');
         tmp.innerHTML = html;
         var cache = {};
-
-        /* FA liste les événements dans des liens de type /eXXXXXX-slug */
-        var links = tmp.querySelectorAll('a[href*="/e"]');
-        links.forEach(function (a) {
-          var href = a.getAttribute('href') || '';
-          if (!href.match(/\/e\d+/)) return;
-          /* Normaliser l'URL en chemin absolu */
-          var key = href.replace(/^https?:\/\/[^/]+/, '');
-          if (!cache[key]) cache[key] = { href: href };
-        });
-
-        /* Chercher les blocs d'événements — structure FA /events */
-        var rows = tmp.querySelectorAll('.event_row, .event-item, [class*="event"]');
+        var rows = tmp.querySelectorAll('[class*="event"]');
         rows.forEach(function (row) {
           var a = row.querySelector('a[href*="/e"]');
           if (!a) return;
           var key = (a.getAttribute('href') || '').replace(/^https?:\/\/[^/]+/, '');
-          var titleEl = row.querySelector('.event_title, .title, h3, h2');
-          var descEl  = row.querySelector('.event_desc, .description, p');
-          var imgEl   = row.querySelector('img');
-          var dateEl  = row.querySelector('.event_date, .date, time');
-          cache[key] = {
-            href  : a.getAttribute('href'),
-            title : titleEl ? titleEl.textContent.trim() : '',
-            desc  : descEl  ? descEl.textContent.trim()  : '',
-            img   : imgEl   ? imgEl.getAttribute('src')  : '',
-            date  : dateEl  ? dateEl.textContent.trim()  : ''
-          };
+          var titleEl = row.querySelector('.event_title, h3, h2');
+          if (titleEl && key) {
+            cache[key] = { title: titleEl.textContent.trim() };
+          }
         });
-
-        eventsCache = cache;
         return cache;
       })
-      .catch(function () {
-        eventsCache = {};
-        return {};
-      });
+      .catch(function () { return {}; });
     return eventsPromise;
   }
 
   /* ----------------------------------------------------------
-     EXTRACTION DU HTML OVERVIEW depuis onmouseover FA
+     EXTRACTION DU HTML OVERVIEW
   ---------------------------------------------------------- */
   function extractOvHtml(anchor) {
     var ov = anchor.getAttribute('onmouseover') || '';
@@ -94,11 +66,7 @@
   }
 
   /* ----------------------------------------------------------
-     PARSING DU HTML FA
-     Trois structures :
-       1. Anniversaire    : .title-overview ET PAS "Sujets liés"
-       2. Sujet lié       : contient "Sujets li" dans le texte
-       3. Événement FA    : .header_overview_event
+     PARSING HTML FA — trois structures
   ---------------------------------------------------------- */
   function parseOvHtml(html) {
     if (!html) return null;
@@ -106,21 +74,12 @@
     tmp.innerHTML = html;
     var fullText = tmp.textContent || '';
 
-    /* --- Priorité 1 : Sujet lié --- */
+    /* 1. Sujet lié — priorité sur anniversaire */
     if (fullText.indexOf('Sujets li') >= 0) {
       var aEl    = tmp.querySelector('a');
       var dateEl = tmp.querySelector('i');
-      /* Auteur : texte après "Auteur" ou après le <br> */
       var authorM = fullText.match(/Auteur\s*[:\-]?\s*([^\n<\r]+)/i);
-      /* Titre du sujet : dans le <a> ou la balise title */
-      var topicTitle = '';
-      if (aEl) {
-        topicTitle = aEl.textContent.trim();
-      } else {
-        /* Chercher le texte précédant "Sujets liés" */
-        var titleM = fullText.match(/^([^\n]+)/);
-        topicTitle = titleM ? titleM[1].trim() : '';
-      }
+      var topicTitle = aEl ? aEl.textContent.trim() : '';
       return {
         type   : 'topic',
         title  : topicTitle,
@@ -129,7 +88,7 @@
       };
     }
 
-    /* --- Priorité 2 : Anniversaire --- */
+    /* 2. Anniversaire */
     if (tmp.querySelector('.title-overview')) {
       var nameEl = tmp.querySelector('.usr_grp_clr strong, strong');
       var imgEl  = tmp.querySelector('img');
@@ -142,7 +101,7 @@
       };
     }
 
-    /* --- Priorité 3 : Événement FA standard --- */
+    /* 3. Événement FA standard */
     var titleEl = tmp.querySelector('.header_overview_event span:first-child');
     var catEl   = tmp.querySelector('[class*="EV_TagCategory"]');
     var dateEl2 = tmp.querySelector('p i');
@@ -159,44 +118,32 @@
   }
 
   /* ----------------------------------------------------------
-     RÉSOLUTION DU TYPE ET DE LA CLASSE CSS D'UNE PASTILLE
+     RÉSOLUTION TYPE + CLASSE
   ---------------------------------------------------------- */
-  function resolveDot(href, faClass, ovData, eventsData) {
-    /* Anniversaire en priorité absolue */
+  function resolveDot(href, ovData, eventsData) {
     if (ovData && ovData.type === 'anniv') {
       return { cls: 'dot-anniv', label: 'Anniversaire' };
     }
-
-    /* Chercher le tag dans le titre disponible */
-    var title = '';
-    if (ovData && ovData.title) title = ovData.title;
-
-    /* Enrichir depuis le cache /events si disponible */
+    var title = (ovData && ovData.title) ? ovData.title : '';
     var evKey = (href || '').replace(/^https?:\/\/[^/]+/, '');
     if (eventsData && eventsData[evKey] && eventsData[evKey].title) {
       title = eventsData[evKey].title;
     }
-
     var typeMatch = resolveTypeFromTitle(title);
     if (typeMatch) return { cls: typeMatch.cls, label: typeMatch.label };
-
-    /* Sujet lié */
     if (ovData && ovData.type === 'topic') {
       return { cls: 'dot-topic', label: 'Sujet lié' };
     }
-
     return { cls: 'dot-other', label: 'Autre' };
   }
 
   /* ----------------------------------------------------------
-     CONSTRUCTION DU HTML DE TOOLTIP
+     CONSTRUCTION HTML TOOLTIP
   ---------------------------------------------------------- */
   function buildTipHtml(ovData, dotInfo, fallbackTitle) {
     if (!ovData) {
       return '<div class="tt-ev-title">' + esc(fallbackTitle) + '</div>';
     }
-
-    /* Anniversaire */
     if (ovData.type === 'anniv') {
       return (
         '<div class="tt-anniv-wrap">' +
@@ -211,18 +158,14 @@
         '</div>'
       );
     }
-
-    /* Sujet lié */
     if (ovData.type === 'topic') {
       return (
         '<div class="tt-ev-title">' + esc(ovData.title || fallbackTitle) + '</div>' +
         '<div class="tt-ev-type tt-type-topic">Sujet lié</div>' +
-        (ovData.date   ? '<div class="tt-date">' + esc(ovData.date)   + '</div>' : '') +
+        (ovData.date   ? '<div class="tt-date">' + esc(ovData.date) + '</div>' : '') +
         (ovData.author ? '<div class="tt-author">par ' + esc(ovData.author) + '</div>' : '')
       );
     }
-
-    /* Événement FA standard */
     var typeLabel = dotInfo ? dotInfo.label : (ovData.cat || 'Événement');
     var typeCls   = dotInfo ? 'tt-type-' + dotInfo.cls.replace('dot-', '') : 'tt-type-other';
     return (
@@ -238,25 +181,19 @@
     );
   }
 
-  /* Échappement HTML */
   function esc(s) {
     return (s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   /* ----------------------------------------------------------
-     EXTRACTION DU NUMÉRO DE JOUR
-     FA génère "Lun 01 Juin 2026" ou "Dim 7 Juin 2026"
+     NUMÉRO DU JOUR — compteur JS
+     On incrémente un compteur sur chaque td non-vide,
+     indépendamment de data-date (qui peut être vide ou mal encodé).
+     Le premier jour du mois correspond à la première td non-vide.
   ---------------------------------------------------------- */
-  function extractDayNum(dateRaw) {
-    /* Premier nombre 1-31 dans la chaîne */
-    var m = dateRaw.match(/\b(\d{1,2})\b/);
-    if (!m) return '';
-    var n = parseInt(m[1], 10);
-    if (n < 1 || n > 31) return '';
+  function padDay(n) {
     return n < 10 ? '0' + n : '' + n;
   }
 
@@ -284,7 +221,9 @@
 
     /* Grille */
     html += '<div class="tdl-cal-grid">';
+
     var colIndex = 0;
+    var dayCount = 0; /* compteur JS des jours du mois */
 
     tds.forEach(function (td) {
       var isEmpty = td.getAttribute('data-empty') === '1';
@@ -296,19 +235,19 @@
         return;
       }
 
-      var dateRaw = td.getAttribute('data-date') || '';
-      var dayNum  = extractDayNum(dateRaw);
+      /* Incrémenter le compteur de jour */
+      dayCount++;
+      var dayNum = padDay(dayCount);
 
       var anchors  = td.querySelectorAll('li[data-ev="1"] a');
       var dotsHtml = '';
 
       anchors.forEach(function (a) {
         var href    = a.getAttribute('href') || '#';
-        var faClass = (a.getAttribute('class') || '').trim();
         var title   = (a.getAttribute('data-title') || a.textContent || '').trim();
         var ovHtml  = extractOvHtml(a);
         var ovData  = parseOvHtml(ovHtml);
-        var dotInfo = resolveDot(href, faClass, ovData, eventsData);
+        var dotInfo = resolveDot(href, ovData, eventsData);
         var tipHtml = buildTipHtml(ovData, dotInfo, title);
 
         var ttCls = 'tdl-tt' + (isEdge ? ' tdl-tt-edge' : '');
@@ -349,7 +288,7 @@
   }
 
   /* ----------------------------------------------------------
-     INIT — charger /events puis construire
+     INIT
   ---------------------------------------------------------- */
   function init() {
     loadEventsPage().then(function (eventsData) {
