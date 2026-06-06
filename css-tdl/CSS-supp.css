@@ -452,7 +452,7 @@ table.table1 tbody tr:hover, table.table1 tbody tr.hover {background:var(--clair
 .pm-actions-buttons .button1 {background:var(--darkopa2); color:var(--dark);border:1px solid var(--darkopa5);padding:8px 20px; margin:5px 0; min-width:200px; border-radius:2px;font-family:var(--txt3); text-transform:uppercase; font-size:80%; line-height:80%; letter-spacing:1px; transition: all 0.3s;}
 .pm-actions-buttons .button1:hover {background:var(--darkopa8); color:var(--clair1);}
 .sj-mp-top {width: 70%; display: flex; justify-content: space-evenly; padding: 20px 0; align-items: center; font-size: 1em; font-family: var(--font2);}
-.sj-mp-top span {background:var(--darkopa5);border:2px solid var(--dark); border-radius:5px; padding:6px 7px; text-transform:uppercase;color:var(--clair1); transition:all 0.3s;}
+.sj-mp-top span {background:var(--darkopa5);border:1px solid var(--dark); border-radius:5px; padding:6px 15px; text-transform:uppercase; color:var(--clair1); transition:all 0.3s;}
 .sj-mp-top span:hover {background:var(--darkopa2); border-color:var(--dark);}
 .sj-mp-top span:hover a {color:var(--clair1)!important;}
 .sj-mp-top > span:has(a) {background:var(--cntr3); border-color:var(--cntr); color:var(--txt);}
