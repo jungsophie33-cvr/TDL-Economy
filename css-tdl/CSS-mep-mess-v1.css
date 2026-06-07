@@ -1,6 +1,12 @@
 /* ------------------------------------- */
 /* ----- MISE EN PAGE DES MESSAGES ----- */
 /* ------------------------------------- */
+::-webkit-scrollbar { }
+::-webkit-scrollbar-track { background: var(--cntr0); }
+::-webkit-scrollbar-thumb { background: var(--dark2opa8); border-radius: 3px; }
+
+hr {border: 0 none var(--cntr);
+border-top: 1px solid var(--cntr5);}
 
 /* ----- BALISES DE MESSAGES ----- */
 
@@ -28,6 +34,19 @@ i, i1, i2, i3, i4 {line-height:auto;}
 .sj-post-msg i, i1, i2, i3, i4 {font-family:var(--font2); font-style:italic; line-height:1.4em;}
 i1, b1 {color:var(--clair2);} i2, b2 {color:var(--cntr);} i3, b3 {color:var(--dark2);} i4, b4 {background:var(--gradoc);background-clip:text;color:transparent;}
 .sj-post-msg b, b1, b2, b3, b4 {font-family:var(--txt3);font-weight:700;}
+u {background: var(--gradark1);
+-webkit-background-clip: text;
+-webkit-text-fill-color: transparent;
+font-weight: 600;
+text-decoration: underline;
+text-decoration-color: var(--cntr);
+text-decoration-style: dashed;
+text-decoration-thickness: 1px;
+text-underline-offset: 3px;
+filter: contrast(0.6);
+font-family: var(--txt2);
+font-size: 1.2em;}
+
 u1, u2, u3 {text-decoration:none;}
 u1 {box-shadow:inset 0 -6px 0 var(--clair2opa5);} u2 {box-shadow:inset 0 -6px 0 var(--cntr5);} u3 {box-shadow:inset 0 -6px 0 var(--dark2opa5);} u4 {background:var(--gradoc1r) no-repeat bottom left/100% 6px;}
 strike, s1, s2, s3 {text-decoration-line: line-through;font-family: var(--title3); font-size: 1.2em;}
@@ -58,12 +77,20 @@ bq2 {width:50%; border-image:linear-gradient(to bottom, var(--clair2), var(--dar
 bq3 {position:relative;width:50%; border-color:var(--cntr); font-family:var(--title5);line-height:1.1em;}
 bq3:after {content:'\00201D'; font-size: 4em;position: absolute;font-family: var(--font2);font-style: italic;bottom: -35px;right: -55px;color: var(--cntr5);}
 bq3:before {content:'';width: 70%;position: absolute;height: 1px;background: linear-gradient(90deg, var(--cntr0), var(--cntr5));bottom: -15px;right: -20px;}
-.sj-post-msg ul li {}
-.sj-post-msg ol li {}
+
+.sj-post-msg ul {margin: 10px 30px 10px 60px;}
+.sj-post-msg ol {margin: 10px 20px 10px 70px; counter-reset:item;}
+.sj-post-msg ol li, .sj-post-msg ul li {display:block; line-height:1.2em; padding:10px; margin:10px 0; background:var(--clair1opa5); border-radius:5px; font-family:var(--txt2); font-size:1.1em;}
+.sj-post-msg ol li:before {content:"0"counter(item); counter-increment:item; opacity: 0.8;
+font-weight: 700;font-size: 2em;font-family: var(--txt2);background: var(--gradoc1);line-height: 0.7em;background-clip: text;color: transparent;position: absolute;z-index: 90;text-align: center;left: 50px;}
+.sj-post-msg ol li i, .sj-post-msg ul li i {font-size:0.85em;}
+.sj-post-msg ol li f4, .sj-post-msg ol li f3, .sj-post-msg ul li f4, .sj-post-msg ul li f3 {font-size:0.7em;}
+.sj-post-msg ul li:before {position:absolute; left:55px; font-size:1.2em;font-family:uicons-regular-rounded !important;content: "\e0ec"; background: var(--gradark);background-clip: text;color: transparent;}
+
 .sj-post-msg blockquote {margin:0 80px; background:none; border:none; font-size:1em;}
 .sj-post-msg blockquote:before {content:none;}
-.cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning {color:var(--txt);margin:15px 60px;}
-.cdre .warning:before, .time .warning:before, .systab .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
+.cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning, .sj-fiche blockquote.warning {color:var(--txt);margin:15px 60px;}
+.cdre .warning:before, .time .warning:before, .systab .warning:before, .sj-fiche .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
 .sj-post-msg blockquote:has(cite) {background-color: var(--cntr2);border-left: 3px solid var(--clair2);border-radius: 5px;box-shadow:0 0 2px var(--darkopa3);}
 #codeBox, dl.spoiler, dl.hidecode {background-color: var(--cntr2);border-color: var(--clair2);border-radius: 5px;border-width: 0 0 0 3px;font-size: 0.9em; box-shadow:0 0 2px var(--darkopa3);}
 #codeBox:before, dl.spoiler:before {top:2px; color:var(--clair2opa4);}
@@ -78,7 +105,7 @@ dl.hidecode:before {top:5px; right:10px; color:var(--dark2opa4); font-size:2em; 
 .sj-post-msg .cdre.warning {width:80%;}
 .sj-post-msg .cdre img.imannexe {width:180px; height:90px; object-fit:cover; border-radius:5px;box-shadow:0 0 2px var(--darkopa2);margin:10px 20px; filter:grayscale(50%) opacity(0.5); transition: filter 0.3s ease-in-out;}
 .sj-post-msg .cdre img.imannexe:hover {filter:grayscale(50%) opacity(1);}
-.sj-post-msg .cdre blockquote, .time blockquote, .systab blockquote {overflow:visible;margin: 7px 50px; border-left:5px solid var(--dark2); padding: 0 15px;}
+.sj-post-msg .cdre blockquote, .time blockquote, .systab blockquote, .sj-fiche blockquote {overflow:visible;margin: 7px 50px; border-left:5px solid var(--dark2); padding: 0 15px;}
 .sj-post-msg .group blockquote {border-color:var(--groups);}
 .sj-post-msg .cdre .h3 {margin-top:-10px;}
 .sj-post-msg .cdre h3, .sj-post-msg .systab .content h3 {font-size:0.8em;}
@@ -116,6 +143,84 @@ titre3 {position:relative; display: block;line-height: 3em;width: fit-content;ma
 titre3 > ti1 {font-size: 2em;text-transform: uppercase;letter-spacing: 3px;font-family: var(--font2);}
 titre3 > ti1 > span {margin-top: 5px;font-size: 0.4em;letter-spacing: 5px;text-transform: uppercase;font-family: var(--txt3);display: grid;grid-template-columns: 1fr max-content 1fr;grid-template-rows: 27px 0;grid-gap: 20px;align-items: center;}
 titre3 > ti1 > span:before, titre3 > ti1 > span:after {content: ""; display: block;border-bottom: 1px solid var(--txt);border-top: 1px solid var(--txt);height: 5px;}
+
+/* --------- MEP SOMMAIRE --------- */
+.sj-som {
+  width:90%;
+  margin:auto;
+  font-family: var(--font2);
+  padding: 1rem 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  counter-reset: toc-counter;
+}
+.sj-som br {display:none;}
+
+.sj-somrow {
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  text-decoration: none;
+  gap: 0;
+  counter-increment: toc-counter;
+}
+
+.sj-somrow::before {
+  content: counter(toc-counter, decimal-leading-zero);
+  font-family: var(--font2);
+  font-size: 30px;
+  font-weight: 700;
+  background:var(--gradient1);
+  color: transparent;
+  background-clip:text;
+  display: flex;         /* le pseudo-élément devient flex container */
+  align-items: center;   /* centrage vertical du texte dedans */
+  justify-content: flex-end;
+  padding-right: 16px;
+  line-height: 1.2em;
+  transition: color 0.2s;
+  user-select: none;
+}
+
+.sj-somcard {
+  background: var(--clair1opa7);
+  border-radius: 5px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all ease 0.3s;
+}
+
+.sj-somtitle {
+  font-family: var(--txt1);
+  font-size: 1.2em;
+  color: var(--dark);
+  font-style:italic;
+  font-weight: 600;
+  flex: 1;
+  letter-spacing:0px;
+  transition: all ease 0.3s;
+}
+
+.sj-somcard::after {
+  font-family: uicons-regular-rounded !important;
+  content: "\e0ec";
+  font-size: 14px;
+  color: var(--cntr);
+  flex-shrink: 0;
+  transition: all ease 0.3s;
+  display: inline-block;
+}
+
+.sj-somrow:hover::before { transition: all ease 0.3s;   filter: brightness(0.7); }
+.sj-somrow:hover .sj-somcard { transition: all ease 0.3s; background: var(--clair1); }
+.sj-somrow:hover .sj-somtitle { transition: all ease 0.3s; color: var(--dark2); letter-spacing:1px; }
+.sj-somrow:hover .sj-somcard::after {transition: all ease 0.3s;  color: var(--dark2); transform: translateX(4px); }
+
 
 /* --------- MEP CONTEXTE & LETTRINES -------- */
 /* ------------------------------------------- */
@@ -194,7 +299,8 @@ let3 {float:left;font-size:5em;font-family:var(--font2); font-style:italic; line
 .accordion.active + .acc_content { opacity: 1;max-height: 800px; }
 .acc_content .cdre {transform: translateY(10px); opacity: 0; transition: opacity 0.5s ease, transform 0.5s ease;}
 .accordion.active + .acc_content .cdre {transform: translateY(0); opacity: 1; transition-delay: 0.1s;}
-.accordion:focus, .accordion:active {transform: none !important; transition: none !important; font-size: inherit !important;}
+.accordion:focus, .accordion:active {transform: none !important; transition: none !important; font-size: inherit !important;} 
+.accordion i {padding-right:10px;}
 @media (hover: none) and (pointer: coarse) {
   .accordion {cursor: default !important;}
 }
