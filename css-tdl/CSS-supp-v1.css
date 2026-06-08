@@ -1,6 +1,6 @@
 /* ----- GENERAL FORUMACTIF CLASS ----- */
 html, body, fieldset {font-family: var(--font0) !important; color:var(--txt);}
-body {font-size:1em; line-height:1.3em; text-align:center; margin-top:0!important; min-width:1200px;}
+body {font-size:14px; line-height:1.3em; text-align:center; margin-top:0!important; min-width:1200px;}
 #wrap {padding:30px 50px;}
 h3, .h3 {color:var(--dark);border:none;font-size:2em;font-family:var(--title4);}
 .h3 {display:flex; flex-flow:row;align-items:center;gap:20px;}
