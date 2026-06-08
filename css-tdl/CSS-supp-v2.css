@@ -71,7 +71,17 @@ border-top-color: var(--clair1);top:-7px;}
 
 /* ----- GENERAL HEADER & BALISES ------ */
 
-#sj-main {background: var(--bgimg) no-repeat center bottom fixed; background-size:cover;}
+#sj-main {
+  background: var(--bgimg) no-repeat center bottom;
+  background-size: cover;
+  background-attachment: scroll; /* mobile */
+}
+
+@media (min-width: 768px) {
+  #sj-main {
+    background-attachment: fixed; /* PC uniquement */
+  }
+}
 #sj-page-header {text-align:center;}
 #sj-logo a{
   margin:250px auto 30px;
