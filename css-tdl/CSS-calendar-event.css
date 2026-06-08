@@ -1,0 +1,471 @@
+/* ---------- PAGE EVENT ------------ */
+.sub-header {background: var(--clair1opa5); padding: 0 10px 0 0; margin-top:20px; height: 74px; border-radius: 10px; display: flex;}
+.sub-header-info {display: flex; justify-content: left; width: 100%; gap: 20px; float:none; padding:0;}
+.sub-header-buttons {display:none;}
+.EV_FixedTitle .sub-header-path {background: var(--clair1opa7); width: fit-content; padding: 3px 10px; border-radius: 5px;}
+.EV_FixedTitle {height: 74px;
+display: flex;
+flex-direction: column;
+justify-content: center;}
+.EV_DateBlock .year {background:var(--dark2);}
+.EV_DateBlock p {background:var(--clair2);}
+
+.EV_FixedTitle h1 {line-height: 1.1em; font-family: var(--title3); color: var(--dark);}
+.EV_StatusLabel {margin: 0 20px; background:var(--dark2); color:var(--clair1);}
+.ca-sidebar {width:250px; background:var(--cntr2);}
+.ca-wrap {background:var(--clair1); border-radius:10px;}
+.ca-body {background:none;margin-right:250px;border-color:var(--cntr5); border-radius:0px;}
+.AD_DateLabel, .AD_ListDesc {display:none;}
+.EV_HalfBlock {margin:5px !important; height:425px;background:var(--cntr2); border-color:var(--cntr5); border-radius:5px; overflow:hidden;}
+.AD_Description {background: var(--cntr2); padding: 10px; border-radius: 5px; border: 1px solid var(--cntr5); margin: 0 12px;}
+.AD_Thumb {background-color:transparent; border: 10px solid transparent;}
+.AD_BlockTitle {margin:0; padding:0;}
+.AD_BlockTitle i {display:none;}
+.AD_SellerAvatar {height:130px; border-radius:7px; outline:1px solid var(--cntr); outline-offset:3px;}
+.AD_ContentLeft {margin:10px auto;}
+.EV_MainInfosTitle {font-size: 0.8em;
+color: var(--clair1);
+background: var(--gradark);
+padding: 2px 10px;
+line-height: 1em;
+border-radius: 3px;
+text-align: center; letter-spacing:0.5px;}
+.EV_MainInfosTitle i {margin:0;}
+
+.sub-header-info > h1 {line-height: 1.1em; text-align: center; /* width: 100%; */ font-family: var(--title4); /* background-clip: text; */ color: transparent; background: var(--gradark); background-clip: text; letter-spacing: 2px; font-size: 2.6em; margin: auto; padding: 0 20px; border-bottom: 1px solid var(--dark2opa5);}
+.panel:has(.EV_List) {margin:15px auto;}
+div.EV_ListMonth {background:none; border:none; line-height:1em;}
+div.EV_ListMonth span {background-color:none; background: var(--gradark); color: var(--clair1); font-family: var(--txt3); text-transform: uppercase; font-size: 1em; letter-spacing: 1px; font-weight: 700; padding: 1px 20px; border-radius: 4px;}
+.EV_Item {background:var(--cntr3); border-radius:10px; text-align:left;}
+.EV_Item .EV_ItemDate {background:var(--clair2);}
+.EV_Item .EV_ItemDate p {font-weight:normal; font-family:var(--txt2);color:var(--clair1);}
+.EV_Item .EV_ItemDate hr {border-color:var(--clair1);}
+.EV_Item .EV_ItemInfos {width:80%;}
+.EV_Item .EV_ItemInfos>div:first-child {width:70%;}
+.EV_Item .EV_ItemInfos .EV_ItemTitle a {line-height:1.4em; font-family:var(--title1);text-align:center;}
+.EV_Item .EV_ItemInfos .EV_ItemTitle p {width: fit-content;margin: 10px auto !important;background: var(--clair1opa7);padding: 2px 15px;border-radius: 5px;}
+.EV_Item .EV_ItemInfos .EV_ItemCat {vertical-align:middle; text-align:center; padding:0; height:fit-content;}
+.EV_Item .EV_ItemCost {display:none !important;}
+
+/* ============================================================
+    CSS Calendrier
+   ============================================================ */
+.sj-cal-link {width:fit-content; margin:5px auto;}
+.sj-cal-link a {background: var(--cntr7);
+padding: 2px 10px;
+border-radius: 5px;
+line-height: 1em;
+font-family: var(--txt3);
+color: var(--clair1);}
+/* ----------------------------------------------------------
+   NAVIGATION
+   ---------------------------------------------------------- */
+.tdl-nav-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.tdl-nav-form select {
+  background: var(--clair1);
+  border: 1px solid var(--cntr3);
+  border-radius: 4px;
+  color: var(--dark2);
+  font-family: var(--title1);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.tdl-nav-form select + select + select { display: none; }
+.tdl-nav-go {
+  background: var(--cntr2);
+  border: 1px solid var(--cntr3);
+  border-radius: 4px;
+  color: var(--dark2);
+  font-family: var(--txt3);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.tdl-nav-go:hover { background: var(--cntr3); }
+.tdl-nav-arrows {
+  display: flex;
+  justify-content: space-between;
+  align-items:center;
+  margin: 15px auto;
+}
+.tdl-nav-arrow {
+  color: var(--dark2);
+  font-size: 22px;
+  text-decoration: none;
+  padding: 2px 10px;
+  border-radius: 4px;
+  opacity: 0.7;
+  line-height: 1;
+}
+.tdl-nav-arrow:hover { opacity: 1; background: var(--cntr2); }
+
+/* ----------------------------------------------------------
+   CONTENEUR
+   ---------------------------------------------------------- */
+#tdl-calendar {
+  background: var(--clair1);
+  border: 1px solid var(--cntr3);
+  border-radius: 8px;
+  overflow: visible;
+  font-family: var(--font1);
+}
+
+/* ----------------------------------------------------------
+   EN-TÊTE JOURS
+   ---------------------------------------------------------- */
+.tdl-cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--cntr);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+.tdl-cal-hcell {
+  text-align: center;
+  padding: 7px 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dark2);
+  font-family: var(--txt3);
+  font-weight: 600;
+  background: var(--cntr2);
+}
+.tdl-cal-hcell:not(:last-child) { border-right: 1px solid var(--cntr); }
+
+/* ----------------------------------------------------------
+   GRILLE
+   ---------------------------------------------------------- */
+.tdl-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.tdl-cal-cell {
+  height: 88px;
+  border-right: 1px solid var(--cntr);
+  border-bottom: 1px solid var(--cntr);
+  position: relative;
+  background: var(--clair1);
+  overflow: visible;
+}
+.tdl-cal-cell:nth-child(7n) { border-right: none; }
+.tdl-empty {
+  height: 88px;
+  border-right: 1px solid var(--cntr);
+  border-bottom: 1px solid var(--cntr);
+  background: var(--clair1opa5);
+}
+.tdl-empty:nth-child(7n) { border-right: none; }
+
+/* Jour courant */
+.tdl-cal-cell.tdl-today {
+  background: var(--cntr3);
+}
+.tdl-cal-cell.tdl-today .tdl-day-num {
+  opacity: 0.8;
+}
+
+/* ----------------------------------------------------------
+   NUMÉRO DU JOUR
+   ---------------------------------------------------------- */
+.tdl-day-num {
+  position: absolute;
+  top: 4px;
+  left: 7px;
+  font-size: 2em;
+  font-weight: 700;
+  font-family: var(--txt2);
+  line-height: 0.7em;
+  opacity: 0.5;
+  background: var(--gradoc1);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: -0.02em;
+}
+
+/* ----------------------------------------------------------
+   PASTILLES
+   ---------------------------------------------------------- */
+.tdl-dots {
+  position: absolute;
+  bottom: 7px;
+  left: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: calc(100% - 14px);
+}
+
+/* Premier enfant = tour vide FA — toujours masqué */
+.tdl-dots > .tdl-ev-wrap:first-child { display: none; }
+
+.tdl-ev-wrap {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+}
+.tdl-dot {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s;
+  position: relative;
+  z-index: 1;
+  font-size: 0;
+}
+.tdl-dot:hover { transform: scale(1.35); z-index: 300; }
+
+/* Couleurs — toutes les variables du :root */
+.tdl-dot.dot-anniv     { background: var(--gr1-color); }
+.tdl-dot.dot-intrigue  { background: var(--gr6-color); }
+.tdl-dot.dot-membre    { background: var(--gr3-color); }
+.tdl-dot.dot-tradition { background: var(--gr5-color); }
+.tdl-dot.dot-lore      { background: var(--gr4-color); }
+.tdl-dot.dot-topic     { background: var(--gr2-color); }
+.tdl-dot.dot-other     { background: var(--cntr5);     }
+
+/* ----------------------------------------------------------
+   TOOLTIP — ancré, animé, fixe
+   ---------------------------------------------------------- */
+.tdl-tt {
+  display: block;
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  width: 300px;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.tdl-tt-edge {
+  left: auto;
+  right: -4px;
+  transform: translateY(6px);
+}
+.tdl-ev-wrap:hover .tdl-tt {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.tdl-ev-wrap:hover .tdl-tt-edge {
+  transform: translateY(0);
+}
+.tdl-tt-inner {
+  background: var(--clair1);
+  border: 1px solid var(--cntr5);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 20px var(--darkopa2);
+}
+
+/* Flèche BD */
+.tdl-tt-arrow {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid var(--cntr5);
+  margin: 0 auto;
+  position: relative;
+}
+.tdl-tt-arrow::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: -6px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--clair1);
+}
+/* Flèche alignée à droite pour edge */
+.tdl-tt-arrow-edge {
+  margin: 0 6px 0 auto;
+}
+
+/* ----------------------------------------------------------
+   CONTENU TOOLTIP — layout commun
+   ---------------------------------------------------------- */
+
+/* Bloc centré titre + type (événements et sujets liés) */
+.tt-centered {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.tt-ev-title {
+  display: block;
+  font-family: var(--txt1);
+  font-size: 1.1em;
+  color: var(--dark2);
+  margin-bottom: 3px;
+}
+.tt-ev-type {
+  display: inline-block;
+  font-family: var(--txt3);
+  font-size: 0.7em;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--clair1);
+  line-height:1em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+}
+/* Couleurs des tags par type */
+.tt-type-anniv     { background: var(--gr1-color); }
+.tt-type-intrigue  { background: var(--gr6-color); }
+.tt-type-membre    { background: var(--gr3-color); }
+.tt-type-tradition { background: var(--gr5-color); }
+.tt-type-lore      { background: var(--gr4-color); }
+.tt-type-topic     { background: var(--gr2-color); }
+.tt-type-other     { background: var(--cntr);      }
+
+.tt-date {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--cntr);
+  font-family: var(--txt3);
+  border-top: 1px solid var(--cntr2);
+  padding-top: 3px;
+  margin-bottom: 5px;
+}
+.tt-author {
+  font-size: 10px;
+  color: var(--cntr);
+  font-family: var(--txt3);
+  margin-top: 4px;
+  text-align: center;
+  border-top: 1px solid var(--cntr2);
+  padding-top: 5px;
+}
+.tt-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+.tt-evimg {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+  border: 1px solid var(--cntr3);
+}
+.tt-desc {
+  font-size: 0.95em;
+  color: var(--dark);
+  font-family: var(--txt2);
+  line-height: 1.1em;
+  flex: 1;
+}
+
+/* ----------------------------------------------------------
+   TOOLTIP ANNIVERSAIRE
+   ---------------------------------------------------------- */
+.tt-anniv-wrap {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  justify-content:space-around;
+}
+.tt-avatar {
+  width: 50px;
+  height:63px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--cntr3);
+  box-shadow: 0 2px 8px var(--darkopa2);
+}
+.tt-avatar-ph {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--cntr2);
+}
+.tt-anniv-info { display: flex; flex-direction: column; gap: 2px; width:70%;}
+.tt-anniv-tag {
+  font-family: var(--txt3);
+  font-size: 0.7em;
+  line-height:1em;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--clair1);
+  background: var(--gr1-color);
+  padding: 2px 8px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+  width: fit-content;
+}
+.tt-name {
+  font-family: var(--txt1);
+  font-size: 1.1em;
+  color: var(--dark2);
+  font-weight: 600;
+  line-height: 1.2;
+}
+.tt-age {
+  font-family: var(--txt3);
+  font-size: 0.9em;
+  color: var(--cntr);
+  letter-spacing: 0.05em;
+  text-align:right;
+}
+
+#msg_ov { display: none !important; }
+
+/* ----------------------------------------------------------
+   LÉGENDE
+   ---------------------------------------------------------- */
+.tdl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 15px;
+  padding: 9px 16px;
+  border-top: 1px solid var(--cntr3);
+  border-radius: 0 0 8px 8px;
+  background: var(--cntr1);
+}
+.tdl-leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--dark2);
+  font-family: var(--txt3);
+  letter-spacing: 0.04em;
+}
+.tdl-leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tdl-leg-dot.dot-anniv     { background: var(--gr1-color); }
+.tdl-leg-dot.dot-intrigue  { background: var(--gr6-color); }
+.tdl-leg-dot.dot-membre    { background: var(--gr3-color); }
+.tdl-leg-dot.dot-tradition { background: var(--gr5-color); }
+.tdl-leg-dot.dot-lore      { background: var(--gr4-color); }
+.tdl-leg-dot.dot-topic     { background: var(--gr2-color); }
+.tdl-leg-dot.dot-other     { background: var(--cntr5);     }
