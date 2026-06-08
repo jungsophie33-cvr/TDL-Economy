@@ -92,12 +92,14 @@ font-weight: 700;font-size: 2em;font-family: var(--txt2);background: var(--grado
 .cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning, .sj-fiche blockquote.warning {color:var(--txt);margin:15px 60px;}
 .cdre .warning:before, .time .warning:before, .systab .warning:before, .sj-fiche .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
 .sj-post-msg blockquote:has(cite) {background-color: var(--cntr2);border-left: 3px solid var(--clair2);border-radius: 5px;box-shadow:0 0 2px var(--darkopa3);}
-#codeBox, dl.spoiler, dl.hidecode {background-color: var(--cntr2);border-color: var(--clair2);border-radius: 5px;border-width: 0 0 0 3px;font-size: 0.9em; box-shadow:0 0 2px var(--darkopa3);}
+dl.spoiler, dl.hidecode {background-color: var(--cntr2);border-color: var(--clair2);border-radius: 5px;border-width: 0 0 0 3px;font-size: 0.9em; box-shadow:0 0 2px var(--darkopa3);}
 dl.spoiler:before {top:2px; color:var(--clair2opa4);}
 dl.spoiler dt, blockquote cite {border-bottom: 1px solid var(--clair2opa7);font-family: var(--txt3);font-weight: 700;text-transform: uppercase;font-size: 0.8em; margin-bottom:6px;}
-#codeBox dt {height: 0; font-size: 0;} #codeBox:before {display:none;}
+#codeBox {background:none!important; border:none!important;box-shadow:none!important; padding:10px 20px;}
+#codeBox dt, #codeBox:before {display:none;}
 #codeBox .copyCode {position: absolute; top: 17px; right: 70px; font-family: var(--txt3);font-weight: 700;text-transform: uppercase;font-size: 0.8em; margin-bottom:6px;}
 #codeBox .copiedCode:before {content:"\e3d7"; font-family: "uicons-regular-rounded"; margin-right:3px;}
+#codeBox dd {background:var(--cntr2); padding:25px 10px; border-radius:5px; font-size:0.9em;}
 dl.hidecode {width:80%; margin:auto; border-color:var(--dark2);font-size:1em;}
 dl.hidecode:before {top:5px; right:10px; color:var(--dark2opa4); font-size:2em; content: "\e728"; font-family: "uicons-regular-rounded";}
 
