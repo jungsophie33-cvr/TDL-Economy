@@ -72,15 +72,19 @@ border-top-color: var(--clair1);top:-7px;}
 /* ----- GENERAL HEADER & BALISES ------ */
 
 #sj-main {
-  background: var(--bgimg) no-repeat center bottom;
-  background-size: cover;
-  background-attachment: scroll; /* mobile */
+  position: relative;
+  background: none; /* on retire le background existant */
 }
 
-@media (min-width: 768px) {
-  #sj-main {
-    background-attachment: fixed; /* PC uniquement */
-  }
+#sj-main::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bgimg) no-repeat center center;
+  background-size: cover;
+  z-index: -1;
 }
 #sj-page-header {text-align:center;}
 #sj-logo a{
