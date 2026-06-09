@@ -91,10 +91,12 @@ font-weight: 700;font-size: 2em;font-family: var(--txt2);background: var(--grado
 .sj-post-msg blockquote:before {content:none;}
 .cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning, .sj-fiche blockquote.warning {color:var(--txt);margin:15px 60px;}
 .cdre .warning:before, .time .warning:before, .systab .warning:before, .sj-fiche .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
-.sj-post-msg blockquote:has(cite) {background:none; border:none; border-radius: 0px;box-shadow:none;} 
+.sj-post-msg blockquote:has(cite) {background:none; border:none; border-radius: 0px;box-shadow:none;overflow:visible;}
+.sj-post-msg blockquote:has(cite):before {content:'❝'; font-size:9em;color:var(--cntr2);position: absolute;top: -20px;left: -5px; z-index:0;}
+.sj-post-msg blockquote:has(cite) > div {font-family: var(--txt2); font-size: 18px;}
+blockquote cite {border:none!important;font-family: var(--txt3);font-weight: 700;text-transform: uppercase;font-size: 9px;margin: 0 0 15px 40px;background: var(--gradark1);width: fit-content;padding: 3px 15px;line-height: 9px;border-radius: 5px;color: var(--clair1); letter-spacing: 1px;}
 dl.hidecode {background-color: var(--cntr2);border-color: var(--clair2);border-radius: 5px;border-width: 0 0 0 3px;font-size: 0.9em; box-shadow:0 0 2px var(--darkopa3);}
 
-blockquote cite {border-bottom: 1px solid var(--clair2opa7);font-family: var(--txt3);font-weight: 700;text-transform: uppercase;font-size: 0.8em; margin-bottom:6px;}
 dl.spoiler dt {border:none; font-family: var(--txt3);font-weight: 700;text-transform: uppercase;font-size: 0.8em; margin-bottom:6px;}
 dl.spoiler, #codeBox {background:none!important; border:none!important;box-shadow:none!important; padding:10px 20px;}
 #codeBox dt, #codeBox:before, dl.spoiler:before {display:none;}
