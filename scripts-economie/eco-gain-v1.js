@@ -49,6 +49,8 @@ console.log("[EcoV2] >>> eco-gain chargé");
     "/f10-bayou-blue",
     "/f11-mandalay-national-wildlife-refuge",
     "/f12-terrebonne-bay",
+    "/f46-cocodrie",
+    "/f47-chauvin-lacs",
     "/f36-la-louisiane",
     "/f37-la-nouvelle-orleans",
     "/f45-baton-rouge",
