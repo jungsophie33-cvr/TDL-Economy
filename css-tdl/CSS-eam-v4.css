@@ -29,7 +29,7 @@
 /* ── MODAL ───────────────────────────────────────────────────── */
 
 .eam-modal {
-  background    : var(--clair1opa8);
+  background    : var(--clair1);
   border-radius : 10px;
   width         : 100%;
   max-width     : 740px;
@@ -136,7 +136,7 @@
 /* ── CORPS — hauteur fixe ────────────────────────────────────── */
 
 .eam-body {
-  height     : 260px;
+  height     : 300px;
   overflow-y : auto;
   padding    : 0 0 14px;
 }
