@@ -101,26 +101,35 @@
   }
 
   function bbcodeDeclaration(data) {
-    const typeLabel = {
-      [TYPES().ABSENCE]:     "absence totale",
-      [TYPES().REDUITE]:     "présence réduite",
-      [TYPES().SUPPRESSION]: "demande de suppression",
-    }[data.type] || data.type;
-    const lines = [
-      `[b]━━━ Déclaration — ${typeLabel.toUpperCase()} ━━━[/b]`,
-      `[b]Membre :[/b] @"${data.pseudo}"`,
-      `[b]Début :[/b] ${data.debut}`,
-    ];
-    if (data.fin)        lines.push(`[b]Fin estimée :[/b] ${data.fin}`);
-    if (data.lien_sujet) lines.push(`[b]Sujet d'absence :[/b] [url=${data.lien_sujet}]Lire le sujet[/url]`);
-    if (data.type === TYPES().SUPPRESSION) {
-      const comptes = data.suppression_totale
-        ? "Suppression totale (tous les comptes)"
-        : `Comptes : ${(data.suppression_comptes || []).join(", ")}`;
-      lines.push(`[b]Suppression :[/b] ${comptes}`);
-    }
-    return lines.join("\n");
+  const typeLabel = {
+    [TYPES().ABSENCE]:     "absence totale",
+    [TYPES().REDUITE]:     "présence réduite",
+    [TYPES().SUPPRESSION]: "demande de suppression",
+  }[data.type] || data.type;
+
+  const cols = [];
+
+  // Champs toujours présents
+  cols.push(`<div class="sj-formcol"><f4>Membre</f4><span>@"${data.pseudo}"</span></div>`);
+  cols.push(`<div class="sj-formcol"><f4>Début</f4><span>${data.debut}</span></div>`);
+
+  // Conditionnels — strictement identiques à la version BBCode
+  if (data.fin) {
+    cols.push(`<div class="sj-formcol"><f4>Fin estimée</f4><span>${data.fin}</span></div>`);
   }
+  if (data.lien_sujet) {
+    cols.push(`<div class="sj-formcol"><f4>Sujet d'absence</f4><span><a href="${data.lien_sujet}">Lire le sujet</a></span></div>`);
+  }
+  if (data.type === TYPES().SUPPRESSION) {
+    const comptes = data.suppression_totale
+      ? "Suppression totale (tous les comptes)"
+      : `Comptes : ${(data.suppression_comptes || []).join(", ")}`;
+    cols.push(`<div class="sj-formcol"><f4>Comptes</f4><span>${comptes}</span></div>`);
+  }
+
+  return `<div class="sj-fiche"><div class="h1"><h1>Déclaration — ${typeLabel.toUpperCase()}</h1></div>`
+       + `<div class="sj-formgen">${cols.join("")}</div></div>`;
+}
 
   /* === PANEL — RENDU DES CARDS === */
 
