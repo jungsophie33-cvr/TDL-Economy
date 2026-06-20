@@ -113,8 +113,6 @@ dl.hidecode:before {top:5px; right:10px; color:var(--dark2opa4); font-size:2em; 
 .sj-post-msg .cdre img.imannexe:hover {filter:grayscale(50%) opacity(1);}
 .sj-post-msg .cdre blockquote, .time blockquote, .systab blockquote, .sj-fiche blockquote {overflow:visible;margin: 7px 50px; border-left:5px solid var(--dark2); padding: 0 15px;}
 .sj-post-msg .group blockquote {border-color:var(--groups);}
-.sj-post-msg .cdre .h3 {margin-top:-10px;}
-.sj-post-msg .cdre h3, .sj-post-msg .systab .content h3 {font-size:0.8em;}
 .sj-post-msg .cdre h4 {background: var(--cntr); position: absolute; top: -22px; font-family: var(--title5); font-weight: 700; text-transform:uppercase; letter-spacing:1px; font-size: 1.2em; padding-top:10px;}
 .sj-post-msg .cdre.warning h4 {background:var(--dark2);}
 .sj-post-msg .cdre.group {outline-color:var(--groups-40);}
