@@ -110,16 +110,7 @@
     return stocke;
   }
 
-  /* Texte du message seul (sans compteur de mots ni citation) */
-  function messageTexte(contenu) {
-    if (!contenu) return "";
-    var c = contenu.cloneNode(true);
-    var aRetirer = c.querySelectorAll(".post-wordcount, blockquote, .signature_div, .sj-awards, .award_more");
-    Array.prototype.forEach.call(aRetirer, function (el) { el.remove(); });
-    return c.textContent.replace(/\s+/g, " ").trim();
-  }
-
-  /* Plage de codepoints émoji (sans \p, compatible tous navigateurs) */
+  /* Plage de codepoints émoji-texte (sans \p, compatible tous navigateurs) */
   function estEmoji(cp) {
     if (cp >= 0x1F000 && cp <= 0x1FAFF) return true; // plan emoji principal
     if (cp >= 0x2600  && cp <= 0x27BF)  return true; // symboles divers + dingbats
@@ -130,22 +121,33 @@
     return false;
   }
 
-  /* Message composé uniquement d'émojis (avec leur nombre) */
-  function infoEmoji(txt) {
-    var t = (txt || "").replace(/\s/g, "");
-    if (!t) return { seul: false, n: 0 };
-    var n = 0;
-    for (var i = 0; i < t.length; ) {
-      var cp = t.codePointAt(i);
+  /* Message composé uniquement d'émojis (FA les rend en <img class="emojione">) */
+  function infoEmoji(contenu) {
+    if (!contenu) return { seul: false, n: 0 };
+    var c = contenu.cloneNode(true);
+    var jeter = c.querySelectorAll(".post-wordcount, blockquote, .signature_div, .sj-awards, .award_more");
+    Array.prototype.forEach.call(jeter, function (el) { el.remove(); });
+
+    var imgsEmoji = c.querySelectorAll("img.emojione"); // [MAJ] classe des émojis FA
+    var nImg = imgsEmoji.length;
+    Array.prototype.forEach.call(imgsEmoji, function (el) { el.remove(); });
+
+    if (c.querySelector("img")) return { seul: false, n: nImg }; // autre image => pas un message émoji
+
+    var reste = c.textContent.replace(/\s/g, "");
+    var nTexte = 0;
+    for (var i = 0; i < reste.length; ) {
+      var cp = reste.codePointAt(i);
       i += (cp > 0xFFFF ? 2 : 1);
       if (cp === 0x200D || cp === 0xFE0F || cp === 0xFE0E || cp === 0x20E3 ||
-          (cp >= 0x1F3FB && cp <= 0x1F3FF) ||   // teints de peau
-          (cp >= 0x1F1E6 && cp <= 0x1F1FF)) {    // indicatifs régionaux
+          (cp >= 0x1F3FB && cp <= 0x1F3FF) ||
+          (cp >= 0x1F1E6 && cp <= 0x1F1FF)) {
         continue;
       }
-      if (estEmoji(cp)) { n++; }
-      else { return { seul: false, n: n }; }
+      if (estEmoji(cp)) { nTexte++; }
+      else { return { seul: false, n: nImg + nTexte }; }
     }
+    var n = nImg + nTexte;
     return { seul: n > 0, n: n };
   }
 
@@ -187,7 +189,7 @@
       contenu.classList.add("cw-content");
       bubble.appendChild(contenu);
       if (!contenu.querySelector("blockquote")) {
-        var info = infoEmoji(messageTexte(contenu));
+        var info = infoEmoji(contenu);
         if (info.seul && info.n >= 1 && info.n <= 3) bubble.classList.add("cw-jumbo");
       }
     }
