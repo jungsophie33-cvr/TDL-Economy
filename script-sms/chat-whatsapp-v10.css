@@ -276,42 +276,34 @@ body.chat-mode .cw-header {
 body.chat-mode .cw-back       { font-size: 18px; cursor: pointer; }
 body.chat-mode .cw-head-txt   { flex: 1; line-height: 1.3; min-width: 0; }
 body.chat-mode .cw-head-title { font-size: 2em; font-family: var(--title3); width:fit-content; margin: 0 auto 5px; border-bottom:1px solid var(--clair1opa3); padding: 0 100px; }
-body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.85; }
+body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.85; text-align: center; }
 body.chat-mode .cw-head-sub .sub-header-path { display: inline; }
 body.chat-mode .cw-head-sub a,
 body.chat-mode .cw-head-sub a.nav {
   color: var(--cw-header-txt) !important;
   text-decoration: none !important;
 }
-body.chat-mode .cw-head-sub a:hover { text-decoration: underline !important; }
+body.chat-mode .cw-head-sub a:hover { text-decoration: none !important; }
 
-/* pagination (récupérée du forum, restylée en pastilles) */
-body.chat-mode .cw-pagination {
-  background: var(--cw-bg);
-  text-align: center;
-  padding: 8px 0;
+/* pagination : numéros seuls, dans le header à droite */
+body.chat-mode .cw-head-pag {
+  display: flex; align-items: center; gap: 4px; flex: none;
 }
-body.chat-mode .cw-pagination a,
-body.chat-mode .cw-pagination strong {
-  display: inline-block;
-  min-width: 22px;
-  padding: 3px 8px;
-  margin: 0 2px;
+body.chat-mode .cw-head-pag a,
+body.chat-mode .cw-head-pag strong {
   font-size: 12px;
+  min-width: 22px;
+  padding: 2px 7px;
   border-radius: 8px;
-  background: var(--clair1);
-  color: var(--txt) !important;
+  text-align: center;
   text-decoration: none !important;
+  color: var(--cw-header-txt) !important;
+  background: rgba(255, 255, 255, 0.12);
 }
-body.chat-mode .cw-pagination a:hover { background: var(--cntr); }
-body.chat-mode .cw-pagination strong,
-body.chat-mode .cw-pagination .current {
-  background: var(--dark) !important;
-  color: var(--clair1) !important;
-}
-body.chat-mode .cw-pagination .page-sep { display: none !important; }
-body.chat-mode .cw-pagination .pag-img img {
-  height: 12px; width: auto; vertical-align: middle;
+body.chat-mode .cw-head-pag a:hover { background: rgba(255, 255, 255, 0.22); }
+body.chat-mode .cw-head-pag strong {
+  background: var(--clair1) !important;
+  color: var(--dark) !important;
 }
 
 /* ===== BARRE DE SAISIE (envoi réel) ===== */
