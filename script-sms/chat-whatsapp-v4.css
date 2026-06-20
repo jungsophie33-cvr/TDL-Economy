@@ -26,6 +26,7 @@ body.chat-mode #forum_rules    { display: none !important; }
 body.chat-mode #ptrafic_open,
 body.chat-mode #ptrafic_close  { display: none !important; }
 body.chat-mode #quick_reply    { display: none !important; } /* gardé dans le DOM : sert à l'envoi */
+body.chat-mode a[name="quickreply"] + .h3 { display: none !important; } /* titre "Réponse rapide:" */
 
 /* ===== HABILLAGE NATIF DU POST MASQUÉ ===== */
 body.chat-mode .sj-post-top    { display: none !important; }
@@ -87,8 +88,7 @@ body.chat-mode .cw-avatar.cw-online .cw-dot {
 /* ===== BULLE ===== */
 body.chat-mode .cw-bubble {
   position: relative;
-  min-width: 40%;
-  max-width: 72%;
+  align-self: stretch;
   padding: 7px 11px 5px;
   border-radius: 4px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
   background: var(--cw-bubble-recv);
@@ -108,6 +108,9 @@ body.chat-mode .cw-pseudo .sj-post-pseudo {
   font-weight: 600 !important;
   color: var(--dark2) !important;
 }
+body.chat-mode .cw-sent .cw-pseudo .sj-post-pseudo {
+  color: var(--clair2) !important; /* lisible sur la bulle foncée */
+}
 
 /* contenu */
 body.chat-mode .cw-content {
@@ -119,13 +122,59 @@ body.chat-mode .cw-content {
   background: transparent !important;
 }
 
-/* réactions (JPP / En PLS) visibles en permanence */
+/* citation façon "réponse" WhatsApp : carte sombre en haut de la bulle */
+body.chat-mode .cw-content blockquote {
+  margin: 0 0 6px 0 !important;
+  padding: 5px 9px !important;
+  background: var(--darkopa6) !important;
+  border: 0 !important;
+  border-left: 3px solid var(--clair2) !important;
+  border-radius: 6px !important;
+  width: auto !important;
+  max-height: 4.5em;
+  overflow: hidden;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  color: var(--clair1) !important;
+}
+body.chat-mode .cw-content blockquote::before { display: none !important; }
+body.chat-mode .cw-content blockquote * { color: var(--clair1) !important; }
+body.chat-mode .cw-content blockquote cite {
+  display: block !important;
+  margin: 0 0 2px 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  background-image: none !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-style: normal !important;
+  text-transform: none !important;
+  line-height: 1.3 !important;
+  width: auto !important;
+  color: var(--clair2) !important;
+}
+
+/* colonne : bulle empilée au-dessus des réactions */
+body.chat-mode .cw-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 40%;
+  max-width: 72%;
+}
+body.chat-mode .cw-received .cw-col { align-items: flex-start; }
+body.chat-mode .cw-sent     .cw-col { align-items: flex-end; }
+
+/* réactions (JPP / En PLS) : sous la bulle, alignées du bon côté */
 body.chat-mode .cw-feels {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 5px;
+  margin-top: 4px;
+  align-self: stretch;
 }
+body.chat-mode .cw-received .cw-feels { justify-content: flex-start; }
+body.chat-mode .cw-sent     .cw-feels { justify-content: flex-end; }
 body.chat-mode .cw-feels * { font-size: 12px !important; }
 
 /* méta : heure + double-coche */
@@ -154,7 +203,7 @@ body.chat-mode .cw-menu-trig {
 }
 body.chat-mode .cw-menu-pop {
   display: none;
-  position: absolute; top: 20px; z-index: 30;
+  position: absolute; top: 20px; z-index: 100;
   background: var(--clair1);
   border: 0.5px solid var(--darkopa3);
   border-radius: 10px;
