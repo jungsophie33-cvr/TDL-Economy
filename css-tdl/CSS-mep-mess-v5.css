@@ -31,7 +31,7 @@ border-top: 1px solid var(--cntr5);}
 .sj-post-msg .h3:after, #boutique_html .sj-postmsg .h3:after {content:'';height:1px;background:var(--gradoc1);margin-top:4px; flex: 1 1 auto;}
 .sj-post-msg h4 {padding: 4px 20px; background: var(--gradoc1); width: fit-content; color: var(--clair1); font-family: var(--title3); line-height:1em; font-weight: 100; font-size: 1.7em; border-radius: 5px; margin-left:20px;}
 i, i1, i2, i3, i4 {line-height:auto;}
-.sj-post-msg i, i1, i2, i3, i4 {font-family:var(--font2); font-style:italic; line-height:1.4em; font-size:15px;}
+.sj-post-msg i, i1, i2, i3, i4 {font-family:var(--font2); font-style:italic; line-height:1.4em;}
 i1, b1 {color:var(--clair2);} i2, b2 {color:var(--cntr);} i3, b3 {color:var(--dark2);} i4, b4 {background:var(--gradoc);background-clip:text;color:transparent;}
 .sj-post-msg b, b1, b2, b3, b4 {font-family:var(--txt3);font-weight:700;}
 u {background: var(--gradark1);
