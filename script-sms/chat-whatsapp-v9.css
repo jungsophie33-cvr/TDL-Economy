@@ -93,7 +93,7 @@ body.chat-mode .cw-bubble {
   border-radius: 2px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
   background: var(--cw-bubble-recv);
   color: var(--cw-txt-recv);
-  border: 0.5px solid var(--cntr);
+  border: 0.5px solid var(--cntr5);
 }
 body.chat-mode .cw-sent .cw-bubble {
   border-radius: var(--cw-rayon) 2px var(--cw-rayon) var(--cw-rayon);
@@ -149,7 +149,7 @@ body.chat-mode .cw-content blockquote {
   background: var(--clair1opa8) !important;
   border: 0 !important;
   border-left: 3px solid var(--dark2) !important;
-  border-radius: 5px !important;
+  border-radius: 6px !important;
   width: auto !important;
   max-height: 4.5em;
   overflow: hidden;
@@ -268,15 +268,51 @@ body.chat-mode .cw-daysep span {
 body.chat-mode .cw-header {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px;
-  border-radius: 5px 5px 0 0;
   background: var(--cw-header-bg);
   color: var(--cw-header-txt);
+   border-radius:5px 5px 0 0;
   position: sticky; top: 0; z-index: 40; /* [MAJ] retirer si conflit avec le menu fixe FA */
 }
 body.chat-mode .cw-back       { font-size: 18px; cursor: pointer; }
-body.chat-mode .cw-head-txt   { flex: 1; line-height: 1.3; }
-body.chat-mode .cw-head-title { font-size: 15px; font-weight: 600; }
-body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.7; }
+body.chat-mode .cw-head-txt   { flex: 1; line-height: 1.3; min-width: 0; }
+body.chat-mode .cw-head-title { font-size: 2em; font-family: var(--title3); width:fit-content; margin: 0 auto 5px; border-bottom:1px solid var(--clair1opa3); padding: 0 100px; }
+body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.85; }
+body.chat-mode .cw-head-sub .sub-header-path { display: inline; }
+body.chat-mode .cw-head-sub a,
+body.chat-mode .cw-head-sub a.nav {
+  color: var(--cw-header-txt) !important;
+  text-decoration: none !important;
+}
+body.chat-mode .cw-head-sub a:hover { text-decoration: underline !important; }
+
+/* pagination (récupérée du forum, restylée en pastilles) */
+body.chat-mode .cw-pagination {
+  background: var(--cw-bg);
+  text-align: center;
+  padding: 8px 0;
+}
+body.chat-mode .cw-pagination a,
+body.chat-mode .cw-pagination strong {
+  display: inline-block;
+  min-width: 22px;
+  padding: 3px 8px;
+  margin: 0 2px;
+  font-size: 12px;
+  border-radius: 8px;
+  background: var(--clair1);
+  color: var(--txt) !important;
+  text-decoration: none !important;
+}
+body.chat-mode .cw-pagination a:hover { background: var(--cntr); }
+body.chat-mode .cw-pagination strong,
+body.chat-mode .cw-pagination .current {
+  background: var(--dark) !important;
+  color: var(--clair1) !important;
+}
+body.chat-mode .cw-pagination .page-sep { display: none !important; }
+body.chat-mode .cw-pagination .pag-img img {
+  height: 12px; width: auto; vertical-align: middle;
+}
 
 /* ===== BARRE DE SAISIE (envoi réel) ===== */
 body.chat-mode .cw-bar {
@@ -284,7 +320,7 @@ body.chat-mode .cw-bar {
   padding: 10px 12px;
   background: var(--cntr);
   position: sticky; bottom: 0; z-index: 40;
-   border-radius: 0 0 5px 5px;
+   border-radius:0 0 5px 5px;
 }
 body.chat-mode textarea.cw-bar-input {
   flex: 1;
