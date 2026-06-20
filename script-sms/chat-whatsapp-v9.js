@@ -252,17 +252,52 @@
   function injecterEntete(premierPost) {
     if ($(".cw-header")) return;
     var titre = $(".page-title");
+    var fil   = $(".sub-header-path");
     var head = document.createElement("div");
     head.className = "cw-header";
     head.innerHTML =
       '<i class="fi fi-rr-angle-left cw-back"></i>' +
       '<div class="cw-head-txt">' +
         '<div class="cw-head-title">' + (titre ? titre.textContent.trim() : "") + '</div>' +
-        '<div class="cw-head-sub">' + TEXTES.sousTitre + '</div>' +
+        '<div class="cw-head-sub"></div>' +
       '</div>';
     premierPost.parentNode.insertBefore(head, premierPost);
+    var sub = $(".cw-head-sub", head);
+    if (fil) { sub.appendChild(fil.cloneNode(true)); }
+    else     { sub.textContent = TEXTES.sousTitre; }
     var back = $(".cw-back", head);
     if (back) back.addEventListener("click", function () { history.back(); });
+  }
+
+  /* Clone la pagination en retirant le script et le lien "Aller à la page" */
+  function clonePagination(src) {
+    var c = src.cloneNode(true);
+    Array.prototype.slice.call(c.children).forEach(function (ch) {
+      if (ch.tagName === "SCRIPT" || ch.tagName === "A") ch.remove();
+    });
+    return c;
+  }
+
+  /* Injecte la pagination native (en haut sous le header, en bas avant la barre) */
+  function injecterPagination() {
+    var pags = $all(".pagination").filter(function (p) {
+      return p.textContent.replace(/\s/g, "") !== "";
+    });
+    if (!pags.length) return;
+    var head = $(".cw-header");
+    var bar  = $(".cw-bar");
+    if (head && !$(".cw-pag-haut")) {
+      var haut = document.createElement("div");
+      haut.className = "cw-pagination cw-pag-haut";
+      haut.appendChild(clonePagination(pags[0]));
+      head.parentNode.insertBefore(haut, head.nextSibling);
+    }
+    if (bar && !$(".cw-pag-bas")) {
+      var bas = document.createElement("div");
+      bas.className = "cw-pagination cw-pag-bas";
+      bas.appendChild(clonePagination(pags[pags.length - 1]));
+      bar.parentNode.insertBefore(bas, bar);
+    }
   }
 
   /* ===== ENVOI RÉEL (contourne SCEditor) ===== */
@@ -402,6 +437,7 @@
 
     injecterBarre(posts[posts.length - 1]);
     masquerEncart();
+    injecterPagination();
     return true;
   }
 
