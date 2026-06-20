@@ -93,7 +93,7 @@
   }
 
   /* ===== RENDER : une bulle par post ===== */
-  function construireBulle(post, idAuteur) {
+  function construireBulle(post, idAuteur, premier) {
     var avatar  = $(".sj-post-avatar", post);
     var pseudo  = $(".sj-post-pseudo", post);
     var dateEl  = $(".sj-post-date", post);
@@ -120,7 +120,7 @@
     var bubble = document.createElement("div");
     bubble.className = "cw-bubble";
 
-    if (!envoye && pseudo) {
+    if (pseudo && (!envoye || premier)) {
       var p = document.createElement("div");
       p.className = "cw-pseudo";
       p.appendChild(pseudo);
@@ -129,10 +129,6 @@
     if (contenu) {
       contenu.classList.add("cw-content");
       bubble.appendChild(contenu);
-    }
-    if (feels) {
-      feels.classList.add("cw-feels");
-      bubble.appendChild(feels);
     }
 
     var meta = document.createElement("div");
@@ -168,12 +164,22 @@
       bubble.appendChild(menu);
       trig.addEventListener("click", function (e) {
         e.stopPropagation();
-        menu.classList.toggle("cw-open");
+        var ouvert = menu.classList.toggle("cw-open");
+        post.style.position = ouvert ? "relative" : "";
+        post.style.zIndex   = ouvert ? "120" : "";
       });
     }
 
+    var col = document.createElement("div");
+    col.className = "cw-col";
+    col.appendChild(bubble);
+    if (feels) {
+      feels.classList.add("cw-feels");
+      col.appendChild(feels);
+    }
+
     row.appendChild(avaWrap);
-    row.appendChild(bubble);
+    row.appendChild(col);
     post.appendChild(row);
 
     return infos.jour;
@@ -261,6 +267,17 @@
     });
   }
 
+  /* Masque le titre natif "Réponse rapide:" (le form #quick_reply est déjà masqué en CSS) */
+  function masquerEncart() {
+    var a = document.querySelector('a[name="quickreply"]');
+    if (!a) return;
+    var n = a.nextElementSibling;
+    while (n && n.classList && n.classList.contains("h3")) {
+      n.style.display = "none";
+      n = n.nextElementSibling;
+    }
+  }
+
   /* ===== ORCHESTRATION ===== */
   function appliquer() {
     var posts = $all(".sj-postmsg");
@@ -271,9 +288,9 @@
     injecterEntete(posts[0]); // AVANT la boucle : l'en-tête doit précéder le 1er séparateur
 
     var jourPrec = null;
-    posts.forEach(function (post) {
+    posts.forEach(function (post, index) {
       if (post.getAttribute("data-cw") === "1") return;
-      var jour = construireBulle(post, idAuteur);
+      var jour = construireBulle(post, idAuteur, index === 0);
       var cle = (jour || "").toLowerCase();
       if (cle && cle !== jourPrec) {
         var sep = document.createElement("div");
@@ -288,11 +305,16 @@
     });
 
     injecterBarre(posts[posts.length - 1]);
+    masquerEncart();
     return true;
   }
 
   document.addEventListener("click", function () {
-    $all(".cw-menu.cw-open").forEach(function (m) { m.classList.remove("cw-open"); });
+    $all(".cw-menu.cw-open").forEach(function (m) {
+      m.classList.remove("cw-open");
+      var pm = m.closest(".sj-postmsg");
+      if (pm) { pm.style.position = ""; pm.style.zIndex = ""; }
+    });
   });
 
   /* ===== INIT (polling) ===== */
