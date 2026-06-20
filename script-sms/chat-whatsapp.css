@@ -1,0 +1,232 @@
+/* ============================================================
+   chat-whatsapp.css
+   Re-skin "conversation WhatsApp" du sous-forum WhatsApp.
+   Scopé sous body.chat-mode : aucun effet ailleurs.
+   Si le JS ne pose pas chat-mode, le thème natif reste intact.
+   Vérifié contre le template viewtopic_body fourni.
+   ============================================================ */
+
+/* ===== VARIABLES (seuls réglages à toucher) ===== */
+body.chat-mode {
+  --cw-bg:           var(--cntr);       /* fond continu du fil       */
+  --cw-bubble-recv:  var(--clair1);     /* bulle reçue (gauche)      */
+  --cw-bubble-sent:  var(--darkopa4);   /* bulle envoyée (droite)    */
+  --cw-txt-recv:     var(--txt);
+  --cw-txt-sent:     var(--clair1);
+  --cw-header-bg:    var(--dark);
+  --cw-header-txt:   var(--clair1);
+  --cw-rayon:        14px;
+  --cw-avatar:       30px;
+}
+
+/* ===== CHROME NATIF MASQUÉ EN MODE CHAT ===== */
+body.chat-mode .sub-header     { display: none !important; } /* titre, fil, boutons, pagination, posteurs */
+body.chat-mode #first-post-br  { display: none !important; }
+body.chat-mode #forum_rules    { display: none !important; }
+body.chat-mode #ptrafic_open,
+body.chat-mode #ptrafic_close  { display: none !important; }
+
+/* ===== HABILLAGE NATIF DU POST MASQUÉ ===== */
+body.chat-mode .sj-post-top    { display: none !important; } /* avatar/pseudo/btn/feels déplacés ; reste masqué */
+body.chat-mode .post-wordcount { display: none !important; } /* compteur de mots injecté ailleurs */
+body.chat-mode .signature_div,
+body.chat-mode .sj-awards,
+body.chat-mode .award_more     { display: none !important; } /* dans .sj-post-msg : pas dans une bulle */
+
+/* ===== BANDE OPAQUE = FOND DU FIL ===== */
+body.chat-mode .sj-postmsg {
+  background: var(--cw-bg) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 4px 14px !important;
+  box-shadow: none !important;
+  /* Motif "papier peint" optionnel :
+  background-image: radial-gradient(var(--darkopa2) 1px, transparent 1px) !important;
+  background-size: 18px 18px !important; */
+}
+body.chat-mode .sj-postmsg::before,
+body.chat-mode .sj-postmsg::after { display: none !important; }
+
+/* ===== LIGNE : avatar + bulle ===== */
+body.chat-mode .cw-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 6px 0;
+}
+body.chat-mode .cw-row.cw-sent { flex-direction: row-reverse; }
+
+/* ===== AVATAR + PASTILLE EN LIGNE ===== */
+body.chat-mode .cw-avatar {
+  position: relative;
+  flex: none;
+  width: var(--cw-avatar);
+  height: var(--cw-avatar);
+}
+body.chat-mode .cw-avatar .sj-post-avatar,
+body.chat-mode .cw-avatar a,
+body.chat-mode .cw-avatar img {
+  width: var(--cw-avatar) !important;
+  height: var(--cw-avatar) !important;
+  border-radius: 50% !important;
+  object-fit: cover;
+  background-size: cover !important;
+  background-position: center !important;
+  margin: 0 !important;
+  display: block;
+}
+body.chat-mode .cw-dot { display: none; }
+body.chat-mode .cw-avatar.cw-online .cw-dot {
+  display: block;
+  position: absolute; right: -2px; bottom: -1px;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #4caf50;
+  border: 2px solid var(--cw-bg);
+}
+
+/* ===== BULLE ===== */
+body.chat-mode .cw-bubble {
+  position: relative;
+  max-width: 72%;
+  padding: 7px 11px 5px;
+  border-radius: 4px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
+  background: var(--cw-bubble-recv);
+  color: var(--cw-txt-recv);
+  border: 0.5px solid var(--darkopa2);
+}
+body.chat-mode .cw-sent .cw-bubble {
+  border-radius: var(--cw-rayon) 4px var(--cw-rayon) var(--cw-rayon);
+  background: var(--cw-bubble-sent);
+  color: var(--cw-txt-sent);
+}
+
+/* pseudo (bulles reçues) */
+body.chat-mode .cw-pseudo { margin-bottom: 1px; }
+body.chat-mode .cw-pseudo .sj-post-pseudo {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--dark2) !important;
+}
+
+/* contenu du message (on neutralise le style natif de .sj-post-msg) */
+body.chat-mode .cw-content {
+  font-size: 14px;
+  line-height: 1.45;
+  color: inherit;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* réactions (JPP / En PLS) visibles en permanence */
+body.chat-mode .cw-feels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+}
+body.chat-mode .cw-feels * { font-size: 12px !important; }
+
+/* méta : heure + double-coche */
+body.chat-mode .cw-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+}
+body.chat-mode .cw-time {
+  font-size: 10px;
+  opacity: 0.6;
+  color: inherit;
+  text-decoration: none;
+}
+body.chat-mode .cw-checks { font-size: 11px; color: var(--clair2); }
+
+/* ===== MENU D'ACTIONS ===== */
+body.chat-mode .cw-menu { position: absolute; top: 4px; }
+body.chat-mode .cw-received .cw-menu { right: -20px; }
+body.chat-mode .cw-sent     .cw-menu { left:  -20px; }
+body.chat-mode .cw-menu-trig {
+  background: none; border: 0; cursor: pointer;
+  color: var(--darkopa6); font-size: 14px; padding: 2px; line-height: 1;
+}
+body.chat-mode .cw-menu-pop {
+  display: none;
+  position: absolute; top: 20px; z-index: 30;
+  background: var(--clair1);
+  border: 0.5px solid var(--darkopa3);
+  border-radius: 10px;
+  padding: 4px 0;
+  min-width: 120px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+}
+body.chat-mode .cw-received .cw-menu-pop { left: 0; }
+body.chat-mode .cw-sent     .cw-menu-pop { right: 0; }
+body.chat-mode .cw-menu.cw-open .cw-menu-pop { display: block; }
+body.chat-mode .cw-menu-pop .sj-post-btn a,
+body.chat-mode .cw-menu-pop a {
+  display: block;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--txt) !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+body.chat-mode .cw-menu-pop a:hover { background: var(--cntr3); }
+
+/* ===== SÉPARATEUR DE JOUR ===== */
+body.chat-mode .cw-daysep {
+  background: var(--cw-bg);
+  padding: 8px 0;
+  text-align: center;
+}
+body.chat-mode .cw-daysep span {
+  font-size: 11px;
+  background: var(--clair1);
+  color: var(--dark);
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+
+/* ===== EN-TÊTE ===== */
+body.chat-mode .cw-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--cw-header-bg);
+  color: var(--cw-header-txt);
+  position: sticky; top: 0; z-index: 40; /* [MAJ] retirer si conflit avec le menu fixe FA */
+}
+body.chat-mode .cw-back       { font-size: 18px; cursor: pointer; }
+body.chat-mode .cw-head-txt   { flex: 1; line-height: 1.3; }
+body.chat-mode .cw-head-title { font-size: 15px; font-weight: 600; }
+body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.7; }
+
+/* ===== BARRE DE SAISIE ===== */
+body.chat-mode .cw-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: var(--cntr);
+  text-decoration: none !important;
+  color: var(--dark);
+  position: sticky; bottom: 0; z-index: 40;
+}
+body.chat-mode .cw-bar-input {
+  flex: 1;
+  background: var(--clair1);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--darkopa6);
+}
+body.chat-mode .cw-bar-ico { font-size: 18px; color: var(--dark); }
+body.chat-mode .cw-send {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--dark);
+  color: var(--clair1);
+  display: flex; align-items: center; justify-content: center;
+  flex: none;
+}
