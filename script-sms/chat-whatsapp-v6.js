@@ -25,13 +25,23 @@
     placeholder: "Message"
   };
 
-  /* Palette d'émojis (Unicode envoyé en texte brut) */
-  var EMOJIS = [
-    "\uD83D\uDE00","\uD83D\uDE02","\uD83D\uDE05","\uD83D\uDE0A","\uD83D\uDE0D","\uD83D\uDE18","\uD83D\uDE0E",
-    "\uD83E\uDD14","\uD83D\uDE0F","\uD83D\uDE2C","\uD83D\uDE2D","\uD83D\uDE21","\uD83D\uDC4D","\uD83D\uDC4E",
-    "\uD83D\uDE4F","\uD83D\uDC4F","\uD83D\uDD25","\uD83D\uDC80","\uD83C\uDF19","\uD83D\uDC3A","\uD83E\uDE78",
-    "\uD83E\uDD43","\uD83D\uDEAC","\u2764\uFE0F","\uD83D\uDC94","\u2728","\u26B0\uFE0F","\uD83D\uDD2A"
-  ];
+  /* Palette d'émojis : bloc Emoticons complet + extras thématiques */
+  var EMOJIS = (function () {
+    var liste = [];
+    for (var cp = 0x1F600; cp <= 0x1F64F; cp++) liste.push(String.fromCodePoint(cp));
+    var extra = [
+      "\u2764\uFE0F","\uD83E\uDE76","\uD83D\uDC94","\uD83D\uDC8B","\uD83D\uDCAF","\u2728","\uD83D\uDCAB",
+      "\uD83D\uDC4D","\uD83D\uDC4E","\uD83D\uDC4C","\u270C\uFE0F","\uD83E\uDD1E","\uD83D\uDC4A","\u270A",
+      "\uD83D\uDE4C","\uD83D\uDC4F","\uD83E\uDD1D","\uD83D\uDCAA","\u270B","\uD83D\uDD90\uFE0F","\uD83D\uDC4B",
+      "\uD83D\uDC3A","\uD83D\uDC0D","\uD83D\uDC22","\uD83D\uDC0E","\uD83E\uDD8C","\uD83D\uDC1F","\uD83D\uDD4A\uFE0F",
+      "\uD83C\uDF19","\u2600\uFE0F","\u2B50","\uD83C\uDF2A\uFE0F","\uD83C\uDF0A","\uD83D\uDD25","\uD83C\uDF32",
+      "\uD83E\uDD43","\u2615","\uD83C\uDF77","\uD83C\uDF7B","\uD83D\uDEAC","\uD83C\uDF82","\uD83C\uDF7E",
+      "\uD83D\uDC80","\u2620\uFE0F","\u26B0\uFE0F","\uD83D\uDD2A","\uD83D\uDD2B","\uD83E\uDE78","\u26D3\uFE0F",
+      "\uD83C\uDFB2","\uD83C\uDCCF","\uD83D\uDCB0","\uD83D\uDD11","\uD83D\uDD52","\uD83D\uDCF1","\uD83D\uDCE9",
+      "\u2049\uFE0F","\u2753","\u2755","\uD83D\uDCA2","\uD83D\uDCAC","\uD83D\uDC41\uFE0F","\uD83D\uDC42"
+    ];
+    return liste.concat(extra);
+  })();
 
   /* ===== UTILS ===== */
   function $(sel, ctx)    { return (ctx || document).querySelector(sel); }
@@ -100,6 +110,26 @@
     return stocke;
   }
 
+  /* Texte du message seul (sans compteur de mots ni citation) */
+  function messageTexte(contenu) {
+    if (!contenu) return "";
+    var c = contenu.cloneNode(true);
+    var aRetirer = c.querySelectorAll(".post-wordcount, blockquote, .signature_div, .sj-awards, .award_more");
+    Array.prototype.forEach.call(aRetirer, function (el) { el.remove(); });
+    return c.textContent.replace(/\s+/g, " ").trim();
+  }
+
+  /* Détecte un message composé uniquement d'émojis (avec leur nombre) */
+  function infoEmoji(txt) {
+    try {
+      if (!txt) return { seul: false, n: 0 };
+      var re = /[\p{Extended_Pictographic}\u200D\uFE0F\u20E3\p{Emoji_Modifier}\p{Regional_Indicator}]/gu;
+      var seul = txt.replace(re, "").replace(/\s/g, "") === "";
+      var m = txt.match(/\p{Extended_Pictographic}/gu);
+      return { seul: seul, n: m ? m.length : 0 };
+    } catch (e) { return { seul: false, n: 0 }; }
+  }
+
   /* ===== RENDER : une bulle par post ===== */
   function construireBulle(post, idAuteur, premier) {
     var avatar  = $(".sj-post-avatar", post);
@@ -137,6 +167,10 @@
     if (contenu) {
       contenu.classList.add("cw-content");
       bubble.appendChild(contenu);
+      if (!contenu.querySelector("blockquote")) {
+        var info = infoEmoji(messageTexte(contenu));
+        if (info.seul && info.n >= 1 && info.n <= 3) bubble.classList.add("cw-jumbo");
+      }
     }
 
     var meta = document.createElement("div");
