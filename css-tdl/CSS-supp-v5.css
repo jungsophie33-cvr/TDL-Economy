@@ -317,8 +317,7 @@ div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, di
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(2) > .pagination span a {width:auto; display:inline;background:var(--darkopa8); line-height:1.3em;font-family: var(--txt1); color:var(--clair1); padding:0 5px; margin-right:3px;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(3) {max-height: 25px;overflow: auto; background: var(--clair1opa6); padding: 2px 5px; border-radius: 5px; font-size:1em; font-family:var(--txt1); font-weight:700;}
 
-.sj-topic-listbox .sj-topic-list > div:nth-child(3) {display: flex; flex-direction: column; justify-content: space-evenly; padding: 0 10px; font-size: 0.8em; font-family: var(--txt3);}
-.sj-topic-listbox .sj-topic-list > div:nth-child(3) > span {background: var(--darkopa5); padding: 2px 5px; border-radius: 3px; color: var(--clair1opa8); margin: 2px 0; letter-spacing: -1px;}
+.sj-topic-listbox .sj-topic-list > div:nth-child(3) {display: flex; flex-direction: column; justify-content: space-between; padding: 0 10px; font-size: 1.2em; font-family: var(--txt2);}
 .sj-topic-listbox .sj-topic-list > div:nth-child(4) {display: flex; align-items: center; justify-content:space-evenly; font-family: var(--txt3); font-size: 0.9em;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(4) > span > dfn {display:none;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(4) > span:nth-child(2) > a {font-family: var(--txt3); font-size: 1.1em;}
