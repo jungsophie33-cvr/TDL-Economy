@@ -269,35 +269,23 @@
     if (back) back.addEventListener("click", function () { history.back(); });
   }
 
-  /* Clone la pagination en retirant le script et le lien "Aller à la page" */
-  function clonePagination(src) {
-    var c = src.cloneNode(true);
-    Array.prototype.slice.call(c.children).forEach(function (ch) {
-      if (ch.tagName === "SCRIPT" || ch.tagName === "A") ch.remove();
-    });
-    return c;
-  }
-
-  /* Injecte la pagination native (en haut sous le header, en bas avant la barre) */
+  /* Injecte les numéros de page (seuls) dans le header, à droite */
   function injecterPagination() {
-    var pags = $all(".pagination").filter(function (p) {
+    if ($(".cw-head-pag")) return;
+    var pag = $all(".pagination").filter(function (p) {
       return p.textContent.replace(/\s/g, "") !== "";
-    });
-    if (!pags.length) return;
+    })[0];
+    if (!pag) return;
     var head = $(".cw-header");
-    var bar  = $(".cw-bar");
-    if (head && !$(".cw-pag-haut")) {
-      var haut = document.createElement("div");
-      haut.className = "cw-pagination cw-pag-haut";
-      haut.appendChild(clonePagination(pags[0]));
-      head.parentNode.insertBefore(haut, head.nextSibling);
-    }
-    if (bar && !$(".cw-pag-bas")) {
-      var bas = document.createElement("div");
-      bas.className = "cw-pagination cw-pag-bas";
-      bas.appendChild(clonePagination(pags[pags.length - 1]));
-      bar.parentNode.insertBefore(bas, bar);
-    }
+    if (!head) return;
+    var items = pag.querySelectorAll("span > a:not(.pag-img), span > strong"); // [MAJ] numéros + page courante
+    if (!items.length) return;
+    var box = document.createElement("div");
+    box.className = "cw-head-pag";
+    Array.prototype.forEach.call(items, function (it) {
+      box.appendChild(it.cloneNode(true));
+    });
+    head.appendChild(box);
   }
 
   /* ===== ENVOI RÉEL (contourne SCEditor) ===== */
