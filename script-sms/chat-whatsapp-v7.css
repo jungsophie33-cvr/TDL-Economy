@@ -16,7 +16,7 @@ body.chat-mode {
   --cw-header-bg:    var(--dark);
   --cw-header-txt:   var(--clair1);
   --cw-rayon:        14px;
-  --cw-avatar:       30px;
+  --cw-avatar:       38px;
 }
 
 /* ===== CHROME NATIF MASQUÉ ===== */
@@ -78,8 +78,8 @@ body.chat-mode .cw-avatar img {
 body.chat-mode .cw-dot { display: none; }
 body.chat-mode .cw-avatar.cw-online .cw-dot {
   display: block;
-  position: absolute; right: -2px; bottom: -1px;
-  width: 9px; height: 9px;
+  position: absolute; right: -1px; bottom: 0;
+  width: 11px; height: 11px;
   border-radius: 50%;
   background: #4caf50;
   border: 2px solid var(--cw-bg);
@@ -210,7 +210,7 @@ body.chat-mode .cw-time {
   color: inherit;
   text-decoration: none;
 }
-body.chat-mode .cw-checks { font-size: 11px; color: var(--clair2); }
+body.chat-mode .cw-checks { font-size: 11px; color: var(--dark2); }
 
 /* ===== MENU D'ACTIONS ===== */
 body.chat-mode .cw-menu { position: absolute; top: 4px; }
