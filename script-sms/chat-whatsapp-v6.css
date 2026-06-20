@@ -9,10 +9,10 @@
 /* ===== ALIAS (pointent vers ton :root) ===== */
 body.chat-mode {
   --cw-bg:           var(--clair1);    /* fond du fil           */
-  --cw-bubble-recv:  var(--cntr7);     /* bulle reçue (gauche)  */
-  --cw-bubble-sent:  var(--darkopa4);  /* bulle envoyée (droite)*/
+  --cw-bubble-recv:  var(--cntr5);     /* bulle reçue (gauche)  */
+  --cw-bubble-sent:  var(--darkopa3);  /* bulle envoyée (droite)*/
   --cw-txt-recv:     var(--txt);
-  --cw-txt-sent:     var(--clair1);
+  --cw-txt-sent:     var(--txt);
   --cw-header-bg:    var(--dark);
   --cw-header-txt:   var(--clair1);
   --cw-rayon:        14px;
@@ -50,7 +50,7 @@ body.chat-mode .sj-postmsg::after { display: none !important; }
 /* ===== LIGNE : avatar + bulle ===== */
 body.chat-mode .cw-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
   margin: 6px 0;
 }
@@ -100,6 +100,20 @@ body.chat-mode .cw-sent .cw-bubble {
   background: var(--cw-bubble-sent);
   color: var(--cw-txt-sent);
 }
+
+/* message composé uniquement d'émojis : gros, sans bulle */
+body.chat-mode .cw-bubble.cw-jumbo {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  align-self: auto;
+}
+body.chat-mode .cw-col:has(.cw-jumbo) { min-width: 0; }
+body.chat-mode .cw-jumbo .cw-content { font-size: 46px; line-height: 1.15; }
+body.chat-mode .cw-sent .cw-jumbo .cw-content { text-align: right; }
+body.chat-mode .cw-jumbo .cw-meta,
+body.chat-mode .cw-jumbo .cw-time,
+body.chat-mode .cw-jumbo .cw-checks { color: var(--txt) !important; }
 
 /* pseudo (bulles reçues) */
 body.chat-mode .cw-pseudo { margin-bottom: 1px; }
@@ -294,10 +308,10 @@ body.chat-mode .cw-emoji-pop {
   bottom: calc(100% + 6px);
   left: 8px;
   z-index: 60;
-  width: 252px;
-  max-height: 180px;
+  width: 296px;
+  max-height: 240px;
   overflow-y: auto;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 4px;
   background: var(--clair1);
   border: 0.5px solid var(--darkopa3);
