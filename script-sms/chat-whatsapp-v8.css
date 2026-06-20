@@ -15,7 +15,7 @@ body.chat-mode {
   --cw-txt-sent:     var(--txt);
   --cw-header-bg:    var(--dark);
   --cw-header-txt:   var(--clair1);
-  --cw-rayon:        14px;
+  --cw-rayon:        8px;
   --cw-avatar:       38px;
 }
 
@@ -89,16 +89,17 @@ body.chat-mode .cw-avatar.cw-online .cw-dot {
 body.chat-mode .cw-bubble {
   position: relative;
   align-self: stretch;
-  padding: 7px 11px 5px;
-  border-radius: 4px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
+  padding: 10px 15px 5px;
+  border-radius: 2px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
   background: var(--cw-bubble-recv);
   color: var(--cw-txt-recv);
-  border: 0.5px solid var(--darkopa2);
+  border: 0.5px solid var(--cntr);
 }
 body.chat-mode .cw-sent .cw-bubble {
-  border-radius: var(--cw-rayon) 4px var(--cw-rayon) var(--cw-rayon);
+  border-radius: var(--cw-rayon) 2px var(--cw-rayon) var(--cw-rayon);
   background: var(--cw-bubble-sent);
   color: var(--cw-txt-sent);
+  border-color:var(--darkopa5);
 }
 
 /* message composé uniquement d'émojis : gros, sans bulle */
@@ -145,16 +146,16 @@ body.chat-mode .cw-content {
 body.chat-mode .cw-content blockquote {
   margin: 0 0 6px 0 !important;
   padding: 5px 9px !important;
-  background: var(--darkopa6) !important;
+  background: var(--clair1opa8) !important;
   border: 0 !important;
-  border-left: 3px solid var(--clair2) !important;
-  border-radius: 6px !important;
+  border-left: 3px solid var(--dark2) !important;
+  border-radius: 5px !important;
   width: auto !important;
   max-height: 4.5em;
   overflow: hidden;
   font-size: 13px !important;
   line-height: 1.4 !important;
-  color: var(--clair1) !important;
+  color: var(--txt) !important;
 }
 body.chat-mode .cw-content blockquote::before { display: none !important; }
 body.chat-mode .cw-content blockquote * { color: var(--clair1) !important; }
@@ -171,7 +172,7 @@ body.chat-mode .cw-content blockquote cite {
   text-transform: none !important;
   line-height: 1.3 !important;
   width: auto !important;
-  color: var(--clair2) !important;
+  color: var(--dark2) !important;
 }
 
 /* colonne : bulle empilée au-dessus des réactions */
@@ -267,6 +268,7 @@ body.chat-mode .cw-daysep span {
 body.chat-mode .cw-header {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px;
+  border-radius: 5px 5px 0 0;
   background: var(--cw-header-bg);
   color: var(--cw-header-txt);
   position: sticky; top: 0; z-index: 40; /* [MAJ] retirer si conflit avec le menu fixe FA */
@@ -282,6 +284,7 @@ body.chat-mode .cw-bar {
   padding: 10px 12px;
   background: var(--cntr);
   position: sticky; bottom: 0; z-index: 40;
+   border-radius: 0 0 5px 5px;
 }
 body.chat-mode textarea.cw-bar-input {
   flex: 1;
