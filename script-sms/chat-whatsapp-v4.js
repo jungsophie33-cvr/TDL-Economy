@@ -25,6 +25,14 @@
     placeholder: "Message"
   };
 
+  /* Palette d'émojis (Unicode envoyé en texte brut) */
+  var EMOJIS = [
+    "\uD83D\uDE00","\uD83D\uDE02","\uD83D\uDE05","\uD83D\uDE0A","\uD83D\uDE0D","\uD83D\uDE18","\uD83D\uDE0E",
+    "\uD83E\uDD14","\uD83D\uDE0F","\uD83D\uDE2C","\uD83D\uDE2D","\uD83D\uDE21","\uD83D\uDC4D","\uD83D\uDC4E",
+    "\uD83D\uDE4F","\uD83D\uDC4F","\uD83D\uDD25","\uD83D\uDC80","\uD83C\uDF19","\uD83D\uDC3A","\uD83E\uDE78",
+    "\uD83E\uDD43","\uD83D\uDEAC","\u2764\uFE0F","\uD83D\uDC94","\u2728","\u26B0\uFE0F","\uD83D\uDD2A"
+  ];
+
   /* ===== UTILS ===== */
   function $(sel, ctx)    { return (ctx || document).querySelector(sel); }
   function $all(sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); }
@@ -242,20 +250,53 @@
     f.submit();
   }
 
+  /* Insère un émoji à la position du curseur dans le champ */
+  function insererEmoji(input, emoji) {
+    var s = input.selectionStart || 0, e = input.selectionEnd || 0;
+    var v = input.value;
+    input.value = v.slice(0, s) + emoji + v.slice(e);
+    var pos = s + emoji.length;
+    input.selectionStart = input.selectionEnd = pos;
+    input.focus();
+    input.dispatchEvent(new Event("input"));
+  }
+
   /* ===== BARRE DE SAISIE ===== */
   function injecterBarre(dernierPost) {
     if ($(".cw-bar")) return;
     var bar = document.createElement("div");
     bar.className = "cw-bar";
     bar.innerHTML =
-      '<i class="fi fi-rr-smile cw-bar-ico"></i>' +
+      '<button class="cw-emoji-btn" type="button" aria-label="\u00C9mojis"><i class="fi fi-rr-smile"></i></button>' +
+      '<div class="cw-emoji-pop"></div>' +
       '<textarea class="cw-bar-input" rows="1" placeholder="' + TEXTES.placeholder + '"></textarea>' +
       '<i class="fi fi-rr-clip cw-bar-ico"></i>' +
       '<button class="cw-send" type="button" aria-label="Envoyer"><i class="fi fi-rr-paper-plane"></i></button>';
     dernierPost.parentNode.insertBefore(bar, dernierPost.nextSibling);
 
-    var input = $(".cw-bar-input", bar);
-    var btn   = $(".cw-send", bar);
+    var input    = $(".cw-bar-input", bar);
+    var btn      = $(".cw-send", bar);
+    var emojiBtn = $(".cw-emoji-btn", bar);
+    var pop      = $(".cw-emoji-pop", bar);
+
+    EMOJIS.forEach(function (em) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "cw-emoji";
+      b.textContent = em;
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();
+        insererEmoji(input, em);
+      });
+      pop.appendChild(b);
+    });
+
+    emojiBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      pop.classList.toggle("cw-open");
+    });
+    pop.addEventListener("click", function (e) { e.stopPropagation(); });
+
     function go() { envoyer(input.value); }
     btn.addEventListener("click", go);
     input.addEventListener("keydown", function (e) {
@@ -315,6 +356,8 @@
       var pm = m.closest(".sj-postmsg");
       if (pm) { pm.style.position = ""; pm.style.zIndex = ""; }
     });
+    var ep = $(".cw-emoji-pop.cw-open");
+    if (ep) ep.classList.remove("cw-open");
   });
 
   /* ===== INIT (polling) ===== */
