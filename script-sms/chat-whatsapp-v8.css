@@ -110,6 +110,11 @@ body.chat-mode .cw-bubble.cw-jumbo {
 }
 body.chat-mode .cw-col:has(.cw-jumbo) { min-width: 0; }
 body.chat-mode .cw-jumbo .cw-content { font-size: 46px; line-height: 1.15; }
+body.chat-mode .cw-jumbo .cw-content img.emojione {
+  width: 46px !important;
+  height: 46px !important;
+  vertical-align: middle;
+}
 body.chat-mode .cw-sent .cw-jumbo .cw-content { text-align: right; }
 body.chat-mode .cw-jumbo .cw-meta,
 body.chat-mode .cw-jumbo .cw-time,
