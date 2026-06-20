@@ -119,15 +119,34 @@
     return c.textContent.replace(/\s+/g, " ").trim();
   }
 
-  /* Détecte un message composé uniquement d'émojis (avec leur nombre) */
+  /* Plage de codepoints émoji (sans \p, compatible tous navigateurs) */
+  function estEmoji(cp) {
+    if (cp >= 0x1F000 && cp <= 0x1FAFF) return true; // plan emoji principal
+    if (cp >= 0x2600  && cp <= 0x27BF)  return true; // symboles divers + dingbats
+    if (cp >= 0x2300  && cp <= 0x23FF)  return true; // symboles techniques (⌛ ⏰ …)
+    if (cp === 0x2B50 || cp === 0x2B55 || cp === 0x2B1B || cp === 0x2B1C) return true;
+    if (cp === 0x2764 || cp === 0x2620 || cp === 0x2049 || cp === 0x203C) return true;
+    if (cp === 0x00A9 || cp === 0x00AE || cp === 0x2122) return true;
+    return false;
+  }
+
+  /* Message composé uniquement d'émojis (avec leur nombre) */
   function infoEmoji(txt) {
-    try {
-      if (!txt) return { seul: false, n: 0 };
-      var re = /[\p{Extended_Pictographic}\u200D\uFE0F\u20E3\p{Emoji_Modifier}\p{Regional_Indicator}]/gu;
-      var seul = txt.replace(re, "").replace(/\s/g, "") === "";
-      var m = txt.match(/\p{Extended_Pictographic}/gu);
-      return { seul: seul, n: m ? m.length : 0 };
-    } catch (e) { return { seul: false, n: 0 }; }
+    var t = (txt || "").replace(/\s/g, "");
+    if (!t) return { seul: false, n: 0 };
+    var n = 0;
+    for (var i = 0; i < t.length; ) {
+      var cp = t.codePointAt(i);
+      i += (cp > 0xFFFF ? 2 : 1);
+      if (cp === 0x200D || cp === 0xFE0F || cp === 0xFE0E || cp === 0x20E3 ||
+          (cp >= 0x1F3FB && cp <= 0x1F3FF) ||   // teints de peau
+          (cp >= 0x1F1E6 && cp <= 0x1F1FF)) {    // indicatifs régionaux
+        continue;
+      }
+      if (estEmoji(cp)) { n++; }
+      else { return { seul: false, n: n }; }
+    }
+    return { seul: n > 0, n: n };
   }
 
   /* ===== RENDER : une bulle par post ===== */
