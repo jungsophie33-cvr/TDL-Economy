@@ -60,7 +60,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
     }catch(e){ err("updatePostDollars", e); }
   }
 
-  // ---------- CORE INIT ----------
+// ---------- CORE INIT (écritures ciblées, plus aucun PUT racine) ----------
   async function coreInit(){
     log("Initialisation...");
     const menu = document.querySelector(window.EcoCore.MENU_SELECTOR);
@@ -78,18 +78,21 @@ console.log("[EcoV2] >>> eco-ui chargé");
     record.cagnottes = record.cagnottes || {};
     record.boutique  = record.boutique  || {};
 
-    // --- Crée les cagnottes manquantes ---
-    let newCagAdded = false;
+    // --- Cagnottes manquantes : init ciblée, sans écraser une valeur existante ---
+    const cagManquantes = [];
     GROUPS.forEach(g => {
-      if(record.cagnottes[g] === undefined){
-        record.cagnottes[g] = 0;
-        newCagAdded = true;
-        console.log(`[EcoV2] 🪙 Cagnotte créée : ${g}`);
-      }
+      if(record.cagnottes[g] === undefined){ record.cagnottes[g] = 0; cagManquantes.push(g); }
     });
-    if(newCagAdded){
-      try{ await writeBin(record); console.log("[EcoV2] ✅ Cagnotte(s) sauvegardée(s)."); }
-      catch(e){ console.warn("[EcoV2] ⚠️ Impossible d'écrire les cagnottes :", e); }
+    if(cagManquantes.length){
+      try{
+        await Promise.all(cagManquantes.map(g =>
+          window.EcoCore.firebaseTransaction(
+            "cagnottes/" + encodeURIComponent(g),
+            cur => (cur == null ? 0 : cur)   // ne crée que si absente
+          )
+        ));
+        console.log("[EcoV2] ✅ Cagnotte(s) initialisée(s) :", cagManquantes.join(", "));
+      }catch(e){ console.warn("[EcoV2] ⚠️ init cagnottes :", e); }
     }
 
     const pseudo = getPseudo(), uid = getUserId();
@@ -100,32 +103,45 @@ console.log("[EcoV2] >>> eco-ui chargé");
       return;
     }
 
-    // --- Patch : gestion UID + sync changement de pseudo ---
+    // --- Sync changement de pseudo (PATCH multi-chemins atomique) ---
     record.uid_index = record.uid_index || {};
     const ancienPseudo = record.uid_index[uid];
     const pseudoChange = ancienPseudo && ancienPseudo !== pseudo && record.membres[ancienPseudo];
 
     if(pseudoChange){
+      // mutations locales (pour l'affichage qui suit)
       record.membres[pseudo] = record.membres[ancienPseudo];
       delete record.membres[ancienPseudo];
       record.uid_index[uid] = pseudo;
+
+      const updates = {};
+      updates["membres/" + pseudo]        = record.membres[pseudo];
+      updates["membres/" + ancienPseudo]  = null;            // suppression
+      updates["uid_index/" + uid]         = pseudo;
+
       if(record.doubles_comptes){
+        const cles = new Set();
         if(record.doubles_comptes[ancienPseudo]){
           record.doubles_comptes[pseudo] = record.doubles_comptes[ancienPseudo];
           delete record.doubles_comptes[ancienPseudo];
+          cles.add(pseudo); cles.add(ancienPseudo);
         }
-        Object.values(record.doubles_comptes).forEach(groupe => {
-          const arr = Array.isArray(groupe.comptes)
-            ? groupe.comptes : Object.values(groupe.comptes || {});
+        Object.entries(record.doubles_comptes).forEach(([gkey, groupe]) => {
+          const arr = Array.isArray(groupe.comptes) ? groupe.comptes : Object.values(groupe.comptes || {});
           const idx = arr.indexOf(ancienPseudo);
-          if(idx !== -1){ arr[idx] = pseudo; groupe.comptes = arr; }
+          if(idx !== -1){ arr[idx] = pseudo; groupe.comptes = arr; cles.add(gkey); }
+        });
+        cles.forEach(k => {
+          updates["doubles_comptes/" + k] = (k === ancienPseudo) ? null : record.doubles_comptes[k];
         });
       }
-      await writeBin(record).catch(()=>null);
+
+      try{ await window.EcoCore.firebaseUpdate(updates); }
+      catch(e){ err("[uid-sync] échec PATCH renommage", e); }
       log(`[uid-sync] Pseudo renommé : ${ancienPseudo} → ${pseudo}`);
     }
 
-    // --- Création ou mise à jour standard du membre ---
+    // --- Création ou mise à jour du membre (ciblée) ---
     if(!record.membres[pseudo]){
       const g = await fetchUserGroupFromProfile(uid);
       record.membres[pseudo] = {
@@ -136,25 +152,35 @@ console.log("[EcoV2] >>> eco-ui chargé");
         lastMessageThresholdAwarded: 0,
       };
       record.uid_index[uid] = pseudo;
-      await writeBin(record).catch(()=>null);
+      const updates = {};
+      updates["membres/" + pseudo]  = record.membres[pseudo];
+      updates["uid_index/" + uid]   = pseudo;
+      await window.EcoCore.firebaseUpdate(updates).catch(e => err("création membre", e));
     } else {
-      record.membres[pseudo].messages = getMessagesCount();
-      if(!record.membres[pseudo].uid){
-        record.membres[pseudo].uid = uid;
-        record.uid_index[uid] = pseudo;
+      const m = record.membres[pseudo];
+      // compteur de messages — toujours
+      m.messages = getMessagesCount();
+      await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/messages", m.messages).catch(()=>{});
+      // uid manquant
+      if(!m.uid){
+        m.uid = uid; record.uid_index[uid] = pseudo;
+        await window.EcoCore.firebaseUpdate({
+          ["membres/" + pseudo + "/uid"]: uid,
+          ["uid_index/" + uid]: pseudo
+        }).catch(()=>{});
       }
-      if(!record.membres[pseudo].group){
+      // groupe manquant
+      if(!m.group){
         const g = await fetchUserGroupFromProfile(uid);
-        if(g) record.membres[pseudo].group = g;
+        if(g){ m.group = g; await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/group", g).catch(()=>{}); }
       }
-      await writeBin(record).catch(()=>null);
     }
 
-    // --- Assignation forcée Mami Wata ---
+    // --- Assignation forcée Mami Wata (ciblée) ---
     if(pseudo === "Mami Wata" && record.membres[pseudo].group !== "Providence"){
       record.membres[pseudo].group = "Providence";
       console.log("[EcoV2] 🔮 Mami Wata assignée de force à la Providence.");
-      await writeBin(record).catch(()=>null);
+      await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/group", "Providence").catch(()=>{});
     }
 
     // --- Affichage solde courant ---
@@ -189,12 +215,12 @@ console.log("[EcoV2] >>> eco-ui chargé");
       document.getElementById("eco-btn-shop")?.addEventListener("click", ()=>{
         location.href = "https://thedrownedlands.forumactif.com/h2-boutique-tdl";
       });
+
       // --- DON vers la cagnotte du groupe (écritures ciblées, anti-collision) ---
       document.getElementById("eco-btn-don")?.addEventListener("click", async () => {
         const montant = parseInt(prompt("Montant du don :", "0"));
         if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
 
-        // Pré-lecture (UX) : groupe + contrôle de fonds indicatif + valeurs pour l'affichage
         const rec = await readBin();
         const membre = rec?.membres?.[pseudo];
         const grp = membre?.group;
@@ -206,16 +232,11 @@ console.log("[EcoV2] >>> eco-ui chargé");
         const P    = encodeURIComponent(pseudo);
         const Pgrp = encodeURIComponent(grp);
 
-        // 1) DÉBIT atomique du membre — le contrôle de fonds est REFAIT dans la
-        //    transaction, contre la valeur serveur fraîche (anti double-dépense).
+        // 1) Débit atomique — contrôle de fonds REFAIT contre la valeur serveur
         try {
           await window.EcoCore.firebaseTransaction(
             "membres/" + P + "/dollars",
-            cur => {
-              const solde = cur || 0;
-              if (solde < montant) throw new Error("FONDS_INSUFFISANTS");
-              return solde - montant;
-            }
+            cur => { const s = cur || 0; if (s < montant) throw new Error("FONDS_INSUFFISANTS"); return s - montant; }
           );
         } catch (e) {
           if (e && e.message === "FONDS_INSUFFISANTS") return alert("Fonds insuffisants !");
@@ -223,40 +244,25 @@ console.log("[EcoV2] >>> eco-ui chargé");
           return alert("Erreur lors du débit — don non effectué.");
         }
 
-        // 2) CRÉDIT cagnotte + JOURNAL. Si ça échoue après le débit, on rembourse.
+        // 2) Crédit cagnotte + journal ; remboursement si échec
         try {
-          await window.EcoCore.firebaseTransaction(
-            "cagnottes/" + Pgrp,
-            cur => (cur || 0) + montant
-          );
-          await window.EcoCore.firebasePush("donations", {
-            date: new Date().toISOString(),
-            membre: pseudo,
-            groupe: grp,
-            montant
-          });
+          await window.EcoCore.firebaseTransaction("cagnottes/" + Pgrp, cur => (cur || 0) + montant);
+          await window.EcoCore.firebasePush("donations", { date: new Date().toISOString(), membre: pseudo, groupe: grp, montant });
         } catch (e) {
-          console.error("[EcoV2][DON] crédit cagnotte échoué — remboursement", e);
-          await window.EcoCore.firebaseTransaction(
-            "membres/" + P + "/dollars",
-            cur => (cur || 0) + montant
-          ).catch(() => {});
+          console.error("[EcoV2][DON] crédit échoué — remboursement", e);
+          await window.EcoCore.firebaseTransaction("membres/" + P + "/dollars", cur => (cur || 0) + montant).catch(()=>{});
           return alert("Erreur : don annulé, ton solde est inchangé.");
         }
 
-        // invalide le cache local (les transactions ne le font pas)
         sessionStorage.removeItem("eco_cache_record");
         sessionStorage.removeItem("eco_cache_time");
-
         alert("✅ Don effectué !");
 
-        // affichage optimiste (le serveur a calculé les mêmes valeurs)
         const el = document.querySelector("#sj-dollars");
         if (el) el.textContent = soldeAvant - montant;
         const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g, "_")}`);
         if (cag) cag.textContent = cagAvant + montant;
       });
-      
     }catch(e){ err("adminBar", e); }
 
     // --- Affichage dollars page profil ---
