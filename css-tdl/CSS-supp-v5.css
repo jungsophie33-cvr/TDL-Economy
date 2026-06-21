@@ -34,7 +34,7 @@ a, a:visited, a:hover {font-style:none !important; text-decoration:none !importa
 #sj-nav ul a:hover#new_mp {color:var(--clair1)!important;}
 
 /* ----- BOUTON HAUT BAS ----- */
-.sj-bloctb {position:fixed;display:flex; right:20px; bottom:120px; flex-flow:column; gap:30px; z-index:999;}
+.sj-bloctb {position:fixed;display:flex; right:10px; bottom:50px; flex-flow:column; gap:30px; z-index:999;}
 .sj-bloctb a {font-family: "uicons-regular-rounded";}
 .sj-btnTop:before, .sj-btnBot:before {background:var(--darkopa7);border-radius:5px; color:var(--clair1);padding:10px; font-size:1.4em;cursor:pointer;}
 .sj-btnTop:before {content: "\e098";}
