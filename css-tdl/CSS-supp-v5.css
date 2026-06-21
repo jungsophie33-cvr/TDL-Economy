@@ -121,7 +121,7 @@ border-top-color: var(--clair1);top:-7px;}
   60%  { transform:scale(0.97); }
   100% { transform:scale(1); }
 }
-.sj-intro {display:flex; flex-flow:row-reverse; justify-content:center; gap:40px;margin-bottom:100px;margin-top:70px; font-size:0.85em;}
+.sj-intro {display:flex; flex-flow:row-reverse; justify-content:center; gap:40px;margin-bottom:100px;margin-top:70px;}
 .sj-intro .sj-intrleft {width:400px; height:90px; background: none;transition: background 0.5s ease; padding:10px;  border-radius:10px;text-align:justify;}
 .sj-intro .sj-intrleft.active, .sj-intro .sj-intrleft.closing {background:var(--clair1opa5);backdrop-filter:blur(10px);}
 .sj-intro .sj-intrleft span {display: block; max-height: 0; overflow: hidden; opacity: 0;  transform: translateY(-10px); transition: max-height 0.5s ease,opacity 0.4s ease, transform 0.4s ease;}
