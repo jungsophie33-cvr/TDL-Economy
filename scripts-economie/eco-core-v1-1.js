@@ -315,7 +315,8 @@ async function writeField(path, data) {
     // API données (même noms qu'avant)
     readBin, safeReadBin, writeBin,
     // Nouvelles API Firebase
-    writeField, transactDollars, invalidateCache, firebaseTransaction, firebasePush,
+    writeField, transactDollars, invalidateCache,
+    firebaseTransaction, firebasePush, firebaseUpdate,
     // Extractors & helpers
     getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
     insertAfter, createErrorBanner, showEcoGain
