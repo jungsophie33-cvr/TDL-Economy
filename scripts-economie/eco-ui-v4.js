@@ -189,24 +189,74 @@ console.log("[EcoV2] >>> eco-ui chargé");
       document.getElementById("eco-btn-shop")?.addEventListener("click", ()=>{
         location.href = "https://thedrownedlands.forumactif.com/h2-boutique-tdl";
       });
-      document.getElementById("eco-btn-don")?.addEventListener("click", async()=>{
+      // --- DON vers la cagnotte du groupe (écritures ciblées, anti-collision) ---
+      document.getElementById("eco-btn-don")?.addEventListener("click", async () => {
         const montant = parseInt(prompt("Montant du don :", "0"));
-        if(isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-        const rec  = await readBin();
-        const grp  = rec.membres[pseudo]?.group;
-        if(!grp) return alert("Ton groupe est inconnu.");
-        if((rec.membres[pseudo]?.dollars || 0) < montant) return alert("Fonds insuffisants !");
-        rec.membres[pseudo].dollars -= montant;
-        rec.cagnottes[grp] = (rec.cagnottes[grp] || 0) + montant;
-        if(!rec.donations) rec.donations = [];
-        rec.donations.push({ date: new Date().toISOString(), membre: pseudo, groupe: grp, montant });
-        await writeBin(rec);
+        if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+
+        // Pré-lecture (UX) : groupe + contrôle de fonds indicatif + valeurs pour l'affichage
+        const rec = await readBin();
+        const membre = rec?.membres?.[pseudo];
+        const grp = membre?.group;
+        if (!grp) return alert("Ton groupe est inconnu.");
+        const soldeAvant = membre.dollars || 0;
+        const cagAvant   = rec?.cagnottes?.[grp] || 0;
+        if (soldeAvant < montant) return alert("Fonds insuffisants !");
+
+        const P    = encodeURIComponent(pseudo);
+        const Pgrp = encodeURIComponent(grp);
+
+        // 1) DÉBIT atomique du membre — le contrôle de fonds est REFAIT dans la
+        //    transaction, contre la valeur serveur fraîche (anti double-dépense).
+        try {
+          await window.EcoCore.firebaseTransaction(
+            "membres/" + P + "/dollars",
+            cur => {
+              const solde = cur || 0;
+              if (solde < montant) throw new Error("FONDS_INSUFFISANTS");
+              return solde - montant;
+            }
+          );
+        } catch (e) {
+          if (e && e.message === "FONDS_INSUFFISANTS") return alert("Fonds insuffisants !");
+          console.error("[EcoV2][DON] échec débit", e);
+          return alert("Erreur lors du débit — don non effectué.");
+        }
+
+        // 2) CRÉDIT cagnotte + JOURNAL. Si ça échoue après le débit, on rembourse.
+        try {
+          await window.EcoCore.firebaseTransaction(
+            "cagnottes/" + Pgrp,
+            cur => (cur || 0) + montant
+          );
+          await window.EcoCore.firebasePush("donations", {
+            date: new Date().toISOString(),
+            membre: pseudo,
+            groupe: grp,
+            montant
+          });
+        } catch (e) {
+          console.error("[EcoV2][DON] crédit cagnotte échoué — remboursement", e);
+          await window.EcoCore.firebaseTransaction(
+            "membres/" + P + "/dollars",
+            cur => (cur || 0) + montant
+          ).catch(() => {});
+          return alert("Erreur : don annulé, ton solde est inchangé.");
+        }
+
+        // invalide le cache local (les transactions ne le font pas)
+        sessionStorage.removeItem("eco_cache_record");
+        sessionStorage.removeItem("eco_cache_time");
+
         alert("✅ Don effectué !");
-        const el  = document.querySelector("#sj-dollars");
-        if(el) el.textContent = rec.membres[pseudo].dollars;
-        const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g,"_")}`);
-        if(cag) cag.textContent = rec.cagnottes[grp];
+
+        // affichage optimiste (le serveur a calculé les mêmes valeurs)
+        const el = document.querySelector("#sj-dollars");
+        if (el) el.textContent = soldeAvant - montant;
+        const cag = document.getElementById(`eco-cag-${grp.replace(/\s/g, "_")}`);
+        if (cag) cag.textContent = cagAvant + montant;
       });
+      
     }catch(e){ err("adminBar", e); }
 
     // --- Affichage dollars page profil ---
