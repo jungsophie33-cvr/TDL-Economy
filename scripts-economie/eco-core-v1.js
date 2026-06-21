@@ -176,6 +176,21 @@ async function firebaseGet(path) {
     if (!r.ok) throw new Error(`Firebase POST ${r.status}`);
     return await r.json(); // { name: "-N..." }
   }
+  // PATCH multi-chemins à la racine : applique plusieurs écritures (set/suppression)
+  // de façon atomique, sans toucher aux nœuds frères. null supprime le chemin.
+  async function firebaseUpdate(updates) {
+    await _authPromise;
+    if (!_authToken) throw new Error("Pas de token Firebase — update refusé");
+    invalidateCache();
+    const url = `${BASE_URL}/.json?auth=${_authToken}`;
+    const r = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates)
+    });
+    if (!r.ok) throw new Error(`Firebase PATCH ${r.status}`);
+    return await r.json();
+  }
 
   // ---------- CACHE SESSION ----------
   const CACHE_TTL = 60000; // 60 secondes
