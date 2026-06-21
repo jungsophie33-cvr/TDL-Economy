@@ -162,6 +162,20 @@ async function firebaseGet(path) {
     }
     throw new Error("Transaction échouée après 5 tentatives");
   }
+  // POST : ajoute un enfant à clé unique générée par le serveur (append concurrent-safe)
+  async function firebasePush(path, data) {
+    await _authPromise;
+    if (!_authToken) throw new Error("Pas de token Firebase — push refusé");
+    invalidateCache();
+    const url = `${BASE_URL}/${path}.json?auth=${_authToken}`;
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(`Firebase POST ${r.status}`);
+    return await r.json(); // { name: "-N..." }
+  }
 
   // ---------- CACHE SESSION ----------
   const CACHE_TTL = 60000; // 60 secondes
@@ -286,7 +300,7 @@ async function writeField(path, data) {
     // API données (même noms qu'avant)
     readBin, safeReadBin, writeBin,
     // Nouvelles API Firebase
-    writeField, transactDollars, invalidateCache,
+    writeField, transactDollars, invalidateCache, firebaseTransaction, firebasePush,
     // Extractors & helpers
     getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
     insertAfter, createErrorBanner, showEcoGain
