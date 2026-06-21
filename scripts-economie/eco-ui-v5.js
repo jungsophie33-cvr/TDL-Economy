@@ -136,9 +136,14 @@ console.log("[EcoV2] >>> eco-ui chargé");
         });
       }
 
-      try{ await window.EcoCore.firebaseUpdate(updates); }
-      catch(e){ err("[uid-sync] échec PATCH renommage", e); }
-      log(`[uid-sync] Pseudo renommé : ${ancienPseudo} → ${pseudo}`);
+     try{
+        await window.EcoCore.firebaseUpdate(updates);
+        log(`[uid-sync] Pseudo renommé : ${ancienPseudo} → ${pseudo}`);
+      }catch(e){
+        err("[uid-sync] échec PATCH renommage — coreInit interrompu, réessai au prochain chargement", e);
+        loading.remove();
+        return;   // on n'écrit RIEN d'autre tant que la migration n'a pas abouti
+      }
     }
 
     // --- Création ou mise à jour du membre (ciblée) ---
