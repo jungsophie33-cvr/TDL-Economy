@@ -20,7 +20,7 @@
 .sj-post-msg .systab .tab {cursor: pointer; background:var(--cntr3); padding:3px 10px; margin: 5px 15px 10px 0; border-radius:5px; border:1px solid var(--cntr8); font-family:var(--txt2); text-transform:uppercase; font-weight:700; transition:all ease 0.5s;}
 .sj-post-msg .systab .tab:hover {background:var(--cntr6); transition:all ease 0.5s;}
 .sj-post-msg .systab .tab.selected {background:var(--cntr3); border:1px solid var(--dark2opa8);}
-.sj-post-msg .systab .contents {margin-top:10px;position:relative;height:fit-content; max-height:700px;background: var(--cntr3); border-radius:5px; outline:1px solid var(--cntr2); outline-offset:3px; box-shadow:0 0 2px var(--darkopa3); padding:15px;}
+.sj-post-msg .systab .contents {margin-top:10px;position:relative;height:fit-content; max-height:700px;background: var(--cntr3); border-radius:5px; outline:1px solid var(--cntr2); outline-offset:3px; box-shadow:0 0 2px var(--darkopa3); padding:20px 10px; overflow:auto;}
 .sj-post-msg .systab .content > span:first-child + br {display:none;}
 /* ------- Détails ------- */
 
