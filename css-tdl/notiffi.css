@@ -18,6 +18,15 @@
  height: 35px;
 }
 
+#notiffi_button:before {
+ font-family: "uicons-thin-rounded";
+content: '\ef0c';
+padding-right: 10px;
+position: relative;
+top: 3px;
+font-size: 18px;
+}
+
 /* Conteneur du nombre de notification non lues REMPLI */
 .unread_count {
  position: relative;
