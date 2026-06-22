@@ -12,7 +12,7 @@
  gap: 10px;
  padding: 5px 10px;
  position: fixed;
- z-index: 99;
+ z-index: 999;
  top: 8px;
  right: 20px;
 padding: 0 20px;
@@ -30,8 +30,6 @@ border: 1px solid var(--clair1opa3);
  font-family: "uicons-thin-rounded";
 content: '\ef0c';
 padding-right: 10px;
-position: relative;
-top: 3px;
 font-size: 18px;
 }
 
@@ -67,7 +65,7 @@ font-size: 18px;
  /* taille du Menu */
  width: var(--menuSize);
  position: fixed;
- z-index: 98;
+ z-index: 990;
  top: 0;
  height: 100%;
  right: calc(var(--menuSize) * -1);
