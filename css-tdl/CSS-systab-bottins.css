@@ -21,7 +21,7 @@
 .sj-post-msg .systab .tab:hover {background:var(--cntr6); transition:all ease 0.5s;}
 .sj-post-msg .systab .tab.selected {background:var(--cntr3); border:1px solid var(--dark2opa8);}
 .sj-post-msg .systab .contents {margin-top:10px;position:relative;height:fit-content; max-height:700px;background: var(--cntr3); border-radius:5px; outline:1px solid var(--cntr2); outline-offset:3px; box-shadow:0 0 2px var(--darkopa3); padding:15px;}
-
+.sj-post-msg .systab .content > span:first-child + br {display:none;}
 /* ------- Détails ------- */
 
 .systab .content .h3, .cdre .h3 {line-height: 1em;
