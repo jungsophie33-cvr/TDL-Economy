@@ -14,7 +14,7 @@
  position: fixed;
  z-index: 999;
  top: 8px;
- right: 20px;
+ right: 15px;
 padding: 0 20px;
 height: 40px;
 font-family: var(--title1);
@@ -29,7 +29,6 @@ border: 1px solid var(--clair1opa3);
 #notiffi_button:before {
  font-family: "uicons-thin-rounded";
 content: '\ef0c';
-padding-right: 10px;
 font-size: 18px;
 }
 
@@ -74,7 +73,7 @@ font-size: 18px;
  background: var(--clair1opa7);
  border-left: 1px solid var(--cntr);
  padding: 15px;
- padding-top: 50px;
+ padding-top: 60px;
  opacity: 0;
  visibility: hidden;
  transition: all ease .7s;
