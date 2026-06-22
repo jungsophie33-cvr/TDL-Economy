@@ -202,7 +202,7 @@ outline-offset: 2px;
  bottom: -5px;
  right: -5px;
  background: var(--cntr);
- color:var(--clair1opa8)
+ color:var(--clair1opa8);
  width: 18px;
  aspect-ratio: 1;
  display: grid;
