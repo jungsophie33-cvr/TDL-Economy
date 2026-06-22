@@ -868,4 +868,4 @@ line-height: 1em;
 
 .tl-tooltip ul li {background: var(--cntr3); padding: 5px 10px; border-radius: 5px; margin: 10px; font-family: var(--txt2); font-size: 1.1em; line-height:1.3em;}
 .tl-tooltip ul li:before {font-family: uicons-thin-rounded !important; position:relative;content: '\e092';background: var(--clair1opa8);padding: 3px;border-radius: 100%;margin: 0 10px 0 0;top: 2px;color: var(--dark2);}
-
+.tl-tooltip ul > br {display:none;}
