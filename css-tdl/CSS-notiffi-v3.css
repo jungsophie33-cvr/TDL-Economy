@@ -36,16 +36,14 @@ font-size: 18px;
 /* Conteneur du nombre de notification non lues REMPLI */
 .unread_count {
  position: relative;
- background: var(--clair1);
+ background: var(--dark2opa7);
  border-radius: 5px;
  width: 25px;
- display: grid;
- place-items: center;
+ height:25px;
  font-weight: 600;
  font-size: 12px;
- scale: 1;
+ line-height:25px;
  opacity: 1;
- aspect-ratio: 1;
  transition: scale ease-out .2s;
 }
 
@@ -173,7 +171,7 @@ font-size: 18px;
 
 /* Apparence d'une notification NON LUE */
 .notification.unread {
- background-color: var(--neutral);
+ background-color: var(--cntr3);
 }
 
 /* Conteneur des détails de la notification (avatar, icone) */
@@ -203,7 +201,8 @@ outline-offset: 2px;
  position: absolute;
  bottom: -5px;
  right: -5px;
- background: var(--dark2);
+ background: var(--cntr);
+ color:var(--clair1opa8)
  width: 18px;
  aspect-ratio: 1;
  display: grid;
@@ -214,8 +213,8 @@ outline-offset: 2px;
 
 /* Icone lorsque la notification est non lue */
 .notification.unread .notif_icon {
- color: var(--dark);
- background: var(--cntr5);
+ color: var(--clair1);
+ background: var(--dark2);
 }
 
 /* Conteneur du texte et la date de la notification */
@@ -257,7 +256,7 @@ outline-offset: 2px;
  z-index: 99;
  bottom: 10px;
  right: 10px;
- background: var(--cntr);
+ background: var(--clair1);
  transform: translateY(100%);
  opacity: 0;
  filter: blur(5px);
@@ -272,7 +271,7 @@ outline-offset: 2px;
 }
 
 .alert_close {
- background: var(--clair1);
+ background: var(--dark2opa5);
  font-size: 18px;
  line-height: 0;
  border-radius: 100px;
