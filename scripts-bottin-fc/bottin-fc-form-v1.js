@@ -64,6 +64,14 @@ window.BottinFC = window.BottinFC || {};
     ERR_OCCUPE: function (a) { return "⛔ « " + a + " » est déjà pris ou réservé."; },
     ERR_FONDS: "⛔ Fonds insuffisants.",
     ERR_GEN: "❌ Erreur. Réessaie.",
+    // --- renouvellement ---
+    R_TITRE: "Renouveler le pré-lien",
+    R_INFO: function (a, n, j) { return a + " — " + n + " · il reste " + j + " j."; },
+    R_STAFF: "Renouvellement staff : +1 mois, gratuit.",
+    R_BTN: "Payer et renouveler (+1 mois)",
+    R_BTN_STAFF: "Renouveler (+1 mois)",
+    OK_RENOUV: "✅ Réservation prolongée d'un mois.",
+    ERR_INTROUV: "⛔ Carte introuvable (peut-être expirée).",
   };
 
   /* === UTILS === */
@@ -87,6 +95,17 @@ window.BottinFC = window.BottinFC || {};
       pseudo: (typeof E.getPseudo === "function") ? E.getPseudo() : null,
       uid: (typeof E.getUserId === "function") ? E.getUserId() : 0,
     };
+  }
+
+  function estAdmin() {
+    var E = window.EcoCore || {};
+    var p = (typeof E.getPseudo === "function") ? E.getPseudo() : null;
+    return !!p && (E.ADMIN_USERS || []).indexOf(p) !== -1;
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   /* === DONNÉES (lectures / écritures Firebase) === */
@@ -137,11 +156,29 @@ window.BottinFC = window.BottinFC || {};
     );
   }
 
-  function journaliser(pseudo, montant, acteur) {
+  function rembourser(pseudo, montant) {
+    return EcoCore.firebaseTransaction(
+      "membres/" + encodeURIComponent(pseudo) + "/dollars",
+      function (cur) { return (cur || 0) + montant; }
+    );
+  }
+
+  // Prolonge la carte d'un mois : +30 jours au reliquat RÉEL (jamais maintenant+30).
+  function prolonger(cle) {
+    return EcoCore.firebaseTransaction("faceclaims/" + cle, function (current) {
+      if (!current || typeof current !== "object") {
+        var e = new Error("INTROUVABLE"); e.code = "INTROUVABLE"; throw e;
+      }
+      current.expiration = (current.expiration || Date.now()) + CFG.JOURS_MOIS * CFG.JOUR_MS;
+      return current;
+    });
+  }
+
+  function journaliser(pseudo, montant, acteur, motif) {
     try {
       EcoCore.firebasePush("transactions_membres", {
-        date: new Date().toISOString(), de: pseudo, vers: "Réservation pré-lien",
-        montant: montant, motif: "Pré-lien " + acteur,
+        date: new Date().toISOString(), de: pseudo, vers: motif || "Réservation pré-lien",
+        montant: montant, motif: (motif || "Pré-lien") + " " + acteur,
       }).catch(function () {});
     } catch (e) { /* journalisation best-effort */ }
   }
@@ -228,7 +265,7 @@ window.BottinFC = window.BottinFC || {};
         '<p class="bfc-form-titre">' + T.S_TITRE + '</p>'
       + '<p class="bfc-form-info">' + T.S_INFO + '</p>'
       + '<label class="bfc-form-label">' + T.L_ACTEUR + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Nom du Faceclaim">'
+      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text">'
       + '<button class="bfc-form-go" id="bfc-f-go" type="button">' + T.S_BTN + '</button>'
       + '<div class="bfc-form-msg" id="bfc-f-msg"></div>';
     ov.querySelector("#bfc-f-go").addEventListener("click", function () { soumettreSept(ov); });
@@ -244,11 +281,11 @@ window.BottinFC = window.BottinFC || {};
     contenu(ov).innerHTML =
         '<p class="bfc-form-titre">' + T.P_TITRE + '</p>'
       + '<label class="bfc-form-label">' + T.L_ACTEUR + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Nom du Faceclaim">'
+      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text">'
       + '<label class="bfc-form-label">' + T.L_NOM + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-nom" type="text" placeholder="Nom du PL">'
+      + '<input class="bfc-form-input" id="bfc-f-nom" type="text">'
       + '<label class="bfc-form-label">' + T.L_LIEN + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-lien" type="text" placeholder="/t512-...">'
+      + '<input class="bfc-form-input" id="bfc-f-lien" type="text">'
       + '<label class="bfc-form-label">' + T.L_DUREE + '</label>'
       + '<select class="bfc-form-select" id="bfc-f-mois">' + optionsMois() + '</select>'
       + '<div class="bfc-form-cout"><span class="bfc-form-cout-lib">' + T.COUT_LIB + '</span><span class="bfc-form-cout-val" id="bfc-f-cout">' + CFG.COUT_MENSUEL + ' $</span></div>'
@@ -326,6 +363,60 @@ window.BottinFC = window.BottinFC || {};
       });
   }
 
+  /* === RENOUVELLEMENT === */
+  function ecranRenouv(ov, cle, c, solde, gratuit) {
+    ov._acteur = c.acteur || cle;
+    var jours = Math.max(1, Math.ceil(((c.expiration || Date.now()) - Date.now()) / CFG.JOUR_MS));
+    var ligneCout = gratuit
+      ? '<p class="bfc-form-info">' + T.R_STAFF + '</p>'
+      : '<div class="bfc-form-cout"><span class="bfc-form-cout-lib">' + T.COUT_LIB + '</span><span class="bfc-form-cout-val">' + CFG.COUT_MENSUEL + ' $</span></div>'
+        + '<div class="bfc-form-solde">' + T.SOLDE + ' ' + solde + ' $</div>';
+
+    contenu(ov).innerHTML =
+        '<p class="bfc-form-titre">' + T.R_TITRE + '</p>'
+      + '<p class="bfc-form-info">' + esc(T.R_INFO(c.acteur || cle, c.nom_prelien || "—", jours)) + '</p>'
+      + ligneCout
+      + '<button class="bfc-form-go" id="bfc-f-go" type="button">' + (gratuit ? T.R_BTN_STAFF : T.R_BTN) + '</button>'
+      + '<div class="bfc-form-msg" id="bfc-f-msg"></div>';
+
+    var btn = ov.querySelector("#bfc-f-go");
+    if (!gratuit && solde < CFG.COUT_MENSUEL) btn.disabled = true;
+    btn.addEventListener("click", function () { soumettreRenouv(ov, cle, gratuit); });
+  }
+
+  function soumettreRenouv(ov, cle, gratuit) {
+    var u = utilisateur();
+    bloquer(ov, true);
+
+    if (gratuit) {                                   // override staff : pas de débit
+      prolonger(cle)
+        .then(function () { succes(ov, T.OK_RENOUV); })
+        .catch(function (err) {
+          bloquer(ov, false);
+          message(ov, (err && err.code === "INTROUVABLE") ? T.ERR_INTROUV : T.ERR_GEN, "err");
+        });
+      return;
+    }
+
+    var montant = CFG.COUT_MENSUEL;
+    debiter(u.pseudo, montant)                        // débit d'abord, prolongation ensuite
+      .then(function () {
+        return prolonger(cle).catch(function (err) {
+          return rembourser(u.pseudo, montant).then(function () { throw err; });
+        });
+      })
+      .then(function () {
+        journaliser(u.pseudo, montant, ov._acteur || "", "Renouvellement pré-lien");
+        succes(ov, T.OK_RENOUV);
+      })
+      .catch(function (err) {
+        bloquer(ov, false);
+        var m = (err && err.code === "FONDS") ? T.ERR_FONDS
+              : (err && err.code === "INTROUVABLE") ? T.ERR_INTROUV : T.ERR_GEN;
+        message(ov, m, "err");
+      });
+  }
+
   /* === HOOK PUBLIC === */
   NS.ouvrirReservation = function () {
     var u = utilisateur();
@@ -335,6 +426,25 @@ window.BottinFC = window.BottinFC || {};
       return;
     }
     ecranMotif(ouvrir());
+  };
+
+  // Renouvellement d'une carte pré-lien : détenteur (payant) ou staff (gratuit).
+  NS.renouvelerCarte = function (cle) {
+    var u = utilisateur();
+    if (!u.pseudo || u.uid <= 0) return;
+    if (!window.EcoCore || typeof EcoCore.firebaseTransaction !== "function") return;
+
+    if (EcoCore.invalidateCache) EcoCore.invalidateCache();   // lecture fraîche : reliquat à jour
+    EcoCore.readBin().then(function (rec) {
+      var c = (rec && rec.faceclaims && rec.faceclaims[cle]) || null;
+      if (!c || c.statut !== "libre") return;                 // carte disparue / non pré-lien
+      var admin = estAdmin();
+     var detenteur = (c.uid != null && String(c.uid) === String(u.uid));
+      if (!admin && !detenteur) return;                       // double vérification de droit
+      var gratuit = admin && !detenteur;                      // staff sur la carte d'un TIERS → gratuit
+      var solde = (rec.membres && rec.membres[u.pseudo] && rec.membres[u.pseudo].dollars) || 0;
+      ecranRenouv(ouvrir(), cle, c, solde, gratuit);          // détenteur (même admin) → payant
+    }).catch(function () {});
   };
 
 })(window.BottinFC);
