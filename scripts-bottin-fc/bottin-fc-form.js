@@ -228,7 +228,7 @@ window.BottinFC = window.BottinFC || {};
         '<p class="bfc-form-titre">' + T.S_TITRE + '</p>'
       + '<p class="bfc-form-info">' + T.S_INFO + '</p>'
       + '<label class="bfc-form-label">' + T.L_ACTEUR + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Jeffrey Dean Morgan">'
+      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Nom du Faceclaim">'
       + '<button class="bfc-form-go" id="bfc-f-go" type="button">' + T.S_BTN + '</button>'
       + '<div class="bfc-form-msg" id="bfc-f-msg"></div>';
     ov.querySelector("#bfc-f-go").addEventListener("click", function () { soumettreSept(ov); });
@@ -244,9 +244,9 @@ window.BottinFC = window.BottinFC || {};
     contenu(ov).innerHTML =
         '<p class="bfc-form-titre">' + T.P_TITRE + '</p>'
       + '<label class="bfc-form-label">' + T.L_ACTEUR + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Oscar Isaac">'
+      + '<input class="bfc-form-input" id="bfc-f-acteur" type="text" placeholder="Nom du Faceclaim">'
       + '<label class="bfc-form-label">' + T.L_NOM + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-nom" type="text" placeholder="Marcus LeBlanc">'
+      + '<input class="bfc-form-input" id="bfc-f-nom" type="text" placeholder="Nom du PL">'
       + '<label class="bfc-form-label">' + T.L_LIEN + '</label>'
       + '<input class="bfc-form-input" id="bfc-f-lien" type="text" placeholder="/t512-...">'
       + '<label class="bfc-form-label">' + T.L_DUREE + '</label>'
