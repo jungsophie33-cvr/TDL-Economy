@@ -122,12 +122,24 @@
     await window.EcoCore.writeBin(rec);
     if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
+    // Crée la carte faceclaim « multicompte » par transaction ciblée, hors writeBin.
+    let avertFC = "";
+    if (decision === "validee") {
+      try {
+        const r = await reserverFaceclaimMC(demande, rec);
+        if (r && r.occupe) avertFC = " ⚠️ Faceclaim déjà pris/réservé — carte non créée, à vérifier.";
+      } catch (e) {
+        avertFC = " ⚠️ Carte faceclaim non créée — à ajouter manuellement via le panneau admin.";
+        if (window.console) console.error("[eco-dc-staff] reserverFaceclaimMC", e);
+      }
+    }
+
     const monnaie = window.EcoCore.MONNAIE_NAME;
     DC.preremplirReponse(DC.msgStaff(demande, decision, motif, staffPseudo, monnaie));
 
     DC.afficherResultat(resultatEl, "succes",
       decision === "validee"
-        ? `✅ Demande validée.${demande.paiement_requis ? " Paiement débité." : ""}`
+        ? `✅ Demande validée.${demande.paiement_requis ? " Paiement débité." : ""}${avertFC}`
         : "✅ Demande refusée."
     );
 
@@ -192,6 +204,51 @@
     if (rec.doubles_comptes[racine]) {
       rec.doubles_comptes[racine].demande_en_cours = false;
     }
+  }
+
+  /* === FACECLAIM (carte multicompte) === */
+
+  function normaliserCleFC(acteur) {
+    return String(acteur || "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[.#$\[\]\/]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  // Crée la carte « reserve / multicompte » par transaction ciblée (jamais de PUT global).
+  // UID = compte racine du groupe ; réattribué au nouveau compte à la validation de sa fiche.
+  // Ne crée rien si l'acteur est déjà occupé. Retourne { ok, occupe }.
+  async function reserverFaceclaimMC(demande, rec) {
+    const acteur = (demande.avatar_reserve || "").trim();
+    if (!acteur) return { ok: false };
+    const E = window.EcoCore;
+    if (!E || typeof E.firebaseTransaction !== "function") return { ok: false };
+
+    const cle = normaliserCleFC(acteur);
+    const racine = demande.compte_racine;
+    const uidRacine = rec.membres?.[racine]?.uid ?? null;
+
+    let occupe = false;
+    await E.firebaseTransaction("faceclaims/" + cle, (current) => {
+      if (current && typeof current === "object") {
+        occupe = true; const e = new Error("OCCUPE"); e.code = "OCCUPE"; throw e;
+      }
+      const carte = { acteur, statut: "reserve", type: "multicompte", pseudo: racine };
+      if (uidRacine != null) carte.uid = uidRacine;
+      return carte;
+    }).catch((e) => { if (e.code !== "OCCUPE") throw e; });
+
+    if (occupe) return { ok: false, occupe: true };
+
+    if (uidRacine != null) {
+      await E.firebaseTransaction("faceclaims_uid/" + uidRacine, (cur) => {
+        const l = DC.versTableau(cur);
+        if (!l.includes(cle)) l.push(cle);
+        return l;
+      });
+    }
+    return { ok: true };
   }
 
   /* === AJOUT PSEUDO === */
