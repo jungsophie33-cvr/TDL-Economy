@@ -134,7 +134,7 @@ window.BottinFC = window.BottinFC || {};
 
     // --- photo : avatar capturé (pris) sinon pastille d'initiales ---
     var photo;
-    if (statut === "pris" && c.image) {
+    if (c.image) {
       photo = '<img class="bfc-avatar" src="' + esc(c.image) + '" alt="' + nomActeur + '">';
     } else {
       var modeRond = (statut === "libre") ? "bfc-initiales--libre" : "bfc-initiales--reserve";
