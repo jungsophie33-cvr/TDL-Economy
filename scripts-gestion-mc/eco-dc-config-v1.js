@@ -82,6 +82,7 @@ window.DC.TEXTES = {
   ERR_CONDITIONS:       "⛔ Vous ne remplissez pas encore toutes les conditions requises.",
   ERR_RESUME_COURT:     "⚠️ Résumé trop court (minimum 30 caractères).",
   ERR_AVATAR_VIDE:      "⚠️ Veuillez préciser votre demande de réservation d'avatar.",
+  ERR_AVATAR_PRIS: (a) => `⛔ Le faceclaim « ${a} » est déjà pris ou réservé. Choisis-en un autre.`,
   ERR_SOLDE:            (s) => `❌ Solde insuffisant au moment de l'envoi (${s} $).`,
   ERR_DONNEES:          "❌ Impossible de lire les données. Réessayez dans quelques instants.",
   ERR_ENVOI:            "❌ Erreur lors de l'envoi. Réessayez ou contactez un admin.",
