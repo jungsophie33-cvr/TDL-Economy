@@ -110,8 +110,8 @@ window.FI.TEXTES = {
   L_SOCIETE:         "Nom de la société / lieu de travail *",
   L_EMPLOI:          "Intitulé du poste *",
   L_LIEU_HAB:        "Lieu d'habitation *",
-  L_LOGEMENT:        "N° et type de logement *",
-
+  L_NUMERO:          "N° de logement *",
+  L_TYPE_LOGEMENT:   "Type de logement *",
   /* Erreurs de validation */
   ERR_LIEN_FICHE:     "⚠️ Le lien vers ta fiche est requis.",
   ERR_LIEN_PRELIEN:   "⚠️ Le lien du pré-lien est requis si tu as coché Oui.",
@@ -124,7 +124,8 @@ window.FI.TEXTES = {
   ERR_SOCIETE:        "⚠️ Le nom de la société est requis.",
   ERR_EMPLOI:         "⚠️ L'emploi est requis.",
   ERR_LIEU_HAB:       "⚠️ Le lieu d'habitation est requis.",
-  ERR_LOGEMENT:       "⚠️ Le numéro et type de logement sont requis.",
+  ERR_NUMERO:         "⚠️ Le numéro de logement est requis.",
+  ERR_TYPE_LOGEMENT:  "⚠️ Le type de logement est requis.",  
   ERR_ENVOI:          "❌ Erreur lors de l'envoi. Réessayez ou contactez un admin.",
   ERR_DONNEES:        "❌ Impossible de charger les données.",
 
