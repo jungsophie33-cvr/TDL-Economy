@@ -87,6 +87,21 @@ window.FI.TEXTES = {
   L_MULTICOMPTE:     "Ton personnage est-il un multi-compte ?",
   L_PREMIER_COMPTE:  "Ton premier compte créé :",
   L_FACECLAIM:       "Faceclaim choisi *",
+
+  /* Faceclaim — sélecteur de mode de réservation */
+  L_FC_MODE:         "As-tu réservé ce faceclaim ?",
+  FC_MODE_SANS:      "Sans réservation",
+  FC_MODE_7J:        "Faceclaim réservé (7 jours)",
+  FC_MODE_MC:        "Multicompte réservé",
+  FC_MODE_PRELIEN:   "Pré-lien réservé",
+  L_FC_CHOIX:        "Choisis ta réservation",
+  FC_OPT_CHOISIR:    "— Choisir —",
+  FC_OPT_AUTRE:      "— Autre (saisie libre) —",
+  FC_VIDE_7J:        "Aucune réservation 7 jours à ton nom.",
+  FC_VIDE_MC:        "Sélectionne d'abord ton compte principal ci-dessus.",
+  FC_VIDE_MC_AUCUNE: "Aucune réservation multicompte pour ce compte.",
+  FC_VIDE_PRELIEN:   "Aucun pré-lien réservé pour le moment.",
+  
   L_GROUPE:          "Communauté (groupe) *",
   L_BANDE:           "Appartenance à une bande hors-la-loi ?",
   L_NOM_BANDE:       "Nom de la bande :",
@@ -100,7 +115,7 @@ window.FI.TEXTES = {
   /* Erreurs de validation */
   ERR_LIEN_FICHE:     "⚠️ Le lien vers ta fiche est requis.",
   ERR_LIEN_PRELIEN:   "⚠️ Le lien du pré-lien est requis si tu as coché Oui.",
-  ERR_PREMIER_COMPTE: "⚠️ Sélectionne le compte racine de ton groupe.",
+  ERR_PREMIER_COMPTE: "⚠️ Sélectionne le compte principal parmi tes MC.",
   ERR_FACECLAIM:      "⚠️ La barre de faceclaim est requise.",
   ERR_GROUPE:         "⚠️ Le groupe est requis.",
   ERR_BANDE_NOM:      "⚠️ Le nom de la bande est requis.",
