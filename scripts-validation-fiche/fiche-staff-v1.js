@@ -170,10 +170,21 @@
       });
     }
 
-    appliquerActions(rec, demande);
+appliquerActions(rec, demande);
     await window.EcoCore.writeBin(rec);
 
-    FI.afficherResultat(resultatEl, "succes", T.STAFF_OK(demande.pseudo));
+    // Bascule la carte faceclaim en « pris » par transaction ciblée, HORS du writeBin,
+    // pour ne jamais écraser une réservation concurrente posée via le bottin.
+    let avertFC = "";
+    try {
+      const r = await reclamerFaceclaim(demande);
+      if (r && r.conflit) avertFC = `<br><small>${T.STAFF_FC_CONFLIT}</small>`;
+    } catch (e) {
+      avertFC = `<br><small>${T.STAFF_FC_ECHEC}</small>`;
+      if (window.console) console.error("[fiche-staff] reclamerFaceclaim", e);
+    }
+
+    FI.afficherResultat(resultatEl, "succes", T.STAFF_OK(demande.pseudo) + avertFC);
     setTimeout(() => chargerDemandes(listeEl), 2000);
     return true;
   }
@@ -225,6 +236,69 @@
     delete groupe.slot_en_attente;
   }
 
+  /* === FACECLAIM (bascule en « pris ») === */
+
+  function normaliserCleFC(acteur) {
+    return String(acteur || "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[.#$\[\]\/]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  function recupererAvatarFC(uid) {
+    return fetch("/u" + uid)
+      .then((r) => (r.ok ? r.text() : null))
+      .then((html) => {
+        if (!html) return null;
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const img = doc.querySelector("#avatar_membre > img");   // [MAJ] avatar profil TDL
+        return (img && img.getAttribute("src")) || null;
+      })
+      .catch(() => null);
+  }
+
+  // Bascule la carte de l'acteur en « pris » : UID du compte validé, avatar capturé,
+  // réattribution d'UID pour un multicompte. Écritures ciblées uniquement (pas de PUT global).
+  // Retourne { conflit } si la carte écrasée appartenait à un autre membre (hors transfert MC).
+  async function reclamerFaceclaim(d) {
+    const cle = normaliserCleFC(d.faceclaim);
+    if (!cle) return { conflit: false };
+    const E = window.EcoCore;
+    if (!E || typeof E.firebaseTransaction !== "function") return { conflit: false };
+
+    const image = d.uid ? await recupererAvatarFC(d.uid) : null;
+
+    let ancienUid = null, ancienType = null;
+    await E.firebaseTransaction("faceclaims/" + cle, (current) => {
+      if (current && typeof current === "object") {
+        ancienUid = (current.uid != null) ? current.uid : null;
+        ancienType = current.type || null;
+      }
+      const carte = { acteur: d.faceclaim, statut: "pris", uid: d.uid || null, pseudo: d.pseudo };
+      if (image) carte.image = image;
+      return carte;
+    });
+
+    // Index inverse : ajout sous le nouvel UID.
+    if (d.uid != null) {
+      await E.firebaseTransaction("faceclaims_uid/" + d.uid, (cur) => {
+        const l = FI.versTableau(cur);
+        if (!l.includes(cle)) l.push(cle);
+        return l;
+      });
+    }
+    // Multicompte : retrait de l'ancien UID (compte principal → compte validé).
+    if (ancienUid != null && String(ancienUid) !== String(d.uid)) {
+      await E.firebaseTransaction("faceclaims_uid/" + ancienUid, (cur) =>
+        FI.versTableau(cur).filter((k) => k !== cle));
+    }
+
+    const transfertMC = d.multicompte && ancienType === "multicompte";
+    const conflit = ancienUid != null && String(ancienUid) !== String(d.uid) && !transfertMC;
+    return { conflit };
+  }
+  
   /* === FALLBACK POSTING === */
 
   // Affiché quand le posting automatique échoue (form introuvable).
