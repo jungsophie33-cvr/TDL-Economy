@@ -132,9 +132,16 @@
         <select id="fi-lieu-habitation" class="fi-select">
           ${optsAvecVide(CFG.LISTES.LIEUX_HABITATION)}
         </select>
-        <label class="fi-label">${T.L_LOGEMENT}</label>
-        <input id="fi-logement" class="fi-input" type="text"
-          placeholder="Ex : #14 Maison individuelle">
+        <div class="fi-rangee">
+          <div style="flex:1">
+            <label class="fi-label">${T.L_NUMERO}</label>
+            <input id="fi-numero" class="fi-input" type="text" placeholder="Ex : n°14">
+          </div>
+          <div style="flex:1">
+            <label class="fi-label">${T.L_TYPE_LOGEMENT}</label>
+            <input id="fi-type-logement" class="fi-input" type="text" placeholder="Vérifier dans le sujet bottin des logements">
+          </div>
+        </div>
       </fieldset>
     `;
   }
@@ -341,7 +348,8 @@
       societe:         overlay.querySelector("#fi-societe").value.trim(),
       emploi:          overlay.querySelector("#fi-emploi").value.trim(),
       lieu_habitation: overlay.querySelector("#fi-lieu-habitation").value,
-      logement:        overlay.querySelector("#fi-logement").value.trim(),
+      numero:          overlay.querySelector("#fi-numero").value.trim(),
+      type_logement:   overlay.querySelector("#fi-type-logement").value.trim(),
     };
   }
 
@@ -359,7 +367,8 @@
     if (!d.societe)                         return T.ERR_SOCIETE;
     if (!d.emploi)                          return T.ERR_EMPLOI;
     if (!d.lieu_habitation)                 return T.ERR_LIEU_HAB;
-    if (!d.logement)                        return T.ERR_LOGEMENT;
+    if (!d.numero)                          return T.ERR_NUMERO;
+    if (!d.type_logement)                   return T.ERR_TYPE_LOGEMENT;
     return null;
   }
 
