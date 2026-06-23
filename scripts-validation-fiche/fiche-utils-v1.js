@@ -130,31 +130,28 @@
   /* === BBCODE === */
 
   FI.bbcodeDemande = function (d) {
-    const prelienLigne = d.pre_lien
-      ? `[url=${d.lien_pre_lien}]Voir le pré-lien[/url]`
-      : "Non";
-    const parrainLigne = d.parrain && d.parrain !== "Personne"
-      ? `@"${d.parrain}"` : "Personne";
-    const dcLigne = d.multicompte
-      ? `Oui — compte racine : @"${d.premier_compte}"` : "Non";
-    const bandeLigne = d.bande ? `${d.nom_bande} — ${d.role_bande}` : "Non";
+    const esc = (s) => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-    return [
-      "[b]━━━ DEMANDE DE VALIDATION DE FICHE ━━━[/b]",
-      "",
-      `[b]Membre :[/b] @"${d.pseudo}"`,
-      `[b]Fiche :[/b] [url=${d.lien_fiche}]Voir la fiche[/url]`,
-      `[b]Pré-lien :[/b] ${prelienLigne}`,
-      `[b]Arrivé(e) grâce à :[/b] ${parrainLigne}`,
-      `[b]Multi-compte :[/b] ${dcLigne}`,
-      `[b]Faceclaim :[/b] ${d.faceclaim}`,
-      `[b]Groupe :[/b] ${d.groupe}`,
-      `[b]Bande hors-la-loi :[/b] ${bandeLigne}`,
-      `[b]Métier :[/b] ${d.lieu_metier} — ${d.societe} — ${d.emploi}`,
-      `[b]Habitation :[/b] ${d.lieu_habitation} — ${d.logement}`,
-      "",
-      `[i]Réf. : ${d.id}[/i]`,
-    ].join("\n");
+    const parrain = (d.parrain && d.parrain !== "Personne") ? `@"${d.parrain}"` : "Personne";
+    const prelien = d.pre_lien
+      ? `<span>Pré-lien</span> <a href="${esc(d.lien_pre_lien)}"><i class="fi fi-tr-link-alt"></i></a>`
+      : `<span>Pré-lien : non</span>`;
+    const mc = d.multicompte
+      ? `<span>oui</span> <span>@"${d.premier_compte}"</span>`
+      : `<span>non</span>`;
+    const bande = d.bande
+      ? `<span>${esc(d.nom_bande)}</span> <span>${esc(d.role_bande)}</span>`
+      : `<span>non</span>`;
+
+    return `<div id="validation-fiche" class="sj-fiche"><div class="h1"><h1>Demande de validation</h1></div>
+<tw><span>lire la fiche de @"${d.pseudo}"</span> <a href="${esc(d.lien_fiche)}"><i class="fi fi-ts-circle-book-open"></i></a> <span>Arrivé grâce à ${parrain}</span> ${prelien}</tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>Administratif</f4><d>Multicompte</d> ${mc}
+<d>Faceclaim</d> <span>${esc(d.faceclaim)}</span>
+<d>Groupe</d> <span>${esc(d.groupe)}</span></div><div class="sj-formcol"><f4>Personnage & bottins</f4><d>Bande hors-la-loi</d> ${bande}
+<d>Métier</d> <span>${esc(d.lieu_metier)}</span> <span>${esc(d.societe)}</span> <span>${esc(d.emploi)}</span>
+<d>Habitation</d> <span>${esc(d.lieu_habitation)}</span> <span>${esc(d.numero)}</span> <span>${esc(d.type_logement)}</span></div>
+</div></div>`;
   };
 
   FI.bbcodeValidation = function (d, msgPerso, staffPseudo) {
