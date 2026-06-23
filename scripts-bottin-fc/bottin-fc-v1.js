@@ -54,6 +54,7 @@ window.BottinFC = window.BottinFC || {};
     LEG_LIBRE:    "pré-lien libre",
     MC:           "MC",
     SUPPR_TITRE:  "Supprimer cette carte",
+    RENOUV_TITRE: "Renouveler la réservation (+1 mois)",
     CHARGEMENT:   "Chargement du bottin…",
     VIDE:         "Aucun faceclaim enregistré pour le moment.",
     ERREUR:       "Impossible de charger le bottin des faceclaims.",
@@ -120,12 +121,16 @@ window.BottinFC = window.BottinFC || {};
 
   /* === RENDER === */
 
-  function construireCarte(cle, c, rec, now) {
+  function construireCarte(cle, c, rec, now, u) {
     var statut = c.statut || "reserve";
     var classeStatut = statut === "pris" ? "bfc-carte--pris"
                      : statut === "libre" ? "bfc-carte--libre"
                      : "bfc-carte--reserve";
     var nomActeur = esc(c.acteur || cle);
+
+    // Carte pré-lien renouvelable : détenteur (même UID) ou admin.
+    var renouvelable = statut === "libre" && u && !u.invite
+      && (u.admin || (c.uid != null && String(c.uid) === String(u.uid)));
 
     // --- photo : avatar capturé (pris) sinon pastille d'initiales ---
     var photo;
@@ -156,7 +161,11 @@ window.BottinFC = window.BottinFC || {};
       meta = esc(pseudo || "—") + mc + profil;
     }
 
-    return '<div class="bfc-carte ' + classeStatut + '">'
+    var attrRenouv = renouvelable
+      ? ' bfc-carte--renouvelable" data-cle="' + esc(cle) + '" title="' + TEXTES.RENOUV_TITRE + '"'
+      : '"';
+
+    return '<div class="bfc-carte ' + classeStatut + attrRenouv + '>'
          +   '<button class="bfc-suppr" type="button" data-cle="' + esc(cle) + '" title="' + TEXTES.SUPPR_TITRE + '"><i class="' + ICONES.suppr + '"></i></button>'
          +   '<p class="bfc-nom">' + nomActeur + '</p>'
          +   '<div class="bfc-bas">'
@@ -178,7 +187,7 @@ window.BottinFC = window.BottinFC || {};
   }
 
   // Construit la galerie ; renvoie le HTML et les clés expirées à purger.
-  function construireBottin(rec, now) {
+  function construireBottin(rec, now, u) {
     var fc = (rec && rec.faceclaims) || {};
     var entrees = Object.keys(fc)
       .map(function (cle) { return [cle, fc[cle]]; })
@@ -195,7 +204,7 @@ window.BottinFC = window.BottinFC || {};
     });
 
     var grille = vivants.length
-      ? '<div class="bfc-grille">' + vivants.map(function (e) { return construireCarte(e[0], e[1], rec, now); }).join("") + '</div>'
+      ? '<div class="bfc-grille">' + vivants.map(function (e) { return construireCarte(e[0], e[1], rec, now, u); }).join("") + '</div>'
       : '<div class="bfc-message">' + TEXTES.VIDE + '</div>';
 
     return { html: construireBarre() + grille, clesExpirees: expirees };
@@ -206,7 +215,7 @@ window.BottinFC = window.BottinFC || {};
     ancre.classList.toggle("bfc-membre", !u.invite);
     ancre.classList.toggle("bfc-admin", !!u.admin);
 
-    var resultat = construireBottin(rec, Date.now());
+    var resultat = construireBottin(rec, Date.now(), u);
     ancre.innerHTML = resultat.html;
     brancherEvenements(ancre);
 
@@ -262,10 +271,21 @@ window.BottinFC = window.BottinFC || {};
 
     var supprs = ancre.querySelectorAll(".bfc-suppr");
     [].forEach.call(supprs, function (b) {
-      b.addEventListener("click", function () {
+      b.addEventListener("click", function (e) {
+        e.stopPropagation();   // ne pas déclencher le renouvellement de la carte
         var cle = b.getAttribute("data-cle");
         if (typeof NS.supprimerCarte === "function") NS.supprimerCarte(cle);
         else if (window.console) console.warn("[BottinFC] supprimerCarte pas encore branché (module admin à venir).");
+      });
+    });
+
+    var renouv = ancre.querySelectorAll(".bfc-carte--renouvelable");
+    [].forEach.call(renouv, function (carte) {
+      carte.addEventListener("click", function (e) {
+        if (e.target.closest(".bfc-lien")) return;   // clic sur le lien pré-lien → navigation
+        var cle = carte.getAttribute("data-cle");
+        if (typeof NS.renouvelerCarte === "function") NS.renouvelerCarte(cle);
+        else if (window.console) console.warn("[BottinFC] renouvelerCarte pas encore branché (module formulaire à venir).");
       });
     });
   }
