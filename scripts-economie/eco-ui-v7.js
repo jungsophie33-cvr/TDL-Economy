@@ -4,12 +4,14 @@
 // La section admin (selects, boutons, transferts, réinitialisations) a été
 // extraite vers eco-admin-modal.js qui gère le panneau admin de façon autonome.
 //
-// [MAJ 2026-06] Affichage du solde : résolution du membre par UID (via le lien
-// profil /u{id} présent dans chaque mini-profil) plutôt que par le pseudo gratté
-// dans le DOM. Le thème sj-* n'enveloppe le pseudo dans un <strong> qu'une fois
-// un groupe attribué ; les membres sans groupe (nouveaux inscrits) n'avaient donc
-// AUCUN affichage de solde dans les posts ni sur leur page profil. La résolution
-// par UID est indépendante du groupe et du thème.
+// [MAJ 2026-06]
+//   1. Affichage du solde : résolution du membre par UID (lien profil /u{id})
+//      plutôt que par le pseudo gratté — le <strong> du pseudo n'existe que si
+//      un groupe est attribué, ce qui privait les nouveaux inscrits d'affichage.
+//   2. Groupe-communauté : plus de devinette à l'inscription (group: null).
+//      Le groupe est posé à la validation de fiche, puis MAINTENU automatiquement
+//      par detecterGroupeFA() qui lit la classe group-N de FA sur le pseudo du
+//      membre courant et la mappe via window.EcoCore.GROUPES_FA.
 console.log("[EcoV2] >>> eco-ui chargé");
 
 (function(){
@@ -17,7 +19,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
   const {
     log, warn, err,
     readBin, writeBin, safeReadBin,
-    getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
+    getPseudo, getUserId, getMessagesCount,
     insertAfter, createErrorBanner, showEcoGain,
     MONNAIE_NAME, GROUPS, ADMIN_USERS, DEFAULT_DOLLARS,
     BIN_ID, API_KEY, JSONBIN_BASE
@@ -56,6 +58,49 @@ console.log("[EcoV2] >>> eco-ui chargé");
       nom = noms[0] || null;
     }
     return (nom && membres[nom]) ? { pseudo: nom, membre: membres[nom] } : null;
+  }
+
+  // ---------- DÉTECTION DU GROUPE-COMMUNAUTÉ (classe group-N de FA) ----------
+  // [MAJ] FA n'écrit pas le nom du groupe en texte : seul un <span class="group-N …">
+  // enfant du lien profil /u{uid} le porte (et donne sa couleur au pseudo). On lit
+  // cette classe pour le MEMBRE COURANT sur la page en cours (mini-profils de ses
+  // posts, page /u, bloc "qui est en ligne"…), on la mappe via GROUPES_FA, et on
+  // met à jour Firebase UNIQUEMENT si elle diffère du groupe stocké.
+  // Garde-fous :
+  //   1. aucune classe group-N trouvée → on ne touche à RIEN (jamais d'écrasement
+  //      vers null : une page sans mini-profil ne doit pas effacer un groupe valide) ;
+  //   2. ID hors de GROUPES_FA (staff, etc.) → ignoré (on n'invente pas).
+  // Détection opportuniste : elle ne tourne que là où le pseudo du membre apparaît.
+  // Pas de correction immédiate requise → pas de fetch /u{id} de secours.
+  async function detecterGroupeFA(uid, pseudo, record){
+    if(!uid || !pseudo) return;
+    const idTable = window.EcoCore.GROUPES_FA || {};
+
+    let idDetecte = null;
+    for(const a of document.querySelectorAll('a[href*="/u"]')){
+      const m = (a.getAttribute("href") || "").match(/\/u(\d+)/);
+      if(!m || m[1] !== String(uid)) continue;           // seulement MON profil
+      const grpEl = a.querySelector('[class*="group-"]')
+                 || (a.matches('[class*="group-"]') ? a : null);
+      if(!grpEl) continue;
+      const g = (grpEl.className || "").match(/group-(\d+)/);
+      if(g){ idDetecte = g[1]; break; }
+    }
+
+    if(idDetecte === null) return;                       // garde-fou 1
+    const communaute = idTable[idDetecte];
+    if(!communaute) return;                              // garde-fou 2
+
+    const actuel = record.membres?.[pseudo]?.group;
+    if(actuel === communaute) return;                    // déjà à jour
+
+    try{
+      await window.EcoCore.writeField(
+        "membres/" + encodeURIComponent(pseudo) + "/group", communaute
+      );
+      if(record.membres?.[pseudo]) record.membres[pseudo].group = communaute;
+      log(`[groupe] ${pseudo} : "${actuel ?? "(aucun)"}" → "${communaute}" (group-${idDetecte})`);
+    }catch(e){ warn("[groupe] écriture échouée", e); }
   }
 
   // ---------- VISITEUR ----------
@@ -184,13 +229,15 @@ console.log("[EcoV2] >>> eco-ui chargé");
     }
 
     // --- Création ou mise à jour du membre (ciblée) ---
+    // [MAJ] À la création, group = null (honnête : un non-validé n'a pas de
+    // communauté). Le groupe sera posé par fiche-staff à la validation, puis
+    // maintenu par detecterGroupeFA. Plus aucun fetchUserGroupFromProfile.
     if(!record.membres[pseudo]){
-      const g = await fetchUserGroupFromProfile(uid);
       record.membres[pseudo] = {
         uid,
         dollars: DEFAULT_DOLLARS,
         messages: getMessagesCount(),
-        group: g || null,
+        group: null,
         lastMessageThresholdAwarded: 0,
       };
       record.uid_index[uid] = pseudo;
@@ -211,11 +258,15 @@ console.log("[EcoV2] >>> eco-ui chargé");
           ["uid_index/" + uid]: pseudo
         }).catch(()=>{});
       }
-      // groupe manquant
-      if(!m.group){
-        const g = await fetchUserGroupFromProfile(uid);
-        if(g){ m.group = g; await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/group", g).catch(()=>{}); }
-      }
+      // [MAJ] Bloc de re-fetch du groupe SUPPRIMÉ : la détection group-N
+      // (detecterGroupeFA, plus bas) s'en charge de manière fiable.
+    }
+
+    // --- Détection / maintien du groupe-communauté via la classe group-N ---
+    // [MAJ] Skippée pour Mami Wata : son groupe est fixé par la règle métier
+    // ci-dessous (force-assign Providence), pas par FA.
+    if(pseudo !== "Mami Wata"){
+      await detecterGroupeFA(uid, pseudo, record);
     }
 
     // --- Assignation forcée Mami Wata (ciblée) ---
