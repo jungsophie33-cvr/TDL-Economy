@@ -60,9 +60,8 @@
         <span><em>Groupe</em></span>          <span>${d.groupe}</span>
         <span><em>Bande</em></span>           <span>${bandeHtml}</span>
         <span><em>Métier</em></span>          <span>${d.lieu_metier} — ${d.societe} — ${d.emploi}</span>
-        <span><em>Habitation</em></span>      <span>${d.lieu_habitation} — ${d.logement}</span>
-      </div>
-      <div class="dc-staff-carte-ref">Réf. : ${d.id}</div>
+        <span><em>Habitation</em></span>      <span>${d.lieu_habitation} — ${d.numero} — ${d.type_logement}</span>
+        </div>
       <div class="dc-staff-actions">
         <button class="fi-btn-valider dc-btn-valider" data-id="${d.id}">
           ${T.STAFF_BTN_VALIDER}
@@ -101,7 +100,7 @@
     modal.innerHTML = `
       <div class="dc-boite" style="max-width:540px;">
         <button class="dc-btn-fermer">✕</button>
-        <h3 class="dc-titre">${T.STAFF_TITRE_MODAL(demande.pseudo)}</h3>
+        <div class="dc-titre">${T.STAFF_TITRE_MODAL(demande.pseudo)}</div>
         <label class="fi-label">${T.STAFF_LABEL_MSG}</label>
         <textarea id="fi-msg-perso" class="fi-textarea" rows="6"
           placeholder="Votre message personnalisé…"></textarea>
