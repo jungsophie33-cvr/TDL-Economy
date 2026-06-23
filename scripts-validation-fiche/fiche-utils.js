@@ -148,7 +148,6 @@
       `[b]Arrivé(e) grâce à :[/b] ${parrainLigne}`,
       `[b]Multi-compte :[/b] ${dcLigne}`,
       `[b]Faceclaim :[/b] ${d.faceclaim}`,
-      `[code]<fb>${d.faceclaim}</fb> — @"${d.pseudo}"}[/code]`,
       `[b]Groupe :[/b] ${d.groupe}`,
       `[b]Bande hors-la-loi :[/b] ${bandeLigne}`,
       `[b]Métier :[/b] ${d.lieu_metier} — ${d.societe} — ${d.emploi}`,
