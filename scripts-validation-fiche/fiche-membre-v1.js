@@ -78,9 +78,22 @@
         </select>
       </div>
 
+     <label class="fi-label">${T.L_FC_MODE}</label>
+      <select id="fi-fc-mode" class="fi-select">
+        <option value="sans">${T.FC_MODE_SANS}</option>
+        <option value="sept">${T.FC_MODE_7J}</option>
+        <option value="mc">${T.FC_MODE_MC}</option>
+        <option value="prelien">${T.FC_MODE_PRELIEN}</option>
+      </select>
+
+      <div id="fi-fc-liste-wrap" class="fi-conditionnel">
+        <label class="fi-label">${T.L_FC_CHOIX}</label>
+        <select id="fi-fc-liste" class="fi-select"></select>
+      </div>
+
       <label class="fi-label">${T.L_FACECLAIM}</label>
       <input id="fi-faceclaim" class="fi-input" type="text"
-        placeholder="Prénom Nom — Acteur·ice">
+        placeholder="Nom du Faceclaim">
 
       <label class="fi-label">${T.L_GROUPE}</label>
       <select id="fi-groupe" class="fi-select">${optsAvecVide(CFG.LISTES.GROUPES)}</select>
@@ -218,11 +231,91 @@
       membres.map((m) => `<option value="${m}">${m}</option>`).join("");
 
     const msgVide = racinesDC.length
-      ? "— Sélectionne le compte racine —"
-      : "Aucun groupe DC en attente de fiche";
+      ? "— Sélectionne le compte principal —"
+      : "Aucun multicompte en attente de fiche";
     overlay.querySelector("#fi-premier-compte").innerHTML =
       `<option value="">${msgVide}</option>` +
       racinesDC.map((m) => `<option value="${m}">${m}</option>`).join("");
+
+    const recFC = await window.EcoCore.safeReadBin();
+    chargerFaceclaims(recFC);
+  }
+
+  /* === FACECLAIM (modes de réservation) === */
+
+  let _fcCartes = [];   // cartes du bottin faceclaims (lecture)
+  let _fcMembres = {};  // rec.membres, pour résoudre premier_compte → uid
+
+  function chargerFaceclaims(rec) {
+    _fcMembres = (rec && rec.membres) || {};
+    const fc = (rec && rec.faceclaims) || {};
+    _fcCartes = Object.keys(fc)
+      .map((cle) => Object.assign({ cle }, fc[cle]))
+      .filter((c) => c && c.acteur);
+  }
+
+  function peuplerListeFC(overlay, mode) {
+    const sel = overlay.querySelector("#fi-fc-liste");
+    const uid = window._userdata?.user_id;
+    let cartes = [], vide = "";
+
+    if (mode === "sept") {
+      cartes = _fcCartes.filter((c) => c.statut === "reserve" && c.type === "validation7j"
+        && String(c.uid) === String(uid));
+      vide = T.FC_VIDE_7J;
+    } else if (mode === "mc") {
+      const racine = overlay.querySelector("#fi-premier-compte")?.value;
+      if (!racine) { sel.innerHTML = `<option value="">${T.FC_VIDE_MC}</option>`; return; }
+      const uidRacine = _fcMembres[racine]?.uid;
+      cartes = _fcCartes.filter((c) => c.statut === "reserve" && c.type === "multicompte"
+        && String(c.uid) === String(uidRacine));
+      vide = T.FC_VIDE_MC_AUCUNE;
+    } else if (mode === "prelien") {
+      cartes = _fcCartes.filter((c) => c.statut === "libre");
+      vide = T.FC_VIDE_PRELIEN;
+    }
+
+    const options = cartes.map((c) => {
+      const etq = c.nom_prelien ? `${c.acteur} — ${c.nom_prelien}` : c.acteur;
+      return `<option value="${c.acteur}">${etq}</option>`;
+    }).join("");
+
+    sel.innerHTML = `<option value="">${T.FC_OPT_CHOISIR}</option>`
+      + (cartes.length ? options : `<option value="" disabled>${vide}</option>`)
+      + `<option value="__autre__">${T.FC_OPT_AUTRE}</option>`;
+  }
+
+  function appliquerModeFC(overlay) {
+    const mode  = overlay.querySelector("#fi-fc-mode").value;
+    const wrap  = overlay.querySelector("#fi-fc-liste-wrap");
+    const input = overlay.querySelector("#fi-faceclaim");
+
+    if (mode === "sans") {
+      wrap.classList.remove("fi-visible");
+      input.readOnly = false;
+      input.value = "";
+      return;
+    }
+    peuplerListeFC(overlay, mode);
+    wrap.classList.add("fi-visible");
+    input.readOnly = true;   // débloqué seulement via « Autre (saisie libre) »
+    input.value = "";
+  }
+
+  function bindFaceclaimModes(overlay) {
+    overlay.querySelector("#fi-fc-mode")
+      .addEventListener("change", () => appliquerModeFC(overlay));
+
+    overlay.querySelector("#fi-fc-liste").addEventListener("change", (e) => {
+      const input = overlay.querySelector("#fi-faceclaim");
+      if (e.target.value === "__autre__") { input.readOnly = false; input.value = ""; input.focus(); }
+      else { input.readOnly = true; input.value = e.target.value; }
+    });
+
+    // recalcule la liste multicompte si le compte racine change
+    overlay.querySelector("#fi-premier-compte")?.addEventListener("change", () => {
+      if (overlay.querySelector("#fi-fc-mode").value === "mc") peuplerListeFC(overlay, "mc");
+    });
   }
 
   /* === LECTURE === */
@@ -322,6 +415,7 @@
 
     bindFermeture(overlay);
     bindToggles(overlay);
+    bindFaceclaimModes(overlay);
 
     bouton.querySelector(".fi-btn-ouvrir").addEventListener("click", () => {
       overlay.classList.add("actif");
