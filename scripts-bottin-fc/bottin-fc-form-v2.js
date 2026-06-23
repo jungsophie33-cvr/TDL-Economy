@@ -46,6 +46,7 @@ window.BottinFC = window.BottinFC || {};
     L_ACTEUR: "Faceclaim (nom complet)",
     L_NOM: "Nom du pré-lien (personnage affiché)",
     L_LIEN: "Lien vers la fiche du pré-lien",
+    L_IMAGE: "Image d'illustration (URL, facultatif)",
     L_DUREE: "Durée",
     COUT_LIB: "Coût (100 $ / mois)",
     SOLDE: "Ton solde :",
@@ -61,6 +62,7 @@ window.BottinFC = window.BottinFC || {};
     OK_PRELIEN: function (a, m) { return "✅ Pré-lien « " + a + " » réservé (−" + m + " $)."; },
     ERR_ACTEUR: "⚠️ Le nom du faceclaim est requis.",
     ERR_NOM: "⚠️ Le nom du pré-lien est requis.",
+    ERR_IMAGE: "⚠️ L'URL de l'image doit commencer par http.",
     ERR_OCCUPE: function (a) { return "⛔ « " + a + " » est déjà pris ou réservé."; },
     ERR_FONDS: "⛔ Fonds insuffisants.",
     ERR_GEN: "❌ Erreur. Réessaie.",
@@ -285,7 +287,9 @@ window.BottinFC = window.BottinFC || {};
       + '<label class="bfc-form-label">' + T.L_NOM + '</label>'
       + '<input class="bfc-form-input" id="bfc-f-nom" type="text">'
       + '<label class="bfc-form-label">' + T.L_LIEN + '</label>'
-      + '<input class="bfc-form-input" id="bfc-f-lien" type="text">'
+      + '<input class="bfc-form-input" id="bfc-f-lien" type="text" placeholder="/t512-...">'
+      + '<label class="bfc-form-label">' + T.L_IMAGE + '</label>'
+      + '<input class="bfc-form-input" id="bfc-f-image" type="text" placeholder="https://...">'
       + '<label class="bfc-form-label">' + T.L_DUREE + '</label>'
       + '<select class="bfc-form-select" id="bfc-f-mois">' + optionsMois() + '</select>'
       + '<div class="bfc-form-cout"><span class="bfc-form-cout-lib">' + T.COUT_LIB + '</span><span class="bfc-form-cout-val" id="bfc-f-cout">' + CFG.COUT_MENSUEL + ' $</span></div>'
@@ -331,9 +335,11 @@ window.BottinFC = window.BottinFC || {};
     var acteur = champ(ov, "#bfc-f-acteur");
     var nom = champ(ov, "#bfc-f-nom");
     var lien = champ(ov, "#bfc-f-lien");
+    var image = champ(ov, "#bfc-f-image");
     var mois = parseInt(champ(ov, "#bfc-f-mois")) || 1;
     if (!acteur) { message(ov, T.ERR_ACTEUR, "err"); return; }
     if (!nom) { message(ov, T.ERR_NOM, "err"); return; }
+    if (image && !/^https?:\/\//i.test(image)) { message(ov, T.ERR_IMAGE, "err"); return; }
 
     var montant = mois * CFG.COUT_MENSUEL;
     var cle = normaliserCle(acteur);
@@ -342,6 +348,7 @@ window.BottinFC = window.BottinFC || {};
       nom_prelien: nom, expiration: Date.now() + mois * CFG.JOURS_MOIS * CFG.JOUR_MS,
     };
     if (lien) carte.prelien_lien = lien;
+    if (image) carte.image = image;
 
     bloquer(ov, true);
     creerCarte(cle, carte)
