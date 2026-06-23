@@ -3,6 +3,13 @@
 // Modifié : Claude x THE DROWNED LANDS
 // La section admin (selects, boutons, transferts, réinitialisations) a été
 // extraite vers eco-admin-modal.js qui gère le panneau admin de façon autonome.
+//
+// [MAJ 2026-06] Affichage du solde : résolution du membre par UID (via le lien
+// profil /u{id} présent dans chaque mini-profil) plutôt que par le pseudo gratté
+// dans le DOM. Le thème sj-* n'enveloppe le pseudo dans un <strong> qu'une fois
+// un groupe attribué ; les membres sans groupe (nouveaux inscrits) n'avaient donc
+// AUCUN affichage de solde dans les posts ni sur leur page profil. La résolution
+// par UID est indépendante du groupe et du thème.
 console.log("[EcoV2] >>> eco-ui chargé");
 
 (function(){
@@ -16,6 +23,41 @@ console.log("[EcoV2] >>> eco-ui chargé");
     BIN_ID, API_KEY, JSONBIN_BASE
   } = window.EcoCore;
 
+  // ---------- RÉSOLUTION MEMBRE PAR UID ----------
+  // [MAJ] Le lien profil /u{id} existe dans le mini-profil avec OU SANS groupe ;
+  // le <strong> du pseudo, lui, n'apparaît qu'une fois un groupe attribué. On
+  // résout donc d'abord par UID (robuste), avec repli sur le nom gratté.
+  // Retourne { pseudo, membre } ou null.
+  function resoudreMembre(post, record){
+    if(!post || !record) return null;
+    const idx     = record.uid_index || {};
+    const membres = record.membres   || {};
+    // On restreint la recherche à la zone pseudo pour éviter d'attraper
+    // d'éventuels autres liens /u (avatar, signature, citations).
+    const zone = post.querySelector(".sj-post-pseudo, .postprofile-name") || post;
+
+    // 1) UID depuis un lien profil /u{id}
+    for(const a of zone.querySelectorAll('a[href*="/u"]')){
+      const m = (a.getAttribute("href") || "").match(/\/u(\d+)/);
+      if(m){
+        const pseudo = idx[m[1]];
+        if(pseudo && membres[pseudo]) return { pseudo, membre: membres[pseudo] };
+      }
+    }
+
+    // 2) Repli : nom gratté (strong si groupe, sinon premier lien-nom ≠ "@")
+    let nom = null;
+    const strongEl = zone.querySelector("strong");
+    if(strongEl) nom = strongEl.textContent.trim();
+    if(!nom){
+      const noms = [...zone.querySelectorAll('a[href*="/u"]')]
+        .map(a => a.textContent.trim())
+        .filter(t => t && t !== "@" && t.length > 1);
+      nom = noms[0] || null;
+    }
+    return (nom && membres[nom]) ? { pseudo: nom, membre: membres[nom] } : null;
+  }
+
   // ---------- VISITEUR ----------
   if(typeof _userdata==="undefined"||!_userdata||_userdata.user_id==-1||_userdata.username==="anonymous"){
     console.log("[EcoV2] invité lecture seule");
@@ -23,14 +65,11 @@ console.log("[EcoV2] >>> eco-ui chargé");
       try{
         const record = await safeReadBin();
         if(!record) return console.warn("[EcoV2] échec lecture Firebase invité");
-        const membres = record.membres || {};
         document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
-          const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
-          if(!pseudoEl) return;
-          const pseudo = pseudoEl.textContent.trim();
-          const user = membres[pseudo]; if(!user) return;
+          const res = resoudreMembre(post, record);
+          if(!res) return;
           const val = post.querySelector(".field-dollars span:not(.label)");
-          if(val) val.textContent = user.dollars ?? 0;
+          if(val) val.textContent = res.membre.dollars ?? 0;
         });
         if(record.cagnottes){
           Object.entries(record.cagnottes).forEach(([g,v])=>{
@@ -49,12 +88,10 @@ console.log("[EcoV2] >>> eco-ui chargé");
       const record = await safeReadBin();
       if(!record || !record.membres) return;
       document.querySelectorAll(".sj-post-proftop,.post,.postprofile").forEach(post=>{
-        const pseudoEl = post.querySelector(".sj-post-pseudo strong,.postprofile-name strong,.username");
-        if(!pseudoEl) return;
-        const pseudo = pseudoEl.textContent.trim();
-        const user = record.membres[pseudo]; if(!user) return;
+        const res = resoudreMembre(post, record);
+        if(!res) return;
         const val = post.querySelector(".field-dollars span:not(.label)");
-        if(val) val.textContent = user.dollars ?? 0;
+        if(val) val.textContent = res.membre.dollars ?? 0;
       });
       log("Màj champs dollars terminée");
     }catch(e){ err("updatePostDollars", e); }
@@ -270,22 +307,21 @@ console.log("[EcoV2] >>> eco-ui chargé");
       });
     }catch(e){ err("adminBar", e); }
 
-    // --- Affichage dollars page profil ---
+    // --- Affichage dollars page profil (résolution par UID depuis l'URL /u{id}) ---
+    // [MAJ] On ne gratte plus .sj-prpsd > span > strong (absent sans groupe) :
+    // l'UID est déjà dans l'URL, on le résout via uid_index.
     try{
-      if(location.pathname.match(/^\/u\d+/)){
+      const mUid = location.pathname.match(/^\/u(\d+)/);
+      if(mUid){
         const profilField = document.querySelector(".sj-profil .field-dollars > dd > .field_uneditable");
-        const pseudoEl    = document.querySelector(".sj-profil .sj-prpsd > span > strong");
-        if(profilField && pseudoEl){
-          const p = pseudoEl.textContent.trim();
-          console.log("[EcoV2][Profil] Chargement du solde pour :", p);
-          const rec = await window.EcoCore.readBin();
-          if(rec && rec.membres && rec.membres[p]){
-            profilField.textContent = rec.membres[p].dollars ?? 0;
-            console.log(`[EcoV2][Profil] ${p} → ${rec.membres[p].dollars} ${MONNAIE_NAME}`);
-          } else {
-            profilField.textContent = "0";
-            console.warn("[EcoV2][Profil] Membre non trouvé :", p);
-          }
+        if(profilField){
+          const rec    = await window.EcoCore.readBin();
+          const idx    = (rec && rec.uid_index) ? rec.uid_index : {};
+          const p      = idx[mUid[1]];
+          const membre = (p && rec.membres) ? rec.membres[p] : null;
+          profilField.textContent = membre ? (membre.dollars ?? 0) : "0";
+          if(membre) console.log(`[EcoV2][Profil] u${mUid[1]} → ${p} → ${membre.dollars} ${MONNAIE_NAME}`);
+          else console.warn("[EcoV2][Profil] UID non indexé dans uid_index :", mUid[1]);
         }
       }
     }catch(e){ console.warn("[EcoV2][Profil] erreur :", e); }
