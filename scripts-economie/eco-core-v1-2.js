@@ -13,7 +13,32 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
 
   // ---------- CONFIG FORUM ----------
   const ADMIN_USERS       = ["Mami Wata", "Jason Blackford", "Alyssa Desrosiers"];
-  const GROUPS            = ["Les Goulipiats","Les Fardoches","Les Ashlanders","Les Spectres","Les Perles","Providence"];
+
+  // ---------- COMMUNAUTÉS — SOURCE UNIQUE ----------
+  // [MAJ] Clé = ID de groupe ForumActif (visible dans l'admin : /gN-nom).
+  //   court : libellé utilisé PARTOUT dans l'économie (membres[].group, clés de
+  //           record.cagnottes). NE PAS modifier sans migration des cagnottes.
+  //   long  : libellé affiché dans le formulaire de fiche (fiche-config peut le
+  //           lire via window.EcoCore.COMMUNAUTES pour rester synchronisé).
+  // group-8 = la Main / compte fondateur (transactions avec la Providence) :
+  //           ce n'est pas une communauté qu'un joueur rejoint à l'inscription.
+  const COMMUNAUTES = {
+    3: { court: "Les Goulipiats", long: "Les Goulipiats" },
+    4: { court: "Les Fardoches",  long: "Les Fardoches" },
+    5: { court: "Les Ashlanders", long: "Les Ashlanders" },
+    6: { court: "Les Spectres",   long: "Les Spectres de Baron Samdi" },
+    7: { court: "Les Perles",     long: "Les Perles de Cocodrie" },
+    8: { court: "Providence",     long: "Main de la Providence" }
+  };
+
+  // GROUPS dérivée — identique à l'ancienne constante (ordre 3→8), clés de cagnotte.
+  const GROUPS = Object.values(COMMUNAUTES).map(c => c.court);
+
+  // GROUPES_FA : id de groupe FA → libellé court. Utilisé par la détection group-N.
+  const GROUPES_FA = Object.fromEntries(
+    Object.entries(COMMUNAUTES).map(([id, c]) => [id, c.court])
+  );
+
   const DEFAULT_DOLLARS   = 10;
   const MONNAIE_NAME      = "Dollars";
   const MENU_SELECTOR     = "body #sj-main .menu .sj-menu-top";
@@ -274,18 +299,13 @@ async function writeField(path, data) {
   function getUserId(){ try{ return parseInt(_userdata?.user_id)||0; }catch(e){ return 0; } }
   function getMessagesCount(){ try{ return parseInt(_userdata?.user_posts)||0; }catch(e){ return 0; } }
 
-  async function fetchUserGroupFromProfile(id){
-    if(!id) return null;
-    try{
-      const r = await fetch(`/u${id}`); if(!r.ok) return null;
-      const html = await r.text();
-      const d = document.createElement("div"); d.innerHTML = html;
-      const dd = d.querySelector("dd,.usergroup,.group,.user-level");
-      if(dd && dd.textContent.trim()) return dd.textContent.trim();
-      const m = html.match(/(Les [A-ZÀ-Ÿa-zà-ÿ0-9_\- ]{2,40})/);
-      return m ? m[1].trim() : null;
-    }catch(e){ err("fetchUserGroup", e); return null; }
-  }
+  // [MAJ] fetchUserGroupFromProfile a été RETIRÉE.
+  // FA n'écrit pas le nom du groupe en texte sur le profil : l'ancienne fonction
+  // ne pouvait rien lire de fiable et son fallback regex /Les .../ ramassait un
+  // nom de groupe au hasard dans le DOM, polluant la base (groupes fantômes).
+  // Le groupe est désormais : (1) posé à la validation de fiche par fiche-staff.js
+  // (affecterGroupe → nom court), et (2) maintenu par la détection de la classe
+  // group-N de FA dans eco-ui (detecterGroupeFA, via GROUPES_FA).
 
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
@@ -308,7 +328,7 @@ async function writeField(path, data) {
   window.EcoCore = {
     // Config (gardée pour compatibilité avec eco-ui.js qui les lit)
     BIN_ID: null, API_KEY: null, JSONBIN_BASE: null,
-    ADMIN_USERS, GROUPS, DEFAULT_DOLLARS, MONNAIE_NAME,
+    ADMIN_USERS, GROUPS, COMMUNAUTES, GROUPES_FA, DEFAULT_DOLLARS, MONNAIE_NAME,
     MENU_SELECTOR, RETRY_INTERVAL_MS, RETRY_MAX,
     // Logs
     log, warn, err,
@@ -318,7 +338,7 @@ async function writeField(path, data) {
     writeField, transactDollars, invalidateCache,
     firebaseTransaction, firebasePush, firebaseUpdate,
     // Extractors & helpers
-    getPseudo, getUserId, getMessagesCount, fetchUserGroupFromProfile,
+    getPseudo, getUserId, getMessagesCount,
     insertAfter, createErrorBanner, showEcoGain
   };
 
