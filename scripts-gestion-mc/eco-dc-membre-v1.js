@@ -206,6 +206,32 @@
         btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
         return;
       }
+      if (avatarIndisponible(rec, avatar)) {
+        DC.afficherResultat(resultat, "erreur", T.ERR_AVATAR_PRIS(avatar));
+        btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
+        return;
+      }
+
+      function normaliserCleFC(acteur) {
+    return String(acteur || "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[.#$\[\]\/]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  // Renvoie true si l'acteur est indisponible : carte « pris », ou « reserve » non expirée.
+  // Une carte « libre » (pré-lien) ou une réservation expirée ne bloque pas.
+  function avatarIndisponible(rec, acteur) {
+    const cle = normaliserCleFC(acteur);
+    const c = rec.faceclaims?.[cle];
+    if (!c) return false;
+    if (c.statut === "pris") return true;
+    if (c.statut === "reserve") {
+      return !(c.expiration && c.expiration < Date.now());   // expirée → ne bloque pas
+    }
+    return false;   // « libre » (pré-lien) → réservable
+  }
 
       const demande = construireDemande(pseudo, racine, numeroDC, paiementRequis, solde, resume, avatar);
       rec.demandes_dc = DC.versTableau(rec.demandes_dc);
