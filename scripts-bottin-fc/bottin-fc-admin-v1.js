@@ -42,6 +42,8 @@ window.BottinFC = window.BottinFC || {};
     L_MEMBRE: "Membre associé",
     L_PRELIEN_NOM: "Nom du pré-lien (affiché)",
     L_PRELIEN_LIEN: "Lien vers la fiche du pré-lien",
+    L_IMAGE: "Image d'illustration (URL, facultatif)",
+    ERR_IMAGE: "⚠️ L'URL de l'image doit commencer par http.",
     L_DUREE: "Durée (jours, vide = sans échéance)",
     OPT_VIDE: "— choisir —",
     BTN: "Créer la carte",
@@ -179,11 +181,13 @@ window.BottinFC = window.BottinFC || {};
       +     '<label class="fi-label">' + T.L_MEMBRE + '</label>'
       +     '<select id="bfc-adm-membre" class="fi-select"><option value="">' + T.OPT_VIDE + '</option>' + opts + '</select>'
       +   '</div>'
-      +   '<div id="bfc-adm-r-prenom" class="fi-conditionnel" style="display:none">'
+     +   '<div id="bfc-adm-r-prenom" class="fi-conditionnel" style="display:none">'
       +     '<label class="fi-label">' + T.L_PRELIEN_NOM + '</label>'
       +     '<input id="bfc-adm-prenom" class="fi-input" type="text">'
       +     '<label class="fi-label">' + T.L_PRELIEN_LIEN + '</label>'
       +     '<input id="bfc-adm-prelien-lien" class="fi-input" type="text" placeholder="/t512-...">'
+      +     '<label class="fi-label">' + T.L_IMAGE + '</label>'
+      +     '<input id="bfc-adm-image" class="fi-input" type="text" placeholder="https://...">'
       +   '</div>'
       +   '<div id="bfc-adm-r-duree" class="fi-conditionnel" style="display:none">'
       +     '<label class="fi-label">' + T.L_DUREE + '</label>'
@@ -241,7 +245,11 @@ window.BottinFC = window.BottinFC || {};
       carte.statut = "libre"; carte.nom_prelien = nom;
       var lien = panel.querySelector("#bfc-adm-prelien-lien").value.trim();
       if (lien) carte.prelien_lien = lien;
-    } else { carte.statut = "reserve"; carte.type = typeKey; }
+      var imagePrelien = panel.querySelector("#bfc-adm-image").value.trim();
+      if (imagePrelien && !/^https?:\/\//i.test(imagePrelien)) { afficherResultat(panel, T.ERR_IMAGE); return; }
+      if (imagePrelien) carte.image = imagePrelien;
+    } 
+    else { carte.statut = "reserve"; carte.type = typeKey; }
 
     if (uid != null) { carte.uid = uid; if (pseudo) carte.pseudo = pseudo; }
 
