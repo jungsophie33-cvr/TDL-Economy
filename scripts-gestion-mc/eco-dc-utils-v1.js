@@ -206,60 +206,35 @@
 
   /* === MESSAGES BBCode === */
 
-  DC.msgMembre = function (demande, monnaie) {
-    const paiementLigne = demande.paiement_requis
-      ? `\n💰 Je reconnais qu'un paiement de ${CFG.COUT_DC} ${monnaie} sera débité à la validation.`
-      : "";
-    return [
-      `[b]━━━ DEMANDE MULTI-COMPTE N°${demande.numero_dc} ━━━[/b]`,
-      ``,
-      `[b]Compte demandeur :[/b] ${demande.compte_demandeur}`,
-      `[b]Date :[/b] ${new Date(demande.date).toLocaleDateString("fr-FR")}`,
-      ``,
-      `[b]📝 Résumé du nouveau personnage :[/b]`,
-      demande.resume,
-      ``,
-      `[b]🖼 Réservation d'avatar :[/b]`,
-      demande.avatar_reserve,
-      paiementLigne,
-      ``,
-      `[i]Réf. : ${demande.id}[/i]`,
-    ].join("\n");
+ DC.msgMembre = function (demande, monnaie) {
+    const esc = (s) => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    return `<div id="demande-dc" class="sj-fiche"><div class="h1"><h1>Demande de multicompte n° ${demande.numero_dc}</h1></div>
+<tw><span>par @"${demande.compte_demandeur}"</span> <span>avatar réservé :</span> <span>${esc(demande.avatar_reserve)}</span></tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>Résumé du personnage envisagé</f4> ${esc(demande.resume)}</div>
+</div></div>`;
   };
 
   DC.msgStaff = function (demande, decision, motif, staffPseudo, monnaie) {
+    const esc = (s) => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
     if (decision === "validee") {
-      const paiementLigne = demande.paiement_requis
-        ? `\n💰 Paiement de ${CFG.COUT_DC} ${monnaie} débité automatiquement.`
-        : "";
-      return [
-        `[b]━━━ VALIDATION MULTI-COMPTE N°${demande.numero_dc} ━━━[/b]`,
-        ``,
-        `[b]Demande de :[/b] ${demande.compte_demandeur}`,
-        `[b]Validée par :[/b] ${staffPseudo}`,
-        `[b]Date :[/b] ${new Date().toLocaleDateString("fr-FR")}`,
-        ``,
-        `✅ Votre demande de ${demande.numero_dc}e compte est [b]acceptée[/b] !`,
-        `L'avatar a été réservé. Vous pouvez procéder à la création de votre nouveau compte.`,
-        paiementLigne,
-        ``,
-        `[i]Réf. : ${demande.id}[/i]`,
-      ].join("\n");
+      return `<div id="demande-dc" class="sj-fiche"><div class="h1"><h1>Demande acceptée</h1></div>
+<tw><span>demande faite par @"${demande.compte_demandeur}"</span> <span>avatar réservé :</span> <span>${esc(demande.avatar_reserve)}</span></tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>ça y est, on perd la tête !</f4>Bonjour, ta demande de ${demande.numero_dc}e compte a été acceptée et <i3>ton avatar réservé</i3>.
+Tu peux dès à présent inscrire ton nouveau personnage et nous faire découvrir sa fiche. <d3>Va, cours, vole !</d3> Nous avons <u1>hâte</u1> de lire ses aventures.
+<b3>Merci</b3> pour ton implication sur TDL et <u>à très vite.</u></div></div>
+</div>`;
     }
-    return [
-      `[b]━━━ REFUS MULTI-COMPTE N°${demande.numero_dc} ━━━[/b]`,
-      ``,
-      `[b]Demande de :[/b] ${demande.compte_demandeur}`,
-      `[b]Traitée par :[/b] ${staffPseudo}`,
-      `[b]Date :[/b] ${new Date().toLocaleDateString("fr-FR")}`,
-      ``,
-      `❌ Votre demande de ${demande.numero_dc}e compte est [b]refusée[/b].`,
-      motif ? `[b]Motif :[/b] ${motif}` : "",
-      ``,
-      `N'hésitez pas à reformuler votre demande si vous le souhaitez.`,
-      ``,
-      `[i]Réf. : ${demande.id}[/i]`,
-    ].join("\n");
+
+   // Refus
+    return `<div id="demande-dc" class="sj-fiche"><div class="h1"><h1>Demande refusée</h1></div>
+<tw><span>demande faite par @"${demande.compte_demandeur}"</span> <span>avatar réservé :</span> <span>${esc(demande.avatar_reserve)}</span></tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>motif du refus</f4>"${esc(motif || "—")}"
+<d>N'hésite pas à reformuler ta demande</d> après un petit temps de réflexion. Le staff est <u>disponible</u> à la moindre question et pour t'aider à développer tes idées.</div></div>
+</div>`;
   };
 
 })(window.DC, window.DC.CFG);
