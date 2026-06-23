@@ -286,26 +286,11 @@ async function writeField(path, data) {
   }
 }
 
-  // transactDollars → débit/crédit atomique anti-collision
-  async function transactDollars(pseudo, delta) {
-    return firebaseTransaction(
-      `eco/membres/${encodeURIComponent(pseudo)}/dollars`,
-      current => Math.max(0, (current || 0) + delta)
-    );
-  }
-
   // ---------- Extractors ----------
   function getPseudo(){ try{ return _userdata?.username?.trim()||null; }catch(e){ return null; } }
   function getUserId(){ try{ return parseInt(_userdata?.user_id)||0; }catch(e){ return 0; } }
   function getMessagesCount(){ try{ return parseInt(_userdata?.user_posts)||0; }catch(e){ return 0; } }
 
-  // [MAJ] fetchUserGroupFromProfile a été RETIRÉE.
-  // FA n'écrit pas le nom du groupe en texte sur le profil : l'ancienne fonction
-  // ne pouvait rien lire de fiable et son fallback regex /Les .../ ramassait un
-  // nom de groupe au hasard dans le DOM, polluant la base (groupes fantômes).
-  // Le groupe est désormais : (1) posé à la validation de fiche par fiche-staff.js
-  // (affecterGroupe → nom court), et (2) maintenu par la détection de la classe
-  // group-N de FA dans eco-ui (detecterGroupeFA, via GROUPES_FA).
 
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
@@ -335,7 +320,7 @@ async function writeField(path, data) {
     // API données (même noms qu'avant)
     readBin, safeReadBin, writeBin,
     // Nouvelles API Firebase
-    writeField, transactDollars, invalidateCache,
+    writeField, invalidateCache,
     firebaseTransaction, firebasePush, firebaseUpdate,
     // Extractors & helpers
     getPseudo, getUserId, getMessagesCount,
