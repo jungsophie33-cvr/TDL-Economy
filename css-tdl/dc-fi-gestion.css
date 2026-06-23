@@ -317,8 +317,8 @@
 
 /* === CARTES STAFF === */
 
-.fi-staff-liste {display: flex; justify-content: space-between; }
-.fi-carte { font-size: .92em; }
+#fi-staff-liste { display: flex; flex-wrap: wrap; gap: 15px; }
+#fi-staff-liste > .fi-carte { flex: 1 1 calc(50% - 8px);font-size: .92em; }
 
 .fi-carte-entete {
   display: flex;
