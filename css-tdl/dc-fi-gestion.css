@@ -316,6 +316,8 @@
 .fi-resultat.info, .dc-resultat.info   { display: block; background: var(--cntr2); border: 1px solid var(--cntr); color: var(--txt); }
 
 /* === CARTES STAFF === */
+
+.fi-staff-liste {display: flex; justify-content: space-between; }
 .fi-carte { font-size: .92em; }
 
 .fi-carte-entete {
