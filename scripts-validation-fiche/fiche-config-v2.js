@@ -140,4 +140,7 @@ window.FI.TEXTES = {
   STAFF_BTN_ANNULER:     "Annuler",
   STAFF_ERR_POSTING:     "❌ Impossible de poster dans la fiche.",
   STAFF_OK:              (pseudo) => `✅ Fiche de ${pseudo} validée et message posté.`,
+  STAFF_FC_CONFLIT:  "⚠️ Ce faceclaim était réservé par un autre membre — vérifie qu'il n'y a pas de conflit.",
+  STAFF_FC_ECHEC:    "⚠️ Carte faceclaim non mise à jour — à créer manuellement via le panneau admin.",
+  
 };
