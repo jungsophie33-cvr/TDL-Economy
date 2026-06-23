@@ -36,8 +36,8 @@ window.BottinFC = window.BottinFC || {};
 
   /* === TEXTES === */
   var T = {
-    TITRE: "Bottin faceclaims — création de carte (staff)",
-    L_ACTEUR: "Nom complet de l'acteur",
+    TITRE: "Bottin faceclaims — gestion staff",
+    L_ACTEUR: "Nom complet du faceclaim",
     L_TYPE: "Type de carte",
     L_MEMBRE: "Membre associé",
     L_PRELIEN_NOM: "Nom du pré-lien (affiché)",
@@ -47,11 +47,11 @@ window.BottinFC = window.BottinFC || {};
     BTN: "Créer la carte",
     EN_COURS: "Création en cours…",
     OK: function (a) { return "✅ Carte « " + a + " » créée."; },
-    ERR_ACTEUR: "⚠️ Le nom de l'acteur est requis.",
+    ERR_ACTEUR: "⚠️ Le nom du faceclaim est requis.",
     ERR_MEMBRE: "⚠️ Sélectionne le membre associé.",
     ERR_UID: "⚠️ Impossible de résoudre l'UID de ce membre (il ne s'est peut-être jamais connecté).",
     ERR_PRELIEN: "⚠️ Le nom du pré-lien est requis.",
-    ERR_OCCUPE: function (a) { return "⛔ L'acteur « " + a + " » est déjà pris ou réservé."; },
+    ERR_OCCUPE: function (a) { return "⛔ Le faceclaim « " + a + " » est déjà pris ou réservé."; },
     ERR_GEN: "❌ Erreur lors de la création. Réessaie.",
     CONFIRM_SUPPR: function (a) { return "Supprimer la carte « " + a + " » ?"; },
     NON_ADMIN: "Action réservée au staff.",
