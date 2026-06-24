@@ -38,14 +38,13 @@ window.FI.CFG = {
     TEXTAREA_REPONSE: "#quick_reply .sceditor-container textarea",
   },
 
+  /*
+   * [MAJ] Les communautés ne sont plus déclarées ici. Source unique :
+   * window.EcoCore.COMMUNAUTES (eco-core.js), indexée par ID de groupe FA.
+   * Le select #fi-groupe est construit par FI.optionsGroupes() (fiche-utils.js)
+   * — value = nom court (clé de cagnotte), label = nom long, jouables seulement.
+   */
   LISTES: {
-    GROUPES: [
-      "Les Goulipiats",
-      "Les Fardoches",
-      "Les Ashlanders",
-      "Les Spectres de Baron Samdi",
-      "Les Perles de Cocodrie",
-    ],
     BANDES: [
       "Main de la Providence",
       "Maringouins",
