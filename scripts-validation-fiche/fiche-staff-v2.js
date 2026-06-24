@@ -57,7 +57,7 @@
         <span><em>Parrain</em></span>         <span>${parrainHtml}</span>
         <span><em>Multi-compte</em></span>    <span>${dcHtml}</span>
         <span><em>Faceclaim</em></span>       <span>${d.faceclaim}</span>
-        <span><em>Groupe</em></span>          <span>${d.groupe}</span>
+        <span><em>Groupe</em></span>          <span>${FI.communauteLong(d.groupe)}</span>
         <span><em>Bande</em></span>           <span>${bandeHtml}</span>
         <span><em>Métier</em></span>          <span>${d.lieu_metier} — ${d.societe} — ${d.emploi}</span>
         <span><em>Habitation</em></span>      <span>${d.lieu_habitation} — ${d.numero} — ${d.type_logement}</span>
