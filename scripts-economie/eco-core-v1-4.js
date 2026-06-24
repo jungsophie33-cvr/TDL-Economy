@@ -22,13 +22,16 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   //           lire via window.EcoCore.COMMUNAUTES pour rester synchronisé).
   // group-8 = la Main / compte fondateur (transactions avec la Providence) :
   //           ce n'est pas une communauté qu'un joueur rejoint à l'inscription.
+  //   jouable : true = communauté qu'un joueur peut choisir à la validation de
+  //             fiche (proposée dans le select #fi-groupe). false = groupe FA
+  //             réservé (la Main / compte fondateur), exclu du formulaire.
   const COMMUNAUTES = {
-    3: { court: "Les Goulipiats", long: "Les Goulipiats" },
-    4: { court: "Les Fardoches",  long: "Les Fardoches" },
-    5: { court: "Les Ashlanders", long: "Les Ashlanders" },
-    6: { court: "Les Spectres",   long: "Les Spectres de Baron Samdi" },
-    7: { court: "Les Perles",     long: "Les Perles de Cocodrie" },
-    8: { court: "Providence",     long: "Main de la Providence" }
+    3: { court: "Les Goulipiats", long: "Les Goulipiats",                jouable: true  },
+    4: { court: "Les Fardoches",  long: "Les Fardoches",                 jouable: true  },
+    5: { court: "Les Ashlanders", long: "Les Ashlanders",                jouable: true  },
+    6: { court: "Les Spectres",   long: "Les Spectres de Baron Samdi",   jouable: true  },
+    7: { court: "Les Perles",     long: "Les Perles de Cocodrie",        jouable: true  },
+    8: { court: "Providence",     long: "Main de la Providence",         jouable: false }
   };
 
   // GROUPS dérivée — identique à l'ancienne constante (ordre 3→8), clés de cagnotte.
@@ -286,11 +289,23 @@ async function writeField(path, data) {
   }
 }
 
+  // [MAJ] transactDollars a été SUPPRIMÉE : fonction morte (aucun appelant) qui
+  // pointait encore vers le chemin obsolète `eco/membres/...` (préfixe abandonné
+  // depuis le passage des collections à la racine). Les débits/crédits passent
+  // par firebaseTransaction("membres/<pseudo>/dollars", …) en direct.
+
   // ---------- Extractors ----------
   function getPseudo(){ try{ return _userdata?.username?.trim()||null; }catch(e){ return null; } }
   function getUserId(){ try{ return parseInt(_userdata?.user_id)||0; }catch(e){ return 0; } }
   function getMessagesCount(){ try{ return parseInt(_userdata?.user_posts)||0; }catch(e){ return 0; } }
 
+  // [MAJ] fetchUserGroupFromProfile a été RETIRÉE.
+  // FA n'écrit pas le nom du groupe en texte sur le profil : l'ancienne fonction
+  // ne pouvait rien lire de fiable et son fallback regex /Les .../ ramassait un
+  // nom de groupe au hasard dans le DOM, polluant la base (groupes fantômes).
+  // Le groupe est désormais : (1) posé à la validation de fiche par fiche-staff.js
+  // (affecterGroupe → nom court), et (2) maintenu par la détection de la classe
+  // group-N de FA dans eco-ui (detecterGroupeFA, via GROUPES_FA).
 
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
