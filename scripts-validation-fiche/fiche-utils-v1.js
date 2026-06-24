@@ -2,14 +2,15 @@
  * fiche-utils.js — Utilitaires du système de validation de fiche · TDL
  *
  * CE QUE CE FICHIER FAIT : fonctions pures sans effets DOM (sauf preremplirReponse),
- * chargement des listes membres, génération BBCode, posting dans un sujet FA.
+ * chargement des listes membres, communautés, génération BBCode, posting FA.
  * CE QU'IL NE FAIT PAS : aucun rendu de formulaire, aucune logique staff.
  *
  * CARTE DES BLOCS :
- *   MEMBRES  — chargement des listes depuis le JSONBin
- *   DOM      — helpers d'affichage et pré-remplissage de SCEditor
- *   POSTING  — fetch + POST vers un sujet ForumActif
- *   BBCODE   — génération des messages membre et staff
+ *   MEMBRES      — chargement des listes depuis le JSONBin
+ *   COMMUNAUTES  — options du select groupe + résolution court→long
+ *   DOM          — helpers d'affichage et pré-remplissage de SCEditor
+ *   POSTING      — fetch + POST vers un sujet ForumActif
+ *   BBCODE       — génération des messages membre et staff
  *
  * Dépend de : fiche-config.js, window.EcoCore
  */
@@ -44,6 +45,26 @@
 
   FI.genId = function () {
     return "fi_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+  };
+
+  /* === COMMUNAUTES (source unique : window.EcoCore.COMMUNAUTES) === */
+
+  FI.optionsGroupes = function () {
+    const C = (window.EcoCore && window.EcoCore.COMMUNAUTES) || {};
+    const lignes = Object.values(C)
+      .filter((c) => c && c.jouable)
+      .map((c) => `<option value="${c.court}">${c.long}</option>`)
+      .join("");
+    return `<option value="">— Choisir —</option>` + lignes;
+  };
+
+  // [MAJ] Nom long d'une communauté à partir de son nom court (affichage humain :
+  // carte staff, BBCode). Repli sur la valeur reçue si introuvable — ainsi une
+  // ancienne donnée déjà stockée en long reste affichée telle quelle.
+  FI.communauteLong = function (court) {
+    const C = (window.EcoCore && window.EcoCore.COMMUNAUTES) || {};
+    const trouve = Object.values(C).find((c) => c && c.court === court);
+    return trouve ? trouve.long : (court || "");
   };
 
   /* === DOM === */
@@ -130,28 +151,32 @@
   /* === BBCODE === */
 
   FI.bbcodeDemande = function (d) {
-    const esc = (s) => String(s == null ? "" : s)
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const prelienLigne = d.pre_lien
+      ? `[url=${d.lien_pre_lien}]Voir le pré-lien[/url]`
+      : "Non";
+    const parrainLigne = d.parrain && d.parrain !== "Personne"
+      ? `@"${d.parrain}"` : "Personne";
+    const dcLigne = d.multicompte
+      ? `Oui — compte racine : @"${d.premier_compte}"` : "Non";
+    const bandeLigne = d.bande ? `${d.nom_bande} — ${d.role_bande}` : "Non";
 
-    const parrain = (d.parrain && d.parrain !== "Personne") ? `@"${d.parrain}"` : "Personne";
-    const prelien = d.pre_lien
-      ? `<span>Pré-lien</span> <a href="${esc(d.lien_pre_lien)}"><i class="fi fi-tr-link-alt"></i></a>`
-      : `<span>Pré-lien : non</span>`;
-    const mc = d.multicompte
-      ? `<span>oui</span> <span>@"${d.premier_compte}"</span>`
-      : `<span>non</span>`;
-    const bande = d.bande
-      ? `<span>${esc(d.nom_bande)}</span> <span>${esc(d.role_bande)}</span>`
-      : `<span>non</span>`;
-
-    return `<div id="validation-fiche" class="sj-fiche"><div class="h1"><h1>Demande de validation</h1></div>
-<tw><span>lire la fiche de @"${d.pseudo}"</span> <a href="${esc(d.lien_fiche)}"><i class="fi fi-ts-circle-book-open"></i></a> <span>Arrivé grâce à ${parrain}</span> ${prelien}</tw>
-<div class="sj-formgen"><div class="sj-formcol"><f4>Administratif</f4><d>Multicompte</d> ${mc}
-<d>Faceclaim</d> <span>${esc(d.faceclaim)}</span>
-<d>Groupe</d> <span>${esc(d.groupe)}</span></div><div class="sj-formcol"><f4>Personnage & bottins</f4><d>Bande hors-la-loi</d> ${bande}
-<d>Métier</d> <span>${esc(d.lieu_metier)}</span> <span>${esc(d.societe)}</span> <span>${esc(d.emploi)}</span>
-<d>Habitation</d> <span>${esc(d.lieu_habitation)}</span> <span>${esc(d.numero)}</span> <span>${esc(d.type_logement)}</span></div>
-</div></div>`;
+    return [
+      "[b]━━━ DEMANDE DE VALIDATION DE FICHE ━━━[/b]",
+      "",
+      `[b]Membre :[/b] @"${d.pseudo}"`,
+      `[b]Fiche :[/b] [url=${d.lien_fiche}]Voir la fiche[/url]`,
+      `[b]Pré-lien :[/b] ${prelienLigne}`,
+      `[b]Arrivé(e) grâce à :[/b] ${parrainLigne}`,
+      `[b]Multi-compte :[/b] ${dcLigne}`,
+      `[b]Faceclaim :[/b] ${d.faceclaim}`,
+      `[code]<fb>${d.faceclaim}</fb> — @"${d.pseudo}"}[/code]`,
+      `[b]Groupe :[/b] ${FI.communauteLong(d.groupe)}`,
+      `[b]Bande hors-la-loi :[/b] ${bandeLigne}`,
+      `[b]Métier :[/b] ${d.lieu_metier} — ${d.societe} — ${d.emploi}`,
+      `[b]Habitation :[/b] ${d.lieu_habitation} — ${d.logement}`,
+      "",
+      `[i]Réf. : ${d.id}[/i]`,
+    ].join("\n");
   };
 
   FI.bbcodeValidation = function (d, msgPerso, staffPseudo) {
