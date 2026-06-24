@@ -96,7 +96,7 @@
         placeholder="Nom du Faceclaim">
 
       <label class="fi-label">${T.L_GROUPE}</label>
-      <select id="fi-groupe" class="fi-select">${optsAvecVide(CFG.LISTES.GROUPES)}</select>
+      <select id="fi-groupe" class="fi-select">${FI.optionsGroupes()}</select>
     `;
   }
 
