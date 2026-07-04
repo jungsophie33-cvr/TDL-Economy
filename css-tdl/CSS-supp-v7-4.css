@@ -832,7 +832,7 @@ border-radius: 10px;}
 .sj-prstats > dl, .sj-prage > dl {display: flex; flex-flow: column-reverse; width: 200px; align-items: center;}
 .sj-prstats > dl > dt, .sj-prage > dl > dt {font-family: var(--txt3); background: var(--cntr5); padding: 2px 15px; text-transform: uppercase; font-size: 0.9em; line-height:1em;border-radius: 3px; width: fit-content; font-weight: 900;}
 .sj-prstats > dl > dd, .sj-prage > dl > dd {font-family: var(--txt1); font-size: 3em; color: var(--cntr); margin-bottom: 12px;}
-.sj-prfieldp1, .sj-prfieldp2, .sj-prfieldp3 {display: flex; flex-flow: row wrap; height:170px; margin: 0 auto 30px; width: 728px; justify-content: space-evenly; align-items:center;}
+.sj-prfieldp1, .sj-prfieldp2, .sj-prfieldp3 {display: flex; flex-flow: row wrap; height:170px; margin: 0 auto 30px; justify-content: space-evenly; align-items:center;}
 .sj-prfieldp2 {height: 300px; align-content: start; align-items: start; margin: 0;}
 .sj-prfieldp3 {height:350px; margin:25px 0; align-content:start; align-items:start; justify-content:start;}
 .sj-prfieldp1 > dl, .sj-prfieldp2 > dl, .sj-prfieldp3 > dl {display: flex; width: 50%; flex-flow:column; text-align:center;}
