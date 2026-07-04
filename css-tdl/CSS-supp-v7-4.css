@@ -419,7 +419,7 @@ div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:nth-child(e
 div#La_20Louisiane.sj-main-cate .sj-caterow:nth-child(even), 
 div#Premiers_20pas.sj-main-cate div#\/f15-invites .sj-lastpost, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages .sj-lastpost {flex-direction:row-reverse;}
 
-div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(odd) .sj-cateleft, 
 div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#The_20world_20outside.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
 div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#Terrebonne_20Bay.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
 div#La_20Louisiane.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft {border-right:none; border-left: 1px solid var(--clair1opa6);}
