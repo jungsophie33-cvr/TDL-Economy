@@ -84,7 +84,7 @@
     const cfg  = window.TDLJauges.CFG;
 
     let html = '<div class="tdl-ja-wrapper">';
-    html    += '<div class="tdl-ja-title">Équilibres de Terrebonne</div>';
+    html    += '<div class="tdl-ja-title"><f4>Équilibres de Terrebonne</f4></div>';
     html    += '<div class="tdl-ja-gauges">';
 
     keys.forEach(function (key) {
@@ -93,6 +93,8 @@
 
       // Nom de la jauge
       html += '<div class="tdl-ja-label">' + c.label + '</div>';
+      // Indicateur numérique
+      html += '<div class="tdl-ja-niveau" id="ja-niv-' + key + '">—</div>';
 
       // Barre de segments
       html += '<div class="tdl-ja-bar-wrap">';
@@ -108,9 +110,6 @@
       }
       html += '</div>'; // .tdl-ja-segments
       html += '</div>'; // .tdl-ja-bar-wrap
-
-      // Indicateur numérique
-      html += '<div class="tdl-ja-niveau" id="ja-niv-' + key + '">—</div>';
 
       html += '</div>'; // .tdl-ja-row
     });
