@@ -282,26 +282,24 @@ f4.tdl-tt-label {
 }
 
 .tdl-ja-title {
-  /* CORRIGÉ : var(txt2) → var(--txt2) (préfixe -- obligatoire) */
-  font-family    : var(--txt2);
-  font-size      : 0.9em;
-  text-transform : uppercase;
-  letter-spacing : 0.2em;
-  font-weight    : bold;
-  margin-bottom  : 12px;
+   position:relative;
+   top:-18px;
 }
+   .tdl-ja-title f4 {font-size:0.8em; }
 
 .tdl-ja-gauges {
+   height:150px;
   display        : flex;
   flex-direction : column;
-  gap            : 9px;
-}
+  justify-content:space-between;}
 
 .tdl-ja-row {
   display       : flex;
   align-items   : center;
-  gap           : 10px;
-  padding       : 10px;
+justify-content: space-between;
+flex-wrap: wrap;
+gap: 3px;
+padding: 5px 10px;
   background    : var(--clair1opa7);
   border-radius : 5px;
   border-left   : 3px solid transparent;
@@ -314,10 +312,10 @@ f4.tdl-tt-label {
 
 /* Nom de la jauge */
 .tdl-ja-label {
-  width      : 130px;
   flex-shrink: 0;
-  font-size  : 0.9em;
-  line-height: 1.2;
+font-family: var(--txt2);
+text-transform: uppercase;
+font-weight: 700;  line-height: 1.2;
   text-align : left;
 }
 
@@ -331,8 +329,8 @@ f4.tdl-tt-label {
 
 .tdl-ja-segment {
   flex          : 1;
-  height        : 15px;
-  border-radius : 4px;
+  height        : 12px;
+  border-radius : 3px;
   background    : var(--cntr4);
   cursor        : help;
   transition    : opacity 0.2s;
