@@ -285,7 +285,7 @@ f4.tdl-tt-label {
    position:relative;
    top:-18px;
 }
-   .tdl-ja-title f4 {font-size:0.8em; }
+   .tdl-ja-title f4 {font-size:11px; margin:auto; }
 
 .tdl-ja-gauges {
    height:150px;
