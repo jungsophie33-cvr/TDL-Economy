@@ -376,7 +376,7 @@ border-top-color: var(--clair1);top:-7px;}
 .sj-caterow {display:flex; flex-direction:row; justify-content:center; width:48%; height:200px; border:1px solid var(--clair1opa6); overflow:hidden; margin:10px 0; border-radius:10px; box-shadow: 0 0 5px var(--darkopa2);}
 .sj-cateleft {width:100%; border-right:none; position: relative;}
 .sj-cateright {display:none;}
-.sj-cateright > div {opacity:0;background: var(--clair1opa6); backdrop-filter:blur(10px); max-height:0; margin:25px; padding:10px; text-align:justify; font-size:1em; line-height:130%; border-radius:5px; box-shadow: 0 0 5px var(--darkopa3); overflow:auto;transition: all 1s cubic-bezier(0.737, -0.68, 0.327, 1.686);}
+.sj-cateright > div {opacity:0;background: var(--clair1opa7); backdrop-filter:blur(10px); max-height:0; margin:25px; padding:10px; text-align:justify; font-size:1em; line-height:130%; border-radius:5px; box-shadow: 0 0 5px var(--darkopa3); overflow:auto;transition: all 1s cubic-bezier(0.737, -0.68, 0.327, 1.686);}
 .sj-cateright:hover > div {display:block;max-height:150px;opacity:1;}
 
 .sj-catetitre {height:35%; width:100%; border-bottom: 1px solid var(--clair1); background-color:var(--darkopa6); backdrop-filter:blur(5px);}
@@ -404,10 +404,50 @@ border-top-color: var(--clair1);top:-7px;}
 .sj-subforum a:hover {background:var(--dark); transition: all ease 0.3s;}
 
 div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow, div#Terrebonne_20Parish.sj-main-cate .sj-caterow, div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow, div#The_20world_20outside.sj-main-cate .sj-caterow, div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow, div#Terrebonne_20Bay.sj-main-cate .sj-caterow, div#La_20Louisiane.sj-main-cate .sj-caterow {width:100%;}
-div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateright, div#Terrebonne_20Parish.sj-main-cate .sj-cateright, div#Les_20Bayous_20sauvages.sj-main-cate .sj-cateright, div#The_20world_20outside.sj-main-cate .sj-cateright, div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-cateright, div#Terrebonne_20Bay.sj-main-cate .sj-cateright, div#La_20Louisiane.sj-main-cate .sj-cateright {background: no-repeat center top; background-size: 100%; filter: brightness(0.9) contrast(0.85) saturate(0.7) sepia(0.25);width:50%; display:flex; flex-direction:row; justify-content:center; align-items:center;}
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateright, div#Terrebonne_20Parish.sj-main-cate .sj-cateright, div#Les_20Bayous_20sauvages.sj-main-cate .sj-cateright, div#The_20world_20outside.sj-main-cate .sj-cateright, div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-cateright, div#Terrebonne_20Bay.sj-main-cate .sj-cateright, div#La_20Louisiane.sj-main-cate .sj-cateright {transition:all ease 1s; background: no-repeat center top; background-size: 100%; filter: brightness(0.9) contrast(0.85) saturate(0.7) sepia(0.25) grayscale(0);width:50%; display:flex; flex-direction:row; justify-content:center; align-items:center;}
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateright:hover, div#Terrebonne_20Parish.sj-main-cate .sj-cateright:hover, 
+div#Les_20Bayous_20sauvages.sj-main-cate .sj-cateright:hover, div#The_20world_20outside.sj-main-cate .sj-cateright:hover, 
+div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-cateright:hover, div#Terrebonne_20Bay.sj-main-cate .sj-cateright:hover, 
+div#La_20Louisiane.sj-main-cate .sj-cateright:hover {filter:brightness(0.9) contrast(0.85) saturate(0.7) sepia(0.25) grayscale(1); transition:all ease 1s;}
 
 .sj-main-cate .sj-caterow .sj-cateright > div > div > span > img {display:none;}
 div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateleft, div#Terrebonne_20Parish.sj-main-cate .sj-cateleft, div#Les_20Bayous_20sauvages.sj-main-cate .sj-cateleft, div#The_20world_20outside.sj-main-cate .sj-cateleft, div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-cateleft, div#Terrebonne_20Bay.sj-main-cate .sj-cateleft, div#La_20Louisiane.sj-main-cate .sj-cateleft {width:50%; border-right:1px solid var(--clair1opa6);}
+
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even), div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(even), 
+div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:nth-child(even), div#The_20world_20outside.sj-main-cate .sj-caterow:nth-child(even), 
+div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:nth-child(even), div#Terrebonne_20Bay.sj-main-cate .sj-caterow:nth-child(even), 
+div#La_20Louisiane.sj-main-cate .sj-caterow:nth-child(even), 
+div#Premiers_20pas.sj-main-cate div#\/f15-invites .sj-lastpost, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages .sj-lastpost {flex-direction:row-reverse;}
+
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
+div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#The_20world_20outside.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
+div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, div#Terrebonne_20Bay.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft, 
+div#La_20Louisiane.sj-main-cate .sj-caterow:nth-child(even) .sj-cateleft {border-right:none; border-left: 1px solid var(--clair1opa6);}
+
+div#Premiers_20pas.sj-main-cate div#\/f15-invites .sj-lastpost .sj-subforum, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages .sj-lastpost .sj-subforum {width:40%;}
+
+div#Premiers_20pas.sj-main-cate div#\/f15-invites .sj-lastpost .sj-postinfo, div#Administration.sj-main-cate div#\/f6-gestion-des-personnages .sj-lastpost .sj-postinfo {width:35%;}
+
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, div#Terrebonne_20Parish.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, 
+div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, div#The_20world_20outside.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, 
+div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, div#Terrebonne_20Bay.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum, 
+div#La_20Louisiane.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-subforum {width:20%;}
+
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, div#Terrebonne_20Parish.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, 
+div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, div#The_20world_20outside.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, 
+div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, div#Terrebonne_20Bay.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo, 
+div#La_20Louisiane.sj-main-cate .sj-caterow:not(:has(.sj-subforum a)) .sj-postinfo {width:50%;}
+
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:first-child .sj-subforum {content: url("https://zupimages.net/up/26/27/r9a9.png"); opacity:0.5;}
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(2) .sj-subforum {content: url("https://zupimages.net/up/26/27/s1ks.png"); opacity:0.5;}
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(3) .sj-subforum {content: url("https://zupimages.net/up/26/27/21wh.png"); opacity:0.5;}
+
+.sj-caterow .sj-subforum:has(i) {background:var(--clair1opa6); border-radius:5px;}
+.sj-caterow .sj-subforum:has(i) a {display: flex;background: none;color: var(--dark);justify-content: flex-start;gap: 20px;font-size: 0.9em;line-height:1em;align-items: center;font-family: var(--txt2);text-transform: uppercase;font-weight: 700;opacity: 0.7;transition: all ease 0.5s;}
+.sj-caterow .sj-subforum:has(i) a:hover {opacity:1; transition: all ease 0.5s;}
+.sj-caterow .sj-subforum:has(i) a > i {font-size:1.5em;}
+.sj-caterow .sj-subforum:has(i) a:after {content: '';height: 1px;background: none; border:0.5px solid var(--darkopa5);flex: 1 1 auto;}
+.sj-caterow .sj-catetitre:has(i) a {display: flex; gap: 20px; align-items: center; justify-content: center;}
 
 div#Premiers_20pas, div#Administration {display: flex; flex-wrap: wrap;}
 div#Premiers_20pas.sj-main-cate .sj-main-frow, div#Administration.sj-main-cate .sj-main-frow {flex: 50%; flex-direction: column; height: 440px; justify-content: space-between; align-content: space-between;}
