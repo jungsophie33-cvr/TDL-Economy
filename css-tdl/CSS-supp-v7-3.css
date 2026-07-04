@@ -315,7 +315,7 @@ border-top-color: var(--clair1);top:-7px;}
 .sj-intro .sj-intrleft .h4:before {display:inline-block;font-family: "uicons-regular-rounded";content:"\e098";transform:rotate(90deg); font-style:normal;margin-right:10px;font-size:0.7em;transition:transform 0.55s cubic-bezier(0.737, -0.68, 0.327, 1.686);}
 .sj-intro .sj-intrleft.active .h4:before, .sj-intro .sj-intrleft.closing .h4:before {transform:rotate(0deg);}
 .sj-intro .sj-intrleft.closing .h4:before {transition: transform 0.65s cubic-bezier(0.737, -0.68, 0.327, 1.686);}
-.sj-intro .sj-intright {display:flex; flex-flow:column; width:170px; justify-content:space-around; align-items:end;}
+.sj-intro .sj-intright {display:flex; flex-flow:column; justify-content:space-around; align-items:end;}
 
 @keyframes waveWithPause {
   0%, 80%, 100% { transform: translateY(0) rotate(0deg); }
