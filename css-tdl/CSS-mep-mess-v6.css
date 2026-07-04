@@ -671,7 +671,8 @@ align-items: center;
 .tdl-bayou-label {
 font-family: var(--txt3);
 font-weight: 700;
-font-size: .7rem;
+font-size: 13px;
+  padding:2px 0;
 text-transform: uppercase;
 letter-spacing: .1em;
 color: var(--clair1);
