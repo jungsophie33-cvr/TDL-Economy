@@ -839,7 +839,7 @@ border-radius: 10px;}
 .sj-prfieldp1 > dl > dt, .sj-prfieldp2 > dl > dt, .sj-prfieldp3 > dl > dt {width: fit-content; background: var(--groups); color: var(--clair1); padding: 4px 15px; margin: 5px auto; border-radius: 5px; font-family: var(--font2); font-style: italic; line-height: 1em; font-size: 1.1em;}
 .sj-prfieldp2 > dl > dd, .sj-prfieldp3 > dl > dd {background:var(--cntr5); padding:10px; border-radius:5px; margin:5px 10px; text-align:justify; max-height:100px;overflow:auto;}
 .sj-prfieldp3 > dl > dd {max-height:130px;}
-.sj-prstatlinks {display: flex; width: 728px; justify-content: space-evenly;}
+.sj-prstatlinks {display: flex; justify-content: space-evenly;}
 .sj-prstatlinks span {background: var(--cntr5); padding: 10px 0 8px; width: 150px; border-radius: 5px; border: 2px solid var(--cntr); font-family: var(--title5); font-size: 1.2em; line-height: 1em;}
 .sj-prstatlinks span a {color:var(--txt)!important;}
 .sj-prstatlinks span a:hover {color:var(--clair1)!important;}
