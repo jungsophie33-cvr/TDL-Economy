@@ -413,7 +413,7 @@ div#La_20Louisiane.sj-main-cate .sj-cateright:hover {filter:brightness(0.9) cont
 .sj-main-cate .sj-caterow .sj-cateright > div > div > span > img {display:none;}
 div#Houma_20Metropolitan_20Area.sj-main-cate .sj-cateleft, div#Terrebonne_20Parish.sj-main-cate .sj-cateleft, div#Les_20Bayous_20sauvages.sj-main-cate .sj-cateleft, div#The_20world_20outside.sj-main-cate .sj-cateleft, div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-cateleft, div#Terrebonne_20Bay.sj-main-cate .sj-cateleft, div#La_20Louisiane.sj-main-cate .sj-cateleft {width:50%; border-right:1px solid var(--clair1opa6);}
 
-div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even), div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(even), 
+div#Houma_20Metropolitan_20Area.sj-main-cate .sj-caterow:nth-child(even), div#Terrebonne_20Parish.sj-main-cate .sj-caterow:nth-child(odd), 
 div#Les_20Bayous_20sauvages.sj-main-cate .sj-caterow:nth-child(even), div#The_20world_20outside.sj-main-cate .sj-caterow:nth-child(even), 
 div#Mandalay_20National_20Wildlife_20Refuge.sj-main-cate .sj-caterow:nth-child(even), div#Terrebonne_20Bay.sj-main-cate .sj-caterow:nth-child(even), 
 div#La_20Louisiane.sj-main-cate .sj-caterow:nth-child(even), 
