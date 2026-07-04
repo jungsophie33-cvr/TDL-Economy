@@ -456,7 +456,7 @@ let3 {float:left;font-size:5em;font-family:var(--font2); font-style:italic; line
 .sj-fiche .sj-blc2 .sj-bl2l {width:90px; height:300px; display:flex; flex-flow:column; justify-content:space-around;}
 .sj-fiche .sj-blc2 .sj-bl2l img {width:90px; height:90px; object-fit:cover; border-radius:20px; border:3px solid var(--cntr5); filter:grayscale(1) contrast(0.8);}
 .sj-fiche .sj-blc2 .sj-bl2l.ong2 img {border-radius:50%;}
-.sj-fiche .sj-blc2 .sj-bl2r {width:720px; height:300px; overflow:auto;}
+.sj-fiche .sj-blc2 .sj-bl2r {min-width:720px; width:90%; height:300px; overflow:auto;}
 .sj-fiche .systab .contents .sj-binfos {display:flex; justify-content: space-between;margin:0 0 15px;}
 .sj-fiche .systab .contents .sj-binfos f2 {padding:5px 25px 3px; margin:0!important; font-size:1em; line-height:1em; font-family:var(--title3); background:var(--groups, var(--dark2));}
 .sj-fiche .accordion {width:100%; margin: 5px 0;}
