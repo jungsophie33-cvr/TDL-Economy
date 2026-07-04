@@ -320,7 +320,7 @@ font-weight: 700;  line-height: 1.2;
 }
 
 /* Barre */
-.tdl-ja-bar-wrap { flex: 1; }
+.tdl-ja-bar-wrap { width:100%; }
 
 .tdl-ja-segments {
   display : flex;
