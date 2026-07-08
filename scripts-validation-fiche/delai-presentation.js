@@ -36,7 +36,7 @@ const CFG = {
 
 /* --- TEXTES — toutes les chaînes visibles ----------------------------------- */
 const TEXTES = {
-  jusqua      : "délai jusqu'au {date}",
+  jusqua      : "délai : {date}",
   prolonge    : "(prolongé)",
   depasse     : "délai dépassé",
   btnPlus     : "+7j",
