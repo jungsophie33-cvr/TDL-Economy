@@ -1,0 +1,45 @@
+/* =============================================================================
+   TDL — Délai de finalisation des fiches de présentation (styles)
+   Placé après la <span class="topic-author">, hors de son nœud.
+   ========================================================================== */
+
+.sj-topic-delay {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: .75em;
+  letter-spacing: .02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* État d'urgence : 3 derniers jours OU délai dépassé */
+.sj-topic-delay--urgent {
+  background: var(--dark2);
+  color: var(--clair1);
+}
+
+/* Boutons réservés au staff (admins + modérateurs) */
+.sj-topic-delay__btn {
+  margin-left: 5px;
+  padding: 0 5px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: .9em;
+  line-height: 1.4;
+  cursor: pointer;
+  opacity: .7;
+  transition: opacity .15s ease;
+}
+
+.sj-topic-delay__btn:hover {
+  opacity: 1;
+}
+
+.sj-topic-delay__btn--annuler {
+  font-style: italic;
+}
