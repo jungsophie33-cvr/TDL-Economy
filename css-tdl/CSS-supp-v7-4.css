@@ -581,7 +581,7 @@ div#\/f1-guidebook .sj-cateright a span:hover {transform:rotateX(90deg) translat
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(2) {margin: 0 10px;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(2) > strong.pagination {float:none;}
 .sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(2) > .pagination span a {width:auto; display:inline;background:var(--darkopa8); line-height:1.3em;font-family: var(--txt1); color:var(--clair1); padding:0 5px; margin-right:3px;}
-.sj-topic-listbox .sj-topic-list > div:nth-child(2) > div:nth-child(3) > span:nth-child(3) {max-height: 25px;overflow: auto; background: var(--clair1opa6); padding: 2px 5px; border-radius: 5px; font-size:1em; font-family:var(--txt1); font-weight:700;}
+.sj-topic-listbox .sj-topic-list .sj-topicdesc {max-height: 25px;overflow: auto; background: var(--clair1opa6); padding: 2px 5px; border-radius: 5px; font-size:1em; font-family:var(--txt1); font-weight:700;}
 
 .sj-topic-listbox .sj-topic-list > div:nth-child(3) {display: flex; height:100%; flex-direction: column; justify-content: space-around; padding: 0; font-size: 1.2em; font-family: var(--txt2);}
 .sj-topic-listbox .sj-topic-list > div:nth-child(3) > span {position:relative; z-index:999;text-align: center;font-size: 1.1em;color: var(--darkopa7);}
