@@ -3,6 +3,98 @@
    Toutes les couleurs / polices proviennent du :root du forum.
    Page dédiée : .app à 70% sur l'image de fond (--bgimg).
    ============================================================ */
+:root {
+  --bgimg: url('https://zupimages.net/up/25/38/icpc.png');
+  --bgprof: url('https://zupimages.net/up/25/41/0e00.png');
+  --bg: #898890;
+  --txt: #352c2e;
+  --gr1-color: #C97F10;
+  --gr2-color: #40943B;
+  --gr3-color: #5875A6;
+  --gr4-color: #875EAD;
+  --gr5-color: #579C8E;
+  --gr6-color: #8F565F;
+  --gr1-40:#C97F1040;
+  --gr2-40:#40943B40;
+  --gr3-40:#5875A640;
+  --gr4-40:#875EAD40;
+  --gr5-40:#579C8E40;
+  --gr6-40: #8F565F40;
+  --gr1-20:#C97F1020;
+  --gr2-20:#40943B20;
+  --gr3-20:#5875A620;
+  --gr4-20:#875EAD20;
+  --gr5-20:#579C8E20;
+  --gr6-20: #8F565F20;
+  --cntr: rgba(188, 177, 170, 1);
+  --cntr8:rgba(188, 177, 170, 0.8);
+  --cntr7:rgba(188, 177, 170, 0.7);
+  --cntr6:rgba(188, 177, 170, 0.6);
+  --cntr5:rgba(188, 177, 170, 0.5);
+  --cntr4: rgba(188, 177, 170, 0.4);
+  --cntr3: rgba(188, 177, 170, 0.3);
+  --cntr2: rgba(188, 177, 170, 0.2);
+  --cntr1: rgba(188, 177, 170, 0.1);
+  --cntr0: rgba(188, 177, 170, 0);
+  --clair1: rgba(236, 229, 226, 1);
+  --clair1opa8: rgba(236, 229, 226, 0.8);
+  --clair1opa7: rgba(236, 229, 226, 0.7);
+  --clair1opa6: rgba(236, 229, 226, 0.6);
+  --clair1opa5: rgba(236, 229, 226, 0.5);
+  --clair1opa4: rgba(236, 229, 226, 0.4);
+  --clair1opa3: rgba(236, 229, 226, 0.3);
+  --clair1opa2: rgba(236, 229, 226, 0.2);
+  --clair2: rgba(200, 165, 99, 1);
+  --clair2opa2: rgba(200, 165, 99, 0.2); 
+  --clair2opa3: rgba(200, 165, 99, 0.3); 
+  --clair2opa4: rgba(200, 165, 99, 0.4); 
+  --clair2opa5: rgba(200, 165, 99, 0.5); 
+  --clair2opa6: rgba(200, 165, 99, 0.6);
+  --clair2opa7: rgba(200, 165, 99, 0.7);
+  --clair2opa8: rgba(200, 165, 99, 0.8);
+  --gradient3: linear-gradient(45deg,var(--clair2opa6) 0%,var(--dark2opa6) 60%, var(--darkopa6) 100%);
+  --gradient1: linear-gradient(45deg,var(--clair2opa8) 0%,var(--dark2opa8) 60%, var(--darkopa8) 100%);
+  --gradient2: linear-gradient(90deg, var(--clair2opa5) 0%, var(--darkopa5) 100%);
+  --gradient0: linear-gradient(90deg, var(--clair2) 0%, var(--dark) 100%);
+  --gradient0r: linear-gradient(90deg, var(--dark) 0%, var(--clair2) 100%);
+  
+  --gradoc: linear-gradient(45deg, var(--dark2) 0%, var(--clair2) 50%, var(--dark2) 100%);
+  --gradocr: linear-gradient(45deg, var(--clair2) 0%, var(--dark2) 50%, var(--clair2) 100%);
+  --gradoc15: linear-gradient(45deg, var(--dark2opa5) 0%, var(--clair2opa5) 100%);
+  --gradoc18: linear-gradient(45deg, var(--dark2opa8) 0%, var(--clair2opa8) 100%);
+  --gradoc1: linear-gradient(45deg, var(--dark2) 0%, var(--clair2) 100%);
+  --gradoc1r: linear-gradient(45deg, var(--clair2) 0%, var(--dark2) 100%);
+  --gradark: linear-gradient(45deg, var(--dark) 0%, var(--dark2) 100%);
+  --gradark1: linear-gradient(45deg, var(--dark2) 0%, var(--dark) 100%);
+  --dark: rgba(94, 61, 62, 1);
+  --darkopa2: rgba(94, 61, 62, 0.2);
+  --darkopa3: rgba(94, 61, 62, 0.3);
+  --darkopa4: rgba(94, 61, 62, 0.4);
+  --darkopa5: rgba(94, 61, 62, 0.5);
+  --darkopa6: rgba(94, 61, 62, 0.6);
+  --darkopa7: rgba(94, 61, 62, 0.7);
+  --darkopa8: rgba(94, 61, 62, 0.8);
+  --dark2: rgba(161, 83, 80, 1);
+  --dark2opa8: rgba(161, 83, 80, 0.8);
+  --dark2opa7: rgba(161, 83, 80, 0.7);
+  --dark2opa6: rgba(161, 83, 80, 0.6);
+  --dark2opa5: rgba(161, 83, 80, 0.5);
+  --dark2opa4: rgba(161, 83, 80, 0.4);
+  --dark2opa3: rgba(161, 83, 80, 0.3);
+  --dark2opa2: rgba(161, 83, 80, 0.2);
+  --font0:"Manrope", sans-serif;
+  --font1: "Inter", sans-serif;
+  --font2: 'Playfair Display', serif;
+  --font3: 'Adhiguno', sans-serif;
+  --title1: 'Cinzel',serif;
+  --title2: 'Astone Nouvea', sans-serif;
+  --title3: "Viaoda Libre", serif;
+  --title4: 'Lamoric Rowen', sans-serif;
+  --title5: 'OPHELIA', sans-serif;
+  --txt1: "Cormorant Garamond", serif;
+  --txt2: "Crimson Text", serif;
+  --txt3: 'Montserrat', sans-serif;
+  --txt4: 'feonie', sans-serif;}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bgimg) no-repeat center center;background-size:cover;color:var(--txt);font-family:var(--txt1);font-size:19px;line-height:1.4;overflow:hidden;-webkit-font-smoothing:antialiased}
