@@ -234,7 +234,7 @@ function renderPanneau(){
     <div class="p-body">
       <div class="p-head">
         <div class="p-titleblock">
-          <p class="p-eyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
+          <p class="p-eyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="p-meta">${l.type}</div>
         </div>
