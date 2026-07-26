@@ -114,7 +114,7 @@ body{background:var(--bgimg) no-repeat center center;background-size:cover;color
 .tabs{display:flex;gap:20px;flex-wrap:wrap}
 .tabs button{font-family:var(--txt1);font-weight:600; text-transform:uppercase;font-size:0.9em;background:none;border:0;padding:10px 2px;color:var(--darkopa6);cursor:pointer;position:relative;line-height:1}
 .tabs button[aria-selected="true"]{color:var(--dark)}
-.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-6px;height:1px;background:var(--dark)}
+.tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;background:var(--dark)}
 
 /* ligne NB DE LIEUX (+ Ajouter) | INFLUENCES */
 .inflrow{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 26px;border-bottom:1px solid var(--cntr4)}
