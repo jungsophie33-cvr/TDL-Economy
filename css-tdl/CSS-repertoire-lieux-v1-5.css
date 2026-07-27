@@ -7,7 +7,7 @@
 /* ===== INTÉGRATION PAGE FA (template header/footer activé) =====
    Superpose le répertoire en plein écran par-dessus le forum.
    Sans effet en test standalone. */
-html,body{ }
+html:has(.tdlr-rep),body:has(.tdlr-rep){overflow:hidden;}
 .tdlr-rep{position:fixed;inset:0;z-index:99990;display:flex;
   background:var(--bgimg) no-repeat center center;background-size:cover;
   color:var(--txt);font-family:var(--txt1);font-size:19px;line-height:1.4;text-align:left;-webkit-font-smoothing:antialiased}
