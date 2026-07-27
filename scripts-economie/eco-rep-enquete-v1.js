@@ -133,7 +133,7 @@ function renderStatutFilters(){
   Object.keys(STATUTS).forEach(function(id){chips.push({id:id,label:STATUTS[id].label,c:STATUTS[id].c});});
   var html=chips.map(function(s){
     var n=s.id==="tous"?set.length:set.filter(function(a){return statut(a)===s.id;}).length;
-    return '<button class="tdle-stf" data-st="'+s.id+'" aria-pressed="'+(s.id===S.statut)+'" style="--sc:'+s.c+'"><span class="d"></span>'+s.label+' <b>'+n+'</b></button>';
+    return '<button class="tdle-stf" data-st="'+s.id+'" aria-pressed="'+(s.id===S.statut)+'" style="--sc:'+s.c+'"><span class="tdle-fdot"></span>'+s.label+' <b>'+n+'</b></button>';
   }).join("");
   if(estStaffCourant()){var nd=set.filter(aDesDemandes).length;html+='<button class="tdle-stf tdle-req-chip" data-st="demandes" aria-pressed="'+(S.statut==="demandes")+'">⚑ Demandes <b>'+nd+'</b></button>';}
   var el=$("#tdle-stf"); if(el){el.innerHTML=html; el.querySelectorAll(".tdle-stf").forEach(function(b){b.onclick=function(){S.statut=b.getAttribute("data-st");fixSel();renderStage();renderStatutFilters();};});}
@@ -221,19 +221,24 @@ function panel(a){
 function tab(a){
   var r=role(a), editable=(r==="staff"||r==="referent");
   if(S.onglet==="elements"){
-    var fk=a.folklore.length?'<p class="tdle-hsec" style="margin-top:18px">Éléments atypiques / folklore '+(a.intrigue?'🔒':'')+'</p><ul class="tdle-clean">'+a.folklore.map(function(x){return '<li class="b">'+esc(x)+'</li>';}).join("")+'</ul>':"";
-    var addBtn=editable?'<button class="tdle-mini" data-act="addel">+</button>':"";
-    var form=S.inline==="element"?'<div class="tdle-iform"><input class="txt" id="tdle-elin" placeholder="Nouvel élément / indice relevé…"><button class="go" data-do="elok">Ajouter</button><button class="no" data-do="cancel">Annuler</button></div>':"";
+    var puce=function(v,i,delKey){return '<li class="tdle-puce">'+esc(v)+(editable?'<span class="tdle-rm" data-'+delKey+'="'+i+'" title="Supprimer">✕</span>':'')+'</li>';};
+    var listP=a.particularites.length?a.particularites.map(function(v,i){return puce(v,i,"delpart");}).join(""):'<li>—</li>';
+    var listE=a.elements.length?a.elements.map(function(v,i){return puce(v,i,"delel");}).join(""):'<li>—</li>';
+    var addP=editable?'<button class="tdle-mini" data-act="addpart">+</button>':"";
+    var addE=editable?'<button class="tdle-mini" data-act="addel">+</button>':"";
+    var formP=S.inline==="particularite"?'<div class="tdle-iform"><input class="txt" id="tdle-partin" placeholder="Nouvelle particularité…"><button class="go" data-do="partok">Ajouter</button><button class="no" data-do="cancel">Annuler</button></div>':"";
+    var formE=S.inline==="element"?'<div class="tdle-iform"><input class="txt" id="tdle-elin" placeholder="Nouvel élément / indice relevé…"><button class="go" data-do="elok">Ajouter</button><button class="no" data-do="cancel">Annuler</button></div>':"";
+    var fk=a.folklore.length?'<p class="tdle-hsec" style="margin-top:18px">Éléments atypiques / folklore '+(a.intrigue?'🔒':'')+'</p><ul class="tdle-clean">'+a.folklore.map(function(x){return '<li class="tdle-puce">'+esc(x)+'</li>';}).join("")+'</ul>':"";
     return '<p class="tdle-tabhint">Les faits et indices de l\'affaire.</p>'
-      +'<p class="tdle-hsec">Particularités</p><ul class="tdle-clean">'+(a.particularites.map(function(x){return '<li class="b">'+esc(x)+'</li>';}).join("")||'<li>—</li>')+'</ul>'
-      +'<p class="tdle-hsec" style="margin-top:18px">Éléments relevés '+addBtn+'</p><ul class="tdle-clean">'+(a.elements.map(function(x){return '<li class="b">'+esc(x)+'</li>';}).join("")||'<li>—</li>')+'</ul>'+form+fk
+      +'<p class="tdle-hsec">Particularités '+addP+'</p><ul class="tdle-clean">'+listP+'</ul>'+formP
+      +'<p class="tdle-hsec" style="margin-top:18px">Éléments relevés '+addE+'</p><ul class="tdle-clean">'+listE+'</ul>'+formE+fk
       +(a.intrigue&&r!=="staff"?'<p class="tdle-locked" style="margin-top:16px">Éléments verrouillés : affaire liée à une intrigue. Seul le staff peut les modifier.</p>':'');
   }
   if(S.onglet==="chrono"){
     var addBtn2=editable?'<button class="tdle-mini" data-act="addchr">+</button>':"";
     var form2=S.inline==="chrono"?'<div class="tdle-iform"><input class="dt" id="tdle-chdate" placeholder="Date RP (ex. 14 avril 2025)"><input class="txt" id="tdle-chtxt" placeholder="Progression de l\'enquête…"><button class="go" data-do="chok">Ajouter</button><button class="no" data-do="cancel">Annuler</button></div>':"";
     return '<p class="tdle-tabhint">La progression de l\'enquête, datée selon le RP.</p><p class="tdle-hsec">Journal de l\'affaire '+addBtn2+'</p>'+form2
-      +'<ul class="tdle-timeline">'+a.chrono.map(function(e){return '<li><div class="t">'+esc(e[1])+SEP+'<small>par '+esc(e[0])+'</small></div><div class="x">'+esc(e[2])+'</div></li>';}).join("")+'</ul>';
+      +'<ul class="tdle-timeline">'+a.chrono.map(function(e){return '<li><div class="tdle-tl-when">'+esc(e[1])+SEP+'<small>par '+esc(e[0])+'</small></div><div class="tdle-tl-txt">'+esc(e[2])+'</div></li>';}).join("")+'</ul>';
   }
   if(S.onglet==="personnes"){
     var list=participants(a), canCheck=editable;
@@ -352,6 +357,8 @@ function brancher(){
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
   stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){var a=parId(S.sel),n=el.getAttribute("data-val");if(el.checked){if(a.valides.indexOf(n)<0)a.valides.push(n);}else{a.valides=a.valides.filter(function(x){return x!==n;});}persist(a);};});
   stage.querySelectorAll("[data-delrole]").forEach(function(el){el.onclick=function(){var a=parId(S.sel);a.roles=a.roles.filter(function(x){return x!==el.getAttribute("data-delrole");});if(!a.roles.length)a.roles=["—"];persist(a);renderStage();};});
+  stage.querySelectorAll("[data-delpart]").forEach(function(el){el.onclick=function(){var a=parId(S.sel);a.particularites.splice(+el.getAttribute("data-delpart"),1);persist(a);renderStage();};});
+  stage.querySelectorAll("[data-delel]").forEach(function(el){el.onclick=function(){var a=parId(S.sel);a.elements.splice(+el.getAttribute("data-delel"),1);persist(a);renderStage();};});
   stage.querySelectorAll("[data-valref]").forEach(function(el){el.onclick=function(){var a=parId(S.sel),m=el.getAttribute("data-valref");a.referent=m;a.demandesReferent=[];a.chrono.push([staffNom(),nowFR(),"Référent validé : "+m]);persist(a);toast(m+" est désormais référent.");renderAll();};});
   stage.querySelectorAll("[data-vallien]").forEach(function(el){el.onclick=function(){var a=parId(S.sel),tid=el.getAttribute("data-vallien");var dm=a.demandesLien.filter(function(l){return l.id===tid;})[0];ajouterLien(a,tid,dm?dm.note:"");a.demandesLien=a.demandesLien.filter(function(l){return l.id!==tid;});persist(a);toast("Lien validé.");renderStage();};});
   stage.querySelectorAll("[data-act]").forEach(function(el){el.onclick=function(){act(el.getAttribute("data-act"));};});
@@ -365,6 +372,7 @@ function act(k){
   else if(k==="verif"){S.onglet="personnes";S.drawer=null;S.inline=null;renderStage();}
   else if(k==="askclose"){a.demandeCloture=true;persist(a);toast("Demande de clôture envoyée au staff.");renderStage();}
   else if(k==="addel"){S.inline=S.inline==="element"?null:"element";renderStage();}
+  else if(k==="addpart"){S.inline=S.inline==="particularite"?null:"particularite";renderStage();}
   else if(k==="addchr"){S.inline=S.inline==="chrono"?null:"chrono";renderStage();}
   else if(k==="addrole"){S.inline=S.inline==="role"?null:"role";renderStage();}
   else if(k==="addlien"){S.inline=S.inline==="lien"?null:"lien";renderStage();}
@@ -389,6 +397,7 @@ function doo(k){
     persist(a);S.drawer=null;S.onglet="liens";toast("Inscrit·e comme participant·e.");renderStage();
   }
   if(k==="elok"){var t=(($("#tdle-elin")||{}).value||"").trim();if(!t){toast("Rien à ajouter.");return;}a.elements.push(t);a.chrono.push([staffNom(),nowFR(),"Nouvel élément ajouté au dossier"]);persist(a);S.inline=null;toast("Élément ajouté.");renderStage();}
+  if(k==="partok"){var tp=(($("#tdle-partin")||{}).value||"").trim();if(!tp){toast("Rien à ajouter.");return;}a.particularites.push(tp);persist(a);S.inline=null;toast("Particularité ajoutée.");renderStage();}
   if(k==="chok"){var dt=(($("#tdle-chdate")||{}).value||"").trim(),tx=(($("#tdle-chtxt")||{}).value||"").trim();if(!tx){toast("Décris l'étape.");return;}a.chrono.push([staffNom(),dt||"date RP ?",tx]);persist(a);S.inline=null;toast("Étape ajoutée.");renderStage();}
   if(k==="rlok"){var tr=(($("#tdle-rlin")||{}).value||"").trim();if(!tr)return;a.roles=a.roles.filter(function(x){return x!=="—";});a.roles.push(tr);persist(a);renderStage();}
   if(k==="lienok"){var tid=(($("#tdle-liensel")||{}).value||"").trim();if(!tid){toast("Aucune affaire à lier.");return;}var note=(($("#tdle-liennote")||{}).value||"").trim();
