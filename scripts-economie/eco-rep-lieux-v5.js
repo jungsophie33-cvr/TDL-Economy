@@ -11,14 +11,14 @@
 /* ===================== TEXTES ===================== */
 const TEXTES = {
   accueil:'Accueil', entete:'Répertoire des lieux', modeAdmin:'Administrer',
-  lieux:'lieux', ajouter:'+ Créer un lieu', sousInfluence:'Sous influence', moins:'−',
+  lieux:'lieux', ajouter:'+ Créer un lieu', sousInfluence:'Filtrer par influence', moins:'−',
   modifier:'Modifier ce lieu', supprimer:'Supprimer',
   confSupp:'Supprimer définitivement ?', supprOui:'Oui, supprimer', annuler:'Annuler',
   edition:'Édition', nouveau:'Nouveau lieu', creerLieu:'Créer un lieu', sansNom:'Sans nom',
   enregistrer:'Enregistrer', creer:'Créer le lieu', aucun:'Aucun lieu pour ce filtre.',
   chAdresse:'Adresse', chEmploi:'Emploi possible', chInfluence:'Influence',
-  emploiOui:'Oui — vos personnages peuvent y travailler.', emploiNon:'Non',
-  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière',
+  emploiOui:'Oui : vos personnages peuvent y travailler.', emploiNon:'Non',
+  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière ici',
   okSave:'Lieu enregistré.', okDel:'Lieu supprimé.', memSave:'Enregistré (mémoire — non sauvegardé)',
   memDel:'Retiré (mémoire — non sauvegardé)', errSave:"Échec de l'enregistrement : ", errDel:'Échec de la suppression : ',
   lbl:{nom:'Nom',type:'Type',adresse:'Adresse',zone:'Zone',categorie:'Catégorie',
@@ -35,6 +35,7 @@ const SEL = {zones:'tdlr-zones', cats:'tdlr-cats', facs:'tdlr-facs', liste:'tdlr
              lAccueil:'tdlr-l-accueil', lEntete:'tdlr-l-eyebrow', lLieux:'tdlr-l-lieux', lInfluence:'tdlr-l-influence'};
 const FAC_VISIBLES = 5;
 const HREF_ACCUEIL = '/';          /* [MAJ] accueil du forum */
+const FORCER_ADMIN = false;        /* [MAJ] true UNIQUEMENT pour un aperçu admin en local (jamais en prod) */
 const ICONS = { gov:'<path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-7h6v7"/><path d="M4 9h16"/>' };
 
 const FAC = {
@@ -141,7 +142,7 @@ const Store = {
 
 /* ===================== ÉTAT ===================== */
 const STAFF = !!(window._userdata && (window._userdata.user_level===1 || window._userdata.user_level===2));
-const S = {zone:'houma', cat:'tous', fac:null, sel:null, admin:STAFF, confirmDel:null, editing:null};
+const S = {zone:'houma', cat:'tous', fac:null, sel:null, admin:(STAFF||FORCER_ADMIN), confirmDel:null, editing:null};
 const $ = id => document.getElementById(id);
 let elListe, elPanneau;
 
@@ -346,12 +347,10 @@ function init(){
   $(SEL.lLieux).textContent     = TEXTES.lieux;
   $(SEL.lInfluence).textContent = TEXTES.sousInfluence;
   $(SEL.ajouter).textContent    = TEXTES.ajouter;
-  const at=$(SEL.admin);
   construireZones();
   construireInfluences();
   $(SEL.ajouter).addEventListener('click',()=>{S.editing='new';S.confirmDel=null;renderPanneau();});
-  if(STAFF){ at.style.display='none'; }
-  else { at.textContent = TEXTES.modeAdmin; at.addEventListener('click',()=>{S.admin=!S.admin;at.setAttribute('aria-pressed',S.admin);appliquerAdmin();}); }
+  const at=$(SEL.admin); if(at) at.remove();   /* pas de bouton « mode admin » : l'accès dépend UNIQUEMENT du staff */
   appliquerAdmin();
   renderCatCol();
   Store.charger(renderList);
