@@ -96,7 +96,7 @@ function genererExemples(){
   LIEUX.push({id:"fa2",nom:"Ferme d'élevage",type:"Élevage",rue:"— exemple —",zone:"montegut",cat:"fermes",ic:"fi-ts-pig-face",facs:[],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
   LIEUX.push({id:"fa3",nom:"Domaine agricole",type:"Exploitation",rue:"— exemple —",zone:"bourg",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["fardoches"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
 }
-/* genererExemples();  ← retire cette ligne en prod */
+genererExemples(); /* ← retire cette ligne en prod */
 
 /* ===================== PERSISTANCE (EcoCore / Firebase) ===================== */
 const CHEMIN_LIEUX = 'lieux';
@@ -154,10 +154,9 @@ function icon(val,size){
   if(/^fi[\s-]/.test(val)){ const cls=val.startsWith('fi ')?val:('fi '+val); return `<i class="${cls}" style="font-size:${size}px;line-height:1;display:inline-flex"></i>`; }
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[val]||ICONS.gov}</svg>`;
 }
-const bag = ()=>`<i class="fi fi-tr-briefcase tdlr-emploi"></i>`; 
+const bag  = ()=>`<i class="fi fi-tr-briefcase tdlr-emploi"></i>`;
 const bagP = ()=>`<svg class="tdlr-emploip" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
-
-   /* Firebase ne stocke pas les tableaux/objets vides et sérialise les tableaux
+/* Firebase ne stocke pas les tableaux/objets vides et sérialise les tableaux
    en objets {0:…,1:…} → on normalise toujours en vrai tableau. */
 const versTableau = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
 const dots = f => { f=versTableau(f); return f.length ? `<span class="tdlr-minifacs">${f.map(x=>FAC[x]?`<span class="tdlr-dot" style="background:${FAC[x].c}"></span>`:'').join('')}</span>` : ''; };
@@ -232,7 +231,7 @@ function renderPanneau(){
       <div class="tdlr-phead">
         <div class="tdlr-pavatar" style="--c:${c.c};--soft:${c.soft}">${visuel(52)}</div>
         <div class="tdlr-ptitle">
-          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
+          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="tdlr-pmeta">${l.type}</div>
         </div>
@@ -347,6 +346,10 @@ function init(){
     const mv=document.createElement('meta'); mv.name='viewport'; mv.content='width=device-width, initial-scale=1';
     document.head.appendChild(mv);
   }
+  /* Sort l'overlay du contexte du forum (#sj-main/#wrap) : évite que la largeur mini
+     ou un transform d'un ancêtre ne piège le position:fixed et ne dézoome la page. */
+  const rep=document.querySelector('.tdlr-rep');
+  if(rep && rep.parentNode!==document.body) document.body.appendChild(rep);
   elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
