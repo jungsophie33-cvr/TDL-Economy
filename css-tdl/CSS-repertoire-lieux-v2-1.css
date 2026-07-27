@@ -74,7 +74,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-list{flex:1;min-height:0;overflow:auto}
 .tdlr-row{display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--cntr4);cursor:pointer;transition:.12s}
 .tdlr-row:hover{background:var(--cntr2)}
-.tdlr-row[aria-current="true"]{background:var(--darkopa6)}
+.tdlr-row[aria-current="true"]{background:var(--gradark2)}
 .tdlr-row[aria-current="true"] .tdlr-rnom,.tdlr-row[aria-current="true"] .tdlr-rmeta{color:var(--clair1)}
 .tdlr-row[aria-current="true"] .tdlr-rmeta{opacity:.8}
 .tdlr-ric{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--c);flex:none}
