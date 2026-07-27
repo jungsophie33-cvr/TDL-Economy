@@ -78,7 +78,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-row[aria-current="true"] .tdlr-ric{background:var(--clair1opa2);color:var(--clair1)}
 .tdlr-rtxt{flex:1;min-width:0}
 .tdlr-rnom{font-family:var(--font2);font-style:italic;font-weight:500;letter-spacing:-0.5px;font-size:18px;line-height:1.05;display:flex;align-items:center;gap:7px;color:var(--txt)}
-.tdlr-rmeta{color:var(--darkopa5);font-family:var(--title1);font-size:10px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tdlr-rmeta{color:var(--darkopa5);font-family:var(--title1);font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdlr-exq{font-family:var(--title1);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa5);border:1px solid var(--cntr4);border-radius:4px;padding:1px 5px}
 .tdlr-emploi{color:var(--darkopa5);flex:none}
 .tdlr-minifacs{display:flex;gap:4px;flex:none}
@@ -88,7 +88,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 
 /* ---------- PANNEAU (lecture) ---------- */
 .tdlr-panneau{min-height:0;overflow:auto;container-type:inline-size;container-name:tdlrpan}
-.tdlr-retour{display:none;position:sticky;top:0;z-index:2;width:100%;text-align:left;font-family:var(--title1);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa7);background:var(--cntr2);border:0;border-bottom:1px solid var(--cntr4);padding:13px 20px;cursor:pointer}
+.tdlr-retour{display:none;position:sticky;top:0;z-index:2;width:100%;text-align:left;font-family:var(--title1);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dark);background:var(--cntr3);border:0;border-bottom:1px solid var(--cntr4);padding:13px 20px;cursor:pointer}
 .tdlr-pbanner{display:none;aspect-ratio:16/9;max-height:280px;overflow:hidden;border-bottom:1px solid var(--cntr4);position:relative}
 .tdlr-pbanner img{width:100%;height:100%;object-fit:cover;filter:sepia(.22) contrast(1.02) saturate(.95)}
 .tdlr-pbanner .tdlr-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft),var(--cntr2))}
@@ -96,9 +96,9 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-pbody{padding:30px 34px 36px}
 .tdlr-phead{display:flex;gap:22px;align-items:flex-start;justify-content:space-between}
 .tdlr-ptitle{flex:1;min-width:0}
-.tdlr-peyebrow{font-family:var(--title1);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--darkopa7)}
+.tdlr-peyebrow{font-family:var(--title1);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--darkopa7)}
 .tdlr-panneau h2{font-family:var(--font2);font-style:italic;font-weight:600;font-size:1.4em;line-height:1.02;margin:10px 0 5px;color:var(--dark);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.tdlr-pmeta{color:var(--darkopa5);font-family:var(--title1);letter-spacing:.05em;text-transform:uppercase;font-size:12.5px}
+.tdlr-pmeta{color:var(--darkopa5);font-family:var(--title1);letter-spacing:.05em;text-transform:uppercase;font-size:13px}
 .tdlr-pavatar{width:150px;height:150px;border-radius:50%;overflow:hidden;flex:none;position:relative;border:1px solid var(--cntr4)}
 .tdlr-pavatar img{width:100%;height:100%;object-fit:cover;filter:sepia(.22) contrast(1.02) saturate(.95)}
 .tdlr-pavatar .tdlr-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft),var(--cntr2))}
@@ -123,9 +123,6 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-checks input{width:16px;height:16px;accent-color:var(--dark)}
 
 /* ---------- RESPONSIVE ---------- */
-/* Bannière (panneau étroit) vs avatar circulaire (panneau large),
-   selon la LARGEUR DU PANNEAU — pas celle de l'écran. ≥500px → cercle. */
-@container tdlrpan (max-width:499px){ .tdlr-pbanner{display:block} .tdlr-pavatar{display:none} }
 @media(max-width:1100px){
   /* Passe en une-colonne (liste ↔ détail) dès que deux colonnes deviennent à l'étroit —
      inclut les téléphones en « mode desktop » qui rapportent ~980-1080px CSS. */
@@ -145,4 +142,25 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
   .tdlr-app.tdlr-vue-detail .tdlr-panneau{display:block}
   .tdlr-retour{display:block}
   .tdlr-pform{grid-template-columns:1fr}
+ 
+  /* En une-colonne, la fiche s'adapte à la largeur du PANNEAU : */
+  /* panneau étroit (<500px) → bannière en haut */
+  @container tdlrpan (max-width:499px){
+    .tdlr-pbanner{display:block}
+    .tdlr-pavatar{display:none}
+  }
+  /* panneau large (≥500px) → image en rectangle aligné à droite,
+     le texte coule à sa gauche (image en 1er dans le DOM + float) */
+  @container tdlrpan (min-width:500px){
+    .tdlr-pbanner{display:none}
+    .tdlr-phead{display:block}
+    .tdlr-pavatar{
+      float:right; width:46%; height:auto; aspect-ratio:16/10;
+      border:0; border-radius:12px 0 0 12px; margin:2px -34px 14px 26px;
+    }
+    .tdlr-pavatar .tdlr-ph{border-radius:12px 0 0 12px}
+    .tdlr-ptitle{overflow:hidden}     /* BFC → reste à gauche de l'image */
+    .tdlr-pamb{overflow:hidden}       /* idem */
+    .tdlr-pfield{clear:right}         /* les champs repassent pleine largeur sous l'image */
+  }
 }
