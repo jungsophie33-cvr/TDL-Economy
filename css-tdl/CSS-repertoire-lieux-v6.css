@@ -118,7 +118,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-field input:focus,.tdlr-field select:focus,.tdlr-field textarea:focus{border-color:var(--dark)}
 .tdlr-field textarea{min-height:80px;resize:vertical;line-height:1.35}
 .tdlr-checks{display:flex;gap:14px;flex-wrap:wrap;padding-top:2px}
-.tdlr-checks label{display:inline-flex;align-items:center;gap:7px;font-family:var(--txt1);font-size:15px;color:var(--txt)}
+.tdlr-checks label{display:inline-flex;align-items:center;gap:7px;font-family:var(--txt3);font-size:13px;color:var(--txt);text-transform:none;letter-spacing:0;}
 .tdlr-checks input{width:16px;height:16px;accent-color:var(--dark)}
 
 /* ---------- RESPONSIVE ---------- */
