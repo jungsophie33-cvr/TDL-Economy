@@ -20,7 +20,7 @@ html,body{ }
 .tdlr-topbar{flex:none;display:flex;align-items:center;gap:16px;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
 .tdlr-accueil{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:13px;text-transform:uppercase;color:var(--darkopa6);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px;transition:.15s}
 .tdlr-accueil:hover{background:var(--darkopa7);color:var(--clair1)}
-.tdlr-eyebrow{font-family:var(--title1);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--darkopa6)}
+.tdlr-eyebrow{font-family:var(--title1);letter-spacing:0.2px;text-transform:uppercase; font-weight:600;}
 .tdlr-spacer{flex:1}
 .tdlr-admintoggle{font-family:var(--title1);font-size:11px;text-transform:uppercase;background:var(--cntr4);border:none;border-radius:5px;padding:7px 13px;color:var(--darkopa6);cursor:pointer}
 .tdlr-admintoggle[aria-pressed="true"]{background:var(--cntr8);color:var(--dark)}
@@ -41,16 +41,16 @@ html,body{ }
 .tdlr-facfilter{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 .tdlr-lbl{font-family:var(--title1);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--darkopa5);margin-right:2px}
 #tdlr-facs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.tdlr-chip{font-family:var(--txt3);font-size:10px;letter-spacing:-0.2px;font-weight:600;text-transform:uppercase;background:var(--cntr4);border:none;border-radius:5px;padding:2px 5px;color:var(--darkopa5);cursor:pointer;transition:.15s}
+.tdlr-chip{font-family:var(--txt3);font-size:12px;letter-spacing:-0.2px;font-weight:600;text-transform:uppercase;background:var(--cntr4);border:none;border-radius:5px;padding:2px 5px;color:var(--darkopa5);cursor:pointer;transition:.15s}
 .tdlr-chip[aria-pressed="true"]{background:var(--fc);color:var(--clair1)}
 #tdlr-facs .tdlr-chip.tdlr-extra{display:none}
 #tdlr-facs.tdlr-open .tdlr-chip.tdlr-extra{display:inline-flex}
 .tdlr-chip.tdlr-more{color:var(--darkopa8)}
 
 /* boutons */
-.tdlr-btn{font-family:var(--title1);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:8px 15px;cursor:pointer;border:1px solid var(--cntr4);background:transparent;color:var(--darkopa7);transition:.15s;display:inline-flex;align-items:center;gap:7px}
-.tdlr-btn:hover{border-color:var(--dark);color:var(--dark)}
-.tdlr-btn.tdlr-primary{background:var(--dark);border-color:var(--dark);color:var(--clair1)}
+.tdlr-btn{font-family:var(--txt3);font-size:12px;letter-spacing:-0.1px;text-transform:uppercase;border-radius:7px;padding:4px 10px;cursor:pointer;border:1px solid var(--cntr4);background:var(--cntr3);color:var(--dark);transition:.15s;display:inline-flex;align-items:center;gap:7px}
+.tdlr-btn:hover{border-color:var(--cntr);}
+.tdlr-btn.tdlr-primary{border-color:var(--dark);}
 .tdlr-btn.tdlr-danger{border-color:var(--gr6-color);color:var(--gr6-color)}
 .tdlr-btn.tdlr-danger:hover{background:var(--gr6-color);color:var(--clair1)}
 .tdlr-adminonly{display:none}
