@@ -124,11 +124,20 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1000px){ .tdlr-pbanner{display:block} .tdlr-pavatar{display:none} }
 @media(max-width:820px){
-  .tdlr-rep{position:static}
-  html,body{overflow:auto}
-  .tdlr-app{width:100%;height:auto;box-shadow:none}
-  .tdlr-split{grid-template-columns:1fr}
-  .tdlr-idx{border-right:0;border-bottom:1px solid var(--cntr4)}
-  .tdlr-list{max-height:52vh}
+  /* on GARDE l'overlay plein écran (pas de static → le header du forum ne réapparaît pas) */
+  .tdlr-app{width:100%;height:100%;box-shadow:none}
+  .tdlr-topbar{padding:10px 18px 8px}
+  .tdlr-zonebar,.tdlr-inflrow{padding-left:18px;padding-right:18px}
+  /* une seule colonne : on bascule LISTE ↔ DÉTAIL au lieu d'empiler */
+  .tdlr-split{display:block;overflow:hidden}
+  .tdlr-idx{height:100%;border-right:0}
+  .tdlr-list{max-height:none}
+  .tdlr-panneau{display:none;height:100%}
+  /* vue détail : on masque zones/filtres/liste, on montre la fiche + le retour */
+  .tdlr-app.tdlr-vue-detail .tdlr-zonebar,
+  .tdlr-app.tdlr-vue-detail .tdlr-inflrow,
+  .tdlr-app.tdlr-vue-detail .tdlr-idx{display:none}
+  .tdlr-app.tdlr-vue-detail .tdlr-panneau{display:block}
+  .tdlr-retour{display:block}
   .tdlr-pform{grid-template-columns:1fr}
 }
