@@ -119,6 +119,8 @@
 .tdle-clean li.tdle-puce::before{content:"—";color:var(--dark2);margin-right:8px}
 .tdle-clean .tdle-rm{float:right;margin-left:8px;color:var(--dark2);cursor:pointer;font-size:14px}
 .tdle-clean .tdle-rm:hover{color:var(--gr6-color)}
+.tdle-sujet .tdle-rm{float:right;margin-left:8px;color:var(--dark2);cursor:pointer;font-size:14px}
+.tdle-sujet .tdle-rm:hover{color:var(--gr6-color)}
 .tdle-locked{font-style:italic;color:var(--darkopa7);background:var(--clair2opa2);border:1px solid var(--clair2);border-radius:8px;padding:12px 14px}
 .tdle-rpbox{background:var(--gr5-20);border:1px solid var(--gr5-40);border-radius:8px;padding:14px 16px;margin-top:16px}
 .tdle-rpbox .tdle-hsec{color:var(--gr5-color)}
