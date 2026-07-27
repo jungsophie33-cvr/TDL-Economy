@@ -80,7 +80,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-rnom{font-family:var(--font2);font-style:italic;font-weight:500;letter-spacing:-0.5px;font-size:20px;line-height:1.3;display:flex;align-items:center;gap:7px;color:var(--txt)}
 .tdlr-rmeta{color:var(--darkopa5);font-family:var(--title1);font-size:13px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tdlr-exq{font-family:var(--title1);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa5);border:1px solid var(--cntr4);border-radius:4px;padding:1px 5px}
-.tdlr-emploi{color:var(--darkopa5);flex:none}
+.tdlr-emploi{color:var(--darkopa5);flex:none;font-size:14px;line-height:1}
 .tdlr-minifacs{display:flex;gap:4px;flex:none}
 .tdlr-dot{width:8px;height:8px;border-radius:50%}
 .tdlr-rchev{color:var(--cntr4);flex:none}
@@ -106,7 +106,6 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-pamb{font-size:21px;font-style:italic;color:var(--darkopa8);margin:22px 0;line-height:1.25em;border-left:2px solid var(--cntr4);padding-left:18px}
 .tdlr-pfield{display:flex;gap:14px;padding:15px 0;border-top:1px solid var(--cntr4);font-size:16px;line-height:1em}
 .tdlr-pfield b{font-family:var(--title1);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa5);min-width:130px;font-weight:600}
-.tdlr-emploip{color:var(--darkopa5);vertical-align:middle; display:none;}
 .tdlr-padmin{display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap}
 .tdlr-padmin .tdlr-cq{font-family:var(--title1);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr6-color);margin-right:4px}
 
