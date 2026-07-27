@@ -11,12 +11,12 @@
 /* ===================== TEXTES ===================== */
 const TEXTES = {
   accueil:'Accueil',
-  entete:'Répertoire des lieux',
-  modeAdmin:'Administrer',
+  entete:'Répertoire des lieux — Terrebonne Parish',
+  modeAdmin:'Mode admin (démo)',
   lieux:'lieux',
-  ajouter:'+ Ajouter',
+  ajouter:'+ Ajouter un lieu',
   sousInfluence:'Sous influence',
-  moins:'−',
+  moins:'− moins',
   modifier:'Modifier ce lieu', supprimer:'Supprimer',
   confSupp:'Supprimer définitivement ?', supprOui:'Oui, supprimer', annuler:'Annuler',
   edition:'Édition', nouveau:'Nouveau lieu', creerLieu:'Créer un lieu', sansNom:'Sans nom',
@@ -25,7 +25,7 @@ const TEXTES = {
   chAdresse:'Adresse', chEmploi:'Emploi possible', chInfluence:'Influence',
   emploiOui:'Oui — vos personnages peuvent y travailler.', emploiNon:'Non',
   emploiCase:'Les personnages peuvent y être employés',
-  sansFaction:'Aucune influence communautaire ou de bande',
+  sansFaction:'Aucune faction dominante',
   lbl:{nom:'Nom',type:'Type',adresse:'Adresse',zone:'Zone',categorie:'Catégorie',
        icone:'Icône (classe Flaticon ou URL)',image:'Image (URL, facultatif)',
        influences:'Influences présentes',emploi:'Emploi',ambiance:"Phrase d'ambiance"},
@@ -110,7 +110,7 @@ function genererExemples(){
   LIEUX.push({id:"fa2",nom:"Ferme d'élevage",type:"Élevage",rue:"— exemple —",zone:"montegut",cat:"fermes",ic:"fi-ts-pig-face",facs:[],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
   LIEUX.push({id:"fa3",nom:"Domaine agricole",type:"Exploitation",rue:"— exemple —",zone:"bourg",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["fardoches"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
 }
-/* genererExemples();  ← retire cette ligne pour ne garder que le lore réel */
+genererExemples(); /* ← retire cette ligne pour ne garder que le lore réel */
 
 /* ===================== PERSISTANCE (EcoCore / Firebase) ===================== */
 /* Utilise window.EcoCore (eco-core-v1-4.js) s'il est chargé ; sinon repli mémoire.
@@ -149,13 +149,14 @@ const Store = {
       }).catch(e=>{ if(window.console) console.error('[TDL lieux] charger', e); rendre(); });
     });
   },
+  /* renvoient une promesse : le succès/échec est remonté à l'appelant (toast) */
   enregistrer(l){
-    if(window.EcoCore && EcoCore.writeField)
-      EcoCore.writeField(CHEMIN_LIEUX+'/'+l.id, l).catch(e=>window.console&&console.error('[TDL lieux] enregistrer', e));
+    if(window.EcoCore && typeof EcoCore.writeField==='function') return EcoCore.writeField(CHEMIN_LIEUX+'/'+l.id, l);
+    return Promise.resolve({memoire:true});
   },
   retirer(id){
-    if(window.EcoCore && EcoCore.firebaseUpdate)
-      EcoCore.firebaseUpdate({ [CHEMIN_LIEUX+'/'+id]: null }).catch(e=>window.console&&console.error('[TDL lieux] retirer', e));
+    if(window.EcoCore && typeof EcoCore.firebaseUpdate==='function') return EcoCore.firebaseUpdate({ [CHEMIN_LIEUX+'/'+id]: null });
+    return Promise.resolve({memoire:true});
   }
 };
 
@@ -177,6 +178,33 @@ const bagP = ()=>`<svg class="emploi-p" width="15" height="15" viewBox="0 0 24 2
 const dots = f => f.length ? `<span class="mini-facs">${f.map(x=>FAC[x]?`<span class="dot" style="background:${FAC[x].c}"></span>`:'').join('')}</span>` : '';
 const nomsFacs = f => f.length ? f.map(x=>FAC[x]?FAC[x].label:x).join(', ') : TEXTES.sansFaction;
 const esc  = s => (s||'').replace(/"/g,'&quot;');
+/* message flottant (confirmation / erreur visible d'écriture) */
+function toast(msg, erreur){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;'
+    +'font-family:var(--title1);font-size:12px;letter-spacing:.05em;padding:10px 16px;border-radius:8px;'
+    +'box-shadow:0 4px 18px var(--darkopa5);max-width:80%;text-align:center;'
+    +(erreur?'background:var(--gr6-color);color:var(--clair1);':'background:var(--dark);color:var(--clair1);');
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.transition='opacity .4s'; t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, erreur?5000:1800);
+}
+/* membre FA connecté ? (nécessaire pour qu'EcoCore obtienne un token d'écriture) */
+function estConnecte(){
+  try{ return !!(window._userdata && (parseInt(_userdata.user_id)||0)>0 && _userdata.username && _userdata.username.toLowerCase()!=='anonymous'); }
+  catch(e){ return false; }
+}
+/* message transitoire à l'écran (succès/erreur) */
+function signaler(msg, ok){
+  const n=document.createElement('div');
+  n.textContent=msg;
+  n.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;'
+    +'font-family:var(--txt1);font-size:15px;padding:10px 18px;border-radius:8px;max-width:82vw;text-align:center;'
+    +'background:var(--clair1);color:var(--txt);box-shadow:0 6px 20px var(--darkopa5);'
+    +'border:1px solid '+(ok?'var(--gr2-color)':'var(--gr6-color)')+';';
+  document.body.appendChild(n);
+  setTimeout(()=>{ n.style.transition='opacity .5s'; n.style.opacity='0'; setTimeout(()=>n.remove(),500); }, 4500);
+}
 const parZone = () => LIEUX.filter(l=>l.zone===S.zone);
 function filtre(){
   return parZone().filter(l => (S.cat==='tous'||l.cat===S.cat) && (!S.fac||l.facs.includes(S.fac)))
@@ -234,7 +262,7 @@ function renderPanneau(){
     <div class="p-body">
       <div class="p-head">
         <div class="p-titleblock">
-          <p class="p-eyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
+          <p class="p-eyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="p-meta">${l.type}</div>
         </div>
@@ -297,13 +325,17 @@ function sauver(existingId){
   let cible;
   if(existingId){ cible=LIEUX.find(x=>x.id===existingId); Object.assign(cible,data); }
   else { data.id='lieu_'+Date.now().toString(36); LIEUX.push(data); cible=data; }
-  Store.enregistrer(cible);
+  Store.enregistrer(cible)
+    .then(r=>{ toast(r&&r.memoire ? 'Enregistré (mémoire — non sauvegardé)' : 'Lieu enregistré.'); })
+    .catch(e=>{ toast('Échec de l\'enregistrement : '+((e&&e.message)||e), true); });
   S.sel=cible.id; S.zone=data.zone; S.cat='tous'; S.fac=null; S.editing=null; S.confirmDel=null;
   syncControles(); renderCatCol(); renderList();
 }
 function supprimerLieu(id){
   LIEUX = LIEUX.filter(l=>l.id!==id);
-  Store.retirer(id);
+  Store.retirer(id)
+    .then(r=>{ toast(r&&r.memoire ? 'Retiré (mémoire — non sauvegardé)' : 'Lieu supprimé.'); })
+    .catch(e=>{ toast('Échec de la suppression : '+((e&&e.message)||e), true); });
   S.sel=null; S.confirmDel=null; S.editing=null;
   renderCatCol(); renderList();
 }
