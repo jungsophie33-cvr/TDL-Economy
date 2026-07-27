@@ -51,6 +51,7 @@ function newId(){return "e"+Date.now().toString(36)+Math.random().toString(36).s
 
 /* identité réelle (forum) */
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
+function estMembre(){try{return typeof _userdata!=="undefined"&&parseInt(_userdata.user_id,10)>0;}catch(e){return false;}}
 function myPseudo(){try{if(typeof _userdata!=="undefined"&&_userdata.username)return String(_userdata.username).trim();}catch(e){}return null;}
 
 /* ===================== DONNÉES / FIREBASE ===================== */
@@ -297,6 +298,8 @@ function actionbar(a){
   }else if(r==="referent"){label="Référent";
     btns+='<button class="tdle-abtn" data-act="verif">Vérifier les participants</button>'+rpBtn;
     btns+=a.demandeCloture?'<button class="tdle-abtn prim" disabled>Clôture demandée ✓</button>':'<button class="tdle-abtn prim" data-act="askclose">Demander la clôture</button>';
+  }else if(!estMembre()){label="Invité";
+    btns='<span style="color:var(--darkopa6);font-style:italic">Connectez-vous pour vous impliquer dans une affaire.</span>';
   }else{label="Visiteur";
     if(a.cloturee)btns='<span style="color:var(--darkopa6);font-style:italic">Affaire close.</span>';
     else if(a.intrigue)btns='<span style="color:var(--darkopa6);font-style:italic">Pilotée par le staff — contactez le staff pour vous impliquer.</span>';
@@ -377,8 +380,8 @@ function brancher(){
 
 function act(k){
   var a=parId(S.sel); if(!a&&k!=="new")return;
-  if(k==="demander"){var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});toast("Demande envoyée au staff.");renderStage();}
-  else if(k==="rp"){S.drawer="rp";S.inline=null;renderStage();}
+  if(k==="demander"){if(!estMembre()){toast("Connexion requise.");return;}var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});toast("Demande envoyée au staff.");renderStage();}
+  else if(k==="rp"){if(!estMembre()){toast("Connexion requise.");return;}S.drawer="rp";S.inline=null;renderStage();}
   else if(k==="verif"){S.onglet="personnes";S.drawer=null;S.inline=null;renderStage();}
   else if(k==="askclose"){a.demandeCloture=true;patch(a,{demandeCloture:true});toast("Demande de clôture envoyée au staff.");renderStage();}
   else if(k==="addel"){S.inline=S.inline==="element"?null:"element";renderStage();}
