@@ -88,6 +88,7 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 
 /* ---------- PANNEAU (lecture) ---------- */
 .tdlr-panneau{min-height:0;overflow:auto}
+.tdlr-retour{display:none;position:sticky;top:0;z-index:2;width:100%;text-align:left;font-family:var(--title1);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa7);background:var(--cntr2);border:0;border-bottom:1px solid var(--cntr4);padding:13px 20px;cursor:pointer}
 .tdlr-pbanner{display:none;aspect-ratio:16/9;max-height:280px;overflow:hidden;border-bottom:1px solid var(--cntr4);position:relative}
 .tdlr-pbanner img{width:100%;height:100%;object-fit:cover;filter:sepia(.22) contrast(1.02) saturate(.95)}
 .tdlr-pbanner .tdlr-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft),var(--cntr2))}
