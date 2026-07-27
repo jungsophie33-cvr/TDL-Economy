@@ -95,7 +95,7 @@ function genererExemples(){
   LIEUX.push({id:"fa2",nom:"Ferme d'élevage",type:"Élevage",rue:"— exemple —",zone:"montegut",cat:"fermes",ic:"fi-ts-pig-face",facs:[],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
   LIEUX.push({id:"fa3",nom:"Domaine agricole",type:"Exploitation",rue:"— exemple —",zone:"bourg",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["fardoches"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
 }
-/* genererExemples(); ← retire cette ligne en prod */
+/* genererExemples();  ← retire cette ligne en prod */
 
 /* ===================== PERSISTANCE (EcoCore / Firebase) ===================== */
 const CHEMIN_LIEUX = 'lieux';
@@ -117,7 +117,11 @@ const Store = {
       eco.safeReadBin().then(root=>{
         const brut = root && root.lieux;
         if(brut && Object.keys(brut).length){
-          LIEUX = Object.entries(brut).map(([id,l])=>Object.assign({id}, l));
+          LIEUX = Object.entries(brut).map(([id,l])=>{
+            const o=Object.assign({id}, l);
+            o.facs = versTableau(o.facs);   /* Firebase omet les tableaux vides / les rend en objets */
+            return o;
+          });
         } else if(S.admin){
           semerSiVide(eco);
         }
@@ -150,8 +154,11 @@ function icon(val,size){
 }
 const bag  = ()=>`<svg class="tdlr-emploi" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
 const bagP = ()=>`<svg class="tdlr-emploip" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
-const dots = f => f.length ? `<span class="tdlr-minifacs">${f.map(x=>FAC[x]?`<span class="tdlr-dot" style="background:${FAC[x].c}"></span>`:'').join('')}</span>` : '';
-const nomsFacs = f => f.length ? f.map(x=>FAC[x]?FAC[x].label:x).join(', ') : TEXTES.sansFaction;
+/* Firebase ne stocke pas les tableaux/objets vides et sérialise les tableaux
+   en objets {0:…,1:…} → on normalise toujours en vrai tableau. */
+const versTableau = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+const dots = f => { f=versTableau(f); return f.length ? `<span class="tdlr-minifacs">${f.map(x=>FAC[x]?`<span class="tdlr-dot" style="background:${FAC[x].c}"></span>`:'').join('')}</span>` : ''; };
+const nomsFacs = f => { f=versTableau(f); return f.length ? f.map(x=>FAC[x]?FAC[x].label:x).join(', ') : TEXTES.sansFaction; };
 const esc  = s => (s||'').replace(/"/g,'&quot;');
 function toast(msg, erreur){
   const t=document.createElement('div');
@@ -165,7 +172,7 @@ function toast(msg, erreur){
 }
 const parZone = () => LIEUX.filter(l=>l.zone===S.zone);
 function filtre(){
-  return parZone().filter(l => (S.cat==='tous'||l.cat===S.cat) && (!S.fac||l.facs.includes(S.fac)))
+  return parZone().filter(l => (S.cat==='tous'||l.cat===S.cat) && (!S.fac || versTableau(l.facs).includes(S.fac)))
     .sort((a,b)=> catIndex(a.cat)-catIndex(b.cat) || a.nom.localeCompare(b.nom,'fr'));
 }
 
@@ -258,7 +265,7 @@ function renderForm(){
         <div class="tdlr-field"><label>${T.categorie}</label><select id="tdlr-f-cat">${opt(CATS,l.cat,c=>c.label)}</select></div>
         <div class="tdlr-field"><label>${T.icone}</label><input id="tdlr-f-ic" list="tdlr-icones" value="${esc(l.ic)}" placeholder="${P.icone}"><datalist id="tdlr-icones">${datalist}</datalist></div>
         <div class="tdlr-field"><label>${T.image}</label><input id="tdlr-f-img" value="${esc(l.img)}" placeholder="${P.img}"></div>
-        <div class="tdlr-field tdlr-full"><label>${T.influences}</label><div class="tdlr-checks">${Object.entries(FAC).map(([k,v])=>`<label><input type="checkbox" class="tdlr-f-fac" value="${k}" ${l.facs.includes(k)?'checked':''}> ${v.label}</label>`).join('')}</div></div>
+        <div class="tdlr-field tdlr-full"><label>${T.influences}</label><div class="tdlr-checks">${Object.entries(FAC).map(([k,v])=>`<label><input type="checkbox" class="tdlr-f-fac" value="${k}" ${versTableau(l.facs).includes(k)?'checked':''}> ${v.label}</label>`).join('')}</div></div>
         <div class="tdlr-field tdlr-full"><label>${T.emploi}</label><div class="tdlr-checks"><label><input type="checkbox" id="tdlr-f-emploi" ${l.emploi?'checked':''}> ${TEXTES.emploiCase}</label></div></div>
         <div class="tdlr-field tdlr-full"><label>${T.ambiance}</label><textarea id="tdlr-f-amb" placeholder="${P.amb}">${l.amb||''}</textarea></div>
       </div>
