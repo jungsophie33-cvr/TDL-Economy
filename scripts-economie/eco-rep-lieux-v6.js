@@ -142,9 +142,10 @@ const Store = {
 
 /* ===================== ÉTAT ===================== */
 const STAFF = !!(window._userdata && (window._userdata.user_level===1 || window._userdata.user_level===2));
-const S = {zone:'houma', cat:'tous', fac:null, sel:null, admin:(STAFF||FORCER_ADMIN), confirmDel:null, editing:null};
+const S = {zone:'houma', cat:'tous', fac:null, sel:null, admin:(STAFF||FORCER_ADMIN), confirmDel:null, editing:null, vue:'liste'};
+let elListe, elPanneau, elApp;
+function appliquerVue(){ if(elApp) elApp.classList.toggle('tdlr-vue-detail', S.vue==='detail'); }
 const $ = id => document.getElementById(id);
-let elListe, elPanneau;
 
 /* ===================== UTILS ===================== */
 function icon(val,size){
@@ -186,9 +187,9 @@ function renderCatCol(){
     return `<button class="tdlr-cat" role="tab" data-c="${t.id}" style="--c:${t.c};--soft:${t.soft}" aria-selected="${t.id===S.cat}" ${dispo?'':'disabled'}><span class="tdlr-ci">${icon(t.ic,26)}</span><span class="tdlr-cl">${t.label}</span></button>`;
   }).join('');
   $(SEL.cats).querySelectorAll('.tdlr-cat').forEach(b=>b.addEventListener('click',()=>{
-    if(b.disabled) return; S.cat=b.dataset.c; S.sel=null; S.editing=null;
+    if(b.disabled) return; S.cat=b.dataset.c; S.sel=null; S.editing=null; S.vue='liste';
     $(SEL.cats).querySelectorAll('.tdlr-cat').forEach(x=>x.setAttribute('aria-selected',x.dataset.c===S.cat));
-    renderList();
+    renderList(); appliquerVue();
   }));
 }
 function rowHTML(l){const c=CAT[l.cat];
@@ -206,9 +207,9 @@ function renderList(){
   elListe.innerHTML = data.length ? data.map(rowHTML).join('')
     : `<div style="padding:40px 20px;color:var(--darkopa5);font-style:italic">${TEXTES.aucun}</div>`;
   elListe.querySelectorAll('.tdlr-row').forEach(r=>r.addEventListener('click',()=>{
-    S.sel=r.dataset.id; S.confirmDel=null; S.editing=null;
+    S.sel=r.dataset.id; S.confirmDel=null; S.editing=null; S.vue='detail';
     elListe.querySelectorAll('.tdlr-row').forEach(x=>x.setAttribute('aria-current',x.dataset.id===S.sel));
-    renderPanneau();
+    renderPanneau(); appliquerVue();
   }));
   renderPanneau();
 }
@@ -224,6 +225,7 @@ function renderPanneau(){
       : `<button class="tdlr-btn" data-act="edit">${TEXTES.modifier}</button><button class="tdlr-btn tdlr-danger" data-act="del">${TEXTES.supprimer}</button>`
   }</div>` : '';
   elPanneau.innerHTML = `
+    <button class="tdlr-retour" data-act="retour">← Retour à la liste</button>
     <div class="tdlr-pbanner" style="--c:${c.c};--soft:${c.soft}">${visuel(56)}</div>
     <div class="tdlr-pbody">
       <div class="tdlr-phead">
@@ -240,6 +242,7 @@ function renderPanneau(){
       <div class="tdlr-pfield"><b>${TEXTES.chInfluence}</b><span>${nomsFacs(l.facs)}</span></div>
       ${admin}
     </div>`;
+  const ret=elPanneau.querySelector('[data-act="retour"]'); if(ret) ret.addEventListener('click',()=>{S.vue='liste';appliquerVue();});
   elPanneau.querySelectorAll('.tdlr-padmin [data-act]').forEach(b=>b.addEventListener('click',()=>{
     const a=b.dataset.act;
     if(a==='edit'){S.editing=l.id;renderPanneau();}
@@ -275,7 +278,7 @@ function renderForm(){
         <button class="tdlr-btn" data-act="cancel">${TEXTES.annuler}</button>
       </div>
     </div>`;
-  elPanneau.querySelector('[data-act="cancel"]').addEventListener('click',()=>{S.editing=null;renderList();});
+  elPanneau.querySelector('[data-act="cancel"]').addEventListener('click',()=>{S.editing=null;S.vue='liste';renderList();appliquerVue();});
   elPanneau.querySelector('[data-act="save"]').addEventListener('click',()=>sauver(neuf?null:l.id));
 }
 
@@ -294,16 +297,16 @@ function sauver(existingId){
   Store.enregistrer(cible)
     .then(r=>toast(r&&r.memoire?TEXTES.memSave:TEXTES.okSave))
     .catch(e=>toast(TEXTES.errSave+((e&&e.message)||e), true));
-  S.sel=cible.id; S.zone=data.zone; S.cat='tous'; S.fac=null; S.editing=null; S.confirmDel=null;
-  syncControles(); renderCatCol(); renderList();
+  S.sel=cible.id; S.zone=data.zone; S.cat='tous'; S.fac=null; S.editing=null; S.confirmDel=null; S.vue='detail';
+  syncControles(); renderCatCol(); renderList(); appliquerVue();
 }
 function supprimerLieu(id){
   LIEUX = LIEUX.filter(l=>l.id!==id);
   Store.retirer(id)
     .then(r=>toast(r&&r.memoire?TEXTES.memDel:TEXTES.okDel))
     .catch(e=>toast(TEXTES.errDel+((e&&e.message)||e), true));
-  S.sel=null; S.confirmDel=null; S.editing=null;
-  renderCatCol(); renderList();
+  S.sel=null; S.confirmDel=null; S.editing=null; S.vue='liste';
+  renderCatCol(); renderList(); appliquerVue();
 }
 
 /* ===================== EVENTS (contrôles) ===================== */
@@ -314,8 +317,8 @@ function syncControles(){
 function construireZones(){
   $(SEL.zones).innerHTML = ZONES.map(z=>`<button role="tab" data-z="${z.id}" aria-selected="${z.id===S.zone}">${z.titre}</button>`).join('');
   $(SEL.zones).querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    S.zone=b.dataset.z; S.cat='tous'; S.sel=null; S.confirmDel=null; S.editing=null;
-    syncControles(); renderCatCol(); renderList();
+    S.zone=b.dataset.z; S.cat='tous'; S.sel=null; S.confirmDel=null; S.editing=null; S.vue='liste';
+    syncControles(); renderCatCol(); renderList(); appliquerVue();
   }));
 }
 function construireInfluences(){
@@ -326,7 +329,7 @@ function construireInfluences(){
   $(SEL.facs).querySelectorAll('.tdlr-chip[data-f]').forEach(b=>b.addEventListener('click',()=>{
     S.fac=(S.fac===b.dataset.f)?null:b.dataset.f;
     $(SEL.facs).querySelectorAll('.tdlr-chip[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===S.fac));
-    S.editing=null; renderList();
+    S.editing=null; S.vue='liste'; renderList(); appliquerVue();
   }));
   const more=$(SEL.facs).querySelector('[data-more]');
   more.addEventListener('click',()=>{
@@ -339,7 +342,7 @@ function appliquerAdmin(){ document.body.classList.toggle('tdlr-body-admin',S.ad
 
 /* ===================== INIT ===================== */
 function init(){
-  elListe = $(SEL.liste); elPanneau = $(SEL.panneau);
+  elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
@@ -349,7 +352,7 @@ function init(){
   $(SEL.ajouter).textContent    = TEXTES.ajouter;
   construireZones();
   construireInfluences();
-  $(SEL.ajouter).addEventListener('click',()=>{S.editing='new';S.confirmDel=null;renderPanneau();});
+  $(SEL.ajouter).addEventListener('click',()=>{S.editing='new';S.confirmDel=null;S.vue='detail';renderPanneau();appliquerVue();});
   const at=$(SEL.admin); if(at) at.remove();   /* pas de bouton « mode admin » : l'accès dépend UNIQUEMENT du staff */
   appliquerAdmin();
   renderCatCol();
