@@ -154,7 +154,9 @@ function icon(val,size){
   if(/^fi[\s-]/.test(val)){ const cls=val.startsWith('fi ')?val:('fi '+val); return `<i class="${cls}" style="font-size:${size}px;line-height:1;display:inline-flex"></i>`; }
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${ICONS[val]||ICONS.gov}</svg>`;
 }
-const bag = ()=>`<i class="fi fi-tr-briefcase tdlr-emploi"></i>`;
+const bag = ()=>`<i class="fi fi-tr-briefcase tdlr-emploi"></i>`; 
+const bagP = ()=>`<svg class="tdlr-emploip" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`;
+
    /* Firebase ne stocke pas les tableaux/objets vides et sérialise les tableaux
    en objets {0:…,1:…} → on normalise toujours en vrai tableau. */
 const versTableau = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
