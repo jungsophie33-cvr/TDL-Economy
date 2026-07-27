@@ -167,3 +167,14 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
     .tdlr-pfield{clear:right}         /* les champs repassent pleine largeur sous l'image */
   }
 }
+/* Écran étroit (≤820px) : en-tête compact pour dégager la liste */
+@media(max-width:820px){
+  /* onglets de zone : une seule ligne, défilement horizontal au doigt */
+  .tdlr-zonebar{padding:2px 14px}
+  .tdlr-tabs{flex-wrap:nowrap;gap:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tdlr-tabs::-webkit-scrollbar{display:none}
+  .tdlr-tabs button{font-size:0.82em;padding:8px 0;white-space:nowrap}
+  .tdlr-tabs button[aria-selected="true"]::after{bottom:0}
+  /* ligne compteur + filtres : plus compacte, retour à la ligne autorisé */
+  .tdlr-inflrow{padding:8px 14px;flex-wrap:wrap}
+}
