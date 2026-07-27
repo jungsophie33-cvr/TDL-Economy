@@ -18,7 +18,7 @@ const TEXTES = {
   enregistrer:'Enregistrer', creer:'Créer le lieu', aucun:'Aucun lieu pour ce filtre.',
   chAdresse:'Adresse', chEmploi:'Emploi possible', chInfluence:'Influence',
   emploiOui:'Oui : vos personnages peuvent y travailler.', emploiNon:'Non',
-  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière',
+  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière ici.',
   okSave:'Lieu enregistré.', okDel:'Lieu supprimé.', memSave:'Enregistré (mémoire — non sauvegardé)',
   memDel:'Retiré (mémoire — non sauvegardé)', errSave:"Échec de l'enregistrement : ", errDel:'Échec de la suppression : ',
   lbl:{nom:'Nom',type:'Type',adresse:'Adresse',zone:'Zone',categorie:'Catégorie',
@@ -78,7 +78,25 @@ let LIEUX = [
   {id:"l6",nom:"Bureau du Coroner & Crime Lab", type:"Antenne LDWF", rue:"Main Street", zone:"houma", cat:"institutions", ic:"fi-tr-flask", facs:[], emploi:true, amb:"Les morts arrivent ici avec leurs secrets. Ils n'en ressortent pas toujours avec."},
   {id:"l7",nom:"Terrebonne Parish Fire Department", type:"Station 1", rue:"Tunnel Boulevard", zone:"houma", cat:"institutions", ic:"fi-ts-fire-shield", facs:[], emploi:true, amb:"Souvent les premiers sur place — pour sauver des vies ou comprendre qu'arriver trop tard n'est pas nécessairement une question de timing."}
 ];
-
+/* --- exemples de démonstration : retirer genererExemples() en prod --- */
+function genererExemples(){
+  const noms=["Almanach","Brasserie Bourbon","Chapelle Sainte-Croix","Diner du Canal","Épicerie générale","Ferronnerie Landry","Garage Naquin","Halle aux poissons","Imprimerie paroissiale","Jardin public","Kiosque du marché","Librairie Fontenot","Mercerie","Négoce du fleuve","Officine Dahl","Pharmacie centrale","Quincaillerie","Réserve d'appâts","Salle des ventes","Taverne du port","Usine à glace","Vieux comptoir","Woodshop Martens","Yard de ferraille","Zinc du canal","Atelier de couture","Banque locale","Café des platanes","Débarcadère est","Foyer municipal"];
+  const cats=["services","loisirs","peche","services","institutions","loisirs","peche","nature","services","peche"];
+  const ic={services:"fi-tr-marketplace-store",loisirs:"fi-ts-drink",peche:"fi-ts-sailboat",nature:"fi-tr-tree-alt",institutions:"fi-tr-government-flag"};
+  const zs=["houma","bayou_cane","bayou_blue","bourg","ashland","montegut","lost_bayou","terrebonne_bay"];
+  const facs=[[],[],["maringouins"],["braconneurs"],["flottille"],["spectres"],["perles"],[]];
+  noms.forEach((n,i)=>{
+    let cat=cats[i%cats.length], ico=ic[cat];
+    if(n==="Pharmacie centrale"){cat="sante";ico="fi-tr-pharmacy-symbol";}
+    else if(n==="Banque locale"){cat="services";ico="fi-tr-sack-dollar";}
+    else if(["Halle aux poissons","Réserve d'appâts","Négoce du fleuve","Débarcadère est"].includes(n)){cat="peche";ico="fi-ts-sailboat";}
+    LIEUX.push({id:"f"+i,nom:n,type:"Lieu",rue:"— exemple —",zone:zs[i%zs.length],cat,ic:ico,facs:facs[i%facs.length],emploi:i%3!==0,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
+  });
+  LIEUX.push({id:"fa1",nom:"Plantation sucrière",type:"Plantation de canne",rue:"— exemple —",zone:"bayou_blue",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["goulipiats"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
+  LIEUX.push({id:"fa2",nom:"Ferme d'élevage",type:"Élevage",rue:"— exemple —",zone:"montegut",cat:"fermes",ic:"fi-ts-pig-face",facs:[],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
+  LIEUX.push({id:"fa3",nom:"Domaine agricole",type:"Exploitation",rue:"— exemple —",zone:"bourg",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["fardoches"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
+}
+genererExemples(); /* ← retire cette ligne en prod */
 
 /* ===================== PERSISTANCE (EcoCore / Firebase) ===================== */
 const CHEMIN_LIEUX = 'lieux';
@@ -305,20 +323,30 @@ function construireZones(){
 }
 function construireInfluences(){
   const entries=Object.entries(FAC);
-  $(SEL.facs).innerHTML =
-    entries.map(([k,v],i)=>`<button class="tdlr-chip${i>=FAC_VISIBLES?' tdlr-extra':''}" data-f="${k}" style="--fc:${v.c}" aria-pressed="false">${v.label}</button>`).join('')
-    + `<button class="tdlr-chip tdlr-more" data-more aria-expanded="false">+${entries.length-FAC_VISIBLES}</button>`;
-  $(SEL.facs).querySelectorAll('.tdlr-chip[data-f]').forEach(b=>b.addEventListener('click',()=>{
+  const facs=$(SEL.facs);
+  facs.innerHTML =
+    entries.map(([k,v])=>`<button class="tdlr-chip" data-f="${k}" style="--fc:${v.c}" aria-pressed="false">${v.label}</button>`).join('')
+    + `<button class="tdlr-chip tdlr-more" data-more aria-expanded="false"></button>`;
+  const more=facs.querySelector('[data-more]');
+  const compact=()=>window.matchMedia('(max-width:820px)').matches;      /* sous 820px : tout replié */
+  const nCaches=()=>compact()?entries.length:(entries.length-FAC_VISIBLES);
+  function majVisibilite(){
+    const c=compact();
+    facs.querySelectorAll('.tdlr-chip[data-f]').forEach((chip,i)=>chip.classList.toggle('tdlr-extra', c ? true : i>=FAC_VISIBLES));
+    if(!facs.classList.contains('tdlr-open')) more.textContent='+'+nCaches();
+  }
+  facs.querySelectorAll('.tdlr-chip[data-f]').forEach(b=>b.addEventListener('click',()=>{
     S.fac=(S.fac===b.dataset.f)?null:b.dataset.f;
-    $(SEL.facs).querySelectorAll('.tdlr-chip[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===S.fac));
+    facs.querySelectorAll('.tdlr-chip[data-f]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.f===S.fac));
     S.editing=null; S.vue='liste'; renderList(); appliquerVue();
   }));
-  const more=$(SEL.facs).querySelector('[data-more]');
   more.addEventListener('click',()=>{
-    const open=$(SEL.facs).classList.toggle('tdlr-open');
-    more.textContent = open ? TEXTES.moins : '+'+(entries.length-FAC_VISIBLES);
+    const open=facs.classList.toggle('tdlr-open');
+    more.textContent = open ? TEXTES.moins : '+'+nCaches();
     more.setAttribute('aria-expanded',open);
   });
+  window.addEventListener('resize', majVisibilite);
+  majVisibilite();
 }
 function appliquerAdmin(){ document.body.classList.toggle('tdlr-body-admin',S.admin); if(!S.admin) S.editing=null; renderPanneau(); }
 
