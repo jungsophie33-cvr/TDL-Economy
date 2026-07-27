@@ -18,7 +18,7 @@ const TEXTES = {
   enregistrer:'Enregistrer', creer:'Créer le lieu', aucun:'Aucun lieu pour ce filtre.',
   chAdresse:'Adresse', chEmploi:'Emploi possible', chInfluence:'Influence',
   emploiOui:'Oui : vos personnages peuvent y travailler.', emploiNon:'Non',
-  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière ici',
+  emploiCase:'Les personnages peuvent y être employés', sansFaction:'Aucune influence particulière',
   okSave:'Lieu enregistré.', okDel:'Lieu supprimé.', memSave:'Enregistré (mémoire — non sauvegardé)',
   memDel:'Retiré (mémoire — non sauvegardé)', errSave:"Échec de l'enregistrement : ", errDel:'Échec de la suppression : ',
   lbl:{nom:'Nom',type:'Type',adresse:'Adresse',zone:'Zone',categorie:'Catégorie',
@@ -229,12 +229,12 @@ function renderPanneau(){
     <div class="tdlr-pbanner" style="--c:${c.c};--soft:${c.soft}">${visuel(56)}</div>
     <div class="tdlr-pbody">
       <div class="tdlr-phead">
+        <div class="tdlr-pavatar" style="--c:${c.c};--soft:${c.soft}">${visuel(52)}</div>
         <div class="tdlr-ptitle">
-          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
+          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="tdlr-pmeta">${l.type}</div>
         </div>
-        <div class="tdlr-pavatar" style="--c:${c.c};--soft:${c.soft}">${visuel(52)}</div>
       </div>
       <p class="tdlr-pamb">${l.amb}</p>
       <div class="tdlr-pfield"><b>${TEXTES.chAdresse}</b><span>${l.rue}</span></div>
@@ -342,6 +342,10 @@ function appliquerAdmin(){ document.body.classList.toggle('tdlr-body-admin',S.ad
 
 /* ===================== INIT ===================== */
 function init(){
+  if(!document.querySelector('meta[name="viewport"]')){
+    const mv=document.createElement('meta'); mv.name='viewport'; mv.content='width=device-width, initial-scale=1';
+    document.head.appendChild(mv);
+  }
   elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
