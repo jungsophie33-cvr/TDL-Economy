@@ -123,7 +123,9 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 .tdlr-checks input{width:16px;height:16px;accent-color:var(--dark)}
 
 /* ---------- RESPONSIVE ---------- */
-@media(max-width:1100px){ .tdlr-pbanner{display:block} .tdlr-pavatar{display:none} }
+/* Bannière (panneau étroit) vs avatar circulaire (panneau large),
+   selon la LARGEUR DU PANNEAU — pas celle de l'écran. ≥500px → cercle. */
+@container tdlrpan (max-width:499px){ .tdlr-pbanner{display:block} .tdlr-pavatar{display:none} }
 @media(max-width:1100px){
   /* Passe en une-colonne (liste ↔ détail) dès que deux colonnes deviennent à l'étroit —
      inclut les téléphones en « mode desktop » qui rapportent ~980-1080px CSS. */
