@@ -78,25 +78,7 @@ let LIEUX = [
   {id:"l6",nom:"Bureau du Coroner & Crime Lab", type:"Antenne LDWF", rue:"Main Street", zone:"houma", cat:"institutions", ic:"fi-tr-flask", facs:[], emploi:true, amb:"Les morts arrivent ici avec leurs secrets. Ils n'en ressortent pas toujours avec."},
   {id:"l7",nom:"Terrebonne Parish Fire Department", type:"Station 1", rue:"Tunnel Boulevard", zone:"houma", cat:"institutions", ic:"fi-ts-fire-shield", facs:[], emploi:true, amb:"Souvent les premiers sur place — pour sauver des vies ou comprendre qu'arriver trop tard n'est pas nécessairement une question de timing."}
 ];
-/* --- exemples de démonstration : retirer genererExemples() en prod --- */
-function genererExemples(){
-  const noms=["Almanach","Brasserie Bourbon","Chapelle Sainte-Croix","Diner du Canal","Épicerie générale","Ferronnerie Landry","Garage Naquin","Halle aux poissons","Imprimerie paroissiale","Jardin public","Kiosque du marché","Librairie Fontenot","Mercerie","Négoce du fleuve","Officine Dahl","Pharmacie centrale","Quincaillerie","Réserve d'appâts","Salle des ventes","Taverne du port","Usine à glace","Vieux comptoir","Woodshop Martens","Yard de ferraille","Zinc du canal","Atelier de couture","Banque locale","Café des platanes","Débarcadère est","Foyer municipal"];
-  const cats=["services","loisirs","peche","services","institutions","loisirs","peche","nature","services","peche"];
-  const ic={services:"fi-tr-marketplace-store",loisirs:"fi-ts-drink",peche:"fi-ts-sailboat",nature:"fi-tr-tree-alt",institutions:"fi-tr-government-flag"};
-  const zs=["houma","bayou_cane","bayou_blue","bourg","ashland","montegut","lost_bayou","terrebonne_bay"];
-  const facs=[[],[],["maringouins"],["braconneurs"],["flottille"],["spectres"],["perles"],[]];
-  noms.forEach((n,i)=>{
-    let cat=cats[i%cats.length], ico=ic[cat];
-    if(n==="Pharmacie centrale"){cat="sante";ico="fi-tr-pharmacy-symbol";}
-    else if(n==="Banque locale"){cat="services";ico="fi-tr-sack-dollar";}
-    else if(["Halle aux poissons","Réserve d'appâts","Négoce du fleuve","Débarcadère est"].includes(n)){cat="peche";ico="fi-ts-sailboat";}
-    LIEUX.push({id:"f"+i,nom:n,type:"Lieu",rue:"— exemple —",zone:zs[i%zs.length],cat,ic:ico,facs:facs[i%facs.length],emploi:i%3!==0,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
-  });
-  LIEUX.push({id:"fa1",nom:"Plantation sucrière",type:"Plantation de canne",rue:"— exemple —",zone:"bayou_blue",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["goulipiats"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
-  LIEUX.push({id:"fa2",nom:"Ferme d'élevage",type:"Élevage",rue:"— exemple —",zone:"montegut",cat:"fermes",ic:"fi-ts-pig-face",facs:[],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
-  LIEUX.push({id:"fa3",nom:"Domaine agricole",type:"Exploitation",rue:"— exemple —",zone:"bourg",cat:"fermes",ic:"fi-tr-wheat-awn",facs:["fardoches"],emploi:true,exemple:true,amb:"Description d'ambiance à écrire pour ce lieu."});
-}
-genererExemples(); /* ← retire cette ligne en prod */
+
 
 /* ===================== PERSISTANCE (EcoCore / Firebase) ===================== */
 const CHEMIN_LIEUX = 'lieux';
@@ -231,7 +213,7 @@ function renderPanneau(){
       <div class="tdlr-phead">
         <div class="tdlr-pavatar" style="--c:${c.c};--soft:${c.soft}">${visuel(52)}</div>
         <div class="tdlr-ptitle">
-          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
+          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="tdlr-pmeta">${l.type}</div>
         </div>
