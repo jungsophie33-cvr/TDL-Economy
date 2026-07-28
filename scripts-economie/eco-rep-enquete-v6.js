@@ -4,7 +4,9 @@
      safeReadBin()                → lit tout le record (cache 60s)
      writeField(path, data)       → écriture ciblée (PUT) d'un noeud
      firebaseUpdate({path:v|null})→ PATCH racine multi-chemins (null supprime)
-     transactDollars(pseudo, +/-) → crédit/débit atomique des dollars
+     firebaseTransaction(path,fn)  → transaction atomique (utilisée ici pour créditer
+                                     "membres/{pseudo}/dollars" à la clôture ; EcoCore
+                                     n'expose plus de transactDollars() dédiée)
    Données : noeud racine  enquetes/{id}  (id interne stable ; la cote
    « AG-25-01 » est calculée à l'affichage, jamais stockée comme clé).
    ================================================================== */
@@ -49,6 +51,12 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 function escAttr(s){return String(s==null?"":s).replace(/"/g,"&quot;");}
 function versTableau(v){return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]);}
 function newId(){return "e"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+/* crédite/débite un membre en dollars via transaction atomique — chemin racine "membres/{pseudo}/dollars".
+   [MAJ] EcoCore.transactDollars a été retirée (chemin obsolète eco/membres/…) ; on passe
+   directement par firebaseTransaction, comme le fait désormais eco-gain-v2.js. */
+function crediterDollars(pseudo, delta){
+  return window.EcoCore.firebaseTransaction("membres/"+encodeURIComponent(pseudo)+"/dollars", function(cur){return Math.max(0,(cur||0)+delta);});
+}
 
 /* identité réelle (forum) */
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
@@ -461,8 +469,8 @@ function cloturer(a){
   var vals=a.valides.slice();
   if(a.referent&&vals.indexOf(a.referent)<0)vals.push(a.referent);
   var chain=Promise.resolve();
-  vals.forEach(function(p){chain=chain.then(function(){return window.EcoCore.transactDollars(p,BONUS_PARTICIPANT);});});
-  if(a.referent)chain=chain.then(function(){return window.EcoCore.transactDollars(a.referent,BONUS_REFERENT);});
+  vals.forEach(function(p){chain=chain.then(function(){return crediterDollars(p,BONUS_PARTICIPANT);});});
+  if(a.referent)chain=chain.then(function(){return crediterDollars(a.referent,BONUS_REFERENT);});
   chain.then(function(){
     a.cloturee=true;a.bonusVerse=true;a.demandeCloture=false;
     patch(a,{cloturee:true,bonusVerse:true,demandeCloture:false});
