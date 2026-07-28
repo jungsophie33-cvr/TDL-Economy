@@ -26,6 +26,7 @@ const CONFIG_FIREBASE = {
 /* --- CFG — réglages métier -------------------------------------------------- */
 const CFG = {
   cheminFirebase     : 'presentations',
+  idForum            : '5',  // [MAJ] ID du forum Présentations (f5) — SEUL forum suivi
   delaiBaseJours     : 15,   // délai standard
   bonusJours         : 7,    // montant d'un clic « +7j » (cumulable)
   seuilUrgenceJours  : 3,    // 3 derniers jours (inclusif) → style d'urgence
@@ -36,7 +37,7 @@ const CFG = {
 
 /* --- TEXTES — toutes les chaînes visibles ----------------------------------- */
 const TEXTES = {
-  jusqua      : "délai : {date}",
+  jusqua      : "délai jusqu'au {date}",
   prolonge    : "(prolongé)",
   depasse     : "délai dépassé",
   btnPlus     : "+7j",
@@ -48,8 +49,7 @@ const TEXTES = {
 /* --- SEL — sélecteurs ForumActif [MAJ] -------------------------------------- */
 const SEL = {
   // Contexte forum présentations (présent sur la liste ET sur les sujets)
-  ariane        : '.sub-header-path a[href*="/f5-presentations"]',
-  idWrapListe   : 'Présentations',            // id de la .sj-wrap sur la page liste
+  arianeLiens   : '.sub-header-path a',       // liens du fil d'ariane (dernier lien /f = forum direct)
   // Page liste
   ligneSujet    : '.sj-topic-list',
   titreLien     : 'a.topictitle',
@@ -254,20 +254,30 @@ function dateCreationDepuisPage() {
 
 function initSujet() {
   const id = idDepuisHref(location.pathname);
-  if (!id) return;
-  const enPresentation = !!document.querySelector(SEL.ariane);
-
-  if (!enPresentation) {                            // fiche hors présentations
-    if (CFG.nettoyerSurVueSujet) {
-      DB.lire(CFG.cheminFirebase + '/' + id).then(d => {
-        if (d) DB.supprimer(CFG.cheminFirebase + '/' + id);
-      });
-    }
-    return;
-  }
-  if (CFG.idsExclus.includes(id)) return;           // annonce → non suivie
+  if (!id || CFG.idsExclus.includes(id)) return;    // rien / annonce → non suivie
   const ts = dateCreationDepuisPage();
   if (ts) DB.ecrireSiAbsent(CFG.cheminFirebase + '/' + id + '/creation', ts);
+}
+
+/* Sujet ouvert hors f5 (sous-forum registres/validées, ou ailleurs) :
+   si une entrée traîne, on la supprime. Optionnel (nettoyerSurVueSujet). */
+function nettoyerSiMigre() {
+  const id = idDepuisHref(location.pathname);
+  if (!id) return;
+  DB.lire(CFG.cheminFirebase + '/' + id).then(d => {
+    if (d) DB.supprimer(CFG.cheminFirebase + '/' + id);
+  });
+}
+
+/* ID du forum direct = dernier lien /f{n}- du fil d'ariane.
+   Sur un sujet de f5 → '5' ; sur un sujet de f18/f23 → '18'/'23'. */
+function idForumDirect() {
+  const liens = [...document.querySelectorAll(SEL.arianeLiens)];
+  for (let i = liens.length - 1; i >= 0; i--) {
+    const m = (liens[i].getAttribute('href') || '').match(/\/f(\d+)-/);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 /* =============================================================================
@@ -278,15 +288,21 @@ function amorcer() {
   if (dejaAmorce) return true;
   if (typeof firebase === 'undefined') return false; // SDK pas encore prêt
   const path = location.pathname;
-  const enForum = () => !!document.getElementById(SEL.idWrapListe)
-                     || !!document.querySelector(SEL.ariane);
-  const surListe = /^\/f\d+-/.test(path) && enForum();
-  const surSujet = /^\/t\d+-/.test(path);
-  if (!surListe && !surSujet) return true;          // page hors périmètre → stop poll
-  dejaAmorce = true;
-  if (surListe) initListe();
-  else if (surSujet) initSujet();
-  return true;
+
+  // Page LISTE : uniquement f5 lui-même (l'URL suffit, les sous-forums ont un autre id)
+  if (new RegExp('^/f' + CFG.idForum + '-').test(path)) {
+    dejaAmorce = true; initListe(); return true;
+  }
+  // Page SUJET : capturer seulement si le forum DIRECT est f5 (pas un sous-forum)
+  if (/^\/t\d+-/.test(path)) {
+    const direct = idForumDirect();
+    if (direct === null) return false;              // fil d'ariane pas rendu → re-poll
+    dejaAmorce = true;
+    if (direct === CFG.idForum) initSujet();
+    else if (CFG.nettoyerSurVueSujet) nettoyerSiMigre();
+    return true;
+  }
+  return true;                                       // hors périmètre → stop poll
 }
 
 let essais = 0;
