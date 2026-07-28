@@ -13,7 +13,7 @@
 
 /* ---- conteneur du panneau : 80% de largeur, fond clair1 ---- */
 .tdle-app{width:80%;height:100%;background:var(--clair1);display:flex;flex-direction:column;overflow:hidden;
-  color:var(--txt);font-family:var(--txt1);font-size:17px;line-height:1.4;text-align:left;box-shadow:0 0 60px rgba(0,0,0,.35)}
+  color:var(--txt);font-family:var(--txt2);font-size:17px;line-height:1.4;text-align:left;box-shadow:0 0 60px rgba(0,0,0,.35)}
 
 /* ---- bandeau dev (POV temporaire) ---- */
 .tdle-dev{flex:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px dashed var(--dark2opa5);background:var(--dark2opa2)}
@@ -24,7 +24,7 @@
 /* ---- en-tête ---- */
 .tdle-header{flex:none;display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--cntr)}
 .tdle-home{display:inline-flex;align-items:center;gap:7px;font-family:var(--title1);font-size:13px;text-transform:uppercase;
-  color:var(--dark);text-decoration:none;background:var(--clair1);border-radius:7px;padding:8px 14px}
+  color:var(--dark);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px}
 .tdle-home:hover{background:var(--darkopa7);color:var(--clair1)}
 .tdle-home i{font-size:16px;line-height:1}
 .tdle-h1{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:600;font-size:26px;text-transform:uppercase; letter-spacing:0.2px;}
@@ -81,7 +81,7 @@
 .tdle-tp[aria-selected="true"]{color:var(--dark);box-shadow:inset 0 -2px 0 var(--dark)}
 .tdle-tp[aria-selected="true"] i{color:var(--dark)}
 .tdle-drow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:13px 14px;border-bottom:1px solid var(--cntr4);cursor:pointer}
-.tdle-drow:hover{background:var(--clair1opa6)}
+.tdle-drow:hover{background:var(--cntr4)}
 .tdle-drow[aria-current="true"]{background:var(--gradark)}
 .tdle-drow[aria-current="true"] .tdle-type,.tdle-drow[aria-current="true"] .tdle-drow-vic{color:var(--clair1opa7)}
 .tdle-drow[aria-current="true"] .tdle-cote{background:transparent;color:var(--clair1);border-color:var(--clair1opa5)}
@@ -115,6 +115,7 @@
 .tdle-tabs button{font-family:var(--txt3);font-size:12px;letter-spacing:.05em;text-transform:uppercase;background:none;border:0;border-bottom:2px solid transparent;padding:8px 11px;cursor:pointer;color:var(--dark2)}
 .tdle-tabs button[aria-selected="true"]{color:var(--dark);border-bottom-color:var(--dark)}
 .tdle-tabpane{padding:14px 24px 22px}
+.tdle-tabpane p {font-size:17px;}
 .tdle-tabhint{font-style:italic;color:var(--darkopa7);font-size:17px;margin:-2px 0 12px}
 .tdle-hsec{font-family:var(--txt3);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dark2);margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .tdle-mini{font-family:var(--txt3);font-weight:700;font-size:14px;line-height:1;color:var(--dark);background:var(--clair1);border:1px solid var(--cntr);border-radius:20px;width:22px;height:22px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
