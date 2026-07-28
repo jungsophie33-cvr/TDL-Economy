@@ -36,6 +36,7 @@
 
 /* ---- barre d'outils ---- */
 .tdle-tools{flex:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px}
+#tdle-stf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .tdle-stf{font-family:var(--txt3);font-size:12px;text-transform:uppercase;color:var(--dark);background:var(--clair1);border:1px solid var(--cntr);border-radius:6px;padding:6px 10px;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
 .tdle-stf .tdle-fdot{width:8px;height:8px;border-radius:50%;background:var(--sc,var(--cntr))}
 .tdle-stf b{font-weight:700}
@@ -195,12 +196,38 @@
 /* ---- responsive : une colonne sous 860px ---- */
 @media(max-width:1100px){.tdle-app{width:94%}}
 @media(max-width:860px){
-  .tdle-vue{margin-left:0}
-  .tdle-h1{font-size:22px}
+  .tdle-app{width:100%;box-shadow:none}
+
+  .tdle-header{gap:10px;padding:10px 12px}
+  .tdle-home{padding:8px 10px}
+  .tdle-home span{display:none}
+  .tdle-h1{font-size:18px;white-space:nowrap;letter-spacing:0}
+  .tdle-brand{display:none}
+  .tdle-badge{width:40px;height:40px}
+  .tdle-badge i{font-size:22px}
+
+  .tdle-tools{gap:8px;padding:10px 12px}
+  #tdle-stf{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  #tdle-stf::-webkit-scrollbar{display:none}
+  .tdle-stf{flex:0 0 auto}
+  .tdle-vue{margin-left:auto}
+
+  .tdle-typestrip{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tdle-typestrip::-webkit-scrollbar{display:none}
+  .tdle-tp{flex:0 0 auto;min-width:72px}
+
+  .tdle-actionbar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:10px 12px}
+  .tdle-actionbar::-webkit-scrollbar{display:none}
+  .tdle-abtn{flex:0 0 auto}
+  .tdle-ab-role{flex:0 0 auto;margin-right:6px}
+
+  .tdle-dp-title{padding:12px 14px}
+  .tdle-dp-title .tdle-cote{display:none}
+
   .tdle-dossier{grid-template-columns:1fr}
   .tdle-dlist{border-right:0}
   .tdle-dpanel{display:none}
   .tdle-dossier.detail .tdle-dlist{display:none}
   .tdle-dossier.detail .tdle-dpanel{display:flex}
-  .tdle-dret{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2;width:100%;font-family:var(--txt3);font-size:12px;text-transform:uppercase;color:var(--dark);background:var(--cntr2);border:0;border-bottom:1px solid var(--cntr5);padding:12px 18px;cursor:pointer}
+  .tdle-dret{display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2;width:100%;font-family:var(--txt3);font-size:12px;text-transform:uppercase;color:var(--dark);background:var(--cntr2);border:0;border-bottom:1px solid var(--cntr5);padding:8px 14px;cursor:pointer}
 }
