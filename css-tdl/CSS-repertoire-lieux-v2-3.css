@@ -150,6 +150,9 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
   .tdlr-idx{height:100%;border-right:0}
   .tdlr-list{max-height:none}
   .tdlr-panneau{display:none;height:100%}
+   .tdlr-catcol{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tdlr-catcol::-webkit-scrollbar{display:none}
+.tdlr-cat{flex:0 0 auto;min-width:64px;padding:7px 8px}
   /* vue détail : on masque zones/filtres/liste, on montre la fiche + le retour */
   .tdlr-app.tdlr-vue-detail .tdlr-zonebar,
   .tdlr-app.tdlr-vue-detail .tdlr-inflrow,
