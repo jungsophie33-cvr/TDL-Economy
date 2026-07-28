@@ -305,8 +305,11 @@ function actionbar(a){
     btns+='<button class="tdle-abtn prim" data-act="close" '+(a.cloturee?'disabled':'')+'>'+(a.cloturee?"Déjà clôturée":"Clôturer & verser les bonus")+'</button>';
     btns+='<button class="tdle-abtn warn" data-act="delete">Supprimer</button>';
   }else if(r==="referent"){label="Référent";
-    btns+='<button class="tdle-abtn" data-act="verif">Vérifier les participants</button>'+rpBtn;
-    btns+=a.demandeCloture?'<button class="tdle-abtn prim" disabled>Clôture demandée ✓</button>':'<button class="tdle-abtn prim" data-act="askclose">Demander la clôture</button>';
+    if(a.cloturee)btns='<span style="color:var(--darkopa6);font-style:italic">Affaire close.</span>';
+    else{
+      btns+='<button class="tdle-abtn" data-act="verif">Vérifier les participants</button>'+rpBtn;
+      btns+=a.demandeCloture?'<button class="tdle-abtn prim" disabled>Clôture demandée ✓</button>':'<button class="tdle-abtn prim" data-act="askclose">Demander la clôture</button>';
+    }
   }else if(!estMembre()){label="Invité";
     btns='<span style="color:var(--darkopa6);font-style:italic">Connectez-vous pour vous impliquer dans une affaire.</span>';
   }else{label="Visiteur";
@@ -389,10 +392,10 @@ function brancher(){
 
 function act(k){
   var a=parId(S.sel); if(!a&&k!=="new")return;
-  if(k==="demander"){if(!estMembre()){toast("Connexion requise.");return;}var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});toast("Demande envoyée au staff.");renderStage();}
-  else if(k==="rp"){if(!estMembre()){toast("Connexion requise.");return;}S.drawer="rp";S.inline=null;renderStage();}
-  else if(k==="verif"){S.onglet="personnes";S.drawer=null;S.inline=null;renderStage();}
-  else if(k==="askclose"){a.demandeCloture=true;patch(a,{demandeCloture:true});toast("Demande de clôture envoyée au staff.");renderStage();}
+  if(k==="demander"){if(a.cloturee){toast("Affaire close.");return;}if(!estMembre()){toast("Connexion requise.");return;}var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});toast("Demande envoyée au staff.");renderStage();}
+  else if(k==="rp"){if(a.cloturee){toast("Affaire close.");return;}if(!estMembre()){toast("Connexion requise.");return;}S.drawer="rp";S.inline=null;renderStage();}
+  else if(k==="verif"){if(a.cloturee){toast("Affaire close.");return;}S.onglet="personnes";S.drawer=null;S.inline=null;renderStage();}
+  else if(k==="askclose"){if(a.cloturee){toast("Affaire déjà close.");return;}a.demandeCloture=true;patch(a,{demandeCloture:true});toast("Demande de clôture envoyée au staff.");renderStage();}
   else if(k==="addel"){S.inline=S.inline==="element"?null:"element";renderStage();}
   else if(k==="addpart"){S.inline=S.inline==="particularite"?null:"particularite";renderStage();}
   else if(k==="addchr"){S.inline=S.inline==="chrono"?null:"chrono";renderStage();}
