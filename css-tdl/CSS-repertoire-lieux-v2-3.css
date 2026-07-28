@@ -16,6 +16,7 @@ html:has(.tdlr-rep)#min-width, body:has(.tdlr-rep), #wrap:has(.tdlr-rep), #sj-ma
   color:var(--txt);font-family:var(--txt1);font-size:19px;line-height:1.4;text-align:left;-webkit-font-smoothing:antialiased}
 .tdlr-rep *{box-sizing:border-box}
 #notiffi_button,#btn-top{display:none!important}
+.tdlr-rep br {display:none;}
 
 .tdlr-app{width:70%;height:100%;margin:auto;background:var(--clair1);display:flex;flex-direction:column;box-shadow:0 0 40px var(--darkopa4)}
 
