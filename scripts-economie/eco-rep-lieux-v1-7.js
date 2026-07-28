@@ -31,10 +31,11 @@ const TEXTES = {
 /* ===================== CONFIG ===================== */
 /* [MAJ] identifiants d'éléments du HTML (préfixés) */
 const SEL = {zones:'tdlr-zones', cats:'tdlr-cats', facs:'tdlr-facs', liste:'tdlr-liste', panneau:'tdlr-detail',
-             compteur:'tdlr-compteur', ajouter:'tdlr-add', admin:'tdlr-admin-toggle', home:'tdlr-home',
+             compteur:'tdlr-compteur', ajouter:'tdlr-add', admin:'tdlr-admin-toggle', home:'tdlr-home', edit:'tdlr-edit',
              lAccueil:'tdlr-l-accueil', lEntete:'tdlr-l-eyebrow', lLieux:'tdlr-l-lieux', lInfluence:'tdlr-l-influence'};
 const FAC_VISIBLES = 5;
 const HREF_ACCUEIL = '/';          /* [MAJ] accueil du forum */
+const EDIT_URL = 'https://thedrownedlands.forumactif.com/post?p=453&mode=editpost'; /* [MAJ] lien d'édition du sujet portant ce panneau */
 const FORCER_ADMIN = false;        /* [MAJ] true UNIQUEMENT pour un aperçu admin en local (jamais en prod) */
 const ICONS = { gov:'<path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-7h6v7"/><path d="M4 9h16"/>' };
 
@@ -231,7 +232,7 @@ function renderPanneau(){
       <div class="tdlr-phead">
         <div class="tdlr-pavatar" style="--c:${c.c};--soft:${c.soft}">${visuel(52)}</div>
         <div class="tdlr-ptitle">
-          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} ⟡ ${c.label}</p>
+          <p class="tdlr-peyebrow">${ZONES.find(z=>z.id===l.zone).titre} · ${c.label}</p>
           <h2>${l.nom}${l.emploi?bagP():''}</h2>
           <div class="tdlr-pmeta">${l.type}</div>
         </div>
@@ -363,6 +364,7 @@ function init(){
   elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
+  const edit=$(SEL.edit); if(edit) edit.setAttribute('href',EDIT_URL);
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
   $(SEL.lEntete).textContent    = TEXTES.entete;
   $(SEL.lLieux).textContent     = TEXTES.lieux;
