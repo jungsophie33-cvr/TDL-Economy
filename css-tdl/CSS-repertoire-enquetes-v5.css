@@ -33,6 +33,11 @@
 .tdle-badge{flex:none;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:var(--cntr3);border:1px solid var(--cntr5);color:var(--dark)}
 .tdle-badge i{font-size:30px;line-height:1}
+.tdle-edit{display:none;flex:none;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;
+  background:var(--clair1);border:1px solid var(--cntr);color:var(--dark2);text-decoration:none}
+.tdle-edit:hover{background:var(--dark);border-color:var(--dark);color:var(--clair1)}
+.tdle-edit i{font-size:15px;line-height:1}
+.tdle-edit.on{display:flex}
 
 /* ---- barre d'outils ---- */
 .tdle-tools{flex:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px}
@@ -205,6 +210,8 @@
   .tdle-brand{display:none}
   .tdle-badge{width:40px;height:40px}
   .tdle-badge i{font-size:22px}
+   .tdle-edit{width:30px;height:30px}
+.tdle-edit i{font-size:13px}
 
   .tdle-tools{gap:8px;padding:10px 12px}
   #tdle-stf{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
