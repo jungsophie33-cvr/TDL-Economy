@@ -15,7 +15,8 @@
 var CFG = {
   NODE: "enquetes",           /* [MAJ] noeud Firebase racine des affaires */
   DEV_POV: false,             /* true = affiche le sélecteur de rôle (aperçu) */
-  FORUM_HOME: "https://thedrownedlands.forumactif.com/"
+  FORUM_HOME: "https://thedrownedlands.forumactif.com/",
+  EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=452&mode=editpost" /* [MAJ] lien d'édition du sujet portant ce panneau */
 };
 var BONUS_PARTICIPANT = 60;   /* à chaque participant validé (référent inclus) */
 var BONUS_REFERENT    = 100;  /* bonus supplémentaire, référent seulement       */
@@ -493,13 +494,15 @@ function initApp(){
   var dev=$("#tdle-dev");
   if(dev){
     if(!CFG.DEV_POV){dev.style.display="none";}
-    else{POV=isStaff()?"staff":"visiteur";dev.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-selected",b.getAttribute("data-p")===POV);b.onclick=function(){POV=b.getAttribute("data-p");dev.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-selected",x.getAttribute("data-p")===POV);});if(S.statut==="demandes"&&!estStaffCourant())S.statut="tous";S.drawer=null;S.inline=null;renderAll();};});}
+    else{POV=isStaff()?"staff":"visiteur";dev.querySelectorAll("button").forEach(function(b){b.setAttribute("aria-selected",b.getAttribute("data-p")===POV);b.onclick=function(){POV=b.getAttribute("data-p");dev.querySelectorAll("button").forEach(function(x){x.setAttribute("aria-selected",x.getAttribute("data-p")===POV);});if(S.statut==="demandes"&&!estStaffCourant())S.statut="tous";var ed=$("#tdle-edit");if(ed)ed.classList.toggle("on",estStaffCourant());S.drawer=null;S.inline=null;renderAll();};});}
   }
   var vue=$("#tdle-vue");
   if(vue)vue.querySelectorAll("button").forEach(function(b){b.onclick=function(){S.vue=b.getAttribute("data-v");S.mob="liste";S.drawer=null;S.inline=null;syncVue();renderStage();};});
   syncVue();
   var rp=$("#tdle-rp");
   if(rp)rp.onclick=function(){S.rpOnly=!S.rpOnly;rp.setAttribute("aria-pressed",S.rpOnly);fixSel();renderStage();renderStatutFilters();};
+  var edit=$("#tdle-edit");
+  if(edit){edit.href=CFG.EDIT_URL||"#";if(estStaffCourant())edit.classList.add("on");}
   whenEco(function(){loadData();startAutoRefresh();});
 }
 
