@@ -1,7 +1,6 @@
 /* ---------- PAGE EVENT ------------ */
 .sub-header {background: var(--clair1opa5); padding: 0 10px 0 0; margin-top:20px; height: 74px; border-radius: 10px; display: flex;}
 .sub-header-info {display: flex; justify-content: left; width: 100%; gap: 20px; float:none; padding:0;}
-.sub-header-buttons {display:none;}
 .EV_FixedTitle .sub-header-path {background: var(--clair1opa7); width: fit-content; padding: 3px 10px; border-radius: 5px;}
 .EV_FixedTitle {height: 74px;
 display: flex;
@@ -46,6 +45,44 @@ div.EV_ListMonth span {background-color:none; background: var(--gradark); color:
 .EV_Item .EV_ItemInfos .EV_ItemTitle p {width: fit-content;margin: 10px auto !important;background: var(--clair1opa7);padding: 2px 15px;border-radius: 5px;}
 .EV_Item .EV_ItemInfos .EV_ItemCat {vertical-align:middle; text-align:center; padding:0; height:fit-content;}
 .EV_Item .EV_ItemCost {display:none !important;}
+
+/* ----------------------------------------------------------
+   BOUTON AJOUT
+   ---------------------------------------------------------- */
+fieldset.submit-buttons {
+  border: none;
+  padding: 8px 0 0;
+  text-align: right;
+}
+ 
+ 
+/* ----------------------------------------------------------
+   PAGE /events — bouton créer événement déplacé
+   ---------------------------------------------------------- */
+ 
+.tdl-ev-create-btn {
+  display: block !important;
+  float: none !important;
+  padding: 10px 16px 6px;
+  text-align: right;
+}
+ 
+.tdl-ev-create-btn a {
+  font-family: var(--txt3);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--dark2);
+  text-decoration: none;
+  border: 1px solid var(--cntr3);
+  border-radius: 4px;
+  padding: 5px 12px;
+  background: var(--cntr2);
+  transition: background 0.15s;
+}
+ 
+.tdl-ev-create-btn a:hover {
+  background: var(--cntr3);
+}
 
 /* ============================================================
     CSS Calendrier
