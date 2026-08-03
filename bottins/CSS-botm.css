@@ -248,7 +248,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-iform{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding:11px;border:1px solid var(--cntr4);
   border-radius:5px;background:var(--cntr1)}
 .bm-iform input[type=text],.bm-iform input[type=number],.bm-iform select,.bm-iform textarea{
-  font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--clair1);
+  font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--clair1); margin:0;
   border:1px solid var(--cntr);border-radius:5px;padding:6px 10px;outline:none;width:100%}
 .bm-iform textarea{min-height:64px;resize:vertical;line-height:1.35;font-size:16px}
 .bm-iform .lg{grid-column:1/-1}
