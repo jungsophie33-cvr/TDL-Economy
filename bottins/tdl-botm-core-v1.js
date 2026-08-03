@@ -1,7 +1,7 @@
 /* ============================================================
    TDL — BOTTIN DES MÉTIERS · noyau (1/3)
    Blocs : TEXTES · CONFIG · ÉTAT · UTILS · PERSISTANCE · FILTRES
-   Expose window.BM, complété par eco-bottin-render puis eco-bottin-ui.
+   Expose window.BM, complété par tdl-botm-render puis tdl-botm-ui.
 
    MODÈLE DE DONNÉES — une entreprise = un lieu qui embauche.
    Aucun champ n'est stocké deux fois :
@@ -12,7 +12,7 @@
                        culture, partenaires, rivaux, verrou, complet,
                        referent, brouillon, roles, postes)
 
-   Dépend de : tdl-zones-cats.js (window.TDLZonesCats), window.EcoCore
+   Dépend de : tdl-zcats.js (window.TDLZonesCats), window.EcoCore
    ============================================================ */
 (function(){
 "use strict";
@@ -29,7 +29,7 @@ BM.T = {
   roles:'Rôles occupés', postes:'Postes à pourvoir',
   aucunRole:'Aucun rôle occupé.', aucunTag:'Aucun.', nonRenseigne:'Non renseigné.',
   aucunPoste:'Aucun poste ouvert pour le moment.',
-  ouvertProp:'Aucun poste listé ; les propositions restent bienvenues.',
+  ouvertProp:'Aucun poste listé — les propositions restent bienvenues.',
   sansDesc:'Aucune description pour ce poste.',
   voirRoles:'Voir les {n} autres rôles occupés', voirPostes:'Voir tous les postes disponibles',
   reduire:'Réduire',
@@ -43,9 +43,11 @@ BM.T = {
   okRetire:" a été retirée du bottin (le lieu, lui, est conservé).",
   errNom:'Le nom est requis.', errPoste:"L'intitulé est requis.",
   errSave:"Échec de l'enregistrement : ",
-  errCfg:"Configuration manquante : chargez tdl-zones-cats.js avant ce script.",
+  errCfg:"Configuration manquante : chargez tdl-zcats.js avant ce script.",
   memo:'Enregistré en mémoire — EcoCore indisponible.',
-  hintLieu:"Ces champs sont partagés avec le Répertoire des lieux : les modifier ici les modifie là-bas, et créer une entreprise crée le lieu correspondant.",
+  hintLieu:"Ces champs sont partagés avec le Répertoire des lieux.",
+  hintRole:"Le pseudo doit être exact.",
+  voirProfil:'Voir le profil', voirPrelien:'Voir la fiche de pré-lien',
   lbl:{nom:'Nom', zone:'Zone', categorie:'Catégorie', type:'Type / secteur',
        icone:'Icône (classe Flaticon ou URL)', rue:'Siège (adresse)', effectif:'Effectif',
        fondee:'Fondée en', rayonnement:'Rayonnement',
@@ -57,7 +59,7 @@ BM.T = {
       verrou:'Verrouillée (le poste de direction ne confère pas le statut de référent)',
       role:'Poste de direction', posteDir:'Poste de direction (confère le statut de référent)',
       nomRole:'Nom / pseudo', fonction:"Fonction (doit reprendre l'intitulé du poste)",
-      annee:'Depuis (année)', avatar:'URL avatar', lien:'Lien (/u12 ou fiche de pré-lien)',
+      annee:'Depuis (année)', lien:'Lien (facultatif)',
       intitule:'Intitulé du poste', catPoste:'Catégorie', icPoste:'Icône (fi-tr-…)',
       places:'Places au total', resume:'Résumé du métier'}
 };
@@ -84,6 +86,8 @@ BM.TYPES_ROLE = [{id:'pj',label:'Joueur'},{id:'pnj',label:'PNJ'},{id:'pl',label:
    on le vide et le remplit en place. */
 BM.E = [];
 BM.ZC = null; BM.ZONES = []; BM.CATS = [];
+/* index du bottin des avatars, reconstruit à chaque chargement */
+BM.FC = {parPseudo:{}, parPrelien:{}, parUid:{}};
 BM.S = {
   zone:'houma', cat:'tous', vue:'mur', sel:null, mob:'liste',
   mode:'lecture', draft:null, inline:null,
@@ -120,6 +124,54 @@ BM.editable = e => BM.S.admin || (!!e.referent && e.referent===BM.S.moi);
 BM.visible = e => !e.brouillon || BM.S.admin || (!!e.referent && e.referent===BM.S.moi);
 BM.dirDabord = (a,b) => (b.dir?1:0)-(a.dir?1:0);
 BM.ent = id => BM.E.find(x=>x.id===id);
+
+/* ---------- RAPPROCHEMENT AVEC LE BOTTIN DES AVATARS ----------
+   Une carte faceclaim vaut {acteur, statut, uid, pseudo, image, nom_prelien}.
+   On l'indexe sur trois clés, par ordre de fiabilité décroissante :
+     · pseudo      → rôle joué par un membre (les pseudos sont identiques
+                     dans les deux bottins, c'est la clé de référence)
+     · nom_prelien → rôle marqué « pré-lien »
+     · uid         → repli si le rôle porte un lien /u123
+   Aucune donnée n'est recopiée : si le membre change de faceclaim, son
+   avatar suit ici automatiquement. */
+BM.normPseudo = s => String(s||'').trim().toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^@/,'');
+
+BM.indexerFaceclaims = function(root){
+  const fc = (root && root.faceclaims) || {};
+  const idx = {parPseudo:{}, parPrelien:{}, parUid:{}};
+  Object.keys(fc).forEach(cle=>{
+    const c = fc[cle]; if(!c) return;
+    if(c.pseudo)      idx.parPseudo[BM.normPseudo(c.pseudo)] = c;
+    if(c.nom_prelien) idx.parPrelien[BM.normPseudo(c.nom_prelien)] = c;
+    if(c.uid != null) idx.parUid[String(c.uid)] = c;
+  });
+  BM.FC = idx;
+};
+/* carte faceclaim correspondant à un rôle, ou null */
+BM.carteFC = function(r){
+  if(!r) return null;
+  const n = BM.normPseudo(r.nom);
+  if(r.type==='pl' && BM.FC.parPrelien[n]) return BM.FC.parPrelien[n];
+  if(BM.FC.parPseudo[n]) return BM.FC.parPseudo[n];
+  const m = /\/u(\d+)/.exec(r.lien||'');
+  if(m && BM.FC.parUid[m[1]]) return BM.FC.parUid[m[1]];
+  return null;
+};
+/* l'avatar vient exclusivement du bottin des avatars : aucune saisie ici */
+BM.avatarDe = function(r){
+  const c = BM.carteFC(r);
+  return (c && c.image) || '';
+};
+/* lien du rôle : saisi à la main, sinon déduit de l'uid de la carte.
+   Un pré-lien pointe vers son sujet, que le bottin des avatars ne connaît
+   pas : dans ce cas, seule la saisie manuelle fait foi. */
+BM.lienDe = function(r){
+  if(r && r.lien) return r.lien;
+  if(r && r.type==='pl') return '';
+  const c = BM.carteFC(r);
+  return (c && c.uid != null) ? ('/u'+c.uid) : '';
+};
 
 BM.toast = function(msg, erreur){
   const t = BM.$('bm-toast'); if(!t) return;
@@ -159,6 +211,7 @@ BM.charger = function(rendre){
     eco.safeReadBin().then(root=>{
       const lieux = (root && root.lieux) || {};
       const emplois = (root && root.emplois) || {};
+      BM.indexerFaceclaims(root);
       const liste = Object.keys(lieux)
         .filter(id => lieux[id] && lieux[id].emploi === true)
         .map(id => fusionner(id, lieux[id], emplois[id]));
