@@ -1,16 +1,24 @@
 /* ============================================================
    TDL — BOTTIN DES MÉTIERS · actions & interface (3/3)
    Blocs : ACTIONS · EVENTS · INIT
-   Requiert eco-bottin-core puis eco-bottin-render (window.BM).
+   Requiert tdl-botm-core puis tdl-botm-render (window.BM).
    ============================================================ */
 (function(){
 "use strict";
-const BM = window.BM;
-if(!BM || !BM.detailHTML){
-  if(window.console) console.error('[TDL bottin] eco-bottin-core et eco-bottin-render doivent être chargés avant.');
-  return;
+
+let BM, T, S, CFG, $, vt;
+function attendreNoyau(n){
+  n = n || 0;
+  if(window.BM && window.BM.detailHTML){
+    BM = window.BM; T = BM.T; S = BM.S; CFG = BM.CFG; $ = BM.$; vt = BM.versTableau;
+    demarrer(); return;
+  }
+  if(n > 40){
+    if(window.console) console.error('[TDL bottin] tdl-botm-core.js puis tdl-botm-render.js doivent être chargés avant tdl-botm-ui.js.');
+    return;
+  }
+  setTimeout(function(){ attendreNoyau(n+1); }, 250);
 }
-const T = BM.T, S = BM.S, CFG = BM.CFG, $ = BM.$, vt = BM.versTableau;
 const val = id => (($(id)||{}).value||'');
 const coche = id => !!(($(id)||{}).checked);
 function reset(){ S.inline=null; S.roleEdit=null; S.posteEdit=null; S.confirmDel=null; }
@@ -33,9 +41,9 @@ function retirerTag(id, champ, i){
 function enregistrerRole(id, i){
   const e = BM.ent(id), n = val('bm-rnom').trim();
   if(!n){ BM.toast(T.errNom, true); return; }
+  /* pas de champ avatar : il est résolu à la lecture depuis le bottin des avatars */
   const r = {nom:n, poste:val('bm-rposte').trim(), depuis:val('bm-rdepuis').trim(),
-    type:val('bm-rtype')||'pj', avatar:val('bm-ravatar').trim(), lien:val('bm-rlien').trim(),
-    dir:coche('bm-rdir')};
+    type:val('bm-rtype')||'pj', lien:val('bm-rlien').trim(), dir:coche('bm-rdir')};
   const arr = vt(e.roles).slice();
   if(i>=0) arr[i]=r; else arr.push(r);
   BM.patch(e,{roles:arr}).then(()=>{ S.roleEdit=null; BM.renderDetail(); BM.toast(T.okRole); }).catch(()=>{});
@@ -237,12 +245,15 @@ function init(){
   });
 }
 /* la structure peut être injectée après le load (template FA) → on attend */
-(function attendreDOM(n){
-  n = n || 0;
-  if($('bm-stage')){ init(); return; }
-  if(n > 60) return;
-  setTimeout(()=>attendreDOM(n+1), 250);
-})();
-window.addEventListener('load', init);
+function demarrer(){
+  (function attendreDOM(n){
+    n = n || 0;
+    if($('bm-stage')){ init(); return; }
+    if(n > 60) return;
+    setTimeout(()=>attendreDOM(n+1), 250);
+  })();
+  window.addEventListener('load', init);
+}
+attendreNoyau();
 
 })();
