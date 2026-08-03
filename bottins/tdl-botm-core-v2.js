@@ -137,14 +137,30 @@ BM.ent = id => BM.E.find(x=>x.id===id);
 BM.normPseudo = s => String(s||'').trim().toLowerCase()
   .normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^@/,'');
 
+/* Un même pseudo peut porter plusieurs cartes : une réservation multicompte
+   est posée au nom du compte racine, en plus de la carte du personnage déjà
+   validé. On départage donc au lieu de laisser la dernière lue l'emporter —
+   Firebase renvoie les clés par ordre alphabétique, ce qui n'a aucun sens ici. */
+function scoreFC(c){
+  let s = 0;
+  if(c.statut === 'pris') s += 4;          /* fiche validée : carte de référence */
+  else if(c.statut === 'reserve') s += 1;  /* simple réservation : par défaut */
+  if(c.image) s += 2;                      /* une carte sans image n'apporte rien */
+  return s;
+}
+function poser(map, cle, c){
+  if(!cle) return;
+  const actuelle = map[cle];
+  if(!actuelle || scoreFC(c) > scoreFC(actuelle)) map[cle] = c;
+}
 BM.indexerFaceclaims = function(root){
   const fc = (root && root.faceclaims) || {};
   const idx = {parPseudo:{}, parPrelien:{}, parUid:{}};
   Object.keys(fc).forEach(cle=>{
     const c = fc[cle]; if(!c) return;
-    if(c.pseudo)      idx.parPseudo[BM.normPseudo(c.pseudo)] = c;
-    if(c.nom_prelien) idx.parPrelien[BM.normPseudo(c.nom_prelien)] = c;
-    if(c.uid != null) idx.parUid[String(c.uid)] = c;
+    if(c.pseudo)      poser(idx.parPseudo,  BM.normPseudo(c.pseudo), c);
+    if(c.nom_prelien) poser(idx.parPrelien, BM.normPseudo(c.nom_prelien), c);
+    if(c.uid != null) poser(idx.parUid,     String(c.uid), c);
   });
   BM.FC = idx;
 };
