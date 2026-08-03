@@ -1,12 +1,12 @@
 /* ============================================================
    TDL — BOTTIN DES MÉTIERS · rendu (2/3)
    Blocs : BARRES · SCÈNE · DÉTAIL · BLOCS · FORMULAIRES
-   Requiert eco-bottin-core (window.BM). Complété par eco-bottin-ui.
+   Requiert tdl-botm-core (window.BM). Complété par tdl-botm-ui.
    ============================================================ */
 (function(){
 "use strict";
 const BM = window.BM;
-if(!BM){ if(window.console) console.error('[TDL bottin] eco-bottin-core doit être chargé avant.'); return; }
+if(!BM){ if(window.console) console.error('[TDL bottin] tdl-botm-core.js doit être chargé avant.'); return; }
 const T = BM.T, S = BM.S, CFG = BM.CFG, $ = BM.$, esc = BM.esc, icone = BM.icone, vt = BM.versTableau;
 
 /* ===================== BARRES ===================== */
@@ -155,9 +155,11 @@ function blocTags(e, champ, titre, ed){
   if(add) h += formTag(e,champ);
   return h+'</div>';
 }
+/* l'avatar vient du bottin des avatars, sauf URL saisie à la main */
 function avatarRole(r){
-  return r.avatar
-    ? '<span class="bm-pav"><img src="'+esc(r.avatar)+'" alt=""></span>'
+  const src = BM.avatarDe(r);
+  return src
+    ? '<span class="bm-pav"><img src="'+esc(src)+'" alt=""></span>'
     : '<span class="bm-pav">'+esc(BM.ini(r.nom))+'</span>';
 }
 function tagType(r){
@@ -165,10 +167,12 @@ function tagType(r){
   if(r.type==='pl')  return '<span class="bm-minitag pl">PL</span>';
   return '';
 }
+/* lien saisi à la main, sinon /u{uid} déduit de la carte faceclaim */
 function lienRole(r){
-  if(!r.lien) return '';
-  const t = r.type==='pl' ? 'Voir la fiche de pré-lien' : 'Voir le profil';
-  return '<a class="bm-plink" href="'+esc(r.lien)+'" title="'+t+'" target="_blank" rel="noopener">'
+  const href = BM.lienDe(r);
+  if(!href) return '';
+  const t = r.type==='pl' ? T.voirPrelien : T.voirProfil;
+  return '<a class="bm-plink" href="'+esc(href)+'" title="'+t+'" target="_blank" rel="noopener">'
     +'<i class="fi fi-tr-link-alt"></i></a>';
 }
 function blocRoles(e, ed){
@@ -252,16 +256,15 @@ function barreActions(e, ed){
 
 /* ===================== FORMULAIRES ===================== */
 BM.formRole = function(e, r, i){
-  const d = r||{nom:'',poste:'',depuis:'',type:'pj',avatar:'',lien:'',dir:false}, P = T.ph;
+  const d = r||{nom:'',poste:'',depuis:'',type:'pj',lien:'',dir:false}, P = T.ph;
   return '<div class="bm-iform">'
     +'<input type="text" id="bm-rnom" value="'+esc(d.nom)+'" placeholder="'+P.nomRole+'">'
     +'<input type="text" id="bm-rposte" value="'+esc(d.poste)+'" placeholder="'+P.fonction+'">'
     +'<select id="bm-rtype">'+BM.TYPES_ROLE.map(t=>'<option value="'+t.id+'"'
       +(d.type===t.id?' selected':'')+'>'+esc(t.label)+'</option>').join('')+'</select>'
     +'<input type="text" id="bm-rdepuis" value="'+esc(d.depuis)+'" placeholder="'+P.annee+'">'
-    /* [MAJ] avatar : à terme repris automatiquement du bottin des faceclaims */
-    +'<input type="text" id="bm-ravatar" value="'+esc(d.avatar)+'" placeholder="'+P.avatar+'">'
-    +'<input type="text" id="bm-rlien" value="'+esc(d.lien)+'" placeholder="'+P.lien+'">'
+    +'<input type="text" class="lg" id="bm-rlien" value="'+esc(d.lien)+'" placeholder="'+P.lien+'">'
+    +'<p class="bm-hint lg">'+T.hintRole+'</p>'
     +'<label class="chk"><input type="checkbox" id="bm-rdir" '+(d.dir?'checked':'')+'> '+P.role+'</label>'
     +'<div class="acts"><button class="go" data-do="roleok" data-id="'+e.id+'" data-i="'+i+'">'+T.enregistrer+'</button>'
     +'<button class="no" data-do="cancel">'+T.annuler+'</button></div></div>';
