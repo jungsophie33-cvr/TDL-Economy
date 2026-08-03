@@ -393,7 +393,7 @@
 .mc-sec-head{
   line-height:1em;
   background:var(--clair1opa8);
-  padding:0 15px;
+  padding:5px 15px;
   margin:0;
   border-radius:5px;
   font-style:italic;
@@ -404,6 +404,7 @@
   gap:15px;
   align-items:center;
   border:none;
+  margin-bottom:15px;
 }
 .mc-sec-head::before{
   height:auto;
@@ -424,7 +425,9 @@
   flex:1 1 auto;
 }
 .mc-sec-head h2{
-  border:none;
+  border:none!important;
+  background:none!important;
+  outline:none;
   padding:0;
   margin:0;
   line-height:1em;
@@ -543,15 +546,15 @@
 .mc-ovl{position:fixed;inset:0;z-index:9000;background:rgba(20,16,14,0.62);display:none;
   align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
 .mc-ovl.actif{display:flex}
-.mc-modal{width:100%;max-width:800px;background:var(--clair1);border:1px solid var(--cntr);
-  border-radius:5px;padding:20px 30px 28px;position:relative}
+.mc-modal{width:100%;max-width:800px;background:var(--clair1);
+  border-radius:10px;padding:20px 30px 28px;position:relative}
 .mc-x{position:absolute;top:12px;right:14px;background:none;border:0;color:var(--darkopa5);
   font-size:22px;line-height:1;cursor:pointer}
 .mc-x:hover{color:var(--dark)}
 /* le séparateur global porte 50px de marge haute : neutralisé dans la modale */
 .mc-modal tdl-separator{margin:0 auto 4px}
-.mc-modal h3{font-family:var(--title1);font-weight:600;font-size:20px;letter-spacing:.1em;
-  text-transform:uppercase;text-align:center;color:var(--dark);margin:0 0 22px}
+.mc-modal h3{font-family:var(--title4);font-weight:600;font-size:25px;letter-spacing:.1em;
+  text-transform:uppercase;text-align:center;color:var(--dark);margin:20px 0 22px}
 /* auto-fit : deux cellules en temps normal, trois quand le solde est en jeu */
 .mc-cond{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
   border:1px solid var(--cntr);border-radius:5px;margin-bottom:16px}
@@ -577,10 +580,10 @@
 .mc-verdict b{color:var(--gr2-color);font-weight:700}
 .mc-verdict.ko b{color:var(--gr6-color)}
 .mc-champ{margin-bottom:16px}
-.mc-champ textarea{width:100%;font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--clair1);
+.mc-champ textarea{width:100%;font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--cntr2);
   border:1px solid var(--cntr);border-radius:5px;padding:10px 12px;outline:none;min-height:110px;resize:vertical;line-height:1.4}
 .mc-champ textarea:focus{border-color:var(--dark)}
-.mc-champ .mc-in{width:100%}
+.mc-champ .mc-in{font-size:17px;width:100%;background:var(--cntr2);}
 .mc-modal-act{display:flex;gap:10px;justify-content:center;margin-top:6px}
 
 /* ---------- RESPONSIVE ---------- */
