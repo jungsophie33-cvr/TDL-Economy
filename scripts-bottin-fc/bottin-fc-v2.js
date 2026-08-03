@@ -9,7 +9,7 @@
  * suppression admin — ces actions sont câblées à des points d'accroche (hooks)
  * que les modules à venir (formulaire, admin) rempliront.
  *
- * PRÉREQUIS : eco-core-v1-1.js chargé AVANT (expose window.EcoCore + gère l'auth).
+ * PRÉREQUIS : eco-core.js chargé AVANT (expose window.EcoCore + gère l'auth).
  *
  * SCHÉMA LU (clés de l'enregistrement racine) :
  *   faceclaims/{cle_acteur} = { acteur, statut, type?, uid?, pseudo?,
