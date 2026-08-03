@@ -29,7 +29,7 @@ BM.T = {
   roles:'Rôles occupés', postes:'Postes à pourvoir',
   aucunRole:'Aucun rôle occupé.', aucunTag:'Aucun.', nonRenseigne:'Non renseigné.',
   aucunPoste:'Aucun poste ouvert pour le moment.',
-  ouvertProp:'Aucun poste listé — les propositions restent bienvenues.',
+  ouvertProp:'Aucun poste listé : les propositions restent bienvenues.',
   sansDesc:'Aucune description pour ce poste.',
   voirRoles:'Voir les {n} autres rôles occupés', voirPostes:'Voir tous les postes disponibles',
   reduire:'Réduire',
@@ -88,6 +88,8 @@ BM.E = [];
 BM.ZC = null; BM.ZONES = []; BM.CATS = [];
 /* index du bottin des avatars, reconstruit à chaque chargement */
 BM.FC = {parPseudo:{}, parPrelien:{}, parUid:{}};
+/* uid → pseudo courant : permet à un rôle de suivre un changement de pseudo */
+BM.UIDX = {};
 BM.S = {
   zone:'houma', cat:'tous', vue:'mur', sel:null, mob:'liste',
   mode:'lecture', draft:null, inline:null,
@@ -164,15 +166,30 @@ BM.indexerFaceclaims = function(root){
   });
   BM.FC = idx;
 };
+/* pseudo affiché : l'uid fait foi, le nom stocké n'est qu'un repli.
+   Un membre renommé garde ainsi son rôle sans intervention. */
+BM.nomDe = function(r){
+  if(r && r.uid != null && BM.UIDX[String(r.uid)]) return BM.UIDX[String(r.uid)];
+  return (r && r.nom) || '';
+};
 /* carte faceclaim correspondant à un rôle, ou null */
 BM.carteFC = function(r){
   if(!r) return null;
-  const n = BM.normPseudo(r.nom);
+  if(r.uid != null && BM.FC.parUid[String(r.uid)]) return BM.FC.parUid[String(r.uid)];
+  const n = BM.normPseudo(BM.nomDe(r));
   if(r.type==='pl' && BM.FC.parPrelien[n]) return BM.FC.parPrelien[n];
   if(BM.FC.parPseudo[n]) return BM.FC.parPseudo[n];
   const m = /\/u(\d+)/.exec(r.lien||'');
   if(m && BM.FC.parUid[m[1]]) return BM.FC.parUid[m[1]];
   return null;
+};
+/* uid d'un rôle joué : depuis le lien saisi, sinon depuis la carte faceclaim */
+BM.uidDe = function(r){
+  if(!r || r.type!=='pj') return null;
+  const m = /\/u(\d+)/.exec(r.lien||'');
+  if(m) return Number(m[1]);
+  const c = BM.carteFC(r);
+  return (c && c.uid != null) ? c.uid : null;
 };
 /* l'avatar vient exclusivement du bottin des avatars : aucune saisie ici */
 BM.avatarDe = function(r){
@@ -185,6 +202,7 @@ BM.avatarDe = function(r){
 BM.lienDe = function(r){
   if(r && r.lien) return r.lien;
   if(r && r.type==='pl') return '';
+  if(r && r.uid != null) return '/u'+r.uid;
   const c = BM.carteFC(r);
   return (c && c.uid != null) ? ('/u'+c.uid) : '';
 };
@@ -228,6 +246,7 @@ BM.charger = function(rendre){
       const lieux = (root && root.lieux) || {};
       const emplois = (root && root.emplois) || {};
       BM.indexerFaceclaims(root);
+      BM.UIDX = (root && root.uid_index) || {};
       const liste = Object.keys(lieux)
         .filter(id => lieux[id] && lieux[id].emploi === true)
         .map(id => fusionner(id, lieux[id], emplois[id]));
