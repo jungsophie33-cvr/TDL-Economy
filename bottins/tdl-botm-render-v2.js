@@ -110,11 +110,7 @@ BM.detailHTML = function(){
     + '<div class="bm-pcontent">'
       + '<p class="bm-pdesc">'+esc(e.desc||'')+'</p>'
       + '<div class="bm-keybox">'+cles+'</div>'
-      + '<div class="bm-ident">'
-        + '<div class="bm-ident-cult">'+blocCulture(e,ed)+'</div>'
-        + '<div class="bm-ident-rel">'+blocTags(e,'partenaires',T.partenaires,ed)
-          +blocTags(e,'rivaux',T.tensions,ed)+'</div>'
-      + '</div>'
+      + identite(e, ed)
       + '<div class="bm-cols">'
         + '<div class="'+(ed?'bm-adm ':'')+(ed&&S.editRoles?'bm-editon':'')+'">'+blocRoles(e,ed)+'</div>'
         + '<div class="'+(ed?'bm-adm ':'')+(ed&&S.editPostes?'bm-editon':'')+'">'+blocPostes(e,ed)+'</div>'
@@ -129,6 +125,18 @@ function formTag(e, champ){
   return '<div class="bm-iform"><input type="text" class="lg" id="bm-tagin" placeholder="…">'
     +'<div class="acts"><button class="go" data-do="tagok" data-champ="'+champ+'" data-id="'+e.id+'">'+T.ajouter+'</button>'
     +'<button class="no" data-do="cancel">'+T.annuler+'</button></div></div>';
+}
+/* Bloc identité : masqué entièrement si rien n'est renseigné. En vue staff
+   il reste affiché, sinon les boutons « + » seraient inatteignables et une
+   fiche vierge ne pourrait jamais être complétée. */
+function identite(e, ed){
+  const rempli = !!e.accroche || vt(e.culture).length || vt(e.partenaires).length || vt(e.rivaux).length;
+  if(!ed && !rempli) return '';
+  return '<div class="bm-ident">'
+    + '<div class="bm-ident-cult">'+blocCulture(e,ed)+'</div>'
+    + '<div class="bm-ident-rel">'+blocTags(e,'partenaires',T.partenaires,ed)
+      +blocTags(e,'rivaux',T.tensions,ed)+'</div>'
+    + '</div>';
 }
 function blocCulture(e, ed){
   const arr = vt(e.culture);
