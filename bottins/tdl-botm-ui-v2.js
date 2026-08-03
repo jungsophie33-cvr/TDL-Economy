@@ -44,6 +44,11 @@ function enregistrerRole(id, i){
   /* pas de champ avatar : il est résolu à la lecture depuis le bottin des avatars */
   const r = {nom:n, poste:val('bm-rposte').trim(), depuis:val('bm-rdepuis').trim(),
     type:val('bm-rtype')||'pj', lien:val('bm-rlien').trim(), dir:coche('bm-rdir')};
+  /* uid : identité stable d'un compte joué. Capté depuis le lien saisi ou la
+     carte faceclaim ; c'est lui qui permettra à la suppression d'un membre de
+     libérer son poste. Sans objet pour un PNJ ou un pré-lien. */
+  const uid = BM.uidDe(r);
+  if(uid != null) r.uid = uid;
   const arr = vt(e.roles).slice();
   if(i>=0) arr[i]=r; else arr.push(r);
   BM.patch(e,{roles:arr}).then(()=>{ S.roleEdit=null; BM.renderDetail(); BM.toast(T.okRole); }).catch(()=>{});
