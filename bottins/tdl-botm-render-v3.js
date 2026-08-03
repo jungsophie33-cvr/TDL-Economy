@@ -168,7 +168,7 @@ function avatarRole(r){
   const src = BM.avatarDe(r);
   return src
     ? '<span class="bm-pav"><img src="'+esc(src)+'" alt=""></span>'
-    : '<span class="bm-pav">'+esc(BM.ini(r.nom))+'</span>';
+    : '<span class="bm-pav">'+esc(BM.ini(BM.nomDe(r)))+'</span>';
 }
 function tagType(r){
   if(r.type==='pnj') return '<span class="bm-minitag pnj">PNJ</span>';
@@ -200,7 +200,7 @@ function blocRoles(e, ed){
         +(ed&&S.editRoles?' data-editrole="'+i+'" data-id="'+e.id+'"':'')+'>'
         +avatarRole(r)
         +'<span class="bm-pinfo">'
-          +'<span class="bm-pligne"><span class="bm-pnom">'+esc(r.nom)+'</span>'+lienRole(r)
+          +'<span class="bm-pligne"><span class="bm-pnom">'+esc(BM.nomDe(r))+'</span>'+lienRole(r)
             +'<span class="bm-psp"></span>'+tagType(r)+'</span>'
           +'<span class="bm-pfonc"><span class="bm-prole">'+esc(r.poste)+'</span>'
             +(r.depuis?'<span class="bm-pdepuis">'+T.depuis+esc(r.depuis)+'</span>':'')+'</span>'
@@ -265,8 +265,9 @@ function barreActions(e, ed){
 /* ===================== FORMULAIRES ===================== */
 BM.formRole = function(e, r, i){
   const d = r||{nom:'',poste:'',depuis:'',type:'pj',lien:'',dir:false}, P = T.ph;
+  const nomAffiche = r ? BM.nomDe(r) : '';
   return '<div class="bm-iform">'
-    +'<input type="text" id="bm-rnom" value="'+esc(d.nom)+'" placeholder="'+P.nomRole+'">'
+    +'<input type="text" id="bm-rnom" value="'+esc(nomAffiche||d.nom)+'" placeholder="'+P.nomRole+'">'
     +'<input type="text" id="bm-rposte" value="'+esc(d.poste)+'" placeholder="'+P.fonction+'">'
     +'<select id="bm-rtype">'+BM.TYPES_ROLE.map(t=>'<option value="'+t.id+'"'
       +(d.type===t.id?' selected':'')+'>'+esc(t.label)+'</option>').join('')+'</select>'
