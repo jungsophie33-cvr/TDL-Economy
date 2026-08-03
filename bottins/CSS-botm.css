@@ -57,7 +57,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-stage{flex:1;min-height:0;display:flex;flex-direction:column}
 
 /* ===================== SPLIT ===================== */
-.bm-split{flex:1;min-height:0;display:grid;grid-template-columns:clamp(390px,30%,500px) minmax(0,1fr)}
+.bm-split{flex:1;min-height:0;display:grid;grid-template-columns:clamp(402px,30%,500px) minmax(0,1fr)}
 .bm-idx{min-height:0;border-right:1px solid var(--cntr4);display:flex;flex-direction:column;overflow:hidden}
 .bm-catcol{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--cntr4);background:var(--cntr2)}
 .bm-catcol.bm-ligne{display:flex}
@@ -76,7 +76,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 
 /* ===================== LISTE ===================== */
 .bm-list{flex:1;min-height:0;overflow:auto}
-.bm-row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--cntr4);cursor:pointer;transition:.12s}
+.bm-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--cntr4);cursor:pointer;transition:.12s}
 .bm-row:hover{background:var(--cntr2)}
 .bm-row[aria-current="true"]{background:var(--gradark2)}
 .bm-row[aria-current="true"] .bm-rnom,.bm-row[aria-current="true"] .bm-rmeta{color:var(--clair1)}
@@ -140,7 +140,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-pmeta{font-family:var(--title1);letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--clair1opa7);margin:0}
 .bm-pamb{font-family:var(--txt2);font-size:18px;font-style:italic;color:var(--clair1opa8);margin:13px 0 0;line-height:1.25;
   border-left:2px solid var(--clair2);padding-left:15px}
-.bm-pcontent{padding:16px 26px 18px}
+.bm-pcontent{padding:15px 20px;}
 .bm-pdesc{font-family:var(--font0);font-size:16px;line-height:1.45;margin:10px 0 26px}
 
 .bm-keybox{border:1px solid var(--cntr);background:var(--cntr2);border-radius:6px;
@@ -205,10 +205,10 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-minitag.pl{background:var(--gr5-40)}
 .bm-pdepuis{font-family:var(--txt3);font-size:11.5px;color:var(--darkopa5);white-space:nowrap;flex:none;margin-left:auto}
 .bm-rmabs{position:absolute;top:5px;right:5px;background:none;border:0;color:var(--gr6-color);
-  font-family:var(--txt3);font-size:12px;font-weight:700;line-height:1;cursor:pointer;padding:2px}
+  font-family:var(--txt3);font-size:12px;font-weight:700;line-height:1;cursor:pointer;padding:0px}
 .bm-rmabs:hover{color:var(--dark)}
 /* en vue staff, on dégage la place occupée par la croix */
-.bm-adm .bm-minitag{margin-right:16px}
+.bm-adm .bm-minitag{margin-right:19px}
 .bm-adm .bm-pcard-libres{margin-right:16px}
 
 /* ===================== POSTES ===================== */
