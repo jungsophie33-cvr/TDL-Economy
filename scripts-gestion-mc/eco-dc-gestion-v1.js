@@ -2,18 +2,25 @@
  * eco-dc-gestion.js — Groupes multi-comptes & suppression d'un membre · TDL
  *
  * Extrait de eco-dc-staff.js, qui dépassait les 500 lignes. Ce fichier porte
- * les deux sections du panneau staff qui touchent aux comptes existants :
- * la gestion des groupes multicomptes et le départ définitif d'un membre.
+ * les deux sections du panneau staff qui touchent aux comptes existants.
  *
  * CARTE DES BLOCS :
- *   UTILS       — clé de faceclaim, réattribution de racine
- *   GESTION     — panneau des groupes multicomptes
+ *   UTILS       — échappement, clé de faceclaim, réattribution de racine
+ *   GESTION     — tableau des groupes multicomptes
  *   SUPPRESSION — départ définitif d'un membre (PATCH ciblé, multi-nœuds)
  *
  * Le départ d'un membre libère, en plus de ses données :
  *   · ses rôles dans le bottin des métiers → les postes se rouvrent
  *   · son statut de référent d'entreprise
  *   · ses cartes du bottin des avatars → le faceclaim redevient disponible
+ * La libération est silencieuse : rien n'est signalé côté joueur.
+ *
+ * Toutes les écritures passent par firebaseUpdate (PATCH multi-chemins,
+ * atomique) : un writeBin racine écraserait ce qu'un autre module aurait
+ * écrit entre la lecture et l'enregistrement.
+ *
+ * Expose sur window.DC : normaliserCleFC, creerSectionGestion, chargerGroupes,
+ * creerSectionSuppression. À charger AVANT eco-dc-staff.js.
  *
  * Dépend de : eco-dc-config.js, eco-dc-utils.js, window.EcoCore
  */
@@ -22,6 +29,10 @@
   "use strict";
 
   /* === UTILS === */
+
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
   // Clé Firebase d'un faceclaim : partagée avec eco-dc-staff et fiche-staff.
   DC.normaliserCleFC = function (acteur) {
@@ -39,82 +50,94 @@
   /* === GESTION DES GROUPES === */
 
   DC.creerSectionGestion = function () {
-    const section = document.createElement("div");
+    const section = document.createElement("section");
     section.id = "dc-staff-gestion";
-    section.className = "dc-staff-panel";
-    section.style.marginTop = "14px";
+    section.className = "sj-fiche";
     section.innerHTML = `
-      <h3 class="dc-staff-titre">${T.STAFF_GESTION_TITRE}</h3>
-      <div id="dc-staff-groupes">Chargement…</div>
+      <div class="mc-sec-head"><h2>${T.STAFF_GESTION_TITRE}</h2></div>
+      <p class="mc-sub">${T.STAFF_GESTION_SOUS}</p>
+      <table class="mc-tbl">
+        <thead><tr>
+          <th style="width:28%">${T.STAFF_COL_RACINE}</th>
+          <th>${T.STAFF_COL_COMPTES}</th>
+          <th style="width:44px"></th>
+        </tr></thead>
+        <tbody id="dc-staff-groupes"><tr><td colspan="3">${T.CHARGEMENT}</td></tr></tbody>
+      </table>
+      <div class="dc-resultat" id="dc-gestion-resultat"></div>
     `;
     return section;
   };
 
   // recExistant permet de réutiliser une lecture déjà faite par initStaff
   // et d'éviter un appel Firebase supplémentaire.
-  DC.chargerGroupes = async function (groupesEl, recExistant) {
-    if (!groupesEl) return;
+  DC.chargerGroupes = async function (corpsEl, recExistant) {
+    if (!corpsEl) return;
     const rec = recExistant || await window.EcoCore.safeReadBin();
-    if (!rec) { groupesEl.textContent = T.ERR_DONNEES; return; }
+    if (!rec) { corpsEl.innerHTML = `<tr><td colspan="3">${T.ERR_DONNEES}</td></tr>`; return; }
 
     // doubles_comptes absent = aucun DC validé, pas une erreur
     const entrees = Object.entries(rec.doubles_comptes || {})
       .sort(([a], [b]) => a.localeCompare(b, "fr"));
 
-    if (!entrees.length) { groupesEl.innerHTML = `<em>${T.STAFF_GESTION_VIDE}</em>`; return; }
-
-    groupesEl.innerHTML = "";
-    entrees.forEach(([racine, groupe]) => {
-      groupesEl.appendChild(creerCarteGroupe(racine, groupe.comptes));
-    });
+    if (!entrees.length) {
+      corpsEl.innerHTML = `<tr><td colspan="3"><p class="mc-vide">${T.STAFF_GESTION_VIDE}</p></td></tr>`;
+      return;
+    }
+    corpsEl.innerHTML = entrees.map(([racine, groupe]) => ligneGroupe(racine, groupe.comptes)).join("");
+    brancherLignes(corpsEl);
   };
 
   function recharger() {
     DC.chargerGroupes(document.getElementById("dc-staff-groupes"));
   }
 
-  function creerCarteGroupe(racine, comptes) {
-    const carte = document.createElement("div");
-    carte.className = "dc-staff-carte";
-    carte.dataset.racine = racine;
+  function ligneGroupe(racine, comptes) {
+    const tags = DC.versTableau(comptes).map((p) => `
+      <span class="mc-cpte${p === racine ? " racine" : ""}">
+        ${p === racine ? '<i class="fi fi-tr-star star"></i>' : ""}${esc(p)}
+        <button class="rm" data-act="rm-pseudo" data-pseudo="${esc(p)}" data-racine="${esc(racine)}"
+          title="${T.STAFF_RETIRER}">✕</button>
+      </span>`).join("");
 
-    const pseudosHTML = DC.versTableau(comptes).map((pseudo) => `
-      <span class="dc-groupe-pseudo">
-        ${pseudo === racine ? `<strong>${pseudo}</strong> (racine)` : pseudo}
-        <button class="dc-btn-suppr-pseudo" data-pseudo="${pseudo}" data-racine="${racine}"
-          title="Retirer ce pseudo du groupe">✕</button>
-      </span>
-    `).join(" · ");
-
-    carte.innerHTML = `
-      <div style="margin-bottom:8px;">${pseudosHTML}</div>
-      <button class="dc-btn-suppr-groupe" data-racine="${racine}">
-        Supprimer tout le groupe
-      </button>
-      <span class="dc-gestion-resultat-${racine.replace(/\s/g,'-')}" style="margin-left:8px;font-size:.9em;"></span>
-    `;
-
-    carte.querySelectorAll(".dc-btn-suppr-pseudo").forEach((btn) =>
-      btn.addEventListener("click", () =>
-        supprimerPseudo(btn.dataset.racine, btn.dataset.pseudo, carte))
-    );
-    carte.querySelector(".dc-btn-suppr-groupe")
-      .addEventListener("click", () => supprimerGroupe(racine, carte));
-
-    return carte;
+    return `<tr data-racine="${esc(racine)}">
+      <td><div class="mc-grp-nom">${esc(racine)}</div></td>
+      <td><div class="mc-comptes">${tags}</div></td>
+      <td>
+        <div class="mc-menu">
+          <button class="mc-menu-btn" type="button">⋮</button>
+          <div class="mc-menu-list">
+            <button class="dgr" data-act="rm-groupe" data-racine="${esc(racine)}">${T.STAFF_SUPPR_GROUPE}</button>
+          </div>
+        </div>
+      </td>
+    </tr>`;
   }
 
-  function elResultat(carteEl, racine) {
-    return carteEl.querySelector(`.dc-gestion-resultat-${racine.replace(/\s/g,'-')}`);
+  function brancherLignes(corpsEl) {
+    corpsEl.querySelectorAll('[data-act="rm-pseudo"]').forEach((b) =>
+      b.addEventListener("click", () => supprimerPseudo(b.dataset.racine, b.dataset.pseudo)));
+    corpsEl.querySelectorAll('[data-act="rm-groupe"]').forEach((b) =>
+      b.addEventListener("click", () => supprimerGroupe(b.dataset.racine)));
   }
 
-  async function supprimerPseudo(racine, pseudo, carteEl) {
+  // Un seul écouteur global pour ouvrir/fermer les menus ⋮.
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".mc-menu-btn");
+    document.querySelectorAll(".mc-menu.on").forEach((m) => {
+      if (!b || m !== b.parentElement) m.classList.remove("on");
+    });
+    if (b) b.parentElement.classList.toggle("on");
+  });
+
+  function resultatGestion() { return document.getElementById("dc-gestion-resultat"); }
+
+  async function supprimerPseudo(racine, pseudo) {
     if (!confirm(T.STAFF_CONFIRM_SUPPRESSION(pseudo))) return;
-    const resultatEl = elResultat(carteEl, racine);
-
+    const el = resultatGestion();
     try {
       const rec = await window.EcoCore.safeReadBin();
-      const groupe = rec?.doubles_comptes?.[racine];
+      const groupe = rec && rec.doubles_comptes && rec.doubles_comptes[racine];
       if (!groupe) return;
 
       const updates = {};
@@ -122,11 +145,11 @@
       await window.EcoCore.firebaseUpdate(updates);
       if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
-      if (resultatEl) { resultatEl.style.color = "green"; resultatEl.textContent = T.STAFF_SUPPR_OK(pseudo); }
+      if (el) DC.afficherResultat(el, "succes", T.STAFF_SUPPR_OK(pseudo));
       window.DC.rafraichirBottin?.();
       setTimeout(recharger, 1200);
     } catch (_) {
-      if (resultatEl) { resultatEl.style.color = "red"; resultatEl.textContent = T.STAFF_ERR_SUPPR; }
+      if (el) DC.afficherResultat(el, "erreur", T.STAFF_ERR_SUPPR);
     }
   }
 
@@ -156,43 +179,47 @@
     return "retiré";
   }
 
-  async function supprimerGroupe(racine, carteEl) {
+  async function supprimerGroupe(racine) {
     if (!confirm(T.STAFF_CONFIRM_GROUPE(racine))) return;
-    const resultatEl = elResultat(carteEl, racine);
-
+    const el = resultatGestion();
     try {
       const updates = {};
       updates["doubles_comptes/" + racine] = null;
       await window.EcoCore.firebaseUpdate(updates);
       if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
-      if (resultatEl) { resultatEl.style.color = "green"; resultatEl.textContent = T.STAFF_SUPPR_GROUPE_OK(racine); }
+      if (el) DC.afficherResultat(el, "succes", T.STAFF_SUPPR_GROUPE_OK(racine));
       window.DC.rafraichirBottin?.();
       setTimeout(recharger, 1200);
     } catch (_) {
-      if (resultatEl) { resultatEl.style.color = "red"; resultatEl.textContent = T.STAFF_ERR_SUPPR; }
+      if (el) DC.afficherResultat(el, "erreur", T.STAFF_ERR_SUPPR);
     }
   }
 
   /* === SUPPRESSION COMPLÈTE D'UN MEMBRE === */
 
   DC.creerSectionSuppression = function () {
-    const section = document.createElement("div");
+    const section = document.createElement("section");
     section.id = "dc-staff-suppression";
-    section.className = "dc-staff-panel";
-    section.style.marginTop = "14px";
+    section.className = "sj-fiche";
     section.innerHTML = `
-      <h3 class="dc-staff-titre">Suppression complète d'un membre</h3>
-      <p style="font-size:.9em;color:#555;margin:0 0 10px;">
-        Supprime toutes les données du membre : économie, multi-comptes, index UID,
-        faceclaims réservés et rôles occupés dans le bottin des métiers.
-        À utiliser uniquement si le membre a définitivement quitté le forum.
-      </p>
-      <label class="dc-label">Pseudo exact du membre à supprimer :</label>
-      <input id="dc-suppr-input" type="text" placeholder="Pseudo exact"
-        style="border:1px solid #f99;border-radius:4px;padding:5px 8px;width:220px;margin-right:8px;">
-      <button id="dc-suppr-btn" class="dc-suppr-btn1">Supprimer tout</button>
-      <div id="dc-suppr-resultat" class="dc-resultat" style="margin-top:10px;"></div>
+      <div class="mc-sec-head"><h2>${T.SUPPR_TITRE}</h2></div>
+      <div class="mc-supp">
+        <div>
+          <p>${T.SUPPR_TEXTE}</p>
+          <label class="mc-lbl" for="dc-suppr-input">${T.SUPPR_LABEL}</label>
+          <div class="mc-ligne">
+            <input class="mc-in" id="dc-suppr-input" type="text" placeholder="${T.SUPPR_PH}">
+            <button class="mc-btn no lg" id="dc-suppr-btn">
+              <i class="fi fi-tr-trash"></i> ${T.SUPPR_BTN}</button>
+          </div>
+        </div>
+        <div class="mc-alerte">
+          <i class="fi fi-tr-exclamation"></i>
+          <div><b>${T.SUPPR_ALERTE_T}</b><span>${T.SUPPR_ALERTE}</span></div>
+        </div>
+      </div>
+      <div class="dc-resultat" id="dc-suppr-resultat"></div>
     `;
     section.querySelector("#dc-suppr-btn")
       .addEventListener("click", () => supprimerMembreComplet(section));
@@ -240,7 +267,6 @@
     return { postes, referents };
   }
 
-  // Groupes multicomptes : réattribution de la racine si nécessaire.
   function nettoyerGroupes(rec, pseudo, updates, actions) {
     const groupes = rec.doubles_comptes || {};
     Object.keys(groupes).forEach((racine) => {
@@ -255,10 +281,8 @@
     const pseudo     = section.querySelector("#dc-suppr-input").value.trim();
     const resultatEl = section.querySelector("#dc-suppr-resultat");
 
-    if (!pseudo) { DC.afficherResultat(resultatEl, "erreur", "Pseudo vide."); return; }
-    if (!confirm(`⚠️ Supprimer TOUTES les données de "${pseudo}" ?\n\n`
-      + `Ses rôles seront libérés dans le bottin des métiers et ses faceclaims `
-      + `rendus disponibles.\nCette action est irréversible.`)) return;
+    if (!pseudo) { DC.afficherResultat(resultatEl, "erreur", T.SUPPR_VIDE); return; }
+    if (!confirm(T.SUPPR_CONFIRM(pseudo))) return;
 
     if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
     const rec = await window.EcoCore.safeReadBin();
@@ -289,22 +313,20 @@
     if (bilan.referents) actions.push(`référent d'entreprise (${bilan.referents})`);
 
     if (!actions.length) {
-      DC.afficherResultat(resultatEl, "info", `"${pseudo}" introuvable dans la base.`);
+      DC.afficherResultat(resultatEl, "info", T.SUPPR_INTROUVABLE(pseudo));
       return;
     }
 
     try {
       await window.EcoCore.firebaseUpdate(updates);
     } catch (e) {
-      DC.afficherResultat(resultatEl, "erreur",
-        "❌ Échec de la suppression : " + ((e && e.message) || e));
+      DC.afficherResultat(resultatEl, "erreur", T.SUPPR_ERR + ((e && e.message) || e));
       return;
     }
     if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
     window.DC.rafraichirBottin?.();
-    DC.afficherResultat(resultatEl, "succes",
-      `✅ "${pseudo}" supprimé (${actions.join(", ")}).`);
+    DC.afficherResultat(resultatEl, "succes", T.SUPPR_OK(pseudo, actions.join(", ")));
     section.querySelector("#dc-suppr-input").value = "";
     recharger();
   }
