@@ -226,7 +226,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-pcard-cat{display:block;font-family:var(--txt2);font-size:17px;color:var(--darkopa5);margin-top:2px;line-height:1.2}
 .bm-pcard-libres{font-family:var(--txt3);font-size:12px;font-weight:600;color:var(--dark2);white-space:nowrap;flex:none}
 .bm-pcard-body{padding:0 13px 12px;border-top:1px solid var(--cntr4);margin-top:2px;padding-top:10px}
-.bm-pcard-body p{margin:0;font-size:15.5px;line-height:1.35;color:var(--darkopa8)}
+.bm-pcard-body p{margin:0;font-size:16px;line-height:1.3;}
 .bm-seemore{font-family:var(--txt3);font-size:12px;text-transform:uppercase;background:none;border:0;color:var(--dark2);
   cursor:pointer;padding:6px 0 0;text-decoration:underline}
 .bm-seemore:hover{color:var(--dark)}
