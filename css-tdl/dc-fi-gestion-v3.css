@@ -443,7 +443,7 @@
 /* le compteur est hors du h2 : il n'hérite ni de l'italique ni de l'animation */
 .mc-cpt{font-family:var(--txt3);font-size:14px;font-weight:700;background:var(--dark);color:var(--clair1);
   border-radius:5px;padding:1px 9px;line-height:1.4;font-style:normal;flex:0 0 auto}
-.mc-sub{font-family:var(--txt3);font-size:14px;color:var(--darkopa5);margin:12px 0 14px;padding-left:2px}
+.mc-sub{font-family:var(--txt3);font-size:14px;color:var(--darkopa5);margin:12px 0 14px;padding-left:2px;text-indent:0!important;}
 
 /* ---------- DEMANDES : 3 colonnes ---------- */
 .mc-dem{display:grid;grid-template-columns:minmax(0,285px) minmax(0,1fr) auto;gap:22px;
@@ -484,7 +484,7 @@
   background:none;border:0;color:var(--dark2);cursor:pointer;padding:10px 0 2px;display:flex;
   align-items:center;justify-content:center;gap:9px;width:100%}
 .mc-plus:hover{color:var(--dark)}
-.mc-vide{font-family:var(--txt3);font-size:14px;color:var(--darkopa5);padding:6px 0 2px}
+.mc-vide{font-family:var(--txt3);font-size:14px;color:var(--darkopa5);padding:6px 0 2px!important; text-indent:0!important;}
 
 /* ---------- GROUPES ---------- */
 .mc-tbl{width:100%;border-collapse:collapse}
@@ -518,16 +518,16 @@
 
 /* ---------- SUPPRESSION ---------- */
 .mc-supp{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr);gap:24px;align-items:start}
-.mc-supp p{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);margin:0 0 14px;line-height:1.65}
+.mc-supp p{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);margin:0 0 14px;line-height:1.65;text-indent:0!important;}
 .mc-lbl{display:block;font-family:var(--txt3);font-size:14px;font-weight:600;letter-spacing:.04em;
   text-transform:uppercase;color:var(--darkopa6);margin-bottom:7px}
 .mc-ligne{display:flex;gap:10px;flex-wrap:wrap}
-.mc-in{font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--clair1);
-  border:1px solid var(--cntr);border-radius:5px;padding:8px 12px;outline:none;min-width:220px;flex:1}
+.mc-in{font-family:var(--txt2);font-size:17px!important;color:var(--txt)!important;background:var(--clair1)!important;
+  border:1px solid var(--cntr);border-radius:5px;padding:8px 12px!important;outline:none;min-width:220px;flex:1}
 .mc-in:focus{border-color:var(--dark)}
 .mc-alerte{border:1px solid var(--gr6-40);background:var(--gr6-20);border-radius:5px;padding:13px 15px;
   display:flex;gap:12px;align-items:flex-start}
-.mc-alerte>i{color:var(--gr6-color);font-size:50px;line-height:1;flex:none;align-self:center}
+.mc-alerte>i{color:var(--gr6-color);font-size:40px;line-height:1;flex:none;align-self:center}
 .mc-alerte b{display:block;font-family:var(--txt3);font-size:14px;font-weight:700;letter-spacing:.05em;
   text-transform:uppercase;color:var(--gr6-color);margin-bottom:4px}
 .mc-alerte span{font-family:var(--txt3);font-size:14px;color:var(--darkopa7);line-height:1.55}
@@ -583,7 +583,7 @@
 .mc-champ textarea{width:100%;font-family:var(--txt2);font-size:17px;color:var(--txt);background:var(--cntr2);
   border:1px solid var(--cntr);border-radius:5px;padding:10px 12px;outline:none;min-height:110px;resize:vertical;line-height:1.4}
 .mc-champ textarea:focus{border-color:var(--dark)}
-.mc-champ .mc-in{font-size:17px;width:100%;background:var(--cntr2);}
+.mc-champ .mc-in{font-size:17px;width:100%;background:var(--cntr2)!important;}
 .mc-modal-act{display:flex;gap:10px;justify-content:center;margin-top:6px}
 
 /* ---------- RESPONSIVE ---------- */
