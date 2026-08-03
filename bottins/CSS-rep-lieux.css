@@ -1,0 +1,225 @@
+/* ============================================================
+   TDL — RÉPERTOIRE DES LIEUX · feuille de style
+   Classes préfixées « tdlr- » (anti-conflit CSS forum).
+   Couleurs / polices = variables du :root du forum.
+
+   [v2] Le JS n'émet plus aucun style fixe en ligne : les dimensions
+   d'icônes, la notification et le message de liste vide vivent
+   désormais ici. Seules les variables dynamiques (--c, --soft, --fc)
+   restent posées par le script, ce qui est leur seule place possible.
+   ============================================================ */
+
+/* ===== INTÉGRATION PAGE FA (template header/footer activé) =====
+   Superpose le répertoire en plein écran par-dessus le forum.
+   Sans effet en test standalone. */
+html:has(.tdlr-rep),body:has(.tdlr-rep){overflow:hidden;}
+/* Empêche le forum d'imposer une largeur minimale : sans ça, son contenu (~980-1000px)
+   déclenche le "shrink-to-fit" d'Android qui dézoome toute la page → texte minuscule. */
+html:has(.tdlr-rep)#min-width, body:has(.tdlr-rep), #wrap:has(.tdlr-rep), #sj-main:has(.tdlr-rep){ min-width:0 !important; }
+.tdlr-rep{position:fixed;inset:0;z-index:99990;display:flex;
+  background:var(--bgimg) no-repeat center center;background-size:cover;
+  color:var(--txt);font-family:var(--txt1);font-size:19px;line-height:1.4;text-align:left;-webkit-font-smoothing:antialiased}
+.tdlr-rep *{box-sizing:border-box}
+.tdlr-rep br {display:none;}
+
+.tdlr-app{width:70%;height:100%;margin:auto;background:var(--clair1);display:flex;flex-direction:column;box-shadow:0 0 40px var(--darkopa4)}
+
+/* ---------- EN-TÊTE ---------- */
+.tdlr-topbar{flex:none;display:flex;align-items:center;gap:16px;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
+.tdlr-accueil{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:13px;text-transform:uppercase;color:var(--darkopa6);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px;transition:.15s}
+.tdlr-accueil:hover{background:var(--darkopa7);color:var(--clair1)}
+.tdlr-eyebrow{font-family:var(--title1);letter-spacing:0.2px;text-transform:uppercase; font-weight:600;font-size:26px;flex:1;text-align:center;}
+.tdlr-spacer{}
+.tdlr-admintoggle{font-family:var(--title1);font-size:11px;text-transform:uppercase;background:var(--cntr4);border:none;border-radius:5px;padding:7px 13px;color:var(--darkopa6);cursor:pointer}
+.tdlr-admintoggle[aria-pressed="true"]{background:var(--cntr8);color:var(--dark)}
+.tdlr-edit{display:none;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+  background:var(--cntr4);border:1px solid var(--cntr);color:var(--darkopa6);text-decoration:none;flex:none}
+.tdlr-edit:hover{background:var(--darkopa7);color:var(--clair1)}
+.tdlr-edit i{font-size:15px;line-height:1}
+
+/* ligne ZONES */
+.tdlr-zonebar{flex:none;display:flex;align-items:center;padding:4px 26px;border-bottom:1px solid var(--cntr4)}
+.tdlr-tabs{display:flex;gap:20px;flex-wrap:wrap}
+.tdlr-tabs button{font-family:var(--txt1);font-weight:600;text-transform:uppercase;font-size:0.9em;background:none;border:0;padding:10px 2px;color:var(--darkopa6);cursor:pointer;position:relative;line-height:1}
+.tdlr-tabs button[aria-selected="true"]{color:var(--dark)}
+.tdlr-tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;background:var(--dark)}
+
+/* ligne NB DE LIEUX (+ Ajouter) | INFLUENCES */
+.tdlr-inflrow{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 26px;border-bottom:1px solid var(--cntr4)}
+.tdlr-inflleft{display:flex;align-items:center;gap:16px;flex:none}
+.tdlr-count{display:inline-flex;flex-direction:column;align-items:center;line-height:1}
+.tdlr-count b{font-family:var(--font2);font-style:italic;font-weight:500;font-size:30px;color:var(--dark)}
+.tdlr-count span{font-family:var(--title1);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--darkopa5);margin-top:3px}
+.tdlr-facfilter{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.tdlr-lbl{font-family:var(--title1);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--darkopa5);margin-right:2px}
+#tdlr-facs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.tdlr-chip{font-family:var(--txt3);font-size:12px;letter-spacing:-0.2px;font-weight:600;text-transform:uppercase;background:var(--cntr4);border:none;border-radius:5px;padding:2px 5px;color:var(--darkopa5);cursor:pointer;transition:.15s}
+.tdlr-chip[aria-pressed="true"]{background:var(--fc);color:var(--clair1)}
+#tdlr-facs .tdlr-chip.tdlr-extra{display:none}
+#tdlr-facs.tdlr-open .tdlr-chip.tdlr-extra{display:inline-flex}
+.tdlr-chip.tdlr-more{color:var(--darkopa8)}
+
+/* boutons */
+.tdlr-btn{font-family:var(--txt3);font-size:12px;letter-spacing:-0.1px;text-transform:uppercase;border-radius:7px;padding:4px 10px;cursor:pointer;border:1px solid var(--cntr4);background:var(--cntr3);color:var(--dark);transition:.15s;display:inline-flex;align-items:center;gap:7px}
+.tdlr-btn:hover{border-color:var(--cntr);}
+.tdlr-btn.tdlr-primary{border-color:var(--dark);}
+.tdlr-btn.tdlr-danger{border-color:var(--gr6-color);color:var(--gr6-color)}
+.tdlr-btn.tdlr-danger:hover{background:var(--gr6-color);color:var(--clair1)}
+.tdlr-adminonly{display:none}
+body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
+
+/* ---------- CORPS ---------- */
+.tdlr-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.tdlr-idx{min-height:0;border-right:1px solid var(--cntr4);display:flex;flex-direction:column}
+.tdlr-catcol{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));border-bottom:1px solid var(--cntr4);background:var(--cntr2)}
+.tdlr-cat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;cursor:pointer;position:relative;background:none;border:0;border-left:1px solid var(--cntr4)}
+.tdlr-cat:first-child{border-left:0}
+.tdlr-cat .tdlr-ci{color:var(--c);display:flex;align-items:center;justify-content:center;height:26px}
+/* [v2] dimension des icônes de catégorie — auparavant posée en ligne par icon() */
+.tdlr-cat .tdlr-ci i,
+.tdlr-cat .tdlr-ci svg{font-size:26px;width:26px;height:26px;line-height:1;display:inline-flex}
+.tdlr-cat .tdlr-ci img{width:26px;height:26px;object-fit:contain;display:block}
+.tdlr-cat .tdlr-cl{font-family:var(--txt3);font-size:10px;text-transform:uppercase;color:var(--darkopa5);text-align:center;line-height:1.1}
+.tdlr-cat[aria-selected="true"] .tdlr-cl{color:var(--dark)}
+.tdlr-cat[aria-selected="true"]::after{content:"";position:absolute;left:5px;right:5px;bottom:0;height:1px;background:var(--c)}
+.tdlr-cat:disabled{opacity:.32;cursor:default}
+
+.tdlr-list{flex:1;min-height:0;overflow:auto}
+/* [v2] message « aucun lieu pour ce filtre » — auparavant stylé en ligne */
+.tdlr-vide{padding:40px 20px;color:var(--darkopa5);font-style:italic}
+.tdlr-row{display:flex;align-items:center;gap:13px;padding:12px 18px;border-bottom:1px solid var(--cntr4);cursor:pointer;transition:.12s}
+.tdlr-row:hover{background:var(--cntr2)}
+.tdlr-row[aria-current="true"]{background:var(--gradark2)}
+.tdlr-row[aria-current="true"] .tdlr-rnom,.tdlr-row[aria-current="true"] .tdlr-rmeta{color:var(--clair1)}
+.tdlr-row[aria-current="true"] .tdlr-rmeta{opacity:.8}
+.tdlr-ric{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--soft);color:var(--c);flex:none}
+/* [v2] dimension des icônes de ligne — auparavant posée en ligne par icon() */
+.tdlr-ric i,
+.tdlr-ric svg{font-size:18px;width:18px;height:18px;line-height:1;display:inline-flex}
+.tdlr-ric img{width:18px;height:18px;object-fit:contain;display:block}
+.tdlr-row[aria-current="true"] .tdlr-ric{background:var(--clair1opa2);color:var(--clair1)}
+.tdlr-rtxt{flex:1;min-width:0}
+.tdlr-rnom{font-family:var(--font2);font-style:italic;font-weight:500;letter-spacing:-0.5px;font-size:20px;line-height:1.3;display:flex;align-items:center;gap:15px;color:var(--txt)}
+.tdlr-rmeta{color:var(--darkopa5);font-family:var(--title1);font-size:13px;letter-spacing:.05em;text-transform:uppercase;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* [v2] .tdlr-exq (badge « exemple ») retiré : les lieux de démonstration
+   ont été supprimés du script, la classe n'est plus jamais produite. */
+.tdlr-emploi{flex:none;font-size:14px;line-height:1}
+.tdlr-minifacs{display:flex;gap:4px;flex:none}
+.tdlr-dot{width:8px;height:8px;border-radius:50%}
+.tdlr-rchev{color:var(--cntr4);flex:none}
+.tdlr-row[aria-current="true"] .tdlr-rchev{color:var(--clair1opa5)}
+
+/* ---------- PANNEAU (lecture) ---------- */
+.tdlr-panneau{min-height:0;overflow:auto;container-type:inline-size;container-name:tdlrpan}
+.tdlr-retour{display:none;position:sticky;top:0;z-index:2;width:100%;text-align:left;font-family:var(--title1);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dark);background:var(--cntr3);border:0;border-bottom:1px solid var(--cntr4);padding:13px 20px;cursor:pointer}
+.tdlr-pbanner{display:none;aspect-ratio:16/9;max-height:280px;overflow:hidden;border-bottom:1px solid var(--cntr4);position:relative}
+.tdlr-pbanner img{width:100%;height:100%;object-fit:cover;filter:sepia(.22) contrast(1.02) saturate(.95)}
+.tdlr-pbanner .tdlr-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft),var(--cntr2))}
+/* [v2] font-size ajouté : une icône Flaticon est une police, width/height
+   seuls ne la dimensionnent pas (le SVG et l'img, si). */
+.tdlr-pbanner .tdlr-ph svg,.tdlr-pbanner .tdlr-ph img,.tdlr-pbanner .tdlr-ph i{width:56px;height:56px;font-size:56px;line-height:1;color:var(--c);opacity:.55}
+.tdlr-pbody{padding:30px 34px 36px}
+.tdlr-phead{display:flex;gap:22px;align-items:flex-start;justify-content:space-between}
+.tdlr-ptitle{flex:1;min-width:0}
+.tdlr-peyebrow{font-family:var(--title1);font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--darkopa7)}
+.tdlr-panneau h2{font-family:var(--font2);font-style:italic;font-weight:600;font-size:1.4em;line-height:1.02;margin:10px 0 5px;color:var(--dark);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* Mallette « ce lieu embauche » dans le titre : masquée volontairement.
+   Passer en inline-flex pour la réafficher — c'est désormais la même icône
+   Flaticon que dans la liste, l'ancien SVG en double a été retiré du JS. */
+.tdlr-emploip{display:none;font-size:15px;line-height:1;color:var(--dark2);align-items:center}
+.tdlr-pmeta{color:var(--darkopa5);font-family:var(--title1);letter-spacing:.05em;text-transform:uppercase;font-size:13px}
+.tdlr-pavatar{width:150px;height:150px;border-radius:50%;overflow:hidden;flex:none;position:relative;border:1px solid var(--cntr4);order:2}
+.tdlr-pavatar img{width:100%;height:100%;object-fit:cover;filter:sepia(.22) contrast(1.02) saturate(.95)}
+.tdlr-pavatar .tdlr-ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--soft),var(--cntr2))}
+/* [v2] idem : font-size pour les icônes Flaticon de repli */
+.tdlr-pavatar .tdlr-ph svg,.tdlr-pavatar .tdlr-ph img,.tdlr-pavatar .tdlr-ph i{width:52px;height:52px;font-size:52px;line-height:1;color:var(--c);opacity:.55}
+.tdlr-pamb{font-family:var(--txt2);font-size:21px;font-style:italic;color:var(--darkopa8);margin:22px 0;line-height:1.25em;border-left:2px solid var(--cntr4);padding-left:18px}
+.tdlr-pfield{display:flex;gap:14px;padding:15px 0;border-top:1px solid var(--cntr4);font-size:15px;line-height:1em;font-family:var(--font0);}
+.tdlr-pfield b{font-family:var(--title1);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa5);min-width:130px;font-weight:600}
+/* [v2] lien vers le bottin des métiers, sur la ligne « Emploi possible ».
+   Visible de tous, pas seulement du staff. */
+.tdlr-lienbottin{display:inline-block;margin-left:8px;font-family:var(--txt3);font-size:12px;color:var(--dark2);text-decoration:underline}
+.tdlr-lienbottin:hover{color:var(--dark)}
+.tdlr-padmin{display:flex;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap}
+.tdlr-padmin .tdlr-cq{font-family:var(--title1);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--gr6-color);margin-right:4px}
+
+/* ---------- PANNEAU (édition) ---------- */
+.tdlr-pform{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.tdlr-field{display:flex;flex-direction:column;gap:6px}
+.tdlr-field.tdlr-full{grid-column:1/-1}
+.tdlr-field label{font-family:var(--title1);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--darkopa6)}
+.tdlr-field input,.tdlr-field select,.tdlr-field textarea{font-family:var(--txt1);font-size:16px;color:var(--txt);background:var(--clair1);border:1px solid var(--cntr4);border-radius:6px;padding:9px 11px;outline:none}
+.tdlr-field input:focus,.tdlr-field select:focus,.tdlr-field textarea:focus{border-color:var(--dark)}
+.tdlr-field textarea{min-height:80px;resize:vertical;line-height:1.35}
+.tdlr-checks{display:flex;gap:14px;flex-wrap:wrap;padding-top:2px}
+.tdlr-checks label{display:inline-flex;align-items:center;gap:7px;font-family:var(--txt3);font-size:13px;color:var(--txt);text-transform:none;letter-spacing:0;}
+.tdlr-checks input{width:16px;height:16px;accent-color:var(--dark)}
+
+/* ---------- NOTIFICATION ----------
+   [v2] toast() ne pose plus que des classes ; tout l'aspect vit ici. */
+.tdlr-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;
+  font-family:var(--title1);font-size:12px;letter-spacing:.05em;padding:10px 16px;border-radius:8px;
+  box-shadow:0 4px 18px var(--darkopa5);max-width:80%;text-align:center;
+  background:var(--dark);color:var(--clair1);opacity:1;transition:opacity .4s}
+.tdlr-toast.tdlr-err{background:var(--gr6-color)}
+.tdlr-toast.tdlr-out{opacity:0}
+
+  /* En une-colonne, la fiche s'adapte à la largeur du PANNEAU : */
+  /* panneau étroit (<500px) → bannière en haut */
+  @container tdlrpan (max-width:499px){
+    .tdlr-pbanner{display:block}
+    .tdlr-pavatar{display:none}
+  }
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:1100px){
+  /* Passe en une-colonne (liste ↔ détail) dès que deux colonnes deviennent à l'étroit —
+     inclut les téléphones en « mode desktop » qui rapportent ~980-1080px CSS. */
+  /* on GARDE l'overlay plein écran (pas de static → le header du forum ne réapparaît pas) */
+  .tdlr-app{width:100%;height:100%;box-shadow:none}
+  .tdlr-topbar{padding:10px 18px 8px}
+  .tdlr-zonebar,.tdlr-inflrow{padding-left:18px;padding-right:18px}
+   .tdlr-edit{width:30px;height:30px}
+.tdlr-edit i{font-size:13px}
+  /* une seule colonne : on bascule LISTE ↔ DÉTAIL au lieu d'empiler */
+  .tdlr-split{display:block;overflow:hidden}
+  .tdlr-idx{height:100%;border-right:0}
+  .tdlr-list{max-height:none}
+  .tdlr-panneau{display:none;height:100%}
+   .tdlr-catcol{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tdlr-catcol::-webkit-scrollbar{display:none}
+.tdlr-cat{flex:0 0 auto;min-width:64px;padding:7px 8px}
+  /* vue détail : on masque zones/filtres/liste, on montre la fiche + le retour */
+  .tdlr-app.tdlr-vue-detail .tdlr-zonebar,
+  .tdlr-app.tdlr-vue-detail .tdlr-inflrow,
+  .tdlr-app.tdlr-vue-detail .tdlr-idx{display:none}
+  .tdlr-app.tdlr-vue-detail .tdlr-panneau{display:block}
+  .tdlr-retour{display:block}
+  .tdlr-pform{grid-template-columns:1fr}
+ 
+  /* panneau large (≥500px) → image en rectangle aligné à droite,
+     le texte coule à sa gauche (image en 1er dans le DOM + float) */
+  @container tdlrpan (min-width:500px){
+    .tdlr-pbanner{display:none}
+    .tdlr-phead{display:block}
+    .tdlr-pavatar{
+      float:right; width:46%; height:auto; aspect-ratio:16/10;
+      border:0; border-radius:12px 0 0 12px; margin:2px -34px 14px 26px;
+    }
+    .tdlr-pavatar .tdlr-ph{border-radius:12px 0 0 12px}
+    .tdlr-ptitle{overflow:hidden}     /* BFC → reste à gauche de l'image */
+    .tdlr-pamb{overflow:hidden}       /* idem */
+    .tdlr-pfield{clear:right}         /* les champs repassent pleine largeur sous l'image */
+  }
+}
+/* Écran étroit (≤820px) : en-tête compact pour dégager la liste */
+@media(max-width:820px){
+   .tdlr-eyebrow {font-size:20px;}
+  /* onglets de zone : une seule ligne, défilement horizontal au doigt */
+  .tdlr-zonebar{padding:2px 14px}
+  .tdlr-tabs{flex-wrap:nowrap;gap:16px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tdlr-tabs::-webkit-scrollbar{display:none}
+  .tdlr-tabs button{font-size:0.82em;padding:8px 0;white-space:nowrap}
+  .tdlr-tabs button[aria-selected="true"]::after{bottom:0}
+  /* ligne compteur + filtres : plus compacte, retour à la ligne autorisé */
+  .tdlr-inflrow{padding:8px 14px;flex-wrap:wrap}
+}
