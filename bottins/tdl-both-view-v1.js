@@ -1,6 +1,6 @@
 /* ============================================================
    TDL — BOTTIN DES HABITATIONS · 2/2 VUE
-   À charger APRÈS bh-habitations-modele.js (et EcoCore).
+   À charger APRÈS tdl-both-model.js (et EcoCore).
    Blocs : RENDU (onglets, panneau, typestrip, mur, actionbar)
            ÉDITION en place · MODALES (déménager, ma maison)
            EVENTS · INIT · BOOT
@@ -10,7 +10,13 @@
 (function (BH) {
   "use strict";
   const { $, escA, escH, initiales, cle, cleNum, occupants, lead, moi, numerosType, compteType } = BH;
-  const T = BH.TEXTES, SEL = BH.CFG.SEL, COMMU = BH.COMMU;
+  const T = BH.TEXTES, SEL = BH.CFG.SEL;
+  // Icônes Flaticon (uicons thin-rounded) — chargées globalement sur le forum.
+  const ICO = {
+    move:'<i class="fi fi-tr-truck-side"></i>',
+    pen:'<i class="fi fi-tr-pencil"></i>',
+    maison:'<i class="fi fi-tr-house-chimney"></i>',
+  };
 
   function toast(msg){
     const t=document.createElement("div"); t.className="tdlh-toast"; t.textContent=msg;
@@ -96,7 +102,7 @@
       const noms = occ.map(m=>`<span class="${m.pseudo===lea.pseudo?"lead":""}">${escH(m.nom)}</span>`).join(", ");
       const mk = BH.MAISONS[cle(BH.S.tab, cleNum(n))] || BH.MAISONS[cle(BH.S.tab,n)]; let more="";
       if(mk && (mk.description||mk.image)){
-        more = `<div class="tdlh-hmore">${mk.image?`<img src="${escA(mk.image)}" alt="">`:`<div class="noimg">${icoMaison(24)}</div>`}<p>${escH(mk.description||"")}</p></div>`;
+        more = `<div class="tdlh-hmore">${mk.image?`<img src="${escA(mk.image)}" alt="">`:`<div class="noimg">${ICO.maison}</div>`}<p>${escH(mk.description||"")}</p></div>`;
       }
       h += `<div class="tdlh-house"><span class="tdlh-hnum">N° ${escH(n)}</span><div class="tdlh-occ">${noms}</div>${more}</div>`;
     });
@@ -112,7 +118,7 @@
     if(!list.length){ el.innerHTML = `<div class="tdlh-empty">${T.murVide}</div>`; return; }
     let h = `<div class="tdlh-grid">`;
     list.forEach(m=>{
-      const co = COMMU[m.commu] || {color:"var(--cntr)"};
+      const co = BH.COMMU[m.commu] || {color:"var(--cntr)"};
       const nb = occupants(m.quartier,m.numero).length;
       const meta = all ? `${escH(BH.QUARTIERS[m.quartier].nom)} · ${escH(m.type)}` : escH(m.type);
       const av = m.avatar ? `<img src="${escA(m.avatar)}" alt="">` : initiales(m.nom);
@@ -136,13 +142,13 @@
       return;
     }
     const M = moi(), isLead = M && lead(M.quartier,M.numero)?.pseudo===M.pseudo;
-    let h = `<button class="tdlh-abtn prim" id="tdlh-btnMove" ${M?"":`disabled title="${T.maMaisonLead}"`}>${icoMove()} ${T.jeDemenage}</button>`;
-    h += `<button class="tdlh-abtn" id="tdlh-btnHouse" ${isLead?"":`disabled title="${T.maMaisonLead}"`}>${icoPen()} ${T.maMaison}</button>`;
+    let h = `<button class="tdlh-abtn prim" id="tdlh-btnMove" ${M?"":`disabled title="${T.maMaisonLead}"`}>${ICO.move} ${T.jeDemenage}</button>`;
+    h += `<button class="tdlh-abtn" id="tdlh-btnHouse" ${isLead?"":`disabled title="${T.maMaisonLead}"`}>${ICO.pen} ${T.maMaison}</button>`;
     h += `<span class="sep"></span>`;
     if(BH.S.staff){
       h += `<button class="tdlh-abtn" id="tdlh-btnQCreate">${T.creerQuartier}</button>`;
-      h += `<button class="tdlh-abtn" id="tdlh-btnQEdit">${icoPen()} ${T.modifierQuartier}</button>`;
-      h += `<button class="tdlh-abtn" id="tdlh-btnMoveAny">${icoMove()} ${T.demenagerMembre}</button>`;
+      h += `<button class="tdlh-abtn" id="tdlh-btnQEdit">${ICO.pen} ${T.modifierQuartier}</button>`;
+      h += `<button class="tdlh-abtn" id="tdlh-btnMoveAny">${ICO.move} ${T.demenagerMembre}</button>`;
     }
     bar.innerHTML = h;
   }
@@ -155,11 +161,6 @@
     if(mur) renderMur(); else renderPanneau();
   }
   BH.render = render;
-
-  /* icônes neutres — [MAJ] Flaticon fi-tr- */
-  function icoMaison(s=20){return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>`;}
-  function icoMove(){return `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7l-4 4 4 4"/><path d="M3 11h14"/><path d="M17 17l4-4-4-4"/><path d="M21 13H7"/></svg>`;}
-  function icoPen(){return `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>`;}
 
   /* ===================== ÉDITION en place (staff) ===================== */
   function tagsEditHTML(grp){
@@ -325,11 +326,6 @@
       BH.S.tab=m.quartier; BH.S.mode="panneau"; BH.S.type=m.type; render();
       setTimeout(()=>{ const s=$("tdlh-typestrip"); if(s) s.scrollIntoView({behavior:"smooth",block:"center"}); },40);
     });
-    const sb=$(SEL.staffBtn);
-    if(sb) sb.addEventListener("click",ev=>{
-      BH.S.staff=!BH.S.staff; ev.currentTarget.setAttribute("aria-pressed",BH.S.staff);
-      document.body.classList.toggle("tdlh-body-admin",BH.S.staff); renderActionbar();
-    });
     $(SEL.actionbar).addEventListener("click",e=>{
       if(e.target.closest("#tdlh-btnMove"))     openMove(false);
       if(e.target.closest("#tdlh-btnHouse"))    openHouse();
@@ -355,7 +351,15 @@
     const home=$(SEL.home); if(home) home.setAttribute("href",BH.CFG.HREF_ACCUEIL);
     document.querySelectorAll(".tdlh-ov").forEach(ov=>{ if(ov.parentElement!==document.body) document.body.appendChild(ov); });
     BH.monPseudo = window.EcoCore?.getPseudo?.() || null;
-    if(!BH.estStaff()){ const b=$(SEL.staffBtn); if(b) b.style.display="none"; }
+    BH.construireCOMMU();
+    // Admin AUTOMATIQUE selon le rang FA — pas de bouton bascule.
+    BH.S.staff = BH.estStaff();
+    if(BH.S.staff){
+      document.body.classList.add("tdlh-body-admin");            // révèle .tdlh-adminonly (bouton d'édition)
+      const ed=$(SEL.edit);                                       // pointe vers l'édition du message FA
+      const nat=document.querySelector('a[href*="mode=editpost"]');
+      if(ed && nat) ed.setAttribute("href", nat.getAttribute("href"));
+    }
     bindEvents();
     render();                                   // rendu immédiat (seed) le temps du chargement
     try{ await BH.DONNEES.chargerTout(); }catch(e){ if(window.console) console.error(e); }
