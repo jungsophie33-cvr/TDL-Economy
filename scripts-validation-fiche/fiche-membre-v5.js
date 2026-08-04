@@ -29,8 +29,14 @@
 
   function creerBouton() {
     const w = document.createElement("div");
-    w.style.textAlign = "center";
-    w.innerHTML = `<button class="fi-btn-ouvrir">${T.BTN_OUVRIR}</button>`;
+    // .mc-cta occupe toute la largeur : plus besoin de centrer le conteneur.
+    // Accroche par data-act, la classe .fi-btn-ouvrir portant encore l'ancien style.
+    w.innerHTML = `
+      <button class="mc-cta" type="button" data-act="ouvrir">
+        <i class="fi fi-tr-feather"></i>
+        <span><b>${T.BTN_OUVRIR}</b><em>${T.BTN_OUVRIR_SOUS}</em></span>
+        <i class="fi fi-tr-angle-small-right"></i>
+      </button>`;
     return w;
   }
 
@@ -425,8 +431,8 @@
     bindToggles(overlay);
     bindFaceclaimModes(overlay);
 
-    bouton.querySelector(".fi-btn-ouvrir").addEventListener("click", () => {
-      overlay.classList.add("actif");
+  bouton.querySelector('[data-act="ouvrir"]').addEventListener("click", () => {
+  overlay.classList.add("actif");
       document.body.style.overflow = "hidden";
       if (!overlay.dataset.initialise) {
         overlay.dataset.initialise = "1";
