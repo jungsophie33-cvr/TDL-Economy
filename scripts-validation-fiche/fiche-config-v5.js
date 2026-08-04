@@ -142,5 +142,7 @@ window.FI.TEXTES = {
   STAFF_OK:              (pseudo) => `✅ Fiche de ${pseudo} validée et message posté.`,
   STAFF_FC_CONFLIT:  "⚠️ Ce faceclaim était réservé par un autre membre — vérifie qu'il n'y a pas de conflit.",
   STAFF_FC_ECHEC:    "⚠️ Carte faceclaim non mise à jour — à créer manuellement via le panneau admin.",
-  
+  STAFF_MET_INTROUVABLE: "⚠️ Rôle non retrouvé dans le bottin des métiers — à créer à la main.",
+  STAFF_MET_ECHEC:       "⚠️ Bottin des métiers non mis à jour — à vérifier.",
+  STAFF_MET_REFERENT:    (societe) => `★ Ce membre devient référent de ${societe}.`,
 };
