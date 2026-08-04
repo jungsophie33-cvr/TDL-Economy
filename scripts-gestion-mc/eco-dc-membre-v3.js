@@ -209,8 +209,9 @@
     const resultat = overlay.querySelector("#dc-resultat");
     const btn      = overlay.querySelector("#dc-btn-soumettre");
 
+    // Le faceclaim est facultatif : un membre peut demander son multi-compte
+    // sans avoir encore arrêté son choix d'acteur. Seul le résumé est requis.
     if (resume.length < 30) { DC.afficherResultat(resultat, "erreur", T.ERR_RESUME_COURT); return; }
-    if (avatar.length < 5)  { DC.afficherResultat(resultat, "erreur", T.ERR_AVATAR_VIDE);  return; }
 
     btn.disabled    = true;
     btn.textContent = T.ENVOI_EN_COURS;
@@ -226,7 +227,7 @@
         btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
         return;
       }
-      if (avatarIndisponible(rec, avatar)) {
+      if (avatar && avatarIndisponible(rec, avatar)) {
         DC.afficherResultat(resultat, "erreur", T.ERR_AVATAR_PRIS(avatar));
         btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
         return;
