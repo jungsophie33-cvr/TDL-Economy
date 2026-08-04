@@ -72,6 +72,7 @@ window.FI.TEXTES = {
 
   /* Bouton et modale membre */
   BTN_OUVRIR:    "Demander la validation de ma fiche",
+  BTN_OUVRIR_SOUS:  "Pour demander la validation d'une fiche de présentation, cliquez ici.",
   TITRE_MODAL:   "Demande de validation de fiche",
   BTN_SOUMETTRE: "Envoyer ma demande",
   BTN_ANNULER:   "Annuler",
