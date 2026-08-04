@@ -325,14 +325,26 @@ appliquerActions(rec, demande);
   // Centralise toutes les mutations du JSONBin post-validation dans une seule fonction.
   // Aucun writeBin ici : on mutue `rec` en place, le writeBin est fait dans valider().
   function appliquerActions(rec, d) {
-    rec.membres   = rec.membres   || {};
-    rec.cagnottes = rec.cagnottes || {};
+  rec.membres   = rec.membres   || {};
+  rec.cagnottes = rec.cagnottes || {};
 
-    crediterMembre(rec, d);
-    crediterParrain(rec, d);
-    affecterGroupe(rec, d);
-    completerGroupeDC(rec, d);
-  }
+  crediterMembre(rec, d);
+  crediterParrain(rec, d);
+  affecterGroupe(rec, d);
+  affecterHabitation(rec, d);   // ← AJOUT
+  completerGroupeDC(rec, d);
+}
+
+// ← AJOUT, à côté de affecterGroupe
+function affecterHabitation(rec, d) {
+  if (!rec.membres[d.pseudo]) return;
+  rec.membres[d.pseudo].habitation = {
+    quartier: d.lieu_habitation,   // nom d'affichage — le bottin le résout en clé
+    numero:   d.numero,
+    type:     d.type_logement,
+    depuis:   d.date || new Date().toISOString(),
+  };
+}
 
   function crediterMembre(rec, d) {
     if (!d.pre_lien) return;
