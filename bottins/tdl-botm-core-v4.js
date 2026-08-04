@@ -12,6 +12,17 @@
                        culture, partenaires, rivaux, verrou, complet,
                        referent, brouillon, roles, postes)
 
+   Un rôle vaut {nom, poste, depuis, type, lien, dir} et, pour les seuls
+   rôles de type 'pj', un 'uid' capté à l'enregistrement depuis la carte
+   faceclaim. Cet uid est la seule identité stable d'un compte : il survit
+   à un changement de pseudo et permet à la suppression d'un membre de
+   libérer ses postes. Un PNJ ou un pré-lien n'a évidemment pas d'uid.
+
+   Les avatars des rôles occupés ne sont pas stockés ici : ils sont
+   résolus à la lecture depuis le nœud 'faceclaims' du Bottin des avatars.
+   safeReadBin() renvoyant déjà la racine complète, ce rapprochement ne
+   coûte aucune requête supplémentaire.
+
    Dépend de : tdl-zcats.js (window.TDLZonesCats), window.EcoCore
    ============================================================ */
 (function(){
@@ -29,13 +40,13 @@ BM.T = {
   roles:'Rôles occupés', postes:'Postes à pourvoir',
   aucunRole:'Aucun rôle occupé.', aucunTag:'Aucun.', nonRenseigne:'Non renseigné.',
   aucunPoste:'Aucun poste ouvert pour le moment.',
-  ouvertProp:'Aucun poste listé : les propositions restent bienvenues.',
+  ouvertProp:'Aucun poste listé — les propositions restent bienvenues.',
   sansDesc:'Aucune description pour ce poste.',
   voirRoles:'Voir les {n} autres rôles occupés', voirPostes:'Voir tous les postes disponibles',
   reduire:'Réduire',
   modifier:'Modifier la fiche', publier:'Publier', retirer:'Retirer du bottin',
   confRetirer:'Confirmer le retrait', annuler:'Annuler', enregistrer:'Enregistrer', ajouter:'Ajouter',
-  brouillon:'Brouillon', complet:'complet', nouvelle:'Nouvelle entreprise', edition:'Édition',
+  brouillon:'Brouillon', complet:'complet', enAttente:'En attente', nouvelle:'Nouvelle entreprise', edition:'Édition',
   sansNom:'Sans nom', referentPrefixe:' · Référent : ', depuis:'Depuis ',
   okSave:'Fiche enregistrée.', okRole:'Rôle enregistré.', okPoste:'Poste enregistré.',
   okTag:'Ajouté.', okPublie:' est publiée.',
@@ -45,8 +56,8 @@ BM.T = {
   errSave:"Échec de l'enregistrement : ",
   errCfg:"Configuration manquante : chargez tdl-zcats.js avant ce script.",
   memo:'Enregistré en mémoire — EcoCore indisponible.',
-  hintLieu:"Ces champs sont partagés avec le Répertoire des lieux.",
-  hintRole:"Le pseudo doit être exact.",
+  hintLieu:"Ces champs sont partagés avec le Répertoire des lieux : les modifier ici les modifie là-bas, et créer une entreprise crée le lieu correspondant.",
+  hintRole:"Le pseudo doit être écrit exactement comme dans le bottin des avatars : c'est lui qui ramène l'avatar et le lien du profil. Le champ lien ne sert qu'aux pré-liens, dont le sujet n'est pas connu du bottin des avatars.",
   voirProfil:'Voir le profil', voirPrelien:'Voir la fiche de pré-lien',
   lbl:{nom:'Nom', zone:'Zone', categorie:'Catégorie', type:'Type / secteur',
        icone:'Icône (classe Flaticon ou URL)', rue:'Siège (adresse)', effectif:'Effectif',
@@ -78,7 +89,10 @@ BM.CFG = {
     'fi-tr-flask','fi-tr-sack-dollar','fi-tr-wheat-awn','fi-ts-pig-face','fi-tr-plane-alt']
 };
 /* champs appartenant au lieu — tout le reste part dans emplois/ */
-BM.CHAMPS_LIEU = ['nom','type','rue','zone','cat','ic','img','facs','emploi','amb'];
+/* « masque » appartient au lieu : il le cache du Répertoire des lieux tant que
+   l'activité créée par un membre n'est pas publiée. À ne pas confondre avec
+   « brouillon », qui appartient à l'entreprise. */
+BM.CHAMPS_LIEU = ['nom','type','rue','zone','cat','ic','img','facs','emploi','amb','masque'];
 BM.TYPES_ROLE = [{id:'pj',label:'Joueur'},{id:'pnj',label:'PNJ'},{id:'pl',label:'Pré-lien'}];
 
 /* ===================== ÉTAT =====================
@@ -277,12 +291,26 @@ BM.patch = function(e, champs){
     throw err;
   });
 };
-/* retrait du bottin : on ne supprime JAMAIS le lieu, on décoche « emploi »
-   et on efface la seule extension métier. */
+/* Publication d'un brouillon : les deux nœuds sont concernés. Lever le seul
+   drapeau de l'entreprise laisserait le lieu masqué dans le Répertoire. */
+BM.publierEntreprise = function(e){
+  e.brouillon = false; delete e.masque;
+  if(!(window.EcoCore && typeof EcoCore.firebaseUpdate==='function')){
+    BM.toast(BM.T.memo, true); return Promise.resolve({memoire:true});
+  }
+  const u = {};
+  u[BM.CFG.NODE_EMPLOIS+'/'+e.id+'/brouillon'] = false;
+  u[BM.CFG.NODE_LIEUX+'/'+e.id+'/masque'] = null;   /* null supprime la clé */
+  return EcoCore.firebaseUpdate(u);
+};
+/* Retrait du bottin : on ne supprime pas le lieu… sauf s'il n'existait que pour
+   porter cette activité (créée par un membre, jamais publiée), auquel cas le
+   garder laisserait un lieu fantôme invisible dans le répertoire. */
 BM.retirerDuBottin = function(e){
   if(!(window.EcoCore && typeof EcoCore.firebaseUpdate==='function')) return Promise.resolve({memoire:true});
   const u = {};
-  u[BM.CFG.NODE_LIEUX+'/'+e.id+'/emploi'] = false;
+  if(e.masque) u[BM.CFG.NODE_LIEUX+'/'+e.id] = null;
+  else         u[BM.CFG.NODE_LIEUX+'/'+e.id+'/emploi'] = false;
   u[BM.CFG.NODE_EMPLOIS+'/'+e.id] = null;
   return EcoCore.firebaseUpdate(u);
 };
