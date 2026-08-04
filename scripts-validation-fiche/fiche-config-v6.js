@@ -142,7 +142,17 @@ window.FI.TEXTES = {
   STAFF_OK:              (pseudo) => `✅ Fiche de ${pseudo} validée et message posté.`,
   STAFF_FC_CONFLIT:  "⚠️ Ce faceclaim était réservé par un autre membre — vérifie qu'il n'y a pas de conflit.",
   STAFF_FC_ECHEC:    "⚠️ Carte faceclaim non mise à jour — à créer manuellement via le panneau admin.",
-  STAFF_MET_INTROUVABLE: "⚠️ Rôle non retrouvé dans le bottin des métiers — à créer à la main.",
-  STAFF_MET_ECHEC:       "⚠️ Bottin des métiers non mis à jour — à vérifier.",
-  STAFF_MET_REFERENT:    (societe) => `★ Ce membre devient référent de ${societe}.`,
+  STAFF_BTN_REFUSER:       "✕ Refuser",
+  STAFF_CONFIRM_REFUS:     (pseudo) =>
+    `Refuser la fiche de "${pseudo}" ?\n\n`
+    + `La demande sera effacée et le poste réservé libéré.\n`
+    + `Aucun message ne sera posté : prévenez le membre par MP.`,
+  STAFF_REFUS_OK:          (pseudo) => `✅ Demande de ${pseudo} refusée et effacée.`,
+  STAFF_REFUS_ECHEC:       "❌ Impossible d'effacer la demande.",
+  STAFF_REFUS_ACTIVITE:    "L'activité créée pour cette demande a été supprimée du bottin.",
+  STAFF_REFUS_INTROUVABLE: "Aucune réservation de poste à libérer.",
+  STAFF_REFUS_METIER_ECHEC:"⚠️ Poste peut-être encore réservé — à vérifier dans le bottin.",
+  STAFF_MET_INTROUVABLE:   "⚠️ Rôle non retrouvé dans le bottin des métiers — à créer à la main.",
+  STAFF_MET_ECHEC:         "⚠️ Bottin des métiers non mis à jour — à vérifier.",
+  STAFF_MET_REFERENT:      (societe) => `★ Ce membre devient référent de ${societe}.`,
 };
