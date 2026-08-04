@@ -175,6 +175,12 @@ function tagType(r){
   if(r.type==='pl')  return '<span class="bm-minitag pl">PL</span>';
   return '';
 }
+/* Rôle réservé par une demande de validation de fiche encore en attente.
+   La place est bel et bien bloquée : le tag rend la réservation visible pour
+   que le staff puisse la retirer si la fiche n'aboutit pas. */
+function tagAttente(r){
+  return r.attente ? '<span class="bm-minitag att">'+T.enAttente+'</span>' : '';
+}
 /* lien saisi à la main, sinon /u{uid} déduit de la carte faceclaim */
 function lienRole(r){
   const href = BM.lienDe(r);
@@ -201,7 +207,7 @@ function blocRoles(e, ed){
         +avatarRole(r)
         +'<span class="bm-pinfo">'
           +'<span class="bm-pligne"><span class="bm-pnom">'+esc(BM.nomDe(r))+'</span>'+lienRole(r)
-            +'<span class="bm-psp"></span>'+tagType(r)+'</span>'
+            +'<span class="bm-psp"></span>'+tagAttente(r)+tagType(r)+'</span>'
           +'<span class="bm-pfonc"><span class="bm-prole">'+esc(r.poste)+'</span>'
             +(r.depuis?'<span class="bm-pdepuis">'+T.depuis+esc(r.depuis)+'</span>':'')+'</span>'
         +'</span>'
