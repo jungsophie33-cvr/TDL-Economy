@@ -82,7 +82,7 @@
     const lieux   = (rec && rec.lieux)   || {};
     const emplois = (rec && rec.emplois) || {};
     ENT = Object.keys(lieux)
-      .filter((id) => lieux[id] && lieux[id].emploi === true && !lieux[id].brouillon)
+      .filter((id) => lieux[id] && lieux[id].emploi === true && !lieux[id].masque)
       .map((id) => {
         const e = Object.assign({ id }, lieux[id], emplois[id] || {});
         e.roles  = vt(e.roles);
@@ -307,10 +307,13 @@
       const id = "lieu_" + Date.now().toString(36);
       role.dir = true;
       const u = {};
-      // brouillon posé AUSSI sur le lieu : sans ça, l'activité apparaîtrait
+      // Le lieu porte « masque » et non « brouillon » : les deux nœuds sont
+      // fusionnés à la lecture du bottin (Object.assign), et deux champs de même
+      // nom s'écraseraient — impossible alors de distinguer un lieu masqué d'une
+      // entreprise en brouillon. Sans ce drapeau, l'activité apparaîtrait
       // publiquement dans le Répertoire des lieux avant validation du staff.
       u["lieux/" + id] = { nom: a.nom, type: a.type, rue: "—", zone: d.metier_zone,
-        cat: a.cat || "services", ic: "", img: "", facs: [], emploi: true, amb: "—", brouillon: true };
+        cat: a.cat || "services", ic: "", img: "", facs: [], emploi: true, amb: "—", masque: true };
       u["emplois/" + id] = { effectif: "", fondee: "", rayonnement: "", desc: "", accroche: "",
         culture: [], partenaires: [], rivaux: [], verrou: false, complet: false,
         referent: pseudo, brouillon: true, roles: [role], postes: [] };
