@@ -618,7 +618,7 @@ div#\/f1-guidebook .sj-cateright a span:hover {transform:rotateX(90deg) translat
 #f32 .online:before, #f13 .online:before, #f2 .online:before {width:10px;height:10px;content:"";top:2px;left:47px;}
 #f32 .sj-postmsg .sj-post-proftop > div:nth-child(2), #f13 .sj-postmsg .sj-post-proftop > div:nth-child(2), #f2 .sj-postmsg .sj-post-proftop > div:nth-child(2) {align-items:center;}
 #f32 .sj-post-proftop .sj-post-proftop-left > span:nth-child(1), #f13 .sj-post-proftop .sj-post-proftop-left > span:nth-child(1), #f2 .sj-post-proftop .sj-post-proftop-left > span:nth-child(1) {display:none;}
-.online:before {background:var(--groups); color:var(--clair1opa8); line-height:35px; content: "\f07f"; font-family: "uicons-thin-rounded"; width:35px;height:35px;border-radius:50%; top:255px;left:78px;}
+.online:before {background:var(--groups); color:var(--clair1opa8); line-height:35px; content: "\f1a7"; font-family: "uicons-thin-rounded"; width:35px;height:35px;border-radius:50%; top:255px;left:78px;}
 .sj-post-proftop {text-align:left; height: 180px; border-radius:10px 10px 0 0; background: var(--bgprof) no-repeat; background-size: cover; border-bottom:1px solid var(--groups);}
 .sj-post-avatar {float: left; margin: 5px 0 0 5px; border-radius: 10px;}
 .sj-post-avatar img {width: 180px; height: 270px; object-fit: cover; border-radius: 10px;}
@@ -721,11 +721,11 @@ table.table1 tbody tr:hover, table.table1 tbody tr.hover {background:var(--clair
 .sj-qeel-grp a:hover i {margin-top:0; margin-bottom:0;}
 .sj-qeel-grp a em:before {content:"";margin:0px auto; transition: all ease 0.5s; height:35px;width:40px;background-size:100%;color:var(--group); font-style: normal; font-size: 1.6em; position: relative;top: 10px;font-family: "uicons-thin-rounded"; }
 .sj-qeel-grp a:hover em:before {margin-top:-60px; margin-bottom:35px;}
-.sj-qeel-grp .grlesgoulipiats em:before {content:"\e6b2";}
-.sj-qeel-grp .grlesfardoches em:before {content: "\e54b";}
-.sj-qeel-grp .grlesashlanders em:before { content: "\ed8a";}
-.sj-qeel-grp .grlesspectres em:before {content:"\f373";}
-.sj-qeel-grp .grlesperles em:before {content: "\eb69";}
+.sj-qeel-grp .grlesgoulipiats em:before {content:"\e746";}
+.sj-qeel-grp .grlesfardoches em:before {content: "\e5bb";}
+.sj-qeel-grp .grlesashlanders em:before { content: "\ee89";}
+.sj-qeel-grp .grlesspectres em:before {content:"\f4bd";}
+.sj-qeel-grp .grlesperles em:before {content: "\ec3e";}
 
 .sj-qeel-bottom {display:flex; flex-direction:row; justify-content:space-evenly; height:40%;}
 .sj-qeel-bottom > div {width:35%;}
