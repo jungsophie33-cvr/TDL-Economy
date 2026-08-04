@@ -4,7 +4,19 @@
    Blocs : TEXTES · CONFIG · DONNÉES · PERSISTANCE · ÉTAT
            UTILS · RENDER · EVENTS · INIT
 
-   Dépend de : tdl-zones-cats.js (window.TDLZonesCats), window.EcoCore
+   Persistance : EcoCore/Firebase, nœuds racine 'lieux' et 'emplois'.
+   Toutes les écritures passent par firebaseUpdate (PATCH multi-chemins,
+   atomique, n'affecte jamais les nœuds frères). writeField n'est plus
+   utilisé : un PUT ne sait écrire qu'un seul chemin, ce qui interdisait
+   d'enregistrer le lieu et sa fiche métier en une seule opération.
+
+   Couplé au Bottin des métiers : un lieu coché « emploi possible »
+   possède une extension emplois/{id} portant rôles, postes et
+   informations d'entreprise. Les deux modules partagent l'identité du
+   lieu (nom, type, rue, zone, cat, ic, img, amb) sans jamais la
+   dupliquer.
+
+   Dépend de : tdl-zcats.js (window.TDLZonesCats), window.EcoCore
    ============================================================ */
 (function(){
 "use strict";
@@ -18,6 +30,7 @@ const TEXTES = {
   edition:'Édition', nouveau:'Nouveau lieu', creerLieu:'Créer un lieu', sansNom:'Sans nom',
   enregistrer:'Enregistrer', creer:'Créer le lieu', aucun:'Aucun lieu pour ce filtre.',
   retourListe:'← Retour à la liste',
+  masque:'en attente',
   chAdresse:'Adresse', chEmploi:'Emploi possible', chInfluence:'Influence',
   emploiOui:'Oui : vos personnages peuvent y travailler.', emploiNon:'Non',
   lienBottin:'Voir les postes à pourvoir →',
@@ -25,7 +38,7 @@ const TEXTES = {
   okSave:'Lieu enregistré.', okDel:'Lieu supprimé.', memSave:'Enregistré (mémoire — non sauvegardé)',
   memDel:'Retiré (mémoire — non sauvegardé)', errSave:"Échec de l'enregistrement : ",
   errDel:'Échec de la suppression : ',
-  errCfg:'tdl-zones-cats.js doit être chargé avant ce script.',
+  errCfg:'tdl-zcats.js doit être chargé avant ce script.',
   lbl:{nom:'Nom',type:'Type',adresse:'Adresse',zone:'Zone',categorie:'Catégorie',
        icone:'Icône (classe Flaticon ou URL)',image:'Image (URL, facultatif)',
        influences:'Influences présentes',emploi:'Emploi',ambiance:"Phrase d'ambiance"},
@@ -125,11 +138,17 @@ const Store = {
       eco.safeReadBin().then(root=>{
         const brut = root && root.lieux;
         if(brut && Object.keys(brut).length){
-          LIEUX = Object.entries(brut).map(([id,l])=>{
-            const o = Object.assign({id}, l);
-            o.facs = versTableau(o.facs);
-            return o;
-          });
+          LIEUX = Object.entries(brut)
+            /* « masque » : lieu créé par le formulaire de validation de fiche pour
+               porter une activité de membre, tant qu'elle n'est pas publiée dans
+               le Bottin des métiers. Le membre la complète depuis le bottin, pas
+               d'ici : seul le staff voit ces lieux en attente. */
+            .filter(([,l]) => !l.masque || S.admin)
+            .map(([id,l])=>{
+              const o = Object.assign({id}, l);
+              o.facs = versTableau(o.facs);
+              return o;
+            });
         } else if(S.admin && SEMER_SI_VIDE){
           semerSiVide(eco);
         } else if(!S.admin){
@@ -220,7 +239,8 @@ function renderCatCol(){
 function rowHTML(l){const c=catDe(l.cat);
   return `<div class="tdlr-row" data-id="${l.id}" aria-current="${l.id===S.sel}" style="--c:${c.c};--soft:${c.soft}">
     <span class="tdlr-ric">${icon(l.ic)}</span>
-    <span class="tdlr-rtxt"><span class="tdlr-rnom">${l.nom}${l.emploi?bag():''}</span><span class="tdlr-rmeta">${l.type}</span></span>
+    <span class="tdlr-rtxt"><span class="tdlr-rnom">${l.nom}${l.emploi?bag():''}${
+      l.masque?`<span class="tdlr-masque">${TEXTES.masque}</span>`:''}</span><span class="tdlr-rmeta">${l.type}</span></span>
     ${dots(l.facs)}
     <svg class="tdlr-rchev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m9 6 6 6-6 6"/></svg>
   </div>`;
