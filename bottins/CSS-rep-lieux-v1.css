@@ -195,7 +195,15 @@ body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
   .tdlr-app.tdlr-vue-detail .tdlr-panneau{display:block}
   .tdlr-retour{display:block}
   .tdlr-pform{grid-template-columns:1fr}
- 
+
+   /* ---------- LIEU EN ATTENTE DE PUBLICATION ----------
+   Activité créée par un membre depuis le formulaire de validation de fiche :
+   masquée aux visiteurs, signalée au staff tant qu'elle n'est pas publiée
+   dans le Bottin des métiers. */
+.tdlr-masque{font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--dark);background:var(--gr1-40);
+  border-radius:5px;padding:2px 7px;margin-left:8px;white-space:nowrap}
+   
   /* panneau large (≥500px) → image en rectangle aligné à droite,
      le texte coule à sa gauche (image en 1er dans le DOM + float) */
   @container tdlrpan (min-width:500px){
