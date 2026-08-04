@@ -93,6 +93,9 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
   margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bm-exq{font-family:var(--txt3);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dark);
   background:var(--clair2opa4);border-radius:5px;padding:2px 6px}
+.bm-exq.soumis{background:var(--gr1-40)}
+.bm-ab-note{font-family:var(--txt3);font-size:12px;text-transform:uppercase;color:var(--dark2);
+  border:1px dashed var(--cntr);border-radius:5px;padding:5px 11px}
 .bm-dot{width:9px;height:9px;border-radius:50%;flex:none;display:inline-block}
 .bm-dot.libre{background:var(--gr2-color)}
 .bm-dot.complet{background:var(--gr6-color)}
