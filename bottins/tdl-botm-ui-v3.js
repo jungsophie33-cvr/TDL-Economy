@@ -5,7 +5,10 @@
    ============================================================ */
 (function(){
 "use strict";
-
+/* Les trois fichiers s'attendent. L'ordre des balises <script> classiques est
+   garanti par le navigateur, mais si elles se retrouvent réparties entre le
+   template et le message (cas fréquent sur ForumActif), l'ordre peut être
+   rompu : on patiente plutôt que d'échouer définitivement. */
 let BM, T, S, CFG, $, vt;
 function attendreNoyau(n){
   n = n || 0;
@@ -114,7 +117,9 @@ function enregistrer(){
 }
 function publier(id){
   const e = BM.ent(id);
-  BM.patch(e,{brouillon:false}).then(()=>{ BM.renderStage(); BM.toast(e.nom+T.okPublie); }).catch(()=>{});
+  BM.publierEntreprise(e)
+    .then(()=>{ BM.renderStage(); BM.toast(e.nom+T.okPublie); })
+    .catch(err=>BM.toast(T.errSave+((err&&err.message)||err), true));
 }
 function retirer(id){
   const e = BM.ent(id), nom = e.nom;
