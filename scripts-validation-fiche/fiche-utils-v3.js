@@ -176,7 +176,7 @@
 <div class="sj-formgen"><div class="sj-formcol"><f4>Administratif</f4><d>Multicompte</d> ${mc}
 <d>Faceclaim</d> <span>${esc(d.faceclaim)}</span>
 <d>Groupe</d> <span>${esc(d.groupe)}</span></div><div class="sj-formcol"><f4>Personnage & bottins</f4><d>Bande hors-la-loi</d> ${bande}
-<d>Métier</d> ${metier}
+<d>Métier</d> <span>${FI.metierResume(d)}</span>
 <d>Habitation</d> <span>${esc(d.lieu_habitation)}</span> <span>${esc(d.numero)}</span> <span>${esc(d.type_logement)}</span></div>
 </div></div>`;
   };
