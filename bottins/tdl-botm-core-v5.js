@@ -46,7 +46,9 @@ BM.T = {
   reduire:'Réduire',
   modifier:'Modifier la fiche', publier:'Publier', retirer:'Retirer du bottin',
   confRetirer:'Confirmer le retrait', annuler:'Annuler', enregistrer:'Enregistrer', ajouter:'Ajouter',
-  brouillon:'Brouillon', complet:'complet', enAttente:'En attente', nouvelle:'Nouvelle entreprise', edition:'Édition',
+  brouillon:'Brouillon', complet:'complet', enAttente:'En attente', aValider:'À valider',
+  soumettre:'Soumettre au staff', dejaSoumis:'Envoyée au staff',
+  okSoumis:' est soumise au staff pour publication.', nouvelle:'Nouvelle entreprise', edition:'Édition',
   sansNom:'Sans nom', referentPrefixe:' · Référent : ', depuis:'Depuis ',
   okSave:'Fiche enregistrée.', okRole:'Rôle enregistré.', okPoste:'Poste enregistré.',
   okTag:'Ajouté.', okPublie:' est publiée.',
@@ -291,15 +293,21 @@ BM.patch = function(e, champs){
     throw err;
   });
 };
+/* Le référent signale que sa fiche est prête : le staff la voit passer de
+   « Brouillon » à « À valider ». Il ne publie jamais lui-même. */
+BM.soumettreEntreprise = function(e){
+  return BM.patch(e, {soumis:true});
+};
 /* Publication d'un brouillon : les deux nœuds sont concernés. Lever le seul
    drapeau de l'entreprise laisserait le lieu masqué dans le Répertoire. */
 BM.publierEntreprise = function(e){
-  e.brouillon = false; delete e.masque;
+  e.brouillon = false; e.soumis = false; delete e.masque;
   if(!(window.EcoCore && typeof EcoCore.firebaseUpdate==='function')){
     BM.toast(BM.T.memo, true); return Promise.resolve({memoire:true});
   }
   const u = {};
   u[BM.CFG.NODE_EMPLOIS+'/'+e.id+'/brouillon'] = false;
+  u[BM.CFG.NODE_EMPLOIS+'/'+e.id+'/soumis'] = null;
   u[BM.CFG.NODE_LIEUX+'/'+e.id+'/masque'] = null;   /* null supprime la clé */
   return EcoCore.firebaseUpdate(u);
 };
