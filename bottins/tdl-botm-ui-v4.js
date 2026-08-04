@@ -115,6 +115,12 @@ function enregistrer(){
     BM.patch(e, champs).then(fin).catch(()=>{});
   }
 }
+function soumettre(id){
+  const e = BM.ent(id);
+  BM.soumettreEntreprise(e)
+    .then(()=>{ BM.renderStage(); BM.toast(e.nom+T.okSoumis); })
+    .catch(()=>{});
+}
 function publier(id){
   const e = BM.ent(id);
   BM.publierEntreprise(e)
@@ -154,6 +160,7 @@ function actionDo(d){
   if(k==='moinspostes'){ S.plusPostes=false; BM.renderDetail(); return; }
   if(k==='edit')    return ouvrirEdition(id);
   if(k==='saveok')  return enregistrer();
+  if(k==='soumettre') return soumettre(id);
   if(k==='publier') return publier(id);
   if(k==='del'){ S.confirmDel=id; BM.renderDetail(); return; }
   if(k==='delok')   return retirer(id);
