@@ -115,16 +115,7 @@
           placeholder="Votre rôle dans la bande…">
       </div>
 
-      <fieldset class="fi-fieldset">
-        <legend>Métier</legend>
-        <label class="fi-label">${T.L_LIEU_METIER}</label>
-        <select id="fi-lieu-metier" class="fi-select">${optsAvecVide(CFG.LISTES.LIEUX_METIER)}</select>
-        <label class="fi-label">${T.L_SOCIETE}</label>
-        <input id="fi-societe" class="fi-input" type="text"
-          placeholder="Nom de la société ou lieu de travail">
-        <label class="fi-label">${T.L_EMPLOI}</label>
-        <input id="fi-emploi" class="fi-input" type="text" placeholder="Intitulé du poste">
-      </fieldset>
+      ${FI.metierHTML()}
 
       <fieldset class="fi-fieldset">
         <legend>Habitation</legend>
@@ -344,9 +335,7 @@
       bande:           radio(overlay, "fi-bande") === "oui",
       nom_bande:       overlay.querySelector("#fi-nom-bande").value,
       role_bande:      overlay.querySelector("#fi-role-bande").value.trim(),
-      lieu_metier:     overlay.querySelector("#fi-lieu-metier").value,
-      societe:         overlay.querySelector("#fi-societe").value.trim(),
-      emploi:          overlay.querySelector("#fi-emploi").value.trim(),
+      ...FI.metierLecture(overlay),
       lieu_habitation: overlay.querySelector("#fi-lieu-habitation").value,
       numero:          overlay.querySelector("#fi-numero").value.trim(),
       type_logement:   overlay.querySelector("#fi-type-logement").value.trim(),
@@ -363,9 +352,8 @@
     if (!d.groupe)                          return T.ERR_GROUPE;
     if (d.bande && !d.nom_bande)            return T.ERR_BANDE_NOM;
     if (d.bande && !d.role_bande)           return T.ERR_BANDE_ROLE;
-    if (!d.lieu_metier)                     return T.ERR_LIEU_METIER;
-    if (!d.societe)                         return T.ERR_SOCIETE;
-    if (!d.emploi)                          return T.ERR_EMPLOI;
+    const errMetier = FI.metierVerifier(d);
+    if (errMetier)                          return errMetier;
     if (!d.lieu_habitation)                 return T.ERR_LIEU_HAB;
     if (!d.numero)                          return T.ERR_NUMERO;
     if (!d.type_logement)                   return T.ERR_TYPE_LOGEMENT;
@@ -397,11 +385,22 @@
         statut: "en_attente",
         ...d,
       };
-      rec.demandes_fiche.push(demande);
+     rec.demandes_fiche.push(demande);
       await window.EcoCore.writeBin(rec);
 
+      // Réserve le poste : rôle inscrit avec attente:true, visible dans le bottin.
+      // Hors writeBin, qui écraserait l'écriture.
+      let avertMetier = "";
+      try {
+        const r = await FI.metierReserver(demande, pseudo, demande.uid);
+        if (r && r.complet) avertMetier = "<br><small>" + T.ERR_MET_COMPLET + "</small>";
+      } catch (e) {
+        avertMetier = "<br><small>⚠️ Poste non réservé — signalez-le au staff.</small>";
+        if (window.console) console.error("[fiche-membre] metierReserver", e);
+      }
+
       FI.preremplirReponse(FI.bbcodeDemande(demande));
-      FI.afficherResultat(resultat, "succes", T.CONFIRMATION);
+      FI.afficherResultat(resultat, "succes", T.CONFIRMATION + avertMetier);
       overlay.querySelector("#fi-champs").style.display = "none";
 
     } catch (_) {
@@ -432,6 +431,8 @@
       if (!overlay.dataset.initialise) {
         overlay.dataset.initialise = "1";
         chargerListesMembres(overlay, pseudo);
+        // listes zone → entreprise → poste, lues dans le bottin des métiers
+        FI.metierBrancher(overlay);
       }
     });
 
