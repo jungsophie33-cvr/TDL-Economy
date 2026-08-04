@@ -14,15 +14,6 @@
  *   FACECLAIM    — réservation de la carte multicompte
  *   INIT         — point d'entrée exposé sur window.DC
  *
- * [v3] Rendu refait sur les classes « mc- ». Deux faceclaims cohabitent dans
- * une carte de demande, à ne pas confondre :
- *   · le portrait rond, à gauche, est celui du MEMBRE QUI DEMANDE — repris de
- *     sa propre carte du bottin des avatars, retrouvée par son pseudo ;
- *   · le faceclaim qu'il souhaite RÉSERVER pour son futur compte n'existe
- *     encore nulle part (sa carte n'est créée qu'à la validation) : il n'est
- *     donc affiché qu'en texte, sous le rang du compte.
- * Le drapeau slot_en_attente est CONSERVÉ, il alimente la liste « compte
- * principal » du formulaire de fiche côté membre.
  *
  * Dépend de : eco-dc-config.js, eco-dc-utils.js, eco-dc-gestion.js, window.EcoCore
  */
@@ -137,7 +128,8 @@
         <div class="mc-id-txt">
           <div class="mc-id-nom">${esc(d.compte_demandeur)}</div>
           <div class="mc-id-l"><i class="fi fi-tr-users-alt"></i>${T.STAFF_RANG(d.numero_dc)}</div>
-          <div class="mc-id-l"><i class="fi fi-tr-user-pen"></i>${esc(d.avatar_reserve)}</div>
+          <div class="mc-id-l${d.avatar_reserve ? "" : " mc-attenue"}">
+            <i class="fi fi-tr-user-pen"></i>${d.avatar_reserve ? esc(d.avatar_reserve) : T.STAFF_SANS_FC}</div>
         </div>
       </div>
       <p class="mc-res">${esc(d.resume)}</p>
@@ -147,7 +139,7 @@
         <button class="mc-btn no lg" data-act="refuser" data-id="${esc(d.id)}">
           <i class="fi fi-tr-cross-small"></i> ${T.STAFF_REFUSER}</button>
       </div>
-      <div class="dc-resultat dc-resultat-${esc(d.id)}"></div>
+      <div class="dc-resultat"></div>
     `;
     return carte;
   }
@@ -158,17 +150,25 @@
   // style encore .dc-btn-valider / .dc-btn-refuser, qui entreraient en conflit
   // avec .mc-btn (même spécificité, dernière règle gagnante).
   function bindBoutons(listeEl) {
-    listeEl.querySelectorAll('[data-act="valider"]').forEach((btn) =>
-      btn.addEventListener("click", () => traiter(btn.dataset.id, "validee", listeEl))
-    );
-    listeEl.querySelectorAll('[data-act="refuser"]').forEach((btn) =>
-      btn.addEventListener("click", () => traiter(btn.dataset.id, "refusee", listeEl))
-    );
+    const brancher = (sel, decision) =>
+      listeEl.querySelectorAll(sel).forEach((btn) => btn.addEventListener("click", () => {
+        // La carte est passée telle quelle : construire un sélecteur à partir de
+        // l'id de la demande levait une SyntaxError dès que genId() contenait un
+        // caractère interdit en CSS (un point, par exemple), ce qui tuait le clic.
+        const carte = btn.closest(".mc-dem");
+        traiter(btn.dataset.id, decision, listeEl, carte).catch((e) => {
+          if (window.console) console.error("[eco-dc-staff] traiter", e);
+          const z = carte && carte.querySelector(".dc-resultat");
+          if (z) DC.afficherResultat(z, "erreur", T.SUPPR_ERR + ((e && e.message) || e));
+        });
+      }));
+    brancher('[data-act="valider"]', "validee");
+    brancher('[data-act="refuser"]', "refusee");
   }
 
   /* === TRAITEMENT === */
 
-  async function traiter(id, decision, listeEl) {
+  async function traiter(id, decision, listeEl, carteEl) {
     const motif = decision === "refusee" ? prompt(T.STAFF_PROMPT_REFUS, "") : null;
     if (decision === "refusee" && motif === null) return;
 
@@ -177,14 +177,23 @@
     // et écraser le changement de l'autre.
     if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
+    // readBin() renvoie null en cas d'échec réseau ou de token expiré : sans ce
+    // garde, la ligne suivante lève un TypeError et le clic meurt en silence.
     const rec = await window.EcoCore.readBin();
+    if (!rec) {
+      if (carteEl) {
+        const z = carteEl.querySelector(".dc-resultat");
+        if (z) DC.afficherResultat(z, "erreur", T.ERR_DONNEES);
+      }
+      return;
+    }
     rec.doubles_comptes = rec.doubles_comptes || {};
     rec.demandes_dc = DC.versTableau(rec.demandes_dc);
 
     const idx = rec.demandes_dc.findIndex((d) => d.id === id);
     if (idx === -1) return;
 
-    const resultatEl = listeEl.querySelector(`.dc-resultat-${id}`);
+    const resultatEl = carteEl ? carteEl.querySelector(".dc-resultat") : null;
 
     // La demande a-t-elle été traitée entre-temps par un autre admin ?
     if (rec.demandes_dc[idx].statut !== "en_attente") {
@@ -201,7 +210,7 @@
 
     if (decision === "validee") {
       const erreur = tenterPaiement(rec, demande);
-      if (erreur) { DC.afficherResultat(resultatEl, "erreur", erreur); return; }
+      if (erreur) { if (resultatEl) DC.afficherResultat(resultatEl, "erreur", erreur); return; }
       validerGroupe(rec, demande);
     } else {
       libererVerrou(rec, demande.compte_racine);
@@ -225,7 +234,7 @@
     const monnaie = window.EcoCore.MONNAIE_NAME;
     DC.preremplirReponse(DC.msgStaff(demande, decision, motif, staffPseudo, monnaie));
 
-    DC.afficherResultat(resultatEl, "succes",
+    if (resultatEl) DC.afficherResultat(resultatEl, "succes",
       decision === "validee"
         ? `✅ Demande validée.${demande.paiement_requis ? " Paiement débité." : ""}${avertFC}`
         : "✅ Demande refusée."
