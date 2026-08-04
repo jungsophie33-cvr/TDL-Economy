@@ -183,7 +183,19 @@ appliquerActions(rec, demande);
       if (window.console) console.error("[fiche-staff] reclamerFaceclaim", e);
     }
 
-    FI.afficherResultat(resultatEl, "succes", T.STAFF_OK(demande.pseudo) + avertFC);
+    // Confirme le rôle réservé dans le bottin des métiers : le drapeau attente
+    // tombe, et le poste de direction confère le statut de référent.
+    let avertMet = "";
+    try {
+      const m = await FI.metierAppliquer(demande);
+      if (m && m.introuvable) avertMet = `<br><small>${T.STAFF_MET_INTROUVABLE}</small>`;
+      else if (m && m.referent) avertMet = `<br><small>${T.STAFF_MET_REFERENT(demande.societe)}</small>`;
+    } catch (e) {
+      avertMet = `<br><small>${T.STAFF_MET_ECHEC}</small>`;
+      if (window.console) console.error("[fiche-staff] metierAppliquer", e);
+    }
+
+    FI.afficherResultat(resultatEl, "succes", T.STAFF_OK(demande.pseudo) + avertFC + avertMet);
     setTimeout(() => chargerDemandes(listeEl), 2000);
     return true;
   }
