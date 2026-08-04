@@ -385,7 +385,7 @@ let3 {float:left;font-size:5em;font-family:var(--font2); font-style:italic; line
 .accordion {cursor:pointer;display:block;position:relative;background:var(--cntr3);border-radius:5px; margin:10px auto; padding:10px 20px; font-family:var(--font2);font-size:16px!important; color:var(--txt); text-align:left;border-left: 3px solid transparent;transition: background 0.4s ease, border-left 0.4s ease, color 0.3s ease;}
 .accordion:hover {background:var(--cntr6);}
 .accordion.active {border-left:4px solid var(--dark2);background: var(--cntr6);box-shadow:0 0 2px var(--darkopa3);}
-.accordion:after {content:"\e090";font-family: "uicons-thin-rounded"; position:absolute;right:20px;top: 50%;transform: translateY(-50%) rotate(0deg); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);transform-origin: center;}
+.accordion:after {content:"\e0a4";font-family: "uicons-thin-rounded"; position:absolute;right:20px;top: 50%;transform: translateY(-50%) rotate(0deg); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);transform-origin: center;}
 .accordion.active:after {transform: translateY(-50%) rotate(180deg);}
 .acc_content {width:100%;max-height:0; overflow:hidden;background:none; padding:0 20px;margin:auto;transition: max-height 0.5s ease, opacity 0.4s ease; opacity: 0;}
 .accordion.active + .acc_content { opacity: 1;max-height: 800px; }
@@ -868,5 +868,5 @@ line-height: 1em;
 .tl-tooltip.side-left::after   { right: -5.5px; border-left: 6px solid var(--clair1); }
 
 .tl-tooltip ul li {background: var(--cntr3); padding: 5px 10px; border-radius: 5px; margin: 10px; font-family: var(--txt2); font-size: 1.1em; line-height:1.3em;}
-.tl-tooltip ul li:before {font-family: uicons-thin-rounded !important; position:relative;content: '\e092';background: var(--clair1opa8);padding: 3px;border-radius: 100%;margin: 0 10px 0 0;top: 2px;color: var(--dark2);}
+.tl-tooltip ul li:before {font-family: uicons-thin-rounded !important; position:relative;content: '\e0a3';background: var(--clair1opa8);padding: 3px;border-radius: 100%;margin: 0 10px 0 0;top: 2px;color: var(--dark2);}
 .tl-tooltip ul > br {display:none;}
