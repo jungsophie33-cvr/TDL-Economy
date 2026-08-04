@@ -50,18 +50,22 @@ window.BH = window.BH || {};
   BH.CFG = {
     SEL:{ app:"tdlh-app", tabs:"tdlh-tabs", count:"tdlh-count", vue:"tdlh-vue",
       panneau:"tdlh-panneau", mur:"tdlh-mur", actionbar:"tdlh-actionbar",
-      staffBtn:"tdlh-staff", home:"tdlh-home", ovMove:"tdlh-ovMove", ovHouse:"tdlh-ovHouse" },
+      edit:"tdlh-edit", home:"tdlh-home", ovMove:"tdlh-ovMove", ovHouse:"tdlh-ovHouse" },
     HREF_ACCUEIL:"/",                              /* [MAJ] accueil du forum */
     NODE_MAISONS:"logements/maisons",
     NODE_QUARTIERS:"logements/quartiers",
     NODE_MEMBRES:"membres",
   };
-  // Communauté (nom court de membres/{pseudo}.group) → couleur --grN.
-  // [MAJ] vérifier que les clés = valeurs "court" de EcoCore.COMMUNAUTES.
-  BH.COMMU = {
-    goulipiats:{color:"var(--gr1-color)"}, fardoches:{color:"var(--gr2-color)"},
-    ashlanders:{color:"var(--gr3-color)"}, spectres:{color:"var(--gr4-color)"},
-    perles:{color:"var(--gr5-color)"},
+  // Communauté (membres/{pseudo}.group = nom "court") → couleur --grN.
+  // Dérivée de EcoCore.COMMUNAUTES : clé = id de groupe FA (3→8), couleur = --gr(id-2)
+  // ⇒ group-3 Goulipiats→gr1 … group-7 Perles→gr5, group-8 Providence→gr6.
+  BH.COMMU = {};
+  BH.construireCOMMU = function(){
+    const C = window.EcoCore && window.EcoCore.COMMUNAUTES;
+    Object.keys(BH.COMMU).forEach(k=>delete BH.COMMU[k]);   // vide en place (ref conservée)
+    if(!C) return;
+    Object.entries(C).forEach(([id,c])=>{ const n=parseInt(id,10)-2;
+      if(c && c.court && n>=1 && n<=6) BH.COMMU[c.court]={color:`var(--gr${n}-color)`}; });
   };
   BH.AGGLO = "Agglomération de Houma";
   BH.BAYOU = "Bayous de Terrebonne";
@@ -171,15 +175,14 @@ window.BH = window.BH || {};
     const out = [];
     Object.keys(membres).forEach(pseudo=>{
       const m = membres[pseudo] || {}, d = parPseudo[pseudo];
-      let quartier, numero, type, depuis;
-      if(m.habitation && m.habitation.quartier){
-        quartier=m.habitation.quartier; numero=String(m.habitation.numero||""); type=m.habitation.type; depuis=m.habitation.depuis||"";
-      }else if(d){
-        quartier=BH.quartierParNom(d.lieu_habitation); numero=String(d.numero||""); type=d.type_logement; depuis=d.date||"";
-      }
-      if(!quartier || !numero || !type || !BH.QUARTIERS[quartier]) return;   // non logé → absent du bottin
+      let src = null;
+      if(m.habitation && m.habitation.quartier) src = {q:m.habitation.quartier, n:m.habitation.numero, t:m.habitation.type, o:m.habitation.depuis};
+      else if(d)                                src = {q:d.lieu_habitation,      n:d.numero,           t:d.type_logement,  o:d.date};
+      if(!src || !src.q || !src.n || !src.t) return;                       // non logé → absent du bottin
+      const quartier = BH.QUARTIERS[src.q] ? src.q : BH.quartierParNom(src.q);   // clé OU nom d'affichage
+      if(!quartier) return;
       const court = m.group || (d && d.groupe) || null;
-      out.push({ pseudo, nom:pseudo, commu:court, quartier, numero, type, ordre:depuis||pseudo });
+      out.push({ pseudo, nom:pseudo, commu:court, quartier, numero:String(src.n), type:src.t, ordre:src.o||pseudo });
     });
     return out;
   }
