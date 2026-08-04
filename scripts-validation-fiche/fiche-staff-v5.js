@@ -22,55 +22,123 @@
 
   /* === RENDER PANEL === */
 
+  function creerEntete() {
+    const d = document.createElement("div");
+    d.className = "mc-head";
+    d.innerHTML = `<h1>${T.PANEL_TITRE}</h1><p>${T.PANEL_SOUS_TITRE}</p>`;
+    return d;
+  }
+
   function creerPanel() {
-    const panel = document.createElement("div");
+    const panel = document.createElement("section");
     panel.id = "fi-staff-panel";
-    panel.className = "dc-staff-panel";
+    panel.className = "sj-fiche";
     panel.innerHTML = `
-      <h3 class="dc-staff-titre">${T.STAFF_TITRE}</h3>
-      <div id="fi-staff-liste">Chargement…</div>`;
+      <div class="mc-sec-head">
+        <h2>${T.STAFF_TITRE}</h2>
+        <span class="mc-cpt" id="fi-staff-nb">0</span>
+      </div>
+      <p class="mc-sub">${T.STAFF_SOUS_TITRE}</p>
+      <div id="fi-staff-liste">${T.CHARGEMENT || "Chargement…"}</div>`;
     return panel;
   }
 
+  /* === AVATARS ===
+     Le membre poste lui-même sa demande dans ce sujet : son avatar est donc
+     déjà dans la page. On l'y lit plutôt que d'aller le chercher sur le
+     réseau ou dans le bottin des faceclaims — lequel n'a pas encore de carte
+     pour une fiche non validée.
+     [MAJ] sélecteurs dépendants du thème sj-* : .sj-postmsg et .sj-post-avatar */
+  function normPseudo(s) {
+    return String(s || "").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function indexAvatars() {
+    const idx = { parUid: {}, parNom: {} };
+    document.querySelectorAll(".sj-postmsg").forEach((post) => {
+      const img = post.querySelector(".sj-post-avatar img");
+      if (!img || !img.getAttribute("src")) return;
+      const lien = post.querySelector('a[href*="/u"]');
+      if (!lien) return;
+      const src = img.getAttribute("src");
+      const m = /\/u(\d+)/.exec(lien.getAttribute("href") || "");
+      if (m) idx.parUid[m[1]] = src;
+      const nom = (lien.textContent || "").trim();
+      if (nom) idx.parNom[normPseudo(nom)] = src;
+    });
+    return idx;
+  }
+
+  let AVATARS = { parUid: {}, parNom: {} };
+
+  function avatarHTML(d) {
+    // l'uid est plus fiable que le pseudo : il survit à un renommage
+    const src = (d.uid != null && AVATARS.parUid[String(d.uid)])
+      || AVATARS.parNom[normPseudo(d.pseudo)];
+    if (src) return `<span class="mc-av"><img src="${src}" alt=""></span>`;
+    const ini = String(d.pseudo).split(/\s+/).filter(Boolean)
+      .map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    return `<span class="mc-av">${ini}</span>`;
+  }
+
   function creerCarte(d) {
-    const carte = document.createElement("div");
-    carte.className = "dc-staff-carte fi-carte";
-    const prelienHtml = d.pre_lien
-      ? `<a href="${d.lien_pre_lien}" target="_blank">Voir le pré-lien</a>
-         <em>(+${CFG.PRIME_PRE_LIEN}$ au membre)</em>`
-      : "Non";
-    const parrainHtml = d.parrain && d.parrain !== "Personne"
-      ? `@"${d.parrain}" <em>(+${CFG.PRIME_PARRAIN}$ versés à ce membre)</em>`
-      : "Personne";
-    const dcHtml = d.multicompte
-      ? `Oui — compte racine : <strong>${d.premier_compte}</strong>` : "Non";
-    const bandeHtml = d.bande ? `${d.nom_bande} — ${d.role_bande}` : "Non";
+    const esc = (s) => String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+    const carte = document.createElement("article");
+    carte.className = "mc-dem mc-dem-fiche";
+
+    const prelien = d.pre_lien
+      ? `<a href="${esc(d.lien_pre_lien)}" target="_blank" rel="noopener">${T.STAFF_VOIR_PRELIEN}</a>
+         <em>+${CFG.PRIME_PRE_LIEN} $</em>`
+      : T.NON;
+    const mc = d.multicompte
+      ? `${T.OUI} — <strong>${esc(d.premier_compte)}</strong>` : T.NON;
+    const bande = d.bande
+      ? `${esc(d.nom_bande)} — ${esc(d.role_bande)}` : T.AUCUNE;
+    const metier = d.sans_emploi
+      ? T.SANS_EMPLOI
+      : `${esc(d.societe)} — ${esc(d.emploi)}`;
+    const habitation = `${esc(d.lieu_habitation)} — ${esc(d.type_logement)} n°${esc(d.numero)}`;
+
+    const ligne = (ic, cle, val) =>
+      `<span class="k"><i class="fi ${ic}"></i>${cle}</span><span class="v">${val}</span>`;
+
+    // Le parrainage n'apparaît que s'il y en a un, plutôt qu'une ligne « Personne ».
+    const parrain = (d.parrain && d.parrain !== "Personne")
+      ? `<div class="mc-id-l"><i class="fi fi-tr-users-alt"></i>${T.STAFF_PARRAINE(esc(d.parrain))}</div>`
+      : "";
 
     carte.innerHTML = `
-      <div class="fi-carte-entete">
-        <strong>${d.pseudo}</strong>
-        <span class="dc-staff-carte-meta">${new Date(d.date).toLocaleDateString("fr-FR")}</span>
-        — <a href="${d.lien_fiche}" target="_blank">Voir la fiche</a>
-      </div>
-      <div class="fi-carte-grille">
-        <span><em>Pré-lien</em></span>       <span>${prelienHtml}</span>
-        <span><em>Parrain</em></span>         <span>${parrainHtml}</span>
-        <span><em>Multi-compte</em></span>    <span>${dcHtml}</span>
-        <span><em>Faceclaim</em></span>       <span>${d.faceclaim}</span>
-        <span><em>Groupe</em></span>          <span>${FI.communauteLong(d.groupe)}</span>
-        <span><em>Bande</em></span>           <span>${bandeHtml}</span>
-        <span><em>Métier</em></span>          <span>${d.lieu_metier} — ${d.societe} — ${d.emploi}</span>
-        <span><em>Habitation</em></span>      <span>${d.lieu_habitation} — ${d.numero} — ${d.type_logement}</span>
+      <div class="mc-id">
+        ${avatarHTML(d)}
+        <div class="mc-id-txt">
+          <div class="mc-id-nom">${esc(d.pseudo)}</div>
+          <div class="mc-id-l"><i class="fi fi-tr-calendar"></i>${
+            T.STAFF_DEPOSEE(new Date(d.date).toLocaleDateString("fr-FR"))}</div>
+          ${parrain}
         </div>
-      <div class="dc-staff-actions">
-        <button class="fi-btn-valider dc-btn-valider" data-id="${d.id}">
-          ${T.STAFF_BTN_VALIDER}
-        </button>
-        <button class="fi-btn-refuser dc-btn-refuser" data-id="${d.id}">
-          ${T.STAFF_BTN_REFUSER}
-        </button>
       </div>
-      <div class="fi-resultat fi-resultat-${d.id}"></div>`;
+      <div class="mc-fiche-grille">
+        ${ligne("fi-tr-link-alt",        T.C_PRELIEN,     prelien)}
+        ${ligne("fi-tr-users-alt",       T.C_MULTICOMPTE, mc)}
+        ${ligne("fi-tr-user-pen",        T.C_FACECLAIM,   esc(d.faceclaim))}
+        ${ligne("fi-tr-shield",          T.C_COMMUNAUTE,  esc(FI.communauteLong(d.groupe)))}
+        ${ligne("fi-tr-briefcase",       T.C_METIER,      metier)}
+        ${ligne("fi-tr-house-blank",     T.C_HABITATION,  habitation)}
+        ${ligne("fi-ts-badge-sheriff",   T.C_BANDE,       bande)}
+      </div>
+      <div class="mc-dem-act">
+        <a class="mc-btn lg" href="${esc(d.lien_fiche)}" target="_blank" rel="noopener">
+          <i class="fi fi-ts-circle-book-open"></i> ${T.STAFF_BTN_VOIR}</a>
+        <button class="mc-btn ok lg" data-act="valider" data-id="${esc(d.id)}">
+          <i class="fi fi-tr-check"></i> ${T.STAFF_BTN_VALIDER}</button>
+        <button class="mc-btn no lg" data-act="refuser" data-id="${esc(d.id)}">
+          <i class="fi fi-tr-cross-small"></i> ${T.STAFF_BTN_REFUSER}</button>
+      </div>
+      <div class="fi-resultat fi-resultat-${esc(d.id)}"></div>`;
     return carte;
   }
 
@@ -80,15 +148,24 @@
     const rec = await window.EcoCore.safeReadBin();
     if (!rec) { listeEl.textContent = T.ERR_DONNEES; return; }
 
-    const demandes = FI.versTableau(rec.demandes_fiche).filter((d) => d.statut === "en_attente");
-    if (!demandes.length) { listeEl.innerHTML = `<em>${T.STAFF_AUCUNE}</em>`; return; }
+    // Index reconstruit à chaque rendu : la page a pu être paginée entre-temps.
+    AVATARS = indexAvatars();
 
+    const demandes = FI.versTableau(rec.demandes_fiche).filter((d) => d.statut === "en_attente");
+    const cpt = document.getElementById("fi-staff-nb");
+    if (cpt) cpt.textContent = demandes.length;
+
+    if (!demandes.length) {
+      listeEl.innerHTML = `<p class="mc-vide">${T.STAFF_AUCUNE}</p>`;
+      return;
+    }
     listeEl.innerHTML = "";
     demandes.forEach((d) => {
       const carte = creerCarte(d);
-      carte.querySelector(".fi-btn-valider")
+      // accroches par data-act : les classes dc-btn-* portent encore du style
+      carte.querySelector('[data-act="valider"]')
         .addEventListener("click", () => ouvrirModalValidation(d, listeEl));
-      carte.querySelector(".fi-btn-refuser")
+      carte.querySelector('[data-act="refuser"]')
         .addEventListener("click", () => refuser(d, carte, listeEl));
       listeEl.appendChild(carte);
     });
@@ -380,8 +457,9 @@ appliquerActions(rec, demande);
       || CFG.STAFF_USERS.includes(pseudo);
     if (!estStaff) return;
 
-    const panel = creerPanel();
+   const panel = creerPanel();
     ancrage.prepend(panel);
+    ancrage.prepend(creerEntete());
     chargerDemandes(panel.querySelector("#fi-staff-liste"))
       .catch((e) => {
         const el = panel.querySelector("#fi-staff-liste");
