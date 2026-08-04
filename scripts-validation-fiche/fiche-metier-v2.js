@@ -65,6 +65,7 @@
     ERR_MET_ENT_TYPE:"⚠️ Le secteur d'activité est requis.",
     ERR_MET_COMPLET: "⚠️ Ce poste vient d'être pourvu. Choisissez-en un autre.",
     ERR_MET_ZCATS:   "❌ Configuration des zones indisponible (tdl-zcats.js non chargé).",
+    MET_HORS_BOTTIN: "Hors bottin",
   });
 
   /* === DONNÉES ===
@@ -335,6 +336,53 @@
     const u = {}; u["emplois/" + e.id + "/roles"] = roles;
     await E.firebaseUpdate(u);
     return { ok: true, entreprise: e.id };
+  };
+
+  /* === RÉSUMÉ (affichage BBCode et carte staff) ===
+     Évite la ligne « — — Sans emploi — — » qu'un simple assemblage produirait. */
+  FI.metierResume = function (d) {
+    if (d.sans_emploi) return T.MET_SANS_EMPLOI;
+    const bouts = [d.lieu_metier, d.societe, d.emploi].filter((x) => x && x !== "—");
+    return bouts.join(" — ") || T.MET_HORS_BOTTIN;
+  };
+
+  /* === LIBÉRATION (refus ou abandon de la demande) ===
+     Retire le rôle réservé — et lui seul : un rôle déjà confirmé n'est jamais
+     touché. Une activité créée pour cette demande et jamais publiée est
+     supprimée en entier, lieu compris : elle n'a pas d'existence propre. */
+  FI.metierLiberer = async function (d) {
+    if (d.sans_emploi) return { ok: true };
+    const E = window.EcoCore;
+    if (!E || typeof E.firebaseUpdate !== "function") return { ok: false };
+
+    const rec = await E.safeReadBin();
+    const emplois = (rec && rec.emplois) || {};
+    const lieux   = (rec && rec.lieux)   || {};
+
+    let id = d.metier_entreprise;
+    if (!id && d.metier_mode === "activite") {
+      id = Object.keys(emplois).find((k) => emplois[k].referent === d.pseudo
+        && vt(emplois[k].roles).some((x) => x && x.nom === d.pseudo && x.attente));
+    }
+    if (!id || !emplois[id]) return { ok: false, introuvable: true };
+
+    const u = {};
+    if (d.metier_mode === "activite" && lieux[id] && lieux[id].masque) {
+      u["lieux/" + id]   = null;
+      u["emplois/" + id] = null;
+      await E.firebaseUpdate(u);
+      return { ok: true, supprime: true };
+    }
+    const roles = vt(emplois[id].roles).filter((r) => {
+      if (!r) return false;
+      const cible = (d.uid != null && r.uid != null)
+        ? String(r.uid) === String(d.uid)
+        : r.nom === d.pseudo;
+      return !(cible && r.poste === d.metier_poste && r.attente);
+    });
+    u["emplois/" + id + "/roles"] = roles;
+    await E.firebaseUpdate(u);
+    return { ok: true };
   };
 
   /* === ATTRIBUTION (à la validation de la fiche) ===
