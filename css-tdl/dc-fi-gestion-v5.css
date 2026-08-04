@@ -488,7 +488,7 @@
 
 /* ---------- GROUPES ---------- */
 .mc-tbl{width:100%;border-collapse:collapse}
-.mc-tbl th{font-family:var(--txt3);font-size:14px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+.mc-tbl th{font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
   color:var(--darkopa5);text-align:left;padding:9px 11px;border-bottom:1px solid var(--cntr4);background:var(--cntr2)}
 .mc-tbl td{padding:12px 11px;border-bottom:1px solid var(--cntr4);vertical-align:middle}
 .mc-tbl tr:last-child td{border-bottom:0}
