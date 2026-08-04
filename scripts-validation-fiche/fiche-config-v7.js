@@ -131,18 +131,35 @@ window.FI.TEXTES = {
   CONFIRMATION: "✅ Ta demande a été envoyée ! Clique sur « Envoyer » dans la réponse rapide ci-dessous.",
 
   /* Panel staff */
-  STAFF_TITRE:           "Panel Staff — Fiches en attente de validation",
+PANEL_TITRE:           "Gestion des fiches",
+  PANEL_SOUS_TITRE:      "Panel staff",
+  STAFF_TITRE:           "Fiches en attente de validation",
+  STAFF_SOUS_TITRE:      "Fiches de présentation en attente de validation par le staff.",
+  STAFF_BTN_VALIDER:     "Valider la fiche",
+  STAFF_BTN_VOIR:        "Voir la fiche",
+  STAFF_VOIR_PRELIEN:    "Voir le pré-lien",
+  STAFF_DEPOSEE:         (date) => `Demande déposée le ${date}`,
+  STAFF_PARRAINE:        (nom) => `Parrainé(e) par ${nom}`,
+  /* libellés de la grille */
+  C_PRELIEN:     "Pré-lien",
+  C_MULTICOMPTE: "Multi-compte",
+  C_FACECLAIM:   "Faceclaim",
+  C_COMMUNAUTE:  "Communauté",
+  C_METIER:      "Métier",
+  C_HABITATION:  "Habitation",
+  C_BANDE:       "Bande",
+  OUI: "Oui", NON: "Non", AUCUNE: "Aucune", SANS_EMPLOI: "Sans emploi",
+  
   STAFF_AUCUNE:          "Aucune demande en attente.",
   STAFF_TITRE_MODAL:     (pseudo) => `✅ Valider la fiche de ${pseudo}`,
   STAFF_LABEL_MSG:       "Message personnalisé (apparaîtra dans le post de validation) :",
-  STAFF_BTN_VALIDER:     "✅ Valider la fiche",
   STAFF_BTN_CONFIRMER:   "Confirmer et poster",
   STAFF_BTN_ANNULER:     "Annuler",
   STAFF_ERR_POSTING:     "❌ Impossible de poster dans la fiche.",
   STAFF_OK:              (pseudo) => `✅ Fiche de ${pseudo} validée et message posté.`,
   STAFF_FC_CONFLIT:  "⚠️ Ce faceclaim était réservé par un autre membre — vérifie qu'il n'y a pas de conflit.",
   STAFF_FC_ECHEC:    "⚠️ Carte faceclaim non mise à jour — à créer manuellement via le panneau admin.",
-  STAFF_BTN_REFUSER:       "✕ Refuser",
+  STAFF_BTN_REFUSER:       "Refuser",
   STAFF_CONFIRM_REFUS:     (pseudo) =>
     `Refuser la fiche de "${pseudo}" ?\n\n`
     + `La demande sera effacée et le poste réservé libéré.\n`
