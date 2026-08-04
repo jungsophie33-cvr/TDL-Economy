@@ -459,7 +459,7 @@
 .mc-id-l{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);margin-top:3px;
   display:flex;align-items:center;gap:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mc-id-l i{font-size:14px;line-height:1;color:var(--dark2);flex:none}
-.mc-res{font-family:var(--font0);font-size:15px;line-height:1.5;color:var(--darkopa8);
+.mc-res{font-family:var(--font0);font-size:15px;line-height:1.5;color:var(--darkopa8); text-indent:0!important;
   max-height:150px;overflow:auto;padding-right:6px;margin:0}
 .mc-dem-act{display:flex;flex-direction:column;gap:7px;flex:none;align-self:center}
 /* zone de message d'une demande : pleine largeur sous les trois colonnes.
