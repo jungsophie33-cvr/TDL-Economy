@@ -66,6 +66,9 @@
         <button class="fi-btn-valider dc-btn-valider" data-id="${d.id}">
           ${T.STAFF_BTN_VALIDER}
         </button>
+        <button class="fi-btn-refuser dc-btn-refuser" data-id="${d.id}">
+          ${T.STAFF_BTN_REFUSER}
+        </button>
       </div>
       <div class="fi-resultat fi-resultat-${d.id}"></div>`;
     return carte;
@@ -85,6 +88,8 @@
       const carte = creerCarte(d);
       carte.querySelector(".fi-btn-valider")
         .addEventListener("click", () => ouvrirModalValidation(d, listeEl));
+      carte.querySelector(".fi-btn-refuser")
+        .addEventListener("click", () => refuser(d, carte, listeEl));
       listeEl.appendChild(carte);
     });
   }
@@ -200,6 +205,44 @@ appliquerActions(rec, demande);
     return true;
   }
 
+  /* === REFUS ===
+     Aucun message posté : le refus se règle en MP. La demande est effacée de
+     la base, et surtout le poste réservé est libéré — sans ça il resterait
+     bloqué indéfiniment dans le bottin des métiers. */
+
+  async function refuser(demande, carteEl, listeEl) {
+    if (!confirm(T.STAFF_CONFIRM_REFUS(demande.pseudo))) return;
+    const resultatEl = carteEl.querySelector(".fi-resultat");
+
+    // Libération d'abord : writeBin réécrit toute la racine et effacerait
+    // cette écriture si elle venait après.
+    let avert = "";
+    try {
+      const r = await FI.metierLiberer(demande);
+      if (r && r.supprime)    avert = `<br><small>${T.STAFF_REFUS_ACTIVITE}</small>`;
+      else if (r && r.introuvable) avert = `<br><small>${T.STAFF_REFUS_INTROUVABLE}</small>`;
+    } catch (e) {
+      avert = `<br><small>${T.STAFF_REFUS_METIER_ECHEC}</small>`;
+      if (window.console) console.error("[fiche-staff] metierLiberer", e);
+    }
+
+    try {
+      if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
+      const rec = await window.EcoCore.readBin();
+      if (!rec) { FI.afficherResultat(resultatEl, "erreur", T.ERR_DONNEES); return; }
+      rec.demandes_fiche = FI.versTableau(rec.demandes_fiche)
+        .filter((x) => x.id !== demande.id);
+      await window.EcoCore.writeBin(rec);
+    } catch (e) {
+      FI.afficherResultat(resultatEl, "erreur",
+        `${T.STAFF_REFUS_ECHEC}<br><small>${(e && e.message) || e}</small>`);
+      return;
+    }
+
+    FI.afficherResultat(resultatEl, "succes", T.STAFF_REFUS_OK(demande.pseudo) + avert);
+    setTimeout(() => chargerDemandes(listeEl), 2000);
+  }
+  
   /* === ACTIONS === */
 
   // Centralise toutes les mutations du JSONBin post-validation dans une seule fonction.
