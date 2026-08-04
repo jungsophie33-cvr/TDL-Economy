@@ -618,3 +618,23 @@
 
 .fi-aide{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);
   line-height:1.55;margin:0 0 10px}
+
+/* ---------- CARTE DE FICHE EN ATTENTE ----------
+   Reprend .mc-dem du panneau multi-comptes ; seule la colonne centrale
+   diffère : une grille clé/valeur au lieu d'un résumé libre. */
+.mc-dem-fiche .mc-dem-act{border-left:1px solid var(--cntr4);padding-left:18px}
+.mc-fiche-grille{display:grid;grid-template-columns:auto minmax(0,1fr);
+  gap:7px 16px;align-items:baseline}
+.mc-fiche-grille .k{display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--txt3);font-size:14px;color:var(--darkopa6);white-space:nowrap}
+.mc-fiche-grille .k i{font-size:14px;line-height:1;color:var(--dark2)}
+.mc-fiche-grille .v{font-family:var(--font0);font-size:15px;color:var(--txt);line-height:1.35}
+.mc-fiche-grille .v em{font-family:var(--txt3);font-size:13px;color:var(--dark2);font-style:normal}
+.mc-fiche-grille .v a{color:var(--dark2)}
+/* « Voir la fiche » est un lien, pas un bouton : il doit s'aligner comme les autres */
+a.mc-btn{text-decoration:none}
+
+@media(max-width:900px){
+  .mc-dem-fiche .mc-dem-act{border-left:0;padding-left:0}
+  .mc-fiche-grille{grid-column:1/-1}
+}
