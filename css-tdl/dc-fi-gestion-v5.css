@@ -381,7 +381,7 @@
    BLOCS : EN-TÊTE · SECTIONS · DEMANDES · BOUTONS · GROUPES
            SUPPRESSION · APPEL À L'ACTION · MODALE · RESPONSIVE
    ============================================================ */
-
+.demande-dc {text-align:left; font-size:14px;}
 /* ---------- EN-TÊTE ---------- */
 .mc-head{border-left:3px solid var(--clair2);padding-left:14px;margin-bottom:22px}
 .mc-head h1{font-family:var(--title1);font-weight:600;font-size:24px;letter-spacing:.06em;
