@@ -486,9 +486,9 @@ div#Virtual_20Life.sj-main-cate .sj-lastp-avatar {width: 85px; height: 100px; bo
 div#Virtual_20Life.sj-main-cate .sj-lastp-avatar img {width: 85px; height: 100px;}
 div#Virtual_20Life.sj-main-cate .sj-catetitre:before, div#\/f32-alertes-locales .sj-catetitre:before, div#\/f2-whatsapp .sj-catetitre:before, div#\/f13-instagram .sj-catetitre:before {font-family: "uicons-thin-rounded"; position: relative;left: -32%;top: 20px;font-size: 1.6em;color: var(--clair1);}
 div#Virtual_20Life.sj-main-cate .sj-catetitre a {margin-top:0px!important;}
-div#\/f32-alertes-locales .sj-catetitre:before {content: "\f4b7";}
-div#\/f2-whatsapp .sj-catetitre:before {content: "\ec52";}
-div#\/f13-instagram .sj-catetitre:before {content: "\e41c";}
+div#\/f32-alertes-locales .sj-catetitre:before {content: "\f60e";}
+div#\/f2-whatsapp .sj-catetitre:before {content: "\e428";}
+div#\/f13-instagram .sj-catetitre:before {content: "\e385";}
 div#\/f32-alertes-locales .sj-catetitre a, div#\/f2-whatsapp .sj-catetitre a, div#\/f13-instagram .sj-catetitre a {margin-top:-10px;}
 
 /* ----- LIENS SPECIAUX ----- */
