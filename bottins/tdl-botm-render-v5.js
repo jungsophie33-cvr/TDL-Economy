@@ -26,6 +26,11 @@ BM.renderCats = function(ligne){
       +'<span class="bm-ci"><i class="fi '+c.ic+'"></i></span><span class="bm-cl">'+esc(c.label)+'</span></button>';
   }).join('')+'</div>';
 };
+/* Un brouillon soumis par son référent se distingue d'un brouillon en cours
+   de rédaction : c'est ce qui signale au staff qu'il y a quelque chose à faire. */
+function labelBrouillon(e){ return e.soumis ? T.aValider : T.brouillon; }
+function couleurBrouillon(e){ return e.soumis ? 'var(--gr1-color)' : 'var(--clair2)'; }
+
 BM.pastille = function(e){
   if(BM.directionLibre(e)) return '<span class="bm-dot libre" title="'+T.legDir+'"></span>';
   if(BM.estComplet(e)) return '<span class="bm-dot complet" title="'+T.legComplet+'"></span>';
@@ -40,7 +45,7 @@ function vueMur(){
     const n = BM.libres(e);
     return '<article class="bm-fc" data-open="'+e.id+'">'
       +'<div class="bm-fc-top"><span class="bm-cote">'+esc(BM.ZC.labelCat(e.cat))+'</span>'
-      +(e.brouillon?'<span class="bm-stamp" style="--sc:var(--clair2)">'+T.brouillon+'</span>':'')+'</div>'
+      +(e.brouillon?'<span class="bm-stamp" style="--sc:'+couleurBrouillon(e)+'">'+labelBrouillon(e)+'</span>':'')+'</div>'
       +'<span class="bm-nom">'+esc(e.nom)+'</span>'
       +'<div class="bm-fc-sec">'+esc(e.type||'')+'</div>'
       +'<div class="bm-fc-foot">'+(BM.pastille(e)||'<span></span>')
@@ -58,7 +63,7 @@ function vuePanneau(){
       +(c.c||'var(--dark)')+';--soft:'+(c.soft||'var(--cntr2)')+'">'
       +'<span class="bm-ric">'+icone(e.ic)+'</span>'
       +'<span class="bm-rtxt"><span class="bm-rnom">'+esc(e.nom)
-        +(e.brouillon?'<span class="bm-exq">'+T.brouillon+'</span>':'')+'</span>'
+        +(e.brouillon?'<span class="bm-exq'+(e.soumis?' soumis':'')+'">'+labelBrouillon(e)+'</span>':'')+'</span>'
       +'<span class="bm-rmeta">'+esc(e.type||'')+'</span></span>'
       +BM.pastille(e)+'</div>';
   }).join('') : '<div class="bm-empty">'+T.aucune+'</div>';
@@ -90,7 +95,7 @@ BM.detailHTML = function(){
   const head = '<div class="bm-phead'+(e.img?' bm-img':'')+'"'
     +(e.img?' style="background-image:url(\''+esc(e.img)+'\')"':'')+'>'
     +'<p class="bm-peyebrow">'+esc(BM.ZC.titreZone(e.zone))+' · '+esc(BM.ZC.labelCat(e.cat))+'</p>'
-    +'<h2>'+esc(e.nom)+(e.brouillon?'<span class="bm-stamp" style="--sc:var(--clair2)">'+T.brouillon+'</span>':'')+'</h2>'
+    +'<h2>'+esc(e.nom)+(e.brouillon?'<span class="bm-stamp" style="--sc:'+couleurBrouillon(e)+'">'+labelBrouillon(e)+'</span>':'')+'</h2>'
     +'<p class="bm-pmeta">'+esc(e.type||'')+(e.referent?T.referentPrefixe+esc(e.referent):'')+'</p>'
     +(e.amb&&e.amb!=='—'?'<p class="bm-pamb">'+esc(e.amb)+'</p>':'')
     +'</div>';
@@ -259,6 +264,10 @@ function barreActions(e, ed){
   const conf = S.confirmDel===e.id;
   let b = '';
   if(ed) b += '<button class="bm-abtn" data-do="edit" data-id="'+e.id+'"><i class="fi fi-tr-pencil"></i> '+T.modifier+'</button>';
+  /* le référent signale que sa fiche est prête ; seul le staff publie */
+  if(!S.admin && ed && e.brouillon) b += e.soumis
+    ? '<span class="bm-ab-note">'+T.dejaSoumis+'</span>'
+    : '<button class="bm-abtn" data-do="soumettre" data-id="'+e.id+'"><i class="fi fi-tr-paper-plane"></i> '+T.soumettre+'</button>';
   if(S.admin && e.brouillon) b += '<button class="bm-abtn" data-do="publier" data-id="'+e.id+'">'+T.publier+'</button>';
   if(S.admin) b += conf
     ? '<button class="bm-abtn dgr" data-do="delok" data-id="'+e.id+'">'+T.confRetirer+'</button>'
