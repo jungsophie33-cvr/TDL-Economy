@@ -14,7 +14,7 @@ html:has(.tdlh-rep)#min-width, body:has(.tdlh-rep), #wrap:has(.tdlh-rep), #sj-ma
 /* ---- wrapper + app (calqué .tdlr-rep / .tdlr-app) ---- */
 .tdlh-rep{position:fixed;inset:0;z-index:99990;display:flex;justify-content:center;
   background:var(--bgimg) no-repeat center center;background-size:cover;
-  color:var(--txt);font-family:var(--txt2);font-size:17px;line-height:1.4;text-align:left}
+  color:var(--txt);font-family:var(--font0);font-size:15px;line-height:1.4;text-align:left}
 .tdlh-rep *{box-sizing:border-box}
 .tdlh-rep br{display:none}                       /* [MAJ] FA injecte des <br> entre siblings */
 /* fond de l'app OPAQUE : var(--clair1) */
