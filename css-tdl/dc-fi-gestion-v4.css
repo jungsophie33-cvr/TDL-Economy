@@ -597,3 +597,24 @@
   .mc-tbl tr{display:block;border-bottom:1px solid var(--cntr4);padding:11px 0}
   .mc-modal{padding:18px 16px 22px}
 }
+
+/* ============================================================
+   TDL — Bloc « Métier » du formulaire de validation de fiche
+   À ajouter à dc-fi-gestion.css. Réutilise .fi-label, .fi-input,
+   .fi-select, .fi-fieldset, .fi-conditionnel déjà définis.
+   ============================================================ */
+
+/* case « sans emploi » : coupe tout le bloc en dessous */
+.fi-check{display:inline-flex;align-items:center;gap:8px;margin:4px 0 12px;
+  font-family:var(--txt3);font-size:14px;color:var(--txt);cursor:pointer}
+.fi-check input{width:16px;height:16px;accent-color:var(--dark)}
+
+/* les deux échappatoires : créer son poste, créer son activité */
+.fi-met-actions{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+.fi-met-lien{font-family:var(--txt3);font-size:14px;background:var(--cntr3);
+  border:1px solid var(--cntr7);border-radius:5px;padding:4px 10px;cursor:pointer;
+  color:var(--dark);transition:.15s}
+.fi-met-lien:hover{background:var(--dark);color:var(--clair1);border-color:var(--dark)}
+
+.fi-aide{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);
+  line-height:1.55;margin:0 0 10px}
