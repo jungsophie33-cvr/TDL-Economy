@@ -15,7 +15,7 @@ window.BHL_CONFIG = (function () {
 
     /* ---------- LA MAIN DE LA PROVIDENCE ---------- */
     main: {
-      nom:"Main de la Providence", devise:"Discrétion · Influence · Contrôle",
+      nom:"La Main de la Providence", devise:"Discrétion · Influence · Contrôle",
       // types joueur (la position « La Main / le Chef » se pose en staff, hors liste)
       types:{ cavalier:"Cavalier", doigt:"Doigt", reseau:"Réseau d'influence" },
       // 5 Doigts — porteurs & domaines CANON (Blackford_Dossier_Secret §5.2)
@@ -35,7 +35,7 @@ window.BHL_CONFIG = (function () {
 
     /* ---------- LES MARINGOUINS ---------- */
     maringouins: {
-      nom:"Maringouins", devise:"Débrouillards · Solidaires · Indépendants",
+      nom:"Les Maringouins", devise:"Débrouillards · Solidaires · Indépendants",
       // cellules : éditables en staff (ajout/retrait de zones = tags) ; nouvelles cellules en brouillon
       cellules:{
         salespattes:{ nom:"Les Sales Pattes", zones:["Houma & périphérie","Bayou Cane","Bayou Blue"], devise:"On agit vite avant qu'il soit trop tard." },
@@ -46,7 +46,7 @@ window.BHL_CONFIG = (function () {
 
     /* ---------- LES BRACONNEURS ---------- */
     braconneurs: {
-      nom:"Braconneurs", devise:"Discrets · Expérimentés · Indispensables",
+      nom:"Les Braconneurs", devise:"Discrets · Expérimentés · Indispensables",
       // 4 spécialités — libellés CANON (lore Braconneurs)
       specialites:{
         trappeurs:   { nom:"Les Trappeurs de fond", desc:"Mammifères & fourrures" },
@@ -58,13 +58,13 @@ window.BHL_CONFIG = (function () {
 
     /* ---------- LES FAISEUSES D'ANGES ---------- */
     faiseuses: {
-      nom:"Faiseuses d'Anges", devise:"Bienveillantes · Discrètes · Indispensables",
+      nom:"Les Faiseuses d'Anges", devise:"Bienveillantes · Discrètes · Indispensables",
       categories:{ medicale:"Intervention médicale", psycho:"Soutien psychologique" },
     },
 
     /* ---------- LES SORCIÈRES DU BARON ---------- */
     sorcieres: {
-      nom:"Sorcières du Baron", devise:"Anciens chemins · Savoirs vivants",
+      nom:"Les Sorcières du Baron", devise:"Anciens chemins · Savoirs vivants",
       // rôle rituel → catégorie de bandeau dérivée (cat)
       roles:{
         houngan:    { nom:"Prêtre (Houngan)",   cat:"pretres" },
@@ -81,7 +81,7 @@ window.BHL_CONFIG = (function () {
 
     /* ---------- LA FLOTTILLE ---------- */
     flottille: {
-      nom:"Flottille", devise:"Sur l'eau · Libres · Solidaires",
+      nom:"La Flottille", devise:"Sur l'eau · Libres · Solidaires",
       types:{ equipage:"Équipage d'un navire", independant:"Navire indépendant", contact:"Contact à quai" },
       // 5 navires canon : 4 à équipage + L'Inattendue (seul indépendant prédéfini)
       navires:{
