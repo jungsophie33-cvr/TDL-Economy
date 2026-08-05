@@ -2,8 +2,10 @@
    TDL — BANDES HORS-LA-LOI · CSS (prefixe tdlb-)
    Tokens (:root) et reset globaux (thème). Squelette commun + onglet Faiseuses.
    ============================================================ */
+html:has(.tdlb-rep), body:has(.tdlb-rep){overflow:hidden}
+html:has(.tdlb-rep)#min-width, body:has(.tdlb-rep), #wrap:has(.tdlb-rep), #sj-main:has(.tdlb-rep){min-width:0 !important}
 .tdlb-rep{position:fixed;inset:0;display:flex;justify-content:center;background:var(--bgimg) center/cover no-repeat,var(--bg);
-  color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:5}
+  color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990}
 .tdlb-rep *{box-sizing:border-box}
 .tdlb-rep br{display:none}
 .tdlb-app{width:80%;height:100%;background:var(--clair1);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
