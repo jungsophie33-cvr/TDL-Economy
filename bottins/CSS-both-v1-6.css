@@ -17,7 +17,7 @@ html:has(.tdlh-rep)#min-width, body:has(.tdlh-rep), #wrap:has(.tdlh-rep), #sj-ma
   color:var(--txt);font-family:var(--txt2);font-size:17px;line-height:1.4;text-align:left}
 .tdlh-rep *{box-sizing:border-box}
 .tdlh-rep br{display:none}                       
-.tdlh-app{width:80%;height:100%;background:var(--clair1);display:flex;flex-direction:column;
+.tdlh-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa5));display:flex;flex-direction:column;
   overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
 
 /* ---- en-tête (tdlr-topbar) ---- */
@@ -146,7 +146,7 @@ body.tdlh-body-admin .tdlh-adminonly{display:inline-flex}
 /* ============================================================
    BARRE D'ACTIONS (tdle-actionbar / tdle-abtn)
    ============================================================ */
-.tdlh-actionbar{flex:none;background:var(--clair1);border-top:1px solid var(--cntr5);padding:12px 26px;
+.tdlh-actionbar{flex:none;background:var(--cntr3);border-top:1px solid var(--cntr5);padding:12px 26px;
   display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .tdlh-abtn{font-family:var(--txt3);font-size:12px;text-transform:uppercase;padding:2px 5px;cursor:pointer;
   border:1px solid var(--cntr7);background:var(--cntr3);color:var(--dark);border-radius:5px;
