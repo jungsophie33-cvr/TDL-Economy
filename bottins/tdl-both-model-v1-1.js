@@ -124,7 +124,7 @@ window.BH = window.BH || {};
       vois:"pêcheurs, ouvriers de marine, saisonniers de Port Fourchon.",
       desc:"Village côtier de 600 habitants sur la pointe sud de la LA-56, avec des camps sur pilotis, cabanes en bois battues par les vents salins. L'eau monte régulièrement ici et même sans être pêcheur, il est impensable de s'installer sans avoir de quoi naviguer.",
       types:["Cabanes sur hauts pilotis","Trailers"] },
-    lostbayou:{ nom:"Lost Bayou", zone:B, prix:"$ à $$", draft:true,
+    lostbayou:{ nom:"Lost Bayou", zone:B, prix:"$ à $$",
       amb:["Isolé","Ancrage spectre","Bout de terre oublié"], com:["Spectres"],
       vois:"à écrire — fief des Spectres.",
       desc:"[BROUILLON — à rédiger] Bras d'eau reculé où les Spectres se sont établis à l'écart d'Old Houma. Cabanes dispersées, accès difficile, forte cohésion communautaire.",
