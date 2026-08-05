@@ -77,7 +77,7 @@ body.tdlh-body-admin .tdlh-adminonly{display:inline-flex}
 .tdlh-qhead h2{font-family:var(--title1);font-weight:500;font-size:36px;letter-spacing:.06em;
   color:var(--clair1);margin:0 0 14px;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.55)}
 .tdlh-tags{display:flex;flex-wrap:wrap;gap:7px}
-.tag-amb, .tag-com, tdlh-price {font-family:var(--txt3);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:5px}
+.tag-amb, .tag-com, .tdlh-price {font-family:var(--txt3);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:5px}
 .tag-amb{color:var(--dark);background:var(--clair1opa8);}
 .tag-com{color:var(--clair1);background:var(--clair2opa8);}
 .tdlh-price{position:absolute;top:20px;right:26px;color:var(--clair1);background:var(--dark2opa8);}
