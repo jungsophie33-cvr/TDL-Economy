@@ -21,13 +21,13 @@ html:has(.tdlh-rep)#min-width, body:has(.tdlh-rep), #wrap:has(.tdlh-rep), #sj-ma
   overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
 
 /* ---- en-tête (tdlr-topbar) ---- */
-.tdlh-top{flex:none;display:flex;align-items:center;gap:16px;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
+.tdlh-top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
 .tdlh-home{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:14px;
   text-transform:uppercase;color:var(--darkopa6);text-decoration:none;background:var(--cntr4);
   border-radius:7px;padding:8px 14px;cursor:pointer;transition:.15s}
 .tdlh-home:hover{background:var(--darkopa7);color:var(--clair1)}
-.tdlh-eyebrow{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:600;
-  font-size:26px;letter-spacing:.02em;text-transform:uppercase;}
+.tdlh-eyebrow{text-align:center;margin:0;font-family:var(--title1);font-weight:500;
+  font-size:30px;letter-spacing:2px;text-transform:uppercase;line-height:1}
 .tdlh-edit{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;
   background:var(--cntr4);color:var(--darkopa7);text-decoration:none;font-size:16px;transition:.15s}
 .tdlh-edit:hover{background:var(--darkopa7);color:var(--clair1)}
@@ -54,10 +54,10 @@ body.tdlh-body-admin .tdlh-adminonly{display:inline-flex}
   padding:9px 26px;border-bottom:1px solid var(--cntr4)}
 .tdlh-count{display:inline-flex;flex-direction:column;align-items:center;line-height:1}
 .tdlh-count b{font-family:var(--font2);font-style:italic;font-weight:500;font-size:30px;color:var(--dark)}
-.tdlh-count span{font-family:var(--title1);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--darkopa5);margin-top:4px}
+.tdlh-count span{font-family:var(--title1);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--darkopa5);margin-top:4px}
 .tdlh-vue{display:inline-flex;border:1px solid var(--cntr7);border-radius:7px;overflow:hidden;background:var(--cntr3)}
-.tdlh-vue button{font-family:var(--txt3);font-size:14px;letter-spacing:.06em;text-transform:uppercase;
-  padding:8px 16px;border:0;background:transparent;color:var(--darkopa6);cursor:pointer}
+.tdlh-vue button{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  padding:8px 14px;border:0;background:transparent;color:var(--darkopa6);cursor:pointer}
 .tdlh-vue button[aria-pressed="true"]{background:var(--dark);color:var(--clair1)}
 
 /* ---- corps scrollable (scrollbar native, non personnalisée) ---- */
@@ -77,14 +77,10 @@ body.tdlh-body-admin .tdlh-adminonly{display:inline-flex}
 .tdlh-qhead h2{font-family:var(--title1);font-weight:500;font-size:36px;letter-spacing:.06em;
   color:var(--clair1);margin:0 0 14px;text-transform:uppercase;text-shadow:0 2px 14px rgba(0,0,0,.55)}
 .tdlh-tags{display:flex;flex-wrap:wrap;gap:7px}
-.tag-amb{font-family:var(--txt3);font-size:13px;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--dark);background:var(--clair1opa8);padding:5px 11px;border-radius:5px}
-.tag-com{font-family:var(--txt3);font-size:13px;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--clair1);background:var(--clair2opa8);padding:5px 11px;border-radius:5px}
-.tdlh-price{position:absolute;top:20px;right:26px;font-family:var(--txt3);font-size:13px;
-  letter-spacing:.12em;color:var(--clair1);background:var(--dark2opa8);padding:7px 13px;border-radius:5px}
-.tdlh-draft{position:absolute;top:20px;left:26px;font-family:var(--txt3);font-size:13px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--dark);background:var(--clair2opa6);padding:6px 11px;border-radius:5px}
+.tag-amb, .tag-com, tdlh-price {font-family:var(--txt3);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:5px 11px;border-radius:5px}
+.tag-amb{color:var(--dark);background:var(--clair1opa8);}
+.tag-com{color:var(--clair1);background:var(--clair2opa8);}
+.tdlh-price{position:absolute;top:20px;right:26px;color:var(--clair1);background:var(--dark2opa8);}
 
 /* sections texte : padding latéral seulement (le hero fait la coupure) */
 .tdlh-sec{padding:20px 34px 0}
