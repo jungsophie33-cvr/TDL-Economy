@@ -2,8 +2,8 @@
    TDL — REGISTRE PAROISSIAL (bottin multi-comptes) · CSS
    Prefixe tdlm-. Les tokens (:root) et le reset sont globaux (thème).
    ============================================================ */
-html:has(.tdlm-re), body:has(.tdlm-re){overflow:hidden}
-html:has(.tdlm-re)#min-width, body:has(.tdlm-re), #wrap:has(.tdlm-re), #sj-main:has(.tdlm-re){min-width:0 !important}
+html:has(.tdlm-rep), body:has(.tdlm-rep){overflow:hidden}
+html:has(.tdlm-rep)#min-width, body:has(.tdlm-rep), #wrap:has(.tdlm-rep), #sj-main:has(.tdlm-rep){min-width:0 !important}
 .tdlm-rep{position:fixed;inset:0;display:flex;justify-content:center;background:var(--bgimg) center/cover no-repeat,var(--bg);
   color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990;text-align:left; line-height:1em;}
 .tdlm-rep *{box-sizing:border-box}
