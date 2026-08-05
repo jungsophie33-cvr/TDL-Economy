@@ -11,15 +11,15 @@ html:has(.tdlm-rep)#min-width, body:has(.tdlm-rep), #wrap:has(.tdlm-rep), #sj-ma
 .tdlm-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa5));display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
 
 /* en-tête */
-.tdlm-top{flex:none;display:flex;align-items:center;gap:16px;padding:16px 30px 12px;border-bottom:1px solid var(--cntr4)}
+.tdlm-top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 30px 12px;border-bottom:1px solid var(--cntr4)}
 .tdlm-home,.tdlm-edit{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:14px;text-transform:uppercase;
   color:var(--darkopa6);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px;cursor:pointer;transition:.15s}
 .tdlm-home:hover,.tdlm-edit:hover{background:var(--darkopa7);color:var(--clair1)}
 .tdlm-edit{width:38px;height:38px;justify-content:center;border-radius:50%;padding:0;font-size:16px}
 .tdlm-adminonly{display:none}
 body.tdlm-body-admin .tdlm-adminonly{display:inline-flex}
-.tdlm-htitle{flex:1;text-align:center}
-.tdlm-htitle h1{font-family:var(--title1);font-weight:600;font-size:28px;letter-spacing:.12em;text-transform:uppercase;margin:0}
+.tdlm-htitle{text-align:center}
+.tdlm-htitle h1{font-family:var(--title1);font-weight:500;font-size:28px;letter-spacing:2px;text-transform:uppercase;margin:0}
 .tdlm-htitle p{font-family:var(--font2);font-style:italic;font-size:17px;color:var(--darkopa7);margin:0;line-height:0.8em;}
 
 /* corps */
