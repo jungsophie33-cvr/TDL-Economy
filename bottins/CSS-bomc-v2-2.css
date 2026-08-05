@@ -5,7 +5,7 @@
 html:has(.tdlm-rep), body:has(.tdlm-rep){overflow:hidden}
 html:has(.tdlm-rep)#min-width, body:has(.tdlm-rep), #wrap:has(.tdlm-rep), #sj-main:has(.tdlm-rep){min-width:0 !important}
 .tdlm-rep{position:fixed;inset:0;display:flex;justify-content:center;background:var(--bgimg) center/cover no-repeat,var(--bg);
-  color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990;text-align:left; line-height:1em;}
+  color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990;text-align:left; line-height:1;}
 .tdlm-rep *{box-sizing:border-box}
 .tdlm-rep br{display:none}                 /* FA injecte des <br> entre siblings */
 .tdlm-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa5));display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
@@ -61,7 +61,7 @@ body.tdlm-body-admin .tdlm-adminonly{display:inline-flex}
 .tdlm-card::before{content:"";position:absolute;top:-9px;left:16px;width:64px;height:20px;background:var(--sc);opacity:.65;
   transform:rotate(-3deg);box-shadow:0 1px 3px rgba(0,0,0,.25);border-radius:1px}
 .tdlm-cname{display:flex;align-items:center;gap:8px;font-family:var(--font2);font-style:italic;font-size:20px;color:var(--txt);
-  border-bottom:1px solid var(--cntr5);padding-bottom:15px;margin-bottom:12px}
+  border-bottom:1px solid var(--cntr5);padding:5px 0 15px;margin-bottom:12px}
 .tdlm-cname .n{flex:1}
 .tdlm-cprofile{color:var(--darkopa6);font-size:14px;text-decoration:none}
 .tdlm-cprofile:hover{color:var(--dark2)}
