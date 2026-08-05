@@ -2,11 +2,13 @@
    TDL — REGISTRE PAROISSIAL (bottin multi-comptes) · CSS
    Prefixe tdlm-. Les tokens (:root) et le reset sont globaux (thème).
    ============================================================ */
+html:has(.tdlm-re), body:has(.tdlm-re){overflow:hidden}
+html:has(.tdlm-re)#min-width, body:has(.tdlm-re), #wrap:has(.tdlm-re), #sj-main:has(.tdlm-re){min-width:0 !important}
 .tdlm-rep{position:fixed;inset:0;display:flex;justify-content:center;background:var(--bgimg) center/cover no-repeat,var(--bg);
   color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990;text-align:left; line-height:1em;}
 .tdlm-rep *{box-sizing:border-box}
 .tdlm-rep br{display:none}                 /* FA injecte des <br> entre siblings */
-.tdlm-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa3));display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
+.tdlm-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa5));display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
 
 /* en-tête */
 .tdlm-top{flex:none;display:flex;align-items:center;gap:16px;padding:16px 30px 12px;border-bottom:1px solid var(--cntr4)}
@@ -34,7 +36,7 @@ body.tdlm-body-admin .tdlm-adminonly{display:inline-flex}
 .tdlm-pav{width:44px;height:44px;border-radius:50%;flex:none;background:var(--cntr);border:2px solid var(--cntr);
   display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:15px;color:var(--dark);overflow:hidden}
 .tdlm-pav img{width:100%;height:100%;object-fit:cover}
-.tdlm-pname{font-family:var(--title1);font-weight:600;font-size:18px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark);min-width:190px}
+.tdlm-pname{font-family:var(--title1);letter-spacing:.06em;text-transform:uppercase;color:var(--dark);width:300px}
 .tdlm-star{color:var(--clair1);font-size:16px;margin-right:8px;background: var(--gr6-color);border-radius: 50%;display: inline-flex;width: 25px;height: 25px;vertical-align: middle;justify-content: center;align-items: center;}
 .tdlm-psum{display:flex;gap:64px;flex:1;justify-content:center;flex-wrap:wrap}
 .tdlm-psum .col{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}
@@ -79,7 +81,7 @@ body.tdlm-body-admin .tdlm-adminonly{display:inline-flex}
 .tdlm-ombre-none{font-family:var(--font2);font-style:italic;font-size:14px;color:var(--darkopa5);margin-bottom:14px}
 /* lieu de vie : sans label ; icône habitation + quartier */
 .tdlm-lieu{display:flex;align-items:center;gap:9px;font-family:var(--txt2);font-size:17px;color:var(--txt);margin-bottom:6px}
-.tdlm-lieu i{color:var(--dark2);font-size:16px;opacity:.75}
+.tdlm-lieu i{color:var(--dark);}
 /* bouton présentation */
 .tdlm-cpres{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px;font-family:var(--txt3);font-size:12px;
   letter-spacing:.05em;text-transform:uppercase;color:var(--clair1)!important;background:var(--dark2);border-radius:6px;padding:10px 14px;text-decoration:none;transition:background .15s}
