@@ -22,7 +22,7 @@ html:has(.tdlh-rep)#min-width, body:has(.tdlh-rep), #wrap:has(.tdlh-rep), #sj-ma
 
 /* ---- en-tête (tdlr-topbar) ---- */
 .tdlh-top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
-.tdlh-home{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:14px;
+.tdlh-home{display:inline-flex;align-items:center;gap:8px;font-family:var(--title1);font-size:13px;
   text-transform:uppercase;color:var(--darkopa6);text-decoration:none;background:var(--cntr4);
   border-radius:7px;padding:8px 14px;cursor:pointer;transition:.15s}
 .tdlh-home:hover{background:var(--darkopa7);color:var(--clair1)}
