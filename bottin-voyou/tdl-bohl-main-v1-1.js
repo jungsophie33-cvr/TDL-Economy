@@ -85,7 +85,7 @@
         + '<span class="sub">'+T.fondateur+'</span></div>'+(BHL.S.admin?actes(c.pseudo):"")
       : '<div class="who"><span class="lbl">'+T.chefLbl+'</span><span class="nom" style="color:var(--darkopa5)">'+T.aDefinir+'</span></div>';
     return '<div class="tdlb-main-chef"><div class="ident">'+interne+'</div>'
-      + '<div class="cit">« '+escH(CONF.citation)+' »</div></div>';
+      + '<div class="cit">'+escH(CONF.citation).replace(/\.\s+/g,".<br>")+'</div></div>';
   }
 
   /* ================= rendu : cavaliers ================= */
