@@ -186,88 +186,28 @@ body.tdlb-body-admin .tdlb-bra-mwrap:hover .tip{pointer-events:auto}
 .tdlb-bra-form .chk label{display:flex;align-items:center;gap:8px;margin:0;font-family:var(--txt2);font-size:15px;text-transform:none;letter-spacing:0;color:var(--txt)}
 .tdlb-bra-form .btns{display:flex;gap:8px;justify-content:flex-end}.tdlb-empty{font-family:var(--font2);font-style:italic;color:var(--darkopa6);text-align:center;padding:40px}
 
-/* ---- hero commun (image de fond optionnelle + dégradé) ---- */
-.tdlb-hero{position:relative;min-height:290px;overflow:hidden;display:flex;gap:28px;align-items:flex-end;
-  background:var(--gradark2);padding:26px 34px}
-.tdlb-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
-
-.tdlb-tab:has(.tdlb-fai-grid) .tdlb-hero-bg {background-position:bottom;}
-
-.tdlb-hero-veil{position:absolute;inset:0;z-index:0}
-.tdlb-hero.has-img .tdlb-hero-veil{background:linear-gradient(var(--darkopa2) 20%,var(--darkopa8) 100%)}
-.tdlb-hero-emblem,.tdlb-hero-main,.tdlb-hero-stats{position:relative;z-index:1}
-.tdlb-hero-emblem{width:104px;height:104px;border-radius:50%;border:2px solid var(--clair2);display:flex;align-items:center;justify-content:center;
-  color:var(--clair1);font-size:44px;flex:none}
-.tdlb-hero-main h2{font-family:var(--title1);font-weight:500;font-size:36px;letter-spacing:.06em;text-shadow:0 2px 14px rgba(0,0,0,.55);
-                   text-transform:uppercase;color:var(--clair1);margin:0;line-height:1.4;}
-.tdlb-hero-mc{display:flex;flex-wrap:wrap;gap:8px;margin:9px 0 12px}
-.tdlb-hero-mc span{font-family:var(--txt3);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--clair1);
-  background:var(--clair2opa8);border-radius:5px;padding:3px 12px}
-.tdlb-hero-main p{font-family:var(--txt2);font-size:18px;line-height:1.5;color:var(--clair1);margin:0}
-.tdlb-hero-stats{min-width:250px;display:flex;flex-direction:column;gap:12px}
-.tdlb-hero-stats .st{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:10px;font-family:var(--font2);font-size:15px;color:var(--darkopa8)}
-.tdlb-hero-stats .st i{color:var(--dark2);font-size:17px}
-.tdlb-hero-stats .st b{font-family:var(--font2);font-size:20px;color:var(--dark)}
-/* variante image : texte clair, encart stats assombri */
-.tdlb-hero.has-img .tdlb-hero-stats{-webkit-backdrop-filter:blur(3px);border-left:none;background:var(--clair1opa5);border-radius:8px;padding:16px 18px}
-.tdlb-hero.has-img .tdlb-hero-stats .st{color:var(--txt)}
-.tdlb-hero.has-img .tdlb-hero-stats .st i{color:var(--dark)}
-.tdlb-hero.has-img .tdlb-hero-stats .st b{color:var(--txt)}
-/* hero en édition */
-.tdlb-hero.editing{grid-template-columns:auto 1fr}
-.tdlb-hero-editor label{display:block;font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--clair2);margin:10px 0 4px}
-.tdlb-mc-edit{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tdlb-mc-edit .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
-  background:var(--clair2opa8);border-radius:5px;padding:5px 10px;color:var(--clair1)}
-.tdlb-mc-edit .tag button{border:none;background:none;cursor:pointer;color:var(--darkopa6);font-size:11px;line-height:1}
-.tdlb-mc-edit .tag-add{border:1px dashed var(--dark2opa5);background:var(--clair1opa5);border-radius:5px;width:28px;height:26px;cursor:pointer;color:var(--dark2);font-size:15px;line-height:1;}
-.tdlb-mc-edit .mc-in{width:150px}
-
-/* ---- Faiseuses : cartes ---- */
-.tdlb-fai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
-.tdlb-fai-card{position:relative;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:25px 10px 14px;text-align:center;
-  display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .12s,box-shadow .12s}
-.tdlb-fai-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.12)}
-.tdlb-fai-av{width:96px;height:96px;border-radius:50%;background:var(--cntr4);border:2px solid var(--clair1);overflow:hidden;
-  display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:26px;color:var(--dark)}
-.tdlb-fai-av img{width:100%;height:100%;object-fit:cover}
-.tdlb-fai-nom{position:relative;margin:7px 0;font-family:var(--title1);font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--dark2)}
-.tdlb-fai-nom .tdlb-card-link{position:absolute;top:-15px;color:var(--darkopa6);font-size:12px;text-decoration:none}
-.tdlb-fai-nom .tdlb-card-link:hover{color:var(--dark2)}
-.tdlb-fai-voc{font-family:var(--font2);font-size:16px;color:var(--txt);font-style:italic;margin-bottom:5px;}
-.tdlb-fai-badge{position:relative;font-family:var(--txt3);font-size:13px;letter-spacing:.04em;text-transform:uppercase;
-  padding:4px 10px;border-radius:6px;border:1px solid transparent}
-.tdlb-fai-badge i{position: absolute;font-size: 15px;left: 10px;top: 10px;}
-.tdlb-fai-badge.medicale{background: var(--gr2-20);color: var(--gr2-color);border-color: var(--gr2-40);}
-.tdlb-fai-badge.psycho{background: var(--gr3-20);color: var(--gr3-color);border-color: var(--gr3-40);}
-.tdlb-fai-since{display:flex;align-items:center;gap:7px;font-family:var(--txt3);font-size:13px;color:var(--darkopa6);
-  border-top:1px solid var(--cntr5);padding-top:10px;width:100%;justify-content:center}
-.tdlb-fai-since i{color:var(--dark2);opacity:.7}
-
-/* ---- barre d'action staff (bas) ---- */
-.tdlb-actionbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 26px;border-top:1px solid var(--cntr4);background:var(--cntr2)}
-.tdlb-actionbar.vide{display:none}
-
-/* ---- outils staff ---- */
-.tdlb-card-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px}
-.tdlb-ic{background:var(--clair1opa8);border:1px solid var(--cntr5);border-radius:6px;width:26px;height:26px;cursor:pointer;
-  color:var(--darkopa7);display:inline-flex;align-items:center;justify-content:center;font-size:12px}
-.tdlb-ic:hover{background:var(--dark2);color:var(--clair1)}
-.tdlb-btn{font-family:var(--txt3);font-size:12px;letter-spacing:.03em;text-transform:uppercase;border:1px solid var(--cntr5);
-  background:var(--cntr3);color:var(--darkopa8);border-radius:5px;padding:2px 5px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:8px}
-.tdlb-btn:hover{background:var(--cntr6)}
-.tdlb-btn.prim{background:var(--dark2);color:var(--clair1);border-color:var(--dark2)}
-.tdlb-btn.prim:hover{background:var(--dark)}
-.tdlb-btn.add{margin-left:auto}
-.tdlb-fai-card.editing{align-items:stretch;text-align:left;gap:4px}
-.tdlb-fai-card.editing label{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark2);margin-top:8px}
-.tdlb-in{width:100%;font-family:var(--txt2);font-size:15px;border:1px solid var(--cntr5);border-radius:5px;padding:2px 5px;background:var(--clair1);color:var(--txt)}
-.tdlb-edit-btns{display:flex;gap:8px;margin-top:12px}
-
-.tdlb-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:100000;font-family:var(--txt3);font-size:14px;
-  background:var(--dark);color:var(--clair1);padding:11px 18px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.3);max-width:90%;text-align:center}
-
-@media(max-width:1040px){.tdlb-app{width:96%}
-  .tdlb-hero{grid-template-columns:1fr}.tdlb-hero-stats{border-left:none;border-top:1px solid var(--cntr5);padding-left:0;padding-top:16px}
-  .tdlb-actionbar{overflow-x:auto;scrollbar-width:none}}
-@media(max-width:720px){.tdlb-app{width:100%}}
+/* ============================================================
+   ONGLET MARINGOUINS — cellules
+   (réutilise .tdlb-bra-ancien / .tdlb-bra-stack / .tdlb-bra-mwrap
+    pour la figure de confiance et les membres)
+   ============================================================ */
+.tdlb-mar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.tdlb-mar-card{position:relative;overflow:hidden;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:20px 22px 22px}
+/* filigrane : icône solide en haut-gauche, dégradé clippé, texte par-dessus */
+.tdlb-mar-ico{position:absolute;top:4px;left:-8px;font-size:90px;line-height:1;background:var(--gradark2);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.35;z-index:0;pointer-events:none}
+.tdlb-mar-head{position:relative;z-index:1;min-height:44px;margin-bottom:12px;padding-left:52px;padding-bottom:10px;border-bottom:1px solid var(--cntr4)}
+.tdlb-mar-head h3{font-family:var(--title4);font-size:25px;letter-spacing:1px;text-transform:uppercase;font-weight:600;margin:0;
+  background:var(--gradark1);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tdlb-mar-head .tdlb-ic{position:absolute;top:0;right:0}
+/* territoires en tags clair1 alignés */
+.tdlb-mar-zones{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:7px}
+.tdlb-mar-zone{font-family:var(--txt3);font-size:12px;letter-spacing:.03em;color:var(--dark2);background:var(--clair1);
+  border:1px solid var(--cntr4);border-radius:5px;padding:4px 10px}
+/* séparateur dégradé transparent → clair1 → transparent */
+.tdlb-mar-sep{height:1px;border:none;margin:14px 0;background:linear-gradient(90deg,transparent,var(--clair1),transparent)}
+.tdlb-mar-cite{position:relative;z-index:1;font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);text-align:center;margin-bottom:14px}
+/* édition staff : territoires (tags) + citation */
+.tdlb-mar-cedit{position:relative;z-index:1;margin-bottom:14px}
+.tdlb-mar-cedit label{display:block;font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--dark2);margin:0 0 6px}
+.tdlb-mar-cedit .tdlb-mc-edit{margin-bottom:12px}
+.tdlb-mar-cedit .btns{display:flex;gap:8px;margin-top:10px}
