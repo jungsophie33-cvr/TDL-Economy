@@ -36,7 +36,7 @@
     var bokors=list.filter(function(m){ return m.hll.role==="bokor"; }).length;
     return [
       { icon:"fi-tr-users-alt",     label:T.membres,  val:list.length },
-      { icon:"fi-tr-hands-praying", label:T.pretrise, val:pretrise },
+      { icon:"fi-tr-praying-hands", label:T.pretrise, val:pretrise },
       { icon:"fi-tr-skull",         label:T.bokors,   val:bokors },
     ];
   }
