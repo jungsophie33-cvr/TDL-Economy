@@ -68,6 +68,15 @@ window.BHL = window.BHL || {};
   }
   BHL.avatarDe = function (pseudo){ var c=BHL.avatars[pseudo]; return (c&&c.image)||""; };
 
+  /* ===================== COMMU (couleur de communauté → bordure d'avatar) ===================== */
+  var COMMU = {};
+  BHL.construireCOMMU = function (){
+    var C = window.EcoCore && window.EcoCore.COMMUNAUTES; if(!C) return;
+    Object.keys(C).forEach(function(id){ var c=C[id], n=parseInt(id,10)-2;
+      if(c && c.court && n>=1 && n<=6) COMMU[c.court] = "var(--gr"+n+"-color)"; });
+  };
+  BHL.couleurGroupe = function (court){ return COMMU[court] || "var(--clair1)"; };
+
   /* ===================== DONNÉES (lecture) ===================== */
   function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.safeReadBin==="function"); }
   function attendreEco(ms){ return new Promise(function(res){ var n=0,t=setInterval(function(){ if(ecoPret()||++n>ms/100){ clearInterval(t); res(ecoPret()); } },100); }); }
@@ -76,7 +85,7 @@ window.BHL = window.BHL || {};
     return attendreEco(8000).then(function(ok){
       if(!ok){ if(window.console) console.warn("[TDL bandes] EcoCore introuvable."); return; }
       return window.EcoCore.safeReadBin().then(function(rec){
-        BHL.rec = rec || {}; BHL.avatars = indexAvatars(BHL.rec);
+        BHL.rec = rec || {}; BHL.avatars = indexAvatars(BHL.rec); BHL.construireCOMMU();
       }).catch(function(e){ if(window.console) console.error("[TDL bandes] lecture", e); });
     });
   };
@@ -86,7 +95,8 @@ window.BHL = window.BHL || {};
     Object.keys(membres).forEach(function(pseudo){
       var m=membres[pseudo]||{}, h=m.hors_la_loi;
       if(!h || h.bande!==bande) return;
-      out.push({ pseudo:pseudo, nom:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo), hll:h });
+      out.push({ pseudo:pseudo, nom:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo),
+                 groupe:m.group||null, couleur:BHL.couleurGroupe(m.group), hll:h });
     });
     return out.sort(function(a,b){ return a.nom.localeCompare(b.nom,"fr"); });
   };
@@ -116,6 +126,7 @@ window.BHL = window.BHL || {};
     definir:function (pseudo, hll){ var u={}; u[BHL.CFG.NODE_MEMBRES+"/"+pseudo+"/hors_la_loi"]=hll; return up(u); },
     retirer:function (pseudo){ var u={}; u[BHL.CFG.NODE_MEMBRES+"/"+pseudo+"/hors_la_loi"]=null; return up(u); },
     contenu:function (bande, data){ var u={}; u[BHL.CFG.NODE_BANDES+"/"+bande]=data; return up(u); },
+    champ:function (path, data){ var u={}; u[path]=data; return up(u); },
   };
   BHL.appliquer = function (pseudo, hll){
     BHL.rec.membres = BHL.rec.membres || {};
