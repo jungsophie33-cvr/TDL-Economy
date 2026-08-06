@@ -317,7 +317,11 @@ body.tdlb-body-admin .tdlb-flo-pilier:hover .actes{display:flex}
 .tdlb-main-chef .nom i{color:var(--clair2);font-size:15px}
 .tdlb-main-chef .nom .tdlb-card-link{color:var(--darkopa6);font-size:13px;text-decoration:none}
 .tdlb-main-chef .sub{font-family:var(--txt2);font-size:15px;color:var(--darkopa7)}
-.tdlb-main-chef .cit{font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);max-width:360px;text-align:right;margin-left:auto}
+.tdlb-main-chef .cit{position:relative;font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);max-width:360px;text-align:right;margin-left:auto;padding:0 34px}
+.tdlb-main-chef .cit::before,.tdlb-main-chef .cit::after{position:absolute;font-family:var(--font2);font-size:46px;line-height:1;color:var(--dark2);opacity:.3}
+.tdlb-main-chef .cit::before{content:"\275D";left:0;top:-6px}
+.tdlb-main-chef .cit::after{content:"\275E";right:0;bottom:-18px}
+.tdlb-main-chef .cit br{display:revert}
 .tdlb-main-chef .ident .actes{position:absolute;top:-8px;right:-8px;display:none;gap:4px}
 body.tdlb-body-admin .tdlb-main-chef:hover .ident .actes{display:flex}
 
