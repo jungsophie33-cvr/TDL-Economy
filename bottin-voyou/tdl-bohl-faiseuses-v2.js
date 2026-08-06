@@ -74,8 +74,9 @@
     var cartes=list.map(carteHTML).join("");
     if(edit==="new") cartes = editeurHTML(null) + cartes;
     host.innerHTML = BHL.heroHTML(BANDE, { emblem:"fi-tr-hand-holding-heart", stats:stats(list) })
-      + '<div class="tdlb-sec"><i class="fi fi-tr-arrow-right"></i><h3>'+T.membres(list.length)+'</h3></div>'
-      + (cartes ? '<div class="tdlb-fai-grid">'+cartes+'</div>' : '<div class="tdlb-empty">'+BHL.T.vide+'</div>');
+      + '<div class="tdlb-body">'
+      +   (cartes ? '<div class="tdlb-fai-grid">'+cartes+'</div>' : '<div class="tdlb-empty">'+BHL.T.vide+'</div>')
+      + '</div>';
     brancher(host);
   }
 
