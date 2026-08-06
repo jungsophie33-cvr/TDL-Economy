@@ -305,10 +305,9 @@ body.tdlb-body-admin .tdlb-flo-pilier:hover .actes{display:flex}
    (réutilise .tdlb-flo-cap pour « Dirigé par », .tdlb-flo-pilier + .tdlb-flo-pgrid
     pour le réseau, .tdlb-bra-lbl + .tdlb-bra-stack pour les membres des Doigts)
    ============================================================ */
-/* ---- chef (encadré) + citation ---- */
-.tdlb-main-chef{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
-  border:1px solid var(--cntr4);border-radius:10px;padding:18px 24px;margin-bottom:24px;background:var(--cntr2)}
-.tdlb-main-chef .ident{position:relative;display:flex;align-items:center;gap:16px}
+/* ---- chef : encadré (avatar/nom) + citation flottant DEHORS, à droite ---- */
+.tdlb-main-chef{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+.tdlb-main-chef .ident{position:relative;display:flex;align-items:center;gap:16px;border:1px solid var(--cntr4);border-radius:10px;padding:16px 24px;background:var(--cntr2)}
 .tdlb-main-chef .av{width:84px;height:84px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc,var(--clair2));overflow:hidden;flex:none;
   display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:22px;color:var(--dark)}
 .tdlb-main-chef .av img{width:100%;height:100%;object-fit:cover}
@@ -318,7 +317,7 @@ body.tdlb-body-admin .tdlb-flo-pilier:hover .actes{display:flex}
 .tdlb-main-chef .nom i{color:var(--clair2);font-size:15px}
 .tdlb-main-chef .nom .tdlb-card-link{color:var(--darkopa6);font-size:13px;text-decoration:none}
 .tdlb-main-chef .sub{font-family:var(--txt2);font-size:15px;color:var(--darkopa7)}
-.tdlb-main-chef .cit{font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);max-width:340px;text-align:right}
+.tdlb-main-chef .cit{font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);max-width:360px;text-align:right;margin-left:auto}
 .tdlb-main-chef .ident .actes{position:absolute;top:-8px;right:-8px;display:none;gap:4px}
 body.tdlb-body-admin .tdlb-main-chef:hover .ident .actes{display:flex}
 
@@ -326,12 +325,12 @@ body.tdlb-body-admin .tdlb-main-chef:hover .ident .actes{display:flex}
 .tdlb-main-h{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .tdlb-main-h i{color:var(--dark2);font-size:17px}
 .tdlb-main-h h3{font-family:var(--title1);font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark2);margin:0}
-.tdlb-main-desc{font-family:var(--txt2);font-size:16px;line-height:1.5;color:var(--darkopa8);margin:0 0 14px}
-.tdlb-main-tedit{margin-bottom:14px}
+.tdlb-main-desc{font-family:var(--txt2);font-size:16px;line-height:1.5;color:var(--darkopa8);margin:0}
 .tdlb-main-tedit .btns{display:flex;gap:8px;margin-top:8px}
 
-/* ---- cavaliers : grille 2×2, avatar carré arrondi ---- */
+/* ---- cavaliers : texte en colonne gauche (40%), cartes à droite (grille 2×2) ---- */
 .tdlb-main-cav{margin-bottom:26px}
+.tdlb-main-cavbody{display:grid;grid-template-columns:40% 1fr;gap:22px;align-items:start;margin-top:6px}
 .tdlb-main-cavgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .tdlb-main-cavcard{position:relative;display:flex;align-items:center;gap:14px;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:12px 14px}
 .tdlb-main-cavcard .av{width:64px;height:64px;border-radius:12px;background:var(--cntr4);border:3px solid var(--gc,var(--clair1));overflow:hidden;flex:none;
@@ -344,9 +343,10 @@ body.tdlb-body-admin .tdlb-main-chef:hover .ident .actes{display:flex}
 .tdlb-main-cavcard .actes{position:absolute;top:8px;right:8px;display:none;gap:4px}
 body.tdlb-body-admin .tdlb-main-cavcard:hover .actes{display:flex}
 
-/* ---- 5 Doigts (pas de conteneur global) ---- */
-.tdlb-main-doigts{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px;margin-bottom:26px}
-.tdlb-main-doigt{background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+/* ---- 5 Doigts : 3 sur la 1re ligne, 2 (plus larges) sur la 2e, pleine largeur ---- */
+.tdlb-main-doigts{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:26px}
+.tdlb-main-doigt{grid-column:span 2;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:16px 18px 18px;display:flex;flex-direction:column;gap:12px}
+.tdlb-main-doigt:nth-child(4),.tdlb-main-doigt:nth-child(5){grid-column:span 3}
 .tdlb-main-doigt .dtop{display:flex;gap:12px;align-items:flex-start}
 .tdlb-main-doigt .emoji{font-size:34px;line-height:1;flex:none}
 .tdlb-main-doigt h3{font-family:var(--title1);font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--dark2);margin:0 0 3px}
@@ -356,12 +356,13 @@ body.tdlb-body-admin .tdlb-main-cavcard:hover .actes{display:flex}
 .tdlb-main-doigt .dmembres{margin-top:auto}
 .tdlb-main-doigt .tdlb-bra-lbl{margin:0 0 8px}
 
-/* ---- réseau d'influence : sous-titre à droite + filtres boutons ---- */
+/* ---- réseau d'influence : description SOUS le titre, filtres à DROITE (2 lignes) ---- */
 .tdlb-main-reseau{margin-top:6px}
-.tdlb-main-rhead{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:12px}
-.tdlb-main-rhead .tdlb-main-h{margin-bottom:0}
-.tdlb-main-rhead .tdlb-main-desc{margin:0;max-width:440px;text-align:right}
-.tdlb-main-rfiltres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tdlb-main-rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:14px}
+.tdlb-main-rhead .rleft{flex:1;min-width:260px}
+.tdlb-main-rhead .tdlb-main-h{margin-bottom:8px}
+.tdlb-main-rhead .tdlb-main-desc{max-width:520px}
+.tdlb-main-rfiltres{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:360px;margin:0}
 .tdlb-main-rf{font-family:var(--txt3);font-size:12px;background:var(--cntr4);border:none;border-radius:5px;padding:2px 5px;cursor:pointer;color:var(--darkopa8);transition:.15s}
 .tdlb-main-rf:hover{background:var(--cntr6)}
 .tdlb-main-rf.on{background:var(--dark2);color:var(--clair1)}
