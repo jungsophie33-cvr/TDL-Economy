@@ -219,7 +219,7 @@ window.BHL = window.BHL || {};
     var host=BHL.$(BHL.CFG.SEL.tab), api=BHL.TABS[BHL.S.tab]; if(!host) return;
     if(!api || !api.render){
       host.innerHTML = BHL.heroHTML(BHL.S.tab, {emblem:"fi-tr-skull"})
-        + '<div class="tdlb-empty">Onglet « '+BHL.escH(CFG.bandes[BHL.S.tab].nom)+' » à venir.</div>';
+        + '<div class="tdlb-body"><div class="tdlb-empty">Onglet « '+BHL.escH(CFG.bandes[BHL.S.tab].nom)+' » à venir.</div></div>';
     } else {
       api.render(host);
     }
