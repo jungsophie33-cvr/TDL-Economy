@@ -230,3 +230,72 @@ body.tdlb-body-admin .tdlb-bra-mwrap:hover .tip{pointer-events:auto}
 .tdlb-mar-figure.vacant .ln-tag {margin:0;}
 body.tdlb-body-admin .tdlb-mar-figure .actes{display:flex; position: absolute;right: -10px;}
 .tdlb-mar-figure.vacant .nom{color:var(--darkopa5);font-family:var(--font2);font-style:italic;text-transform:none;letter-spacing:0}
+
+/* ============================================================
+   ONGLET FLOTTILLE — navires (équipage / indépendant) + piliers de la terre ferme
+   (l'équipage réutilise .tdlb-bra-stack / .tdlb-bra-mwrap ;
+    les formulaires réutilisent .tdlb-bra-form)
+   ============================================================ */
+/* rangée justifiée : hauteur d'image égale par ligne, largeur ∝ ratio (flex-grow posé en JS) */
+.tdlb-flo-grid{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+.tdlb-flo-card{flex:1.6 1 300px;min-width:240px;max-width:640px;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+.tdlb-flo-imgwrap{position:relative;width:100%}
+.tdlb-flo-img{width:100%;height:auto;max-height:120px;object-fit:cover;display:block}
+.tdlb-flo-noimg{width:100%;aspect-ratio:16/9;max-height:120px;background:var(--gradark2);display:flex;align-items:center;justify-content:center;color:var(--clair2);font-size:44px}
+.tdlb-flo-editbtn{position:absolute;top:8px;right:8px}
+.tdlb-flo-body{padding:14px 18px 18px;display:flex;flex-direction:column;gap:10px}
+
+.tdlb-flo-name{display:flex;align-items:center;gap:9px;font-family:var(--title4);font-size:24px;letter-spacing:.02em;text-transform:uppercase;font-weight:600;
+  background:var(--gradark1);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tdlb-flo-name i{color:var(--dark2);font-size:18px;-webkit-text-fill-color:var(--dark2)}
+/* tag spécialité */
+.tdlb-flo-spec{align-self:flex-start;font-family:var(--txt3);font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--clair1);
+  background:var(--gradark);border-radius:5px;padding:4px 11px}
+/* zones naviguées : tags clair1, radius 3px, alignés */
+.tdlb-flo-zones{display:flex;flex-wrap:wrap;gap:6px}
+.tdlb-flo-zone{font-family:var(--txt3);font-size:12px;letter-spacing:.03em;color:var(--dark2);background:var(--clair1);border:1px solid var(--cntr4);border-radius:3px;padding:3px 9px}
+
+/* capitaine */
+.tdlb-flo-cap{display:flex;align-items:center;gap:12px;border-top:1px solid var(--cntr5);padding-top:12px;margin-top:2px}
+.tdlb-flo-cap .av{width:56px;height:56px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc,var(--clair2));overflow:hidden;flex:none;
+  display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:16px;color:var(--dark)}
+.tdlb-flo-cap .av img{width:100%;height:100%;object-fit:cover}
+.tdlb-flo-cap .info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tdlb-flo-cap .lbl{font-family:var(--txt3);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dark2)}
+.tdlb-flo-cap .nom{display:flex;align-items:center;gap:8px;font-family:var(--title1);font-size:15px;letter-spacing:.02em;text-transform:uppercase;color:var(--dark2)}
+.tdlb-flo-cap .nom .tdlb-card-link{color:var(--darkopa6);font-size:12px;text-decoration:none}
+.tag-pl{font-family:var(--txt3);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--clair1);background:var(--gr5-color);border-radius:5px;padding:2px 7px;text-decoration:none}
+.tag-indep{align-self:flex-start;font-family:var(--txt3);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--clair1);background:var(--gradark);border-radius:5px;padding:2px 8px}
+
+/* équipage */
+.tdlb-flo-crew{margin-top:6px}
+.tdlb-flo-crewlbl{font-family:var(--txt3);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dark2);margin-bottom:8px}
+
+/* édition contenu navire (image + spécialité + zones) */
+.tdlb-flo-nedit{display:flex;flex-direction:column;gap:6px}
+.tdlb-flo-nedit label{font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--dark2);margin-top:6px}
+.tdlb-flo-nedit .btns{display:flex;gap:8px;margin-top:10px}
+
+/* ---- piliers de la terre ferme ---- */
+.tdlb-flo-psec{margin-top:26px;border-top:1px solid var(--cntr4);padding-top:18px}
+.tdlb-flo-phead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.tdlb-flo-phead h3{font-family:var(--title1);font-size:18px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark2);margin:0}
+.tdlb-flo-phead p{font-family:var(--txt2);font-size:15px;color:var(--darkopa7);margin:0}
+.tdlb-flo-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tdlb-flo-pilier{position:relative;display:flex;align-items:center;gap:11px;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:12px 14px}
+.tdlb-flo-pilier .av{width:48px;height:48px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc,var(--clair1));overflow:hidden;flex:none;
+  display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:14px;color:var(--dark)}
+.tdlb-flo-pilier .av img{width:100%;height:100%;object-fit:cover}
+.tdlb-flo-pilier .info{min-width:0;display:flex;flex-direction:column;gap:3px}
+.tdlb-flo-pilier .nom{display:flex;align-items:center;gap:7px;font-family:var(--title1);font-size:14px;text-transform:uppercase;color:var(--dark2)}
+.tdlb-flo-pilier .nom .tdlb-card-link{color:var(--darkopa6);font-size:11px;text-decoration:none}
+.tdlb-flo-pilier .concours{font-family:var(--font2);font-style:italic;font-size:15px;color:var(--txt)}
+.tdlb-flo-pilier .bas{display:flex;align-items:center;gap:10px}
+.tdlb-flo-pilier .since{display:flex;align-items:center;gap:6px;font-family:var(--txt3);font-size:11px;color:var(--darkopa6)}
+.tdlb-flo-pilier .since i{color:var(--dark2);opacity:.7}
+.tag-dette{font-family:var(--txt3);font-size:10px;letter-spacing:.05em;text-transform:uppercase;border-radius:5px;padding:2px 7px;color:var(--clair1)}
+.tag-dette.du{background:var(--gr2-color)}
+.tag-dette.prioritaire{background:var(--gr6-color)}
+.tag-dette.longue{background:var(--gr1-color)}
+.tdlb-flo-pilier .actes{position:absolute;top:8px;right:8px;display:none;gap:4px}
+body.tdlb-body-admin .tdlb-flo-pilier:hover .actes{display:flex}
