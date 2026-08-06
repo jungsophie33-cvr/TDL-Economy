@@ -49,7 +49,7 @@
         + '<button class="tdlb-ic" data-rm="'+escA(m.pseudo)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>' : "";
     var lien = m.uid ? '<a class="tdlb-card-link" href="/u'+m.uid+'" title="Profil"><i class="fi fi-tr-arrow-up-right-from-square"></i></a>' : "";
     return '<article class="tdlb-fai-card">'+admin
-      + '<div class="tdlb-fai-av">'+av+'</div>'
+      + '<div class="tdlb-fai-av" style="--gc:'+m.couleur+'">'+av+'</div>'
       + '<div class="tdlb-fai-nom">'+escH(m.nom)+lien+'</div>'
       + '<div class="tdlb-fai-voc">'+escH(m.hll.vocation||"—")+'</div>'
       + badge(m.hll.categorie)
