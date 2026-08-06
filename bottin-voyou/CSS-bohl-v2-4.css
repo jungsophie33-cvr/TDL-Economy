@@ -195,17 +195,17 @@ body.tdlb-body-admin .tdlb-bra-mwrap:hover .tip{pointer-events:auto}
 .tdlb-mar-card{position:relative;overflow:hidden;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:20px 22px 22px}
 /* filigrane : icône solide en haut-gauche, dégradé clippé, texte par-dessus */
 .tdlb-mar-ico{position:absolute;top:4px;left:-8px;font-size:90px;line-height:1;background:var(--gradark2);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.35;z-index:0;pointer-events:none}
-.tdlb-mar-head{position:relative;z-index:1;min-height:44px;margin-bottom:12px;padding-left:52px;padding-bottom:10px;border-bottom:1px solid var(--cntr4)}
-.tdlb-mar-head h3{font-family:var(--title4);font-size:25px;letter-spacing:1px;text-transform:uppercase;font-weight:600;margin:0;
+.tdlb-mar-head{position:relative;z-index:1;margin-bottom:12px;}
+.tdlb-mar-head h3{text-align:center;font-family:var(--title4);font-size:25px;letter-spacing:1px;text-transform:uppercase;font-weight:600;margin:0;
   background:var(--gradark1);-webkit-background-clip:text;background-clip:text;color:transparent}
 .tdlb-mar-head .tdlb-ic{position:absolute;top:0;right:0}
 /* territoires en tags clair1 alignés */
 .tdlb-mar-zones{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:7px}
-.tdlb-mar-zone{font-family:var(--txt3);font-size:12px;letter-spacing:.03em;color:var(--dark2);background:var(--clair1);
-  border:1px solid var(--cntr4);border-radius:5px;padding:4px 10px}
+.tdlb-mar-zone{font-family:var(--txt3);font-size:12px;color:var(--dark);background:var(--clair1opa6);
+  border:1px solid var(--cntr4);border-radius:3px;padding:2px 5px;text-transform:uppercase;}
 /* séparateur dégradé transparent → clair1 → transparent */
-.tdlb-mar-sep{height:1px;border:none;margin:14px 0;background:linear-gradient(90deg,transparent,var(--clair1),transparent)}
-.tdlb-mar-cite{position:relative;z-index:1;font-family:var(--font2);font-style:italic;font-size:16px;color:var(--dark2);text-align:center;margin-bottom:14px}
+.tdlb-mar-sep{height:1px;border:none;margin: 8px; background: linear-gradient(90deg,transparent,var(--cntr4),transparent);}
+.tdlb-mar-cite{position:relative;z-index:1;font-family:var(--font2);font-style:italic;font-size:15px;color:var(--dark2);text-align:center;margin-bottom:14px}
 /* édition staff : territoires (tags) + citation */
 .tdlb-mar-cedit{position:relative;z-index:1;margin-bottom:14px}
 .tdlb-mar-cedit label{display:block;font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--dark2);margin:0 0 6px}
@@ -213,12 +213,12 @@ body.tdlb-body-admin .tdlb-bra-mwrap:hover .tip{pointer-events:auto}
 .tdlb-mar-cedit .btns{display:flex;gap:8px;margin-top:10px}
 
 /* figure de confiance — tag détaché au-dessus du nom (droite), métier & depuis chacun sur sa ligne */
-.tdlb-mar-figure{position:relative;z-index:1;display:flex;align-items:center;gap:14px;margin-bottom:2px}
+.tdlb-mar-figure{position:relative;z-index:1;display:flex;align-items:center;gap:8px;}
 .tdlb-mar-figure .av{width:68px;height:68px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc,var(--clair1));overflow:hidden;flex:none;
   display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:20px;color:var(--dark)}
 .tdlb-mar-figure .av img{width:100%;height:100%;object-fit:cover}
-.tdlb-mar-figure .info{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.tdlb-mar-figure .ln-tag{display:flex;justify-content:flex-end}
+.tdlb-mar-figure .info{flex:1;min-width:0;display:flex;flex-direction:column;gap: 8px;font-style: normal;position: relative;}
+.tdlb-mar-figure .ln-tag{display:flex;justify-content:flex-end;margin-bottom:8px}
 .tdlb-mar-figure .nom{font-family:var(--title1);font-size:16px;letter-spacing:.03em;text-transform:uppercase;color:var(--dark2)}
 .tdlb-mar-figure .nom .tdlb-card-link{color:var(--darkopa6);font-size:12px;text-decoration:none;margin-left:6px}
 .tdlb-mar-figure .nom .tdlb-card-link:hover{color:var(--dark2)}
@@ -226,5 +226,7 @@ body.tdlb-body-admin .tdlb-bra-mwrap:hover .tip{pointer-events:auto}
 .tdlb-mar-figure .since{display:flex;justify-content:flex-end;align-items:center;gap:7px;font-family:var(--txt3);font-size:12px;color:var(--darkopa6)}
 .tdlb-mar-figure .since i{color:var(--dark2);opacity:.7}
 .tdlb-mar-figure .actes{display:none;flex-direction:column;gap:4px;flex:none}
-body.tdlb-body-admin .tdlb-mar-figure .actes{display:flex}
+.tdlb-mar-figure.vacant .info {flex-direction:row;}
+.tdlb-mar-figure.vacant .ln-tag {margin:0;}
+body.tdlb-body-admin .tdlb-mar-figure .actes{display:flex; position: absolute;right: -10px;}
 .tdlb-mar-figure.vacant .nom{color:var(--darkopa5);font-family:var(--font2);font-style:italic;text-transform:none;letter-spacing:0}
