@@ -97,12 +97,14 @@ window.BHL_CONFIG = (function () {
       desc:"Ils ne naviguent pas tous sous le même pavillon. Mais lorsqu'un bateau appelle à l'aide, il y a toujours quelqu'un pour répondre. Pêcheurs, bateliers, guides, réparateurs. Indépendants mais unis par le Bayou et les siens.",
       image:"",
       types:{ equipage:"Équipage d'un navire", independant:"Navire indépendant", contact:"Contact à quai" },
+      // 5 navires canon. cap = capitaine (pré-lien) affiché tant qu'aucun membre ne tient la barre.
+      // cap_url = lien vers le pré-lien ([MAJ] à renseigner). zones/spec/image surchargeables (staff ou capitaine).
       navires:{
-        marguerite:{ nom:"La Sainte Marguerite", spec:"Transit longue distance", equipage:true },
-        grosbleu:  { nom:"Le Gros Bleu",         spec:"Extraction d'urgence",    equipage:true },
-        tetu:      { nom:"Le Têtu",              spec:"Logistique en volume",    equipage:true },
-        tisserande:{ nom:"La Tisserande",        spec:"Extraction de personnes", equipage:true },
-        inattendue:{ nom:"L'Inattendue",         spec:"Liaisons des bayous",     equipage:false, independant:true },
+        marguerite:{ nom:"La Sainte Marguerite", spec:"Transit longue distance", equipage:true,  cap:"Dédé Chiasson",        cap_url:"", zones:["Golfe du Mexique","NOLA","Côte texane"] },
+        grosbleu:  { nom:"Le Gros Bleu",         spec:"Extraction d'urgence",    equipage:true,  cap:"Roxanne « Rox » Hébert", cap_url:"", zones:["Réseau fluvial","Morgan City","Baton Rouge"] },
+        tetu:      { nom:"Le Têtu",              spec:"Logistique en volume",    equipage:true,  cap:"Rosario Galvez",       cap_url:"", zones:["Canaux principaux"] },
+        tisserande:{ nom:"La Tisserande",        spec:"Extraction de personnes", equipage:true,  cap:"",                     cap_url:"", zones:["Terrebonne","Paroisses voisines"] },
+        inattendue:{ nom:"L'Inattendue",         spec:"Liaisons des bayous",     equipage:false, independant:true, cap:"Alcée Theriot", cap_url:"", zones:["Lost Bayou","Ashlanders","Maringouins"] },
       },
     },
 
