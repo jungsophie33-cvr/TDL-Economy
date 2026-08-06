@@ -99,14 +99,14 @@
   function cavSection(){
     var cav=cavaliers();
     var txt = texteEdit==="cav"
-      ? '<div class="tdlb-main-tedit"><textarea class="tdlb-in" id="tdlb-main-cav" rows="3">'+escH(texte("cav_texte"))+'</textarea>'
+      ? '<div class="tdlb-main-tedit"><textarea class="tdlb-in" id="tdlb-main-cav" rows="6">'+escH(texte("cav_texte"))+'</textarea>'
         + '<div class="btns"><button class="tdlb-btn prim" data-tsave="cav">'+BHL.T.enregistrer+'</button><button class="tdlb-btn" data-tcancel="1">'+BHL.T.annuler+'</button></div></div>'
       : '<p class="tdlb-main-desc">'+escH(texte("cav_texte"))+'</p>';
-    return '<section class="tdlb-main-cav"><div class="tdlb-main-h"><i class="fi fi-tr-chess-knight"></i><h3>'+T.cavaliers+'</h3>'
+    return '<section class="tdlb-main-cav"><div class="tdlb-main-h"><i class="fi fi-sr-chess-knight"></i><h3>'+T.cavaliers+'</h3>'
       + (texteEdit==="cav"?"":pen('data-tedit="cav"',"Modifier le texte"))+'</div>'
-      + txt
-      + (cav.length?'<div class="tdlb-main-cavgrid">'+cav.map(cavCard).join("")+'</div>':'<div class="tdlb-empty">Aucun Cavalier recensé.</div>')
-      + '</section>';
+      + '<div class="tdlb-main-cavbody"><div class="tdlb-main-cavtxt">'+txt+'</div>'
+      +   (cav.length?'<div class="tdlb-main-cavgrid">'+cav.map(cavCard).join("")+'</div>':'<div class="tdlb-empty">Aucun Cavalier recensé.</div>')
+      + '</div></section>';
   }
 
   /* ================= rendu : Doigts ================= */
@@ -163,8 +163,9 @@
       ? '<div class="tdlb-main-tedit"><textarea class="tdlb-in" id="tdlb-main-res" rows="2">'+escH(texte("reseau_texte"))+'</textarea>'
         + '<div class="btns"><button class="tdlb-btn prim" data-tsave="reseau">'+BHL.T.enregistrer+'</button><button class="tdlb-btn" data-tcancel="1">'+BHL.T.annuler+'</button></div></div>'
       : '<p class="tdlb-main-desc">'+escH(texte("reseau_texte"))+(texteEdit?"":' '+pen('data-tedit="reseau"',"Modifier le texte"))+'</p>';
-    return '<section class="tdlb-main-reseau"><div class="tdlb-main-rhead"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+T.reseau+'</h3></div>'+txt+'</div>'
-      + '<div class="tdlb-main-rfiltres">'+filtres()+'</div>'
+    return '<section class="tdlb-main-reseau">'
+      + '<div class="tdlb-main-rhead"><div class="rleft"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+T.reseau+'</h3></div>'+txt+'</div>'
+      +   '<div class="tdlb-main-rfiltres">'+filtres()+'</div></div>'
       + (res.length?'<div class="tdlb-flo-pgrid">'+res.map(reseauCard).join("")+'</div>':'<div class="tdlb-empty">Aucun contact dans cette catégorie.</div>')
       + '</section>';
   }
