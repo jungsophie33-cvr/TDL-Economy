@@ -78,7 +78,7 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 .tdlb-fai-card{position:relative;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:25px 10px 14px;text-align:center;
   display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .12s,box-shadow .12s}
 .tdlb-fai-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.12)}
-.tdlb-fai-av{width:96px;height:96px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc,var(--clair1));overflow:hidden;
+.tdlb-fai-av{width:96px;height:96px;border-radius:50%;background:var(--cntr4);border:3px solid var(--gc);overflow:hidden;
   display:flex;align-items:center;justify-content:center;font-family:var(--title1);font-size:26px;color:var(--dark)}
 .tdlb-fai-av img{width:100%;height:100%;object-fit:cover}
 .tdlb-fai-nom{position:relative;margin:7px 0;font-family:var(--title1);font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:var(--dark2)}
