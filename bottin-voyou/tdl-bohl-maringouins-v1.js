@@ -69,20 +69,22 @@
       + '<hr class="tdlb-mar-sep">'
       + (cite ? '<div class="tdlb-mar-cite">« '+escH(cite)+' »</div>' : '');
   }
-  // figure de confiance — même modèle que l'Ancien des Braconneurs
+  // figure de confiance — mise en page propre Maringouins (cartes étroites, 3 colonnes)
   function figureHTML(m){
     if(!m){
-      return '<div class="tdlb-bra-ancien vacant"><div class="info"><div class="l1">'
-        + '<span class="nom">'+T.vacant+'</span><span class="tag-ancien">'+T.figure+'</span></div></div></div>';
+      return '<div class="tdlb-mar-figure vacant"><div class="info">'
+        + '<div class="ln-tag"><span class="tag-ancien">'+T.figure+'</span></div>'
+        + '<div class="nom">'+T.vacant+'</div></div></div>';
     }
     var actes='<div class="actes"><button class="tdlb-ic" data-edit="'+escA(m.pseudo)+'" title="'+BHL.T.modifier+'"><i class="fi fi-tr-pencil"></i></button>'
       + '<button class="tdlb-ic" data-rm="'+escA(m.pseudo)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>';
-    return '<div class="tdlb-bra-ancien" style="--gc:'+m.couleur+'">'
+    return '<div class="tdlb-mar-figure" style="--gc:'+m.couleur+'">'
       + '<span class="av">'+avImg(m)+'</span>'
       + '<div class="info">'
-      +   '<div class="l1"><span class="nom">'+escH(m.nom)+lienProfil(m)+'</span><span class="tag-ancien">'+T.figure+'</span></div>'
-      +   '<div class="l2"><span class="meta">'+escH(m.hll.role||"—")+'</span>'
-      +     '<span class="since"><i class="fi fi-tr-calendar"></i>'+BHL.T.depuis+' '+escH(m.hll.depuis||"—")+'</span></div>'
+      +   '<div class="ln-tag"><span class="tag-ancien">'+T.figure+'</span></div>'
+      +   '<div class="nom">'+escH(m.nom)+lienProfil(m)+'</div>'
+      +   '<div class="meta">'+escH(m.hll.role||"—")+'</div>'
+      +   '<div class="since"><i class="fi fi-tr-calendar"></i>'+BHL.T.depuis+' '+escH(m.hll.depuis||"—")+'</div>'
       + '</div>' + actes + '</div>';
   }
   function membreHTML(m){
