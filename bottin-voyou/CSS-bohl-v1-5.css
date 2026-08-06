@@ -10,7 +10,7 @@ html:has(.tdlb-rep)#min-width, body:has(.tdlb-rep), #wrap:has(.tdlb-rep), #sj-ma
   color:var(--txt);font-family:var(--txt2);font-size:17px;z-index:9990;text-align:left;line-height:1;}
 .tdlb-rep *{box-sizing:border-box}
 .tdlb-rep br{display:none}
-.tdlb-app{width:80%;height:100%;background:var(--clair1);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
+.tdlb-app{width:80%;height:100%;background:linear-gradient(var(--clair1) 80%, var(--clair1opa5));display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px var(--darkopa4)}
 
 /* en-tête */
 .tdlb-top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4);}
@@ -95,7 +95,7 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 .tdlb-fai-since i{color:var(--dark2);opacity:.7}
 
 /* ---- barre d'action staff (bas) ---- */
-.tdlb-actionbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 26px;border-top:1px solid var(--cntr4);background:var(--clair1)}
+.tdlb-actionbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 26px;border-top:1px solid var(--cntr4);background:var(--cntr2)}
 .tdlb-actionbar.vide{display:none}
 
 /* ---- outils staff ---- */
