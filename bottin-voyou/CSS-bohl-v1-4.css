@@ -37,11 +37,14 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 .tdlb-empty{font-family:var(--font2);font-style:italic;color:var(--darkopa6);text-align:center;padding:40px}
 
 /* ---- hero commun (image de fond optionnelle + dégradé) ---- */
-.tdlb-hero{position:relative;min-height:250px;overflow:hidden;display:flex;gap:28px;align-items:flex-end;
+.tdlb-hero{position:relative;min-height:290px;overflow:hidden;display:flex;gap:28px;align-items:flex-end;
   background:var(--gradark2);padding:26px 34px}
 .tdlb-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;z-index:0}
+
+.tdlb-tab:has(.tdlb-fai-grid) .tdlb-hero-bg {background-position:bottom;}
+
 .tdlb-hero-veil{position:absolute;inset:0;z-index:0}
-.tdlb-hero.has-img .tdlb-hero-veil{background:linear-gradient(180deg,rgba(0,0,0,.05) 20%,var(--darkopa8) 100%))}
+.tdlb-hero.has-img .tdlb-hero-veil{background:linear-gradient(var(--darkopa2) 20%,var(--darkopa8) 100%)}
 .tdlb-hero-emblem,.tdlb-hero-main,.tdlb-hero-stats{position:relative;z-index:1}
 .tdlb-hero-emblem{width:104px;height:104px;border-radius:50%;border:2px solid var(--clair2);display:flex;align-items:center;justify-content:center;
   color:var(--clair1);font-size:44px;flex:none}
@@ -62,12 +65,12 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 .tdlb-hero.has-img .tdlb-hero-stats .st b{color:var(--txt)}
 /* hero en édition */
 .tdlb-hero.editing{grid-template-columns:auto 1fr}
-.tdlb-hero-editor label{display:block;font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark2);margin:10px 0 4px}
+.tdlb-hero-editor label{display:block;font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--clair2);margin:10px 0 4px}
 .tdlb-mc-edit{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .tdlb-mc-edit .tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
-  background:var(--cntr4);border-radius:20px;padding:3px 6px 3px 12px;color:var(--dark)}
+  background:var(--clair2opa8);border-radius:5px;padding:5px 10px;color:var(--clair1)}
 .tdlb-mc-edit .tag button{border:none;background:none;cursor:pointer;color:var(--darkopa6);font-size:11px;line-height:1}
-.tdlb-mc-edit .tag-add{border:1px dashed var(--dark2opa5);background:none;border-radius:20px;width:28px;height:26px;cursor:pointer;color:var(--dark2);font-size:15px}
+.tdlb-mc-edit .tag-add{border:1px dashed var(--dark2opa5);background:var(--clair1opa5);border-radius:5px;width:28px;height:26px;cursor:pointer;color:var(--dark2);font-size:15px;line-height:1;}
 .tdlb-mc-edit .mc-in{width:150px}
 
 /* ---- Faiseuses : cartes ---- */
