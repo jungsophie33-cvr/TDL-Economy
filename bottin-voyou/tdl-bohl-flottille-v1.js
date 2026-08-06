@@ -36,7 +36,7 @@
     return { key:key, nom:o.nom||s.nom||key, spec:(o.spec!=null?o.spec:s.spec)||"",
       zones:(o.zones? vt(o.zones):(s.zones||[])), image:(o.image!=null?o.image:(s.image||"")),
       independant:(o.independant!=null?!!o.independant:!!s.independant),
-      cap:s.cap||o.cap||"", cap_url:s.cap_url||o.cap_url||"", cree:!NAV[key] };
+      cap:(o.cap!=null?o.cap:(s.cap||"")), cap_url:(o.cap_url!=null?o.cap_url:(s.cap_url||"")), cree:!NAV[key] };
   }
   function tousNavires(){
     var keys={}; Object.keys(NAV).forEach(function(k){keys[k]=1;});
@@ -120,6 +120,8 @@
       + '<label>'+T.image+'</label><input class="tdlb-in" id="tdlb-flo-img" value="'+escA(nav.image)+'" placeholder="https://…">'
       + '<label>'+T.spec+'</label><input class="tdlb-in" id="tdlb-flo-spec" value="'+escA(nav.spec)+'">'
       + '<label>'+T.zones+'</label><div class="tdlb-mc-edit" id="tdlb-flo-zones">'+zonesTags()+'</div>'
+      + '<label>Capitaine (pré-lien)</label><input class="tdlb-in" id="tdlb-flo-cap" value="'+escA(nav.cap)+'" placeholder="Nom du pré-lien">'
+      + '<label>Lien du pré-lien (URL)</label><input class="tdlb-in" id="tdlb-flo-capurl" value="'+escA(nav.cap_url)+'" placeholder="https://…">'
       + '<div class="btns"><button class="tdlb-btn prim" data-nsave="'+escA(nav.key)+'">'+BHL.T.enregistrer+'</button>'
       +   '<button class="tdlb-btn" data-ncancel="1">'+BHL.T.annuler+'</button></div></div>';
   }
@@ -247,7 +249,8 @@
         inp.addEventListener("blur",function(){ fin(true); }); }
     });
     host.querySelectorAll("[data-nsave]").forEach(function(b){ b.addEventListener("click", function(){
-      var key=b.dataset.nsave, data={ image:($("tdlb-flo-img")||{}).value.trim()||"", spec:($("tdlb-flo-spec")||{}).value.trim()||"", zones:zonesWork.slice() };
+      var key=b.dataset.nsave, data={ image:(($("tdlb-flo-img")||{}).value||"").trim(), spec:(($("tdlb-flo-spec")||{}).value||"").trim(), zones:zonesWork.slice(),
+        cap:(($("tdlb-flo-cap")||{}).value||"").trim(), cap_url:(($("tdlb-flo-capurl")||{}).value||"").trim() };
       BHL.rec.bandes=BHL.rec.bandes||{}; var ff=BHL.rec.bandes.flottille=BHL.rec.bandes.flottille||{}; ff.navires=ff.navires||{};
       ff.navires[key]=Object.assign({}, ff.navires[key], data);
       navEdit=null; BHL.rendreOnglet();
