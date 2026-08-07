@@ -12,7 +12,7 @@
      .dc-overlay .dc-boite .fi-boite .dc-titre .dc-btn-fermer
      .dc-actions .dc-btn-soumettre .dc-btn-annuler .dc-zone-info
      et TOUT le bloc « VALIDATION FICHE » (fi-label/-input/-select/-textarea/
-     -rangee/-conditionnel/-fieldset/-resultat/-check/-met-* /-aide/-hab-* /-hll-*)
+     -rangee/-conditionnel/-fieldset/-resultat/-check/-met-*/-aide/-hab-*/-hll-*)
    Conserver côté dc-fi : .mc-*, .dc-staff-*, .dc-resultat, .dc-bottin-ligne.
    ============================================================ */
 
@@ -20,7 +20,7 @@
 .dc-overlay{position:fixed;inset:0;z-index:9000;background:rgba(20,16,14,.62);display:none;
   align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
 .dc-overlay.actif{display:flex}
-.dc-boite,.fi-boite{width:100%;max-width:820px;background:var(--clair1);border-radius:12px;
+.dc-boite,.fi-boite{width:100%;max-width:900px;background:var(--clair1);border-radius:12px;
   padding:22px 34px 28px;position:relative;box-shadow:0 22px 60px rgba(0,0,0,.35)}
 .dc-btn-fermer{position:absolute;top:12px;right:16px;background:none;border:0;color:var(--darkopa5);
   font-size:22px;line-height:1;cursor:pointer;transition:.15s}
@@ -132,3 +132,28 @@
 .fi-radios input[type="radio"]{accent-color:var(--dark2)}
 /* un conditionnel qui sert de cellule de grille s'affiche en colonne, sans liseré */
 .fi-grid > .fi-conditionnel.fi-visible,.fi-row > .fi-conditionnel.fi-visible{border-left:none;padding-left:0;margin:6px 0;display:flex;flex-direction:column}
+
+/* ============================================================
+   TEMPS 2b — lignes compactes, révélations inline, bande à plat
+   ============================================================ */
+/* révélation inline : le champ conditionnel s'affiche à droite des radios */
+.fi-inline-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.fi-inline-row .fi-radios{min-height:0}
+.fi-inline-row .fi-conditionnel{display:none}
+.fi-inline-row .fi-conditionnel.fi-visible{display:block;flex:1;min-width:180px;border-left:none;padding-left:0;margin:0}
+.fi-inline-row .fi-conditionnel .fi-input,.fi-inline-row .fi-conditionnel .fi-select{margin:0}
+
+/* bande hors-la-loi : groupes aplatis → tous les champs deviennent colonnes de .fi-hll-row */
+.fi-hll-grp{display:none}
+.fi-hll-grp.fi-visible{display:contents}
+.fi-hll-doigt{display:none}
+.fi-hll-doigt.fi-visible{display:contents}
+.pleine{grid-column:1/-1}
+.fi-hll-row{align-items:end}
+.fi-hll-row .fi-hll-chk{margin-top:4px}
+.fi-hll-row .fi-hll-hint{margin-top:2px}
+
+/* métier : « depuis » + boutons créer sur une même ligne */
+.fi-met-ligne{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
+.fi-met-ligne .fi-field{flex:0 0 auto;min-width:150px}
+.fi-met-ligne .fi-met-actions{margin:0}
