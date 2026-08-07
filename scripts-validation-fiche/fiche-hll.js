@@ -45,12 +45,13 @@
     HLL_POSITION:   "Position",
     HLL_DOIGT:      "Doigt",
     HLL_CAPITAINE:  "Je tiens la barre de ce navire (capitaine)",
-    HLL_PORTEUR:    "Je dirige ce Doigt",
-    HLL_LIEN_Q:     "Ton personnage fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
+    HLL_PORTEUR:    "Je porte ce Doigt (porteur)",
+    HLL_LIEN_Q:     "Fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
     HLL_LIEN_AUCUN: "Aucun",
     HLL_LIEN_MAIN:  "Réseau de la Main",
     HLL_LIEN_FLO:   "Pilier de la Flottille",
     HLL_CONCOURS:   "Concours apporté",
+    HLL_FLO_HINT:   "Ton propre bateau ? Il doit d'abord être créé par le staff pour apparaître ici — contacte un admin.",
     ERR_HLL_BANDE:  "⚠️ Choisis ta bande hors-la-loi (ou réponds Non).",
     ERR_HLL_CHAMPS: "⚠️ Complète les champs de ta bande (sélection et rôle).",
     ERR_HLL_LIEN:   "⚠️ Complète les champs de ton lien (catégorie/rôle ou concours).",
@@ -78,7 +79,8 @@
     var gFlo = grp("flottille",
       lbl(T.HLL_NAVIRE) + '<select id="fi-hll-flo-navire" class="fi-select">' + optNom(B.flottille.navires) + '</select>'
       + lbl(T.HLL_ROLE) + '<input id="fi-hll-flo-role" class="fi-input" type="text" placeholder="Mécanicien, guide…">'
-      + '<label class="fi-hll-chk"><input type="checkbox" id="fi-hll-flo-cap"> ' + T.HLL_CAPITAINE + '</label>');
+      + '<label class="fi-hll-chk"><input type="checkbox" id="fi-hll-flo-cap"> ' + T.HLL_CAPITAINE + '</label>'
+      + '<p class="fi-hll-hint">' + T.HLL_FLO_HINT + '</p>');
     var doigtOpts = B.main.ordre_doigts.map(function (k) { return '<option value="' + k + '">' + esc(B.main.doigts[k].nom) + '</option>'; }).join("");
     var gMain = grp("main",
       lbl(T.HLL_POSITION) + '<select id="fi-hll-main-type" class="fi-select">'
@@ -124,7 +126,7 @@
   };
 
   /* === EVENTS === */
-  FI.hllBrancher = function (overlay) {
+  FI.hllBrancher = async function (overlay) {
     overlay.querySelectorAll('[name="fi-hll-membre"]').forEach(function (r) {
       r.addEventListener("change", function () {
         var oui = overlay.querySelector('[name="fi-hll-membre"]:checked').value === "oui";
@@ -146,6 +148,22 @@
       overlay.querySelector("#fi-hll-lien-reseau").classList.toggle("fi-visible", selL.value === "reseau_main");
       overlay.querySelector("#fi-hll-lien-pilier").classList.toggle("fi-visible", selL.value === "pilier_flottille");
     });
+
+    // Enrichit la liste des navires avec ceux créés par le staff (Firebase bandes/flottille/navires).
+    // La création de navires reste staff-only : le joueur ne peut que sélectionner un navire existant.
+    try {
+      var rec = await window.EcoCore.safeReadBin();
+      var seed = C().bandes.flottille.navires, noms = {};
+      Object.keys(seed).forEach(function (k) { noms[k] = seed[k].nom; });
+      var ov = rec && rec.bandes && rec.bandes.flottille && rec.bandes.flottille.navires;
+      if (ov) Object.keys(ov).forEach(function (k) { noms[k] = (ov[k] && ov[k].nom) || noms[k] || k; });
+      var selN = overlay.querySelector("#fi-hll-flo-navire");
+      if (selN) {
+        var cur = selN.value;
+        selN.innerHTML = Object.keys(noms).map(function (k) { return '<option value="' + k + '">' + esc(noms[k]) + '</option>'; }).join("");
+        if (cur && noms[cur]) selN.value = cur;
+      }
+    } catch (e) { if (window.console) console.warn("[fiche-hll] navires staff", e); }
   };
 
   /* === LECTURE === */
