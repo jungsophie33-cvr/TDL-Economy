@@ -163,9 +163,6 @@
     const mc = d.multicompte
       ? `<span>oui</span> <span>@"${d.premier_compte}"</span>`
       : `<span>non</span>`;
-    const bande = d.bande
-      ? `<span>${esc(d.nom_bande)}</span> <span>${esc(d.role_bande)}</span>`
-      : `<span>non</span>`;
     // Une seule puce « Sans emploi » plutôt que trois dont deux vides.
     const metier = d.sans_emploi
       ? `<span>Sans emploi</span>`
@@ -175,7 +172,9 @@
 <tw><span>lire la fiche de @"${d.pseudo}"</span> <a href="${esc(d.lien_fiche)}"><i class="fi fi-ts-circle-book-open"></i></a> <span>Arrivé grâce à ${parrain}</span> ${prelien}</tw>
 <div class="sj-formgen"><div class="sj-formcol"><f4>Administratif</f4><d>Multicompte</d> ${mc}
 <d>Faceclaim</d> <span>${esc(d.faceclaim)}</span>
-<d>Groupe</d> <span>${esc(d.groupe)}</span></div><div class="sj-formcol"><f4>Personnage & bottins</f4><d>Bande hors-la-loi</d> ${bande}
+<d>Groupe</d> <span>${esc(d.groupe)}</span></div>
+<div class="sj-formcol"><f4>Personnage & bottins</f4>
+<d>Bande hors-la-loi</d> ${FI.hllResume(d)}
 <d>Métier</d> <span>${FI.metierResume(d)}</span>
 <d>Habitation</d> ${FI.habitationResume(d)}
 </div></div>`;
