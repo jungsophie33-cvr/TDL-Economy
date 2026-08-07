@@ -619,6 +619,10 @@
 .fi-aide{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);
   line-height:1.55;margin:0 0 10px}
 
+.fi-hab-occ{background:var(--cntr2);border:1px solid var(--cntr4);border-radius:6px;padding:10px 12px;margin-top:8px;font-family:var(--txt3);font-size:13px;color:var(--dark)}
+.fi-hab-occ > div{margin-bottom:4px}
+.fi-hab-cohab{display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer}
+
 /* ---------- CARTE DE FICHE EN ATTENTE ----------
    Reprend .mc-dem du panneau multi-comptes ; seule la colonne centrale
    diffère : une grille clé/valeur au lieu d'un résumé libre. */
