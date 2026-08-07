@@ -623,6 +623,7 @@
 .fi-hab-occ > div{margin-bottom:4px}
 .fi-hab-cohab{display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer}
 .fi-hll-chk{display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-family:var(--txt2)}
+.fi-hll-hint{font-family:var(--txt3);font-size:12px;color:var(--darkopa6);margin:6px 0 0;font-style:italic}
 
 /* ---------- CARTE DE FICHE EN ATTENTE ----------
    Reprend .mc-dem du panneau multi-comptes ; seule la colonne centrale
