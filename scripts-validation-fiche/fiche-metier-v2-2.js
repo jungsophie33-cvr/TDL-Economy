@@ -139,11 +139,15 @@
             </div>
           </div>
 
-          <div class="fi-rangee fi-met-actions">
-            <button type="button" class="fi-met-lien" id="fi-met-newposte">
-              + ${T.BTN_NEW_POSTE}</button>
-            <button type="button" class="fi-met-lien" id="fi-met-newactivite">
-              + ${T.BTN_NEW_ACTIVITE}</button>
+          <div class="fi-met-ligne">
+            <div class="fi-field">
+              <label class="fi-label">${T.L_MET_DEPUIS}</label>
+              <input id="fi-met-depuis" class="fi-input" type="text" placeholder="2026">
+            </div>
+            <div class="fi-rangee fi-met-actions">
+              <button type="button" class="fi-met-lien" id="fi-met-newposte">+ ${T.BTN_NEW_POSTE}</button>
+              <button type="button" class="fi-met-lien" id="fi-met-newactivite">+ ${T.BTN_NEW_ACTIVITE}</button>
+            </div>
           </div>
 
           <div id="fi-met-posteneuf" class="fi-conditionnel">
@@ -160,9 +164,6 @@
             <label class="fi-label">${T.L_MET_ENT_CAT}</label>
             <select id="fi-met-ent-cat" class="fi-select">${optionsCats()}</select>
           </div>
-
-          <label class="fi-label">${T.L_MET_DEPUIS}</label>
-          <input id="fi-met-depuis" class="fi-input" type="text" value="${anneeCourante()}">
         </div>
       </fieldset>`;
   };
