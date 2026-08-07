@@ -36,6 +36,8 @@ window.BMC = window.BMC || {};
   var CFG = {
     SEL:{ app:"tdlm-app", main:"tdlm-main", home:"tdlm-home", edit:"tdlm-edit" },
     HREF_ACCUEIL:"/",                                  /* [MAJ] accueil du forum */
+    EXCLUS_PSEUDO:["Mami Wata"],                        /* comptes système jamais recensés */
+    EXCLUS_UID:[1],
   };
 
   /* ===================== COMMU (couleur communauté → --grN) =====================
@@ -66,6 +68,12 @@ window.BMC = window.BMC || {};
   // Un joueur « admin » = compte principal listé dans EcoCore.ADMIN_USERS.
   function estAdminPseudo(pseudo){
     return ((window.EcoCore && window.EcoCore.ADMIN_USERS) || []).indexOf(pseudo)!==-1;
+  }
+  // Comptes système à ne jamais afficher (par pseudo OU par UID).
+  function estExclu(pseudo, m){
+    if(CFG.EXCLUS_PSEUDO.indexOf(pseudo)!==-1) return true;
+    var uid = m && m.uid;
+    return uid!=null && CFG.EXCLUS_UID.indexOf(Number(uid))!==-1;
   }
 
   /* ===================== INDEX (helpers de jointure) ===================== */
@@ -133,17 +141,17 @@ window.BMC = window.BMC || {};
     if(b==="faiseuses"){ var cf=cfgBande("faiseuses");
       detail=(hll.vocation||"")+(hll.categorie?" ("+((cf&&cf.categories&&cf.categories[hll.categorie])||hll.categorie)+")":""); }
     else if(b==="braconneurs"){ var cb=cfgBande("braconneurs");
-      detail=(hll.role||"")+(hll.spec?" — "+nomDe(cb&&cb.specialites,hll.spec):""); }
+      detail=(hll.role||"")+(hll.spec?" ⟡ "+nomDe(cb&&cb.specialites,hll.spec):""); }
     else if(b==="maringouins"){
-      detail=(hll.role||"")+(hll.cellule?" — "+nomCelluleR(rec,hll.cellule):""); }
+      detail=(hll.role||"")+(hll.cellule?" ⟡ "+nomCelluleR(rec,hll.cellule):""); }
     else if(b==="flottille"){
-      detail=(hll.capitaine?"Capitaine — ":"")+(hll.role||"")+(hll.navire?" — "+nomNavireR(rec,hll.navire):""); }
+      detail=(hll.capitaine?"Capitaine — ":"")+(hll.role||"")+(hll.navire?" ⟡ "+nomNavireR(rec,hll.navire):""); }
     else if(b==="main"){ var cm=cfgBande("main");
       if(hll.type==="main") detail="Le Chef";
-      else if(hll.type==="doigt") detail=nomDe(cm&&cm.doigts,hll.doigt)+(hll.role?" — "+hll.role:"")+(hll.chef?" (Porteur)":"");
+      else if(hll.type==="doigt") detail=nomDe(cm&&cm.doigts,hll.doigt)+(hll.role?" ⟡ "+hll.role:"")+(hll.chef?" (Porteur)":"");
       else detail="Cavalier"; }
     else if(b==="sorcieres"){ var cs=cfgBande("sorcieres");
-      detail=nomDe(cs&&cs.roles,hll.role)+(hll.lieu?" — "+hll.lieu:""); }
+      detail=nomDe(cs&&cs.roles,hll.role)+(hll.lieu?" ⟡ "+hll.lieu:""); }
     return { bande:nomBande(b), detail:detail, depuis:hll.depuis||"" };
   }
   // Liens (cumulables) → contacts [{ label, detail, statut }].
@@ -153,7 +161,7 @@ window.BMC = window.BMC || {};
       if(!l) return;
       if(l.type==="reseau_main"){
         out.push({ label:"Réseau de la Main",
-          detail:((cm&&cm.reseau_cat&&cm.reseau_cat[l.categorie])||l.categorie||"")+(l.role?" · "+l.role:""),
+          detail:((cm&&cm.reseau_cat&&cm.reseau_cat[l.categorie])||l.categorie||"")+(l.role?" ⟡ "+l.role:""),
           statut:labelStatut(l.statut) });
       } else if(l.type==="pilier_flottille"){
         out.push({ label:"Pilier de la Flottille", detail:(l.concours||""), statut:labelStatut(l.statut) });
@@ -203,6 +211,7 @@ window.BMC = window.BMC || {};
     var joueurs = {};
     Object.keys(membres).forEach(function(pseudo){
       var m = membres[pseudo], d = dem[pseudo];
+      if(estExclu(pseudo, m)) return;                           // écarte les comptes système (Mami Wata, UID 1…)
       if(!estPersonnage(m, d)) return;                          // écarte les comptes non validés
       var racine = racineDe[pseudo] || pseudo;
       if(!joueurs[racine]) joueurs[racine] = { principal:racine, chars:[] };
@@ -277,7 +286,7 @@ window.BMC = window.BMC || {};
   function joueurHTML(j, i){
     var nb = j.chars.length, cols = nb===5 ? 3 : nb, maxw = cols*320 + (cols-1)*18;
     var av = j.avatar ? '<img src="'+escA(j.avatar)+'" alt="">' : escH(initiales(j.principal));
-    var star = j.admin ? '<i class="fi fi-tr-badge-sheriff tdlm-star" title="Équipe"></i>' : '';
+    var star = j.admin ? '<i class="fi fi-tr-sheriff tdlm-star" title="Équipe"></i>' : '';
     return '<div class="tdlm-player'+(i===0?" open":"")+'">'
       + '<div class="tdlm-phead">'
       +   '<span class="tdlm-pav">'+av+'</span>'
