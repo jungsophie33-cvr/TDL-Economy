@@ -123,23 +123,7 @@
 
       ${FI.metierHTML()}
 
-      <fieldset class="fi-fieldset">
-        <legend>Habitation</legend>
-        <label class="fi-label">${T.L_LIEU_HAB}</label>
-        <select id="fi-lieu-habitation" class="fi-select">
-          ${optsAvecVide(CFG.LISTES.LIEUX_HABITATION)}
-        </select>
-        <div class="fi-rangee">
-          <div style="flex:1">
-            <label class="fi-label">${T.L_NUMERO}</label>
-            <input id="fi-numero" class="fi-input" type="text" placeholder="Ex : n°14">
-          </div>
-          <div style="flex:1">
-            <label class="fi-label">${T.L_TYPE_LOGEMENT}</label>
-            <input id="fi-type-logement" class="fi-input" type="text" placeholder="Vérifier dans le sujet bottin des logements">
-          </div>
-        </div>
-      </fieldset>
+      ${FI.habitationHTML()}
     `;
   }
 
@@ -342,9 +326,7 @@
       nom_bande:       overlay.querySelector("#fi-nom-bande").value,
       role_bande:      overlay.querySelector("#fi-role-bande").value.trim(),
       ...FI.metierLecture(overlay),
-      lieu_habitation: overlay.querySelector("#fi-lieu-habitation").value,
-      numero:          overlay.querySelector("#fi-numero").value.trim(),
-      type_logement:   overlay.querySelector("#fi-type-logement").value.trim(),
+      ...FI.habitationLecture(overlay),
     };
   }
 
@@ -360,9 +342,8 @@
     if (d.bande && !d.role_bande)           return T.ERR_BANDE_ROLE;
     const errMetier = FI.metierVerifier(d);
     if (errMetier)                          return errMetier;
-    if (!d.lieu_habitation)                 return T.ERR_LIEU_HAB;
-    if (!d.numero)                          return T.ERR_NUMERO;
-    if (!d.type_logement)                   return T.ERR_TYPE_LOGEMENT;
+    const errHab = FI.habitationVerifier(d);
+    if (errHab)                             return errHab;
     return null;
   }
 
@@ -439,6 +420,7 @@
         chargerListesMembres(overlay, pseudo);
         // listes zone → entreprise → poste, lues dans le bottin des métiers
         FI.metierBrancher(overlay);
+        FI.habitationBrancher(overlay);
       }
     });
 
