@@ -45,8 +45,8 @@
     HLL_POSITION:   "Position",
     HLL_DOIGT:      "Doigt",
     HLL_CAPITAINE:  "Je tiens la barre de ce navire (capitaine)",
-    HLL_PORTEUR:    "Je dirige ce Doigt",
-    HLL_LIEN_Q:     "Ton personnage fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
+    HLL_PORTEUR:    "Je porte ce Doigt (porteur)",
+    HLL_LIEN_Q:     "Fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
     HLL_LIEN_AUCUN: "Aucun",
     HLL_LIEN_MAIN:  "Réseau de la Main",
     HLL_LIEN_FLO:   "Pilier de la Flottille",
@@ -65,38 +65,39 @@
       + C().ordre.map(function (k) { return '<option value="' + k + '">' + esc(B[k].nom) + '</option>'; }).join("");
     var optCat = function (m) { return Object.keys(m).map(function (k) { return '<option value="' + k + '">' + esc(m[k]) + '</option>'; }).join(""); };
     var optNom = function (m) { return Object.keys(m).map(function (k) { return '<option value="' + k + '">' + esc(m[k].nom) + '</option>'; }).join(""); };
-    var grp = function (bande, inner) { return '<div class="fi-conditionnel fi-hll-grp" data-bande="' + bande + '">' + inner + '</div>'; };
     var lbl = function (t) { return '<label class="fi-label">' + t + '</label>'; };
+    var fld = function (t, c) { return '<div class="fi-field">' + lbl(t) + c + '</div>'; };
+    var grp = function (bande, inner) { return '<div class="fi-hll-grp fi-conditionnel" data-bande="' + bande + '">' + inner + '</div>'; };
 
     var gFai = grp("faiseuses",
-      lbl(T.HLL_CATEGORIE) + '<select id="fi-hll-fai-cat" class="fi-select">' + optCat(B.faiseuses.categories) + '</select>'
-      + lbl(T.HLL_VOCATION) + '<input id="fi-hll-fai-voc" class="fi-input" type="text" placeholder="Infirmière, confident…">');
+      fld(T.HLL_CATEGORIE, '<select id="fi-hll-fai-cat" class="fi-select">' + optCat(B.faiseuses.categories) + '</select>')
+      + fld(T.HLL_VOCATION, '<input id="fi-hll-fai-voc" class="fi-input" type="text" placeholder="Infirmière, confident…">'));
     var gBra = grp("braconneurs",
-      lbl(T.HLL_SPEC) + '<select id="fi-hll-bra-spec" class="fi-select">' + optNom(B.braconneurs.specialites) + '</select>'
-      + lbl(T.HLL_ROLE) + '<input id="fi-hll-bra-role" class="fi-input" type="text" placeholder="Trappeur, préparateur…">');
+      fld(T.HLL_SPEC, '<select id="fi-hll-bra-spec" class="fi-select">' + optNom(B.braconneurs.specialites) + '</select>')
+      + fld(T.HLL_ROLE, '<input id="fi-hll-bra-role" class="fi-input" type="text" placeholder="Trappeur, préparateur…">'));
     var gMar = grp("maringouins",
-      lbl(T.HLL_CELLULE) + '<select id="fi-hll-mar-cellule" class="fi-select">' + optNom(B.maringouins.cellules) + '</select>'
-      + lbl(T.HLL_ROLE) + '<input id="fi-hll-mar-role" class="fi-input" type="text" placeholder="Guetteur, passeur…">'
-      + '<p class="fi-hll-hint">' + T.HLL_MAR_HINT + '</p>');
+      fld(T.HLL_CELLULE, '<select id="fi-hll-mar-cellule" class="fi-select">' + optNom(B.maringouins.cellules) + '</select>')
+      + fld(T.HLL_ROLE, '<input id="fi-hll-mar-role" class="fi-input" type="text" placeholder="Guetteur, passeur…">')
+      + '<p class="fi-hll-hint pleine">' + T.HLL_MAR_HINT + '</p>');
     var gFlo = grp("flottille",
-      lbl(T.HLL_NAVIRE) + '<select id="fi-hll-flo-navire" class="fi-select">' + optNom(B.flottille.navires) + '</select>'
-      + lbl(T.HLL_ROLE) + '<input id="fi-hll-flo-role" class="fi-input" type="text" placeholder="Mécanicien, guide…">'
-      + '<label class="fi-hll-chk"><input type="checkbox" id="fi-hll-flo-cap"> ' + T.HLL_CAPITAINE + '</label>'
-      + '<p class="fi-hll-hint">' + T.HLL_FLO_HINT + '</p>');
+      fld(T.HLL_NAVIRE, '<select id="fi-hll-flo-navire" class="fi-select">' + optNom(B.flottille.navires) + '</select>')
+      + fld(T.HLL_ROLE, '<input id="fi-hll-flo-role" class="fi-input" type="text" placeholder="Mécanicien, guide…">')
+      + '<label class="fi-hll-chk pleine"><input type="checkbox" id="fi-hll-flo-cap"> ' + T.HLL_CAPITAINE + '</label>'
+      + '<p class="fi-hll-hint pleine">' + T.HLL_FLO_HINT + '</p>');
     var doigtOpts = B.main.ordre_doigts.map(function (k) { return '<option value="' + k + '">' + esc(B.main.doigts[k].nom) + '</option>'; }).join("");
     var gMain = grp("main",
-      lbl(T.HLL_POSITION) + '<select id="fi-hll-main-type" class="fi-select">'
+      fld(T.HLL_POSITION, '<select id="fi-hll-main-type" class="fi-select">'
         + '<option value="cavalier">' + esc(B.main.types.cavalier) + '</option>'
-        + '<option value="doigt">' + esc(B.main.types.doigt) + '</option></select>'
-      + '<div id="fi-hll-main-doigt-wrap" class="fi-conditionnel">'
-        + lbl(T.HLL_DOIGT) + '<select id="fi-hll-main-doigt" class="fi-select">' + doigtOpts + '</select>'
-        + lbl(T.HLL_ROLE) + '<input id="fi-hll-main-role" class="fi-input" type="text" placeholder="Renseignement, exécution…">'
-        + '<label class="fi-hll-chk"><input type="checkbox" id="fi-hll-main-chef"> ' + T.HLL_PORTEUR + '</label>'
+        + '<option value="doigt">' + esc(B.main.types.doigt) + '</option></select>')
+      + '<div id="fi-hll-main-doigt-wrap" class="fi-hll-doigt fi-conditionnel">'
+        + fld(T.HLL_DOIGT, '<select id="fi-hll-main-doigt" class="fi-select">' + doigtOpts + '</select>')
+        + fld(T.HLL_ROLE, '<input id="fi-hll-main-role" class="fi-input" type="text" placeholder="Renseignement, exécution…">')
+        + '<label class="fi-hll-chk pleine"><input type="checkbox" id="fi-hll-main-chef"> ' + T.HLL_PORTEUR + '</label>'
       + '</div>');
     var gSor = grp("sorcieres",
-      lbl(T.HLL_ROLE_RITUEL) + '<select id="fi-hll-sor-role" class="fi-select">' + optNom(B.sorcieres.roles) + '</select>'
-      + lbl(T.HLL_LIEU) + '<input id="fi-hll-sor-lieu" class="fi-input" type="text" list="fi-hll-sor-lieux" placeholder="Lost Bayou, Houma…">'
-      + '<datalist id="fi-hll-sor-lieux">' + B.sorcieres.lieux.map(function (l) { return '<option value="' + esc(l) + '">'; }).join("") + '</datalist>');
+      fld(T.HLL_ROLE_RITUEL, '<select id="fi-hll-sor-role" class="fi-select">' + optNom(B.sorcieres.roles) + '</select>')
+      + fld(T.HLL_LIEU, '<input id="fi-hll-sor-lieu" class="fi-input" type="text" list="fi-hll-sor-lieux" placeholder="Lost Bayou, Houma…">'
+        + '<datalist id="fi-hll-sor-lieux">' + B.sorcieres.lieux.map(function (l) { return '<option value="' + esc(l) + '">'; }).join("") + '</datalist>'));
 
     var lienCatOpts = Object.keys(B.main.reseau_cat).map(function (k) { return '<option value="' + k + '">' + esc(B.main.reseau_cat[k]) + '</option>'; }).join("");
 
@@ -105,24 +106,23 @@
       +   '<div class="fi-rangee"><span class="fi-label">' + T.HLL_MEMBRE + '</span>'
       +     '<label><input type="radio" name="fi-hll-membre" value="non" checked> Non</label>'
       +     '<label><input type="radio" name="fi-hll-membre" value="oui"> Oui</label></div>'
-      +   '<div id="fi-hll-detail" class="fi-conditionnel">'
-      +     lbl(T.HLL_BANDE) + '<select id="fi-hll-bande" class="fi-select">' + bandeOpts + '</select>'
+      +   '<div id="fi-hll-detail" class="fi-conditionnel"><div class="fi-row fi-hll-row">'
+      +     fld(T.HLL_BANDE, '<select id="fi-hll-bande" class="fi-select">' + bandeOpts + '</select>')
       +     gFai + gBra + gMar + gFlo + gMain + gSor
-      +     lbl(T.HLL_DEPUIS) + '<input id="fi-hll-depuis" class="fi-input" type="text" placeholder="' + anneeCourante() + '">'
-      +   '</div>'
+      +     fld(T.HLL_DEPUIS, '<input id="fi-hll-depuis" class="fi-input" type="text" placeholder="' + anneeCourante() + '">')
+      +   '</div></div>'
       + '</fieldset>'
       + '<fieldset class="fi-fieldset"><legend>Lien avec la Main ou la Flottille</legend>'
-      +   lbl(T.HLL_LIEN_Q)
-      +   '<select id="fi-hll-lien" class="fi-select">'
+      +   fld(T.HLL_LIEN_Q, '<select id="fi-hll-lien" class="fi-select">'
       +     '<option value="">' + T.HLL_LIEN_AUCUN + '</option>'
       +     '<option value="reseau_main">' + T.HLL_LIEN_MAIN + '</option>'
-      +     '<option value="pilier_flottille">' + T.HLL_LIEN_FLO + '</option></select>'
-      +   '<div id="fi-hll-lien-reseau" class="fi-conditionnel">'
-      +     lbl(T.HLL_CATEGORIE) + '<select id="fi-hll-lien-cat" class="fi-select">' + lienCatOpts + '</select>'
-      +     lbl(T.HLL_ROLE) + '<input id="fi-hll-lien-role" class="fi-input" type="text" placeholder="Fournisseur, informateur…">'
-      +   '</div>'
+      +     '<option value="pilier_flottille">' + T.HLL_LIEN_FLO + '</option></select>')
+      +   '<div id="fi-hll-lien-reseau" class="fi-conditionnel"><div class="fi-row">'
+      +     fld(T.HLL_CATEGORIE, '<select id="fi-hll-lien-cat" class="fi-select">' + lienCatOpts + '</select>')
+      +     fld(T.HLL_ROLE, '<input id="fi-hll-lien-role" class="fi-input" type="text" placeholder="Fournisseur, informateur…">')
+      +   '</div></div>'
       +   '<div id="fi-hll-lien-pilier" class="fi-conditionnel">'
-      +     lbl(T.HLL_CONCOURS) + '<input id="fi-hll-lien-concours" class="fi-input" type="text" placeholder="bacs de glace, contact radio…">'
+      +     fld(T.HLL_CONCOURS, '<input id="fi-hll-lien-concours" class="fi-input" type="text" placeholder="bacs de glace, contact radio…">')
       +   '</div>'
       + '</fieldset>';
   };
