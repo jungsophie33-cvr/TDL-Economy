@@ -59,18 +59,20 @@
     return `
       <fieldset class="fi-fieldset">
         <legend>Habitation</legend>
-        <label class="fi-label">${T.L_HAB_QUARTIER}</label>
-        <select id="fi-hab-quartier" class="fi-select">
-          <option value="">${T.HAB_CHOISIR}</option>
-        </select>
-        <div class="fi-rangee">
-          <div style="flex:1">
+        <div class="fi-row">
+          <div class="fi-field">
+            <label class="fi-label">${T.L_HAB_QUARTIER}</label>
+            <select id="fi-hab-quartier" class="fi-select">
+              <option value="">${T.HAB_CHOISIR}</option>
+            </select>
+          </div>
+          <div class="fi-field">
             <label class="fi-label">${T.L_HAB_TYPE}</label>
             <select id="fi-hab-type" class="fi-select">
               <option value="">${T.HAB_CHOISIR_T}</option>
             </select>
           </div>
-          <div style="flex:1">
+          <div class="fi-field">
             <label class="fi-label">${T.L_HAB_NUMERO}</label>
             <input id="fi-hab-numero" class="fi-input" type="text" placeholder="Ex : 14">
           </div>
