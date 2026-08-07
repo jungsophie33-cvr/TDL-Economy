@@ -10,7 +10,7 @@
      poste/ent ← emplois[*].roles + lieux[id].nom
      référent  ← emplois[id].referent === pseudo (picto)
      lieu      ← membres[pseudo].habitation.quartier (ou demande validée)
-     ombre     ← demande validée : nom_bande + role_bande
+     ombre     ← membres[pseudo].hors_la_loi (Membre) + .liens (Contact)
      présent.  ← demande validée : lien_fiche
 
    Blocs : TEXTES · CONFIG · COMMU · UTILS · INDEX · DONNÉES · RENDU · EVENTS · INIT · BOOT
@@ -24,7 +24,7 @@ window.BMC = window.BMC || {};
     perso:function(n){return n>1?"personnages":"personnage";},
     ref:function(n){return n>1?"entreprises gérées":"entreprise gérée";},
     ombre:function(n){return n>1?"affiliations de l'ombre":"affiliation de l'ombre";},
-    pasOmbre:"Pas d'affiliation à une bande hors-la-loi",
+    pasOmbre:"Pas d'affiliation de l'ombre", membre:"Membre", contact:"Contact",
     sansEmploi:"Sans emploi", tiret:"—",
     lire:"Lire la présentation", voirProfil:"Voir le profil",
     accueil:"Accueil", editer:"Éditer ce message",
@@ -109,6 +109,59 @@ window.BMC = window.BMC || {};
     return raw;
   }
 
+  /* ===================== OMBRE (hors_la_loi + liens → lisible) ===================== */
+  // Source unique de structure : window.BHL_CONFIG ; noms des cellules/navires créés
+  // par le staff résolus via rec.bandes.{maringouins.cellules|flottille.navires}.
+  function cfg(){ return window.BHL_CONFIG; }
+  function cfgBande(k){ var C=cfg(); return (C && C.bandes && C.bandes[k]) || null; }
+  function nomBande(k){ var b=cfgBande(k); return (b && b.nom) || k; }
+  function nomDe(map,k){ return (map && map[k] && map[k].nom) || k; }
+  function nomCelluleR(rec,k){
+    var ov=rec.bandes&&rec.bandes.maringouins&&rec.bandes.maringouins.cellules&&rec.bandes.maringouins.cellules[k];
+    if(ov&&ov.nom) return ov.nom; var b=cfgBande("maringouins"); return nomDe(b&&b.cellules,k);
+  }
+  function nomNavireR(rec,k){
+    var ov=rec.bandes&&rec.bandes.flottille&&rec.bandes.flottille.navires&&rec.bandes.flottille.navires[k];
+    if(ov&&ov.nom) return ov.nom; var b=cfgBande("flottille"); return nomDe(b&&b.navires,k);
+  }
+  function labelStatut(k){ var b=cfgBande("main"); return k ? ((b&&b.statuts&&b.statuts[k])||k) : ""; }
+
+  // Affiliation pleine → { bande (nom), detail, depuis } ou null.
+  function resumeHll(hll, rec){
+    if(!hll || !hll.bande) return null;
+    var b=hll.bande, detail="";
+    if(b==="faiseuses"){ var cf=cfgBande("faiseuses");
+      detail=(hll.vocation||"")+(hll.categorie?" ("+((cf&&cf.categories&&cf.categories[hll.categorie])||hll.categorie)+")":""); }
+    else if(b==="braconneurs"){ var cb=cfgBande("braconneurs");
+      detail=(hll.role||"")+(hll.spec?" — "+nomDe(cb&&cb.specialites,hll.spec):""); }
+    else if(b==="maringouins"){
+      detail=(hll.role||"")+(hll.cellule?" — "+nomCelluleR(rec,hll.cellule):""); }
+    else if(b==="flottille"){
+      detail=(hll.capitaine?"Capitaine — ":"")+(hll.role||"")+(hll.navire?" — "+nomNavireR(rec,hll.navire):""); }
+    else if(b==="main"){ var cm=cfgBande("main");
+      if(hll.type==="main") detail="Le Chef";
+      else if(hll.type==="doigt") detail=nomDe(cm&&cm.doigts,hll.doigt)+(hll.role?" — "+hll.role:"")+(hll.chef?" (Porteur)":"");
+      else detail="Cavalier"; }
+    else if(b==="sorcieres"){ var cs=cfgBande("sorcieres");
+      detail=nomDe(cs&&cs.roles,hll.role)+(hll.lieu?" — "+hll.lieu:""); }
+    return { bande:nomBande(b), detail:detail, depuis:hll.depuis||"" };
+  }
+  // Liens (cumulables) → contacts [{ label, detail, statut }].
+  function resumeLiens(liens, rec){
+    var out=[], cm=cfgBande("main");
+    versTableau(liens).forEach(function(l){
+      if(!l) return;
+      if(l.type==="reseau_main"){
+        out.push({ label:"Réseau de la Main",
+          detail:((cm&&cm.reseau_cat&&cm.reseau_cat[l.categorie])||l.categorie||"")+(l.role?" · "+l.role:""),
+          statut:labelStatut(l.statut) });
+      } else if(l.type==="pilier_flottille"){
+        out.push({ label:"Pilier de la Flottille", detail:(l.concours||""), statut:labelStatut(l.statut) });
+      }
+    });
+    return out;
+  }
+
   /* ===================== DONNÉES (lecture + jointures) ===================== */
   function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.safeReadBin==="function"); }
   function attendreEco(ms){
@@ -131,8 +184,8 @@ window.BMC = window.BMC || {};
       poste: sansEmploi ? T.sansEmploi : (j.poste || T.tiret),
       entreprise: sansEmploi ? "" : (j.entreprise || ""),
       referent: refIds.length>0, refIds:refIds,
-      bande: (d && d.bande) ? (d.nom_bande||"") : "",
-      role:  (d && d.bande) ? (d.role_bande||"") : "",
+      affiliation: resumeHll(m.hors_la_loi, rec),
+      contacts:    resumeLiens(m.liens, rec),
       lieu: quartierNom(rec, pseudo, d),
       pres: (d && d.lien_fiche) || "",
     };
@@ -167,7 +220,7 @@ window.BMC = window.BMC || {};
       var ids = {};
       j.chars.forEach(function(c){ c.refIds.forEach(function(id){ ids[id]=1; }); });
       j.nbRef = Object.keys(ids).length;                        // entreprises référentes distinctes
-      j.nbOmbre = j.chars.filter(function(c){ return c.bande; }).length;
+      j.nbOmbre = j.chars.filter(function(c){ return c.affiliation || (c.contacts && c.contacts.length); }).length;
       return j;
     }).sort(function(a,b){                                       // admins d'abord, puis alphabétique
       if(a.admin !== b.admin) return a.admin ? -1 : 1;
@@ -196,9 +249,18 @@ window.BMC = window.BMC || {};
       + (c.entreprise?'<span>'+escH(c.entreprise)+'</span>':'')+'</div></div>';
   }
   function ombreHTML(c){
-    if(!c.bande) return '<div class="tdlm-ombre-none">'+T.pasOmbre+'</div>';
-    return '<div class="tdlm-ombre"><span class="bande">'+escH(c.bande)+'</span>'
-      + (c.role?'<div class="role">'+escH(c.role)+'</div>':'')+'</div>';
+    var parts=[];
+    if(c.affiliation){
+      parts.push('<div class="tdlm-ombre membre"><span class="tdlm-tag membre">'+T.membre+'</span> <span class="bande">'+escH(c.affiliation.bande)+'</span>'
+        + (c.affiliation.detail?'<div class="role">'+escH(c.affiliation.detail)+'</div>':'')+'</div>');
+    }
+    (c.contacts||[]).forEach(function(ct){
+      var d = escH(ct.detail||"") + (ct.statut?' · '+escH(ct.statut):'');
+      parts.push('<div class="tdlm-ombre contact"><span class="tdlm-tag contact">'+T.contact+'</span> <span class="bande">'+escH(ct.label)+'</span>'
+        + (d?'<div class="role">'+d+'</div>':'')+'</div>');
+    });
+    if(!parts.length) return '<div class="tdlm-ombre-none">'+T.pasOmbre+'</div>';
+    return parts.join("");
   }
   function carteHTML(c){
     var profil = c.uid ? '/u'+c.uid : '#';
@@ -215,7 +277,7 @@ window.BMC = window.BMC || {};
   function joueurHTML(j, i){
     var nb = j.chars.length, cols = nb===5 ? 3 : nb, maxw = cols*320 + (cols-1)*18;
     var av = j.avatar ? '<img src="'+escA(j.avatar)+'" alt="">' : escH(initiales(j.principal));
-    var star = j.admin ? '<i class="fi fi-tr-badge-sheriff tdlm-star" title="Équipe staff"></i>' : '';
+    var star = j.admin ? '<i class="fi fi-tr-sheriff tdlm-star" title="Équipe"></i>' : '';
     return '<div class="tdlm-player'+(i===0?" open":"")+'">'
       + '<div class="tdlm-phead">'
       +   '<span class="tdlm-pav">'+av+'</span>'
