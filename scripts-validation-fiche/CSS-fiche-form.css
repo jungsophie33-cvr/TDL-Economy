@@ -1,0 +1,120 @@
+/* ============================================================
+   TDL — MODALE DE VALIDATION DE FICHE · fiche-form.css
+   Feuille SÉPARÉE (à extraire de dc-fi-gestion.css). Ne style QUE la modale
+   fiche : le chrome partagé dc-overlay / fi-boite / dc-titre / dc-actions /
+   dc-btn-* / dc-zone-info (aussi employé par fiche-staff) + toutes les fi-*.
+
+   Principe du redesign : mise à PLAT. Plus de caisson par conditionnel, plus
+   de fieldset encadré — sections à filet, dépendances signalées par un simple
+   liseré, grille 2 colonnes, lignes de champs alignées, barre de progression.
+
+   ── À RETIRER de dc-fi-gestion.css (désormais ici) ──
+     .dc-overlay .dc-boite .fi-boite .dc-titre .dc-btn-fermer
+     .dc-actions .dc-btn-soumettre .dc-btn-annuler .dc-zone-info
+     et TOUT le bloc « VALIDATION FICHE » (fi-label/-input/-select/-textarea/
+     -rangee/-conditionnel/-fieldset/-resultat/-check/-met-* /-aide/-hab-* /-hll-*)
+   Conserver côté dc-fi : .mc-*, .dc-staff-*, .dc-resultat, .dc-bottin-ligne.
+   ============================================================ */
+
+/* ---------- OVERLAY + BOÎTE ---------- */
+.dc-overlay{position:fixed;inset:0;z-index:9000;background:rgba(20,16,14,.62);display:none;
+  align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.dc-overlay.actif{display:flex}
+.dc-boite,.fi-boite{width:100%;max-width:820px;background:var(--clair1);border-radius:12px;
+  padding:22px 34px 28px;position:relative;box-shadow:0 22px 60px rgba(0,0,0,.35)}
+.dc-btn-fermer{position:absolute;top:12px;right:16px;background:none;border:0;color:var(--darkopa5);
+  font-size:22px;line-height:1;cursor:pointer;transition:.15s}
+.dc-btn-fermer:hover{color:var(--dark)}
+.fi-boite tdl-separator,.dc-boite tdl-separator{display:block;margin:0 auto 4px}
+.dc-titre{font-family:var(--title4);font-weight:600;font-size:26px;letter-spacing:.09em;
+  text-transform:uppercase;text-align:center;color:var(--dark);margin:14px 0 10px}
+
+/* ---------- BARRE DE PROGRESSION ---------- */
+.fi-progress{display:flex;align-items:center;gap:12px;margin:0 0 20px}
+.fi-progress-track{flex:1;height:8px;border-radius:6px;background:var(--cntr3);overflow:hidden}
+.fi-progress-bar{height:100%;width:0;border-radius:6px;
+  background:linear-gradient(90deg,var(--dark2),var(--clair2));transition:width .35s ease}
+.fi-progress-pct{font-family:var(--txt3);font-size:13px;font-weight:600;color:var(--dark2);min-width:40px;text-align:right}
+
+/* ---------- CORPS ---------- */
+.fi-champs{text-align:left}
+.dc-zone-info{font-family:var(--txt2);font-size:15px;line-height:1.55;color:var(--txt);
+  background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:14px 16px;margin-bottom:8px}
+
+/* grille 2 colonnes (paires label+champ) — Temps 2 : envelopper les champs dans .fi-field */
+.fi-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+.fi-field{display:flex;flex-direction:column;min-width:0;margin:6px 0}
+.fi-field.pleine{grid-column:1/-1}
+
+/* section allégée (remplace le fieldset encadré) */
+.fi-fieldset{border:none;padding:0;margin:24px 0 4px;min-width:0}
+.fi-fieldset legend{display:flex;align-items:center;gap:12px;width:100%;padding:0;float:none;
+  font-family:var(--title1);font-weight:500;font-size:15px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--dark2);margin-bottom:12px}
+.fi-fieldset legend::after{content:"";flex:1;height:1px;background:var(--cntr4)}
+
+/* ---------- LABELS + CHAMPS ---------- */
+.fi-label{display:block;font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--dark2);margin:10px 0 5px}
+.fi-input,.fi-select,.fi-textarea{width:100%;box-sizing:border-box;font-family:var(--txt2);font-size:15px;
+  color:var(--txt);background:var(--cntr2);border:1px solid var(--cntr5);border-radius:7px;padding:9px 12px;margin-bottom:4px;transition:border-color .15s}
+.fi-input:focus,.fi-select:focus,.fi-textarea:focus{outline:none;border-color:var(--dark2)}
+.fi-textarea{min-height:90px;resize:vertical;line-height:1.4}
+.fi-input[readonly]{background:var(--cntr1);color:var(--darkopa6);cursor:not-allowed}
+
+/* ---------- RANGÉE OUI/NON ---------- */
+.fi-rangee{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:12px 0 4px}
+.fi-rangee .fi-label{margin:0;flex-shrink:0}
+.fi-rangee label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--txt2);font-size:15px}
+.fi-rangee input[type="radio"]{accent-color:var(--dark2)}
+
+/* ---------- CONDITIONNELS À PLAT (fini les caissons) ---------- */
+.fi-conditionnel{display:none}
+.fi-conditionnel.fi-visible{display:block}
+/* dépendance signalée par un liseré discret, sans fond ni boîte */
+.fi-conditionnel.fi-visible{border-left:2px solid var(--clair2opa5);padding-left:16px;margin:6px 0 8px}
+/* imbrication : on ne cumule pas les liserés (pas d'effet poupées russes) */
+.fi-conditionnel .fi-conditionnel.fi-visible{border-left:none;padding-left:0;margin:6px 0}
+
+/* ligne de champs alignés (Position · Doigt · Rôle…) — Temps 2 : envelopper dans .fi-row */
+.fi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 18px;align-items:end}
+
+/* ---------- BLOCS SPÉCIFIQUES ---------- */
+.fi-check{display:inline-flex;align-items:center;gap:8px;margin:4px 0 12px;
+  font-family:var(--txt3);font-size:14px;color:var(--txt);cursor:pointer}
+.fi-check input{width:16px;height:16px;accent-color:var(--dark)}
+.fi-met-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 4px}
+.fi-met-lien{font-family:var(--txt3);font-size:14px;background:var(--cntr3);border:1px solid var(--cntr7);
+  border-radius:6px;padding:5px 11px;cursor:pointer;color:var(--dark);transition:.15s}
+.fi-met-lien:hover{background:var(--dark);color:var(--clair1);border-color:var(--dark)}
+.fi-aide{font-family:var(--txt3);font-size:14px;color:var(--darkopa6);line-height:1.55;margin:0 0 10px}
+.fi-hll-chk,.fi-hab-cohab{display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-family:var(--txt2);font-size:15px}
+.fi-hll-chk input,.fi-hab-cohab input{accent-color:var(--dark2)}
+.fi-hll-hint{font-family:var(--txt3);font-size:12px;color:var(--darkopa6);margin:6px 0 0;font-style:italic}
+.fi-hab-occ{background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:11px 13px;margin-top:8px;
+  font-family:var(--txt3);font-size:13px;color:var(--dark)}
+.fi-hab-occ>div{margin-bottom:4px}
+
+/* ---------- ACTIONS ---------- */
+.dc-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center;
+  margin-top:24px;padding-top:18px;border-top:1px solid var(--cntr4)}
+.dc-btn-soumettre{font-family:var(--txt3);font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  background:var(--dark2);color:var(--clair1);border:none;border-radius:8px;padding:11px 26px;cursor:pointer;transition:.15s}
+.dc-btn-soumettre:disabled{opacity:.6;cursor:not-allowed}
+.dc-btn-soumettre:not(:disabled):hover{background:var(--dark)}
+.dc-btn-annuler{font-family:var(--txt3);font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+  background:none;border:1px solid var(--cntr6);border-radius:8px;padding:11px 20px;cursor:pointer;color:var(--darkopa7);transition:.15s}
+.dc-btn-annuler:hover{border-color:var(--dark2);color:var(--dark2)}
+
+/* ---------- RÉSULTAT ---------- */
+.fi-resultat{display:none;font-family:var(--txt2);font-size:15px;line-height:1.5;padding:12px 14px;border-radius:8px;margin-top:14px}
+.fi-resultat.succes{display:block;background:var(--gr2-20);border:1px solid var(--gr2-40);color:var(--gr2-color)}
+.fi-resultat.erreur{display:block;background:var(--dark2opa2);border:1px solid var(--dark2);color:var(--dark2)}
+.fi-resultat.info{display:block;background:var(--cntr2);border:1px solid var(--cntr4);color:var(--txt)}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:760px){
+  .fi-grid{grid-template-columns:1fr}
+  .dc-boite,.fi-boite{padding:18px 18px 24px}
+  .dc-titre{font-size:22px}
+}
