@@ -52,57 +52,71 @@
 
   /* === RENDER SECTIONS === */
 
-  function htmlSectionPrincipale() {
+function htmlSectionPrincipale() {
     return `
-      <label class="fi-label">${T.L_LIEN_FICHE}</label>
-      <input id="fi-lien-fiche" class="fi-input" type="url" placeholder="https://…">
-
-      <div class="fi-rangee">
-        <span class="fi-label">${T.L_PRE_LIEN}</span>
-        <label><input type="radio" name="fi-prelien" value="non" checked> Non</label>
-        <label><input type="radio" name="fi-prelien" value="oui"> Oui</label>
+      <div class="fi-field">
+        <label class="fi-label" for="fi-lien-fiche">${T.L_LIEN_FICHE}</label>
+        <input id="fi-lien-fiche" class="fi-input" type="url" placeholder="https://…">
       </div>
+
+      <div class="fi-grid">
+        <div class="fi-field">
+          <span class="fi-label">${T.L_PRE_LIEN}</span>
+          <div class="fi-radios">
+            <label><input type="radio" name="fi-prelien" value="non" checked> Non</label>
+            <label><input type="radio" name="fi-prelien" value="oui"> Oui</label>
+          </div>
+        </div>
+        <div class="fi-field">
+          <label class="fi-label" for="fi-parrain">${T.L_PARRAIN}</label>
+          <select id="fi-parrain" class="fi-select"><option value="Personne">Personne</option></select>
+        </div>
+      </div>
+
       <div id="fi-prelien-detail" class="fi-conditionnel">
-        <label class="fi-label">${T.L_LIEN_PRE_LIEN}</label>
+        <label class="fi-label" for="fi-lien-prelien">${T.L_LIEN_PRE_LIEN}</label>
         <input id="fi-lien-prelien" class="fi-input" type="url" placeholder="https://…">
       </div>
 
-      <label class="fi-label">${T.L_PARRAIN}</label>
-      <select id="fi-parrain" class="fi-select">
-        <option value="Personne">Personne</option>
-      </select>
-
-      <div class="fi-rangee">
-        <span class="fi-label">${T.L_MULTICOMPTE}</span>
-        <label><input type="radio" name="fi-mc" value="non" checked> Non</label>
-        <label><input type="radio" name="fi-mc" value="oui"> Oui</label>
+      <div class="fi-grid">
+        <div class="fi-field">
+          <span class="fi-label">${T.L_MULTICOMPTE}</span>
+          <div class="fi-radios">
+            <label><input type="radio" name="fi-mc" value="non" checked> Non</label>
+            <label><input type="radio" name="fi-mc" value="oui"> Oui</label>
+          </div>
+        </div>
+        <div class="fi-field">
+          <label class="fi-label" for="fi-fc-mode">${T.L_FC_MODE}</label>
+          <select id="fi-fc-mode" class="fi-select">
+            <option value="sans">${T.FC_MODE_SANS}</option>
+            <option value="sept">${T.FC_MODE_7J}</option>
+            <option value="mc">${T.FC_MODE_MC}</option>
+            <option value="prelien">${T.FC_MODE_PRELIEN}</option>
+          </select>
+        </div>
       </div>
+
       <div id="fi-mc-detail" class="fi-conditionnel">
-        <label class="fi-label">${T.L_PREMIER_COMPTE}</label>
-        <select id="fi-premier-compte" class="fi-select">
-          <option value="">Chargement…</option>
-        </select>
+        <label class="fi-label" for="fi-premier-compte">${T.L_PREMIER_COMPTE}</label>
+        <select id="fi-premier-compte" class="fi-select"><option value="">Chargement…</option></select>
       </div>
-
-     <label class="fi-label">${T.L_FC_MODE}</label>
-      <select id="fi-fc-mode" class="fi-select">
-        <option value="sans">${T.FC_MODE_SANS}</option>
-        <option value="sept">${T.FC_MODE_7J}</option>
-        <option value="mc">${T.FC_MODE_MC}</option>
-        <option value="prelien">${T.FC_MODE_PRELIEN}</option>
-      </select>
 
       <div id="fi-fc-liste-wrap" class="fi-conditionnel">
-        <label class="fi-label">${T.L_FC_CHOIX}</label>
+        <label class="fi-label" for="fi-fc-liste">${T.L_FC_CHOIX}</label>
         <select id="fi-fc-liste" class="fi-select"></select>
       </div>
 
-      <label class="fi-label">${T.L_FACECLAIM}</label>
-      <input id="fi-faceclaim" class="fi-input" type="text"
-        placeholder="Nom du Faceclaim">
-
-      <label class="fi-label">${T.L_GROUPE}</label>
-      <select id="fi-groupe" class="fi-select">${FI.optionsGroupes()}</select>
+      <div class="fi-grid">
+        <div class="fi-field">
+          <label class="fi-label" for="fi-faceclaim">${T.L_FACECLAIM}</label>
+          <input id="fi-faceclaim" class="fi-input" type="text" placeholder="Nom du Faceclaim">
+        </div>
+        <div class="fi-field">
+          <label class="fi-label" for="fi-groupe">${T.L_GROUPE}</label>
+          <select id="fi-groupe" class="fi-select">${FI.optionsGroupes()}</select>
+        </div>
+      </div>
     `;
   }
 
