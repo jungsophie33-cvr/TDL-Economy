@@ -12,7 +12,7 @@
      .dc-overlay .dc-boite .fi-boite .dc-titre .dc-btn-fermer
      .dc-actions .dc-btn-soumettre .dc-btn-annuler .dc-zone-info
      et TOUT le bloc « VALIDATION FICHE » (fi-label/-input/-select/-textarea/
-     -rangee/-conditionnel/-fieldset/-resultat/-check/-met-*/-aide/-hab-*/-hll-*)
+     -rangee/-conditionnel/-fieldset/-resultat/-check/-met-* /-aide/-hab-* /-hll-*)
    Conserver côté dc-fi : .mc-*, .dc-staff-*, .dc-resultat, .dc-bottin-ligne.
    ============================================================ */
 
