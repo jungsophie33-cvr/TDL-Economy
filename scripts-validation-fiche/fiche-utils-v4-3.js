@@ -177,7 +177,7 @@
 <d>Bande hors-la-loi</d> ${FI.hllResume(d)}
 <d>Métier</d> <span>${FI.metierResume(d)}</span>
 <d>Habitation</d> ${FI.habitationResume(d)}
-</div></div>`;
+</div></div></div>`;
   };
 
   FI.bbcodeValidation = function (d, msgPerso, staffPseudo) {
