@@ -331,19 +331,9 @@ appliquerActions(rec, demande);
   crediterMembre(rec, d);
   crediterParrain(rec, d);
   affecterGroupe(rec, d);
+  affecterBande(rec, d);        // ← AJOUT
   affecterHabitation(rec, d);   // ← AJOUT
   completerGroupeDC(rec, d);
-}
-
-// ← AJOUT, à côté de affecterGroupe
-function affecterHabitation(rec, d) {
-  if (!rec.membres[d.pseudo]) return;
-  rec.membres[d.pseudo].habitation = {
-    quartier: d.lieu_habitation,   // nom d'affichage — le bottin le résout en clé
-    numero:   d.numero,
-    type:     d.type_logement,
-    depuis:   d.date || new Date().toISOString(),
-  };
 }
 
   function crediterMembre(rec, d) {
@@ -366,6 +356,29 @@ function affecterHabitation(rec, d) {
     if (!rec.membres[d.pseudo]) return;
     rec.membres[d.pseudo].group = d.groupe;
   }
+  
+  // ← AJOUT, à côté de affecterGroupe
+function affecterHabitation(rec, d) {
+  if (!rec.membres[d.pseudo]) return;
+  rec.membres[d.pseudo].habitation = {
+    quartier: d.lieu_habitation,   // nom d'affichage — le bottin le résout en clé
+    numero:   d.numero,
+    type:     d.type_logement,
+    depuis:   d.date || new Date().toISOString(),
+  };
+}
+
+  // ← AJOUT : écrit l'affiliation pleine + ajoute le lien (réseau/pilier), cumulable.
+function affecterBande(rec, d) {
+  const m = rec.membres[d.pseudo];
+  if (!m) return;
+  if (d.hll)  m.hors_la_loi = d.hll;                       // clés identiques aux onglets du bottin
+  if (d.lien) {
+    const liens = FI.versTableau(m.liens);
+    liens.push(d.lien);                                    // statut:null — la dette reste au staff
+    m.liens = liens;
+  }
+}
 
   // Complète la 2e étape de la demande DC : ajoute le nouveau pseudo au groupe et supprime le slot.
   function completerGroupeDC(rec, d) {
