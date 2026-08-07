@@ -124,17 +124,19 @@
           ${T.L_SANS_EMPLOI}</label>
 
         <div id="fi-met-bloc">
-          <label class="fi-label">${T.L_MET_ZONE}</label>
-          <select id="fi-met-zone" class="fi-select"></select>
-
-          <div id="fi-met-entwrap">
-            <label class="fi-label">${T.L_MET_ENTREPRISE}</label>
-            <select id="fi-met-entreprise" class="fi-select"></select>
-          </div>
-
-          <div id="fi-met-postewrap">
-            <label class="fi-label">${T.L_MET_POSTE}</label>
-            <select id="fi-met-poste" class="fi-select"></select>
+          <div class="fi-row">
+            <div class="fi-field">
+              <label class="fi-label">${T.L_MET_ZONE}</label>
+              <select id="fi-met-zone" class="fi-select"></select>
+            </div>
+            <div id="fi-met-entwrap" class="fi-field">
+              <label class="fi-label">${T.L_MET_ENTREPRISE}</label>
+              <select id="fi-met-entreprise" class="fi-select"></select>
+            </div>
+            <div id="fi-met-postewrap" class="fi-field">
+              <label class="fi-label">${T.L_MET_POSTE}</label>
+              <select id="fi-met-poste" class="fi-select"></select>
+            </div>
           </div>
 
           <div class="fi-rangee fi-met-actions">
