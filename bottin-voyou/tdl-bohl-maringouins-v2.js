@@ -2,34 +2,52 @@
    TDL — BANDES HORS-LA-LOI · ONGLET MARINGOUINS
    (tdl-bohl-maringouins.js) — à charger APRÈS tdl-bohl-core.js.
 
-   3 cellules (config). Membre : cellule + role + depuis + figure (de confiance).
+   Cellules = 3 canon (config) + cellules créées par le staff (Firebase).
+   Membre : cellule + role + depuis + figure (de confiance).
    Donnée : membres/{pseudo}.hors_la_loi = { bande:"maringouins", cellule, role, depuis, figure }.
-   Contenu éditable (staff) par cellule : bandes/maringouins/cellules/{key} = { zones:[], devise:"" }.
+   Contenu éditable (staff) par cellule : bandes/maringouins/cellules/{key} = { nom?, zones:[], devise:"", cree? }.
    Figure de confiance & membres : même modèle que l'Ancien des Braconneurs (classes .tdlb-bra-*).
    ============================================================ */
 (function (BHL) {
   "use strict";
   var BANDE="maringouins", CONF=window.BHL_CONFIG.bandes[BANDE], CELLULES=CONF.cellules;
-  var ORDRE=Object.keys(CELLULES);
   var $=BHL.$, escH=BHL.escH, escA=BHL.escA, ini=BHL.initiales;
 
-  // icônes solides par cellule — [MAJ] uicons-solid-rounded 4.0, ajustables
+  // icônes solides par cellule canon — [MAJ] uicons-solid-rounded 4.0. Cellules créées : CREE_ICON.
   var ICON={ salespattes:"fi-sr-paw", cypresmorts:"fi-sr-tree", rouilles:"fi-sr-key" };
+  var CREE_ICON="fi-sr-bug";
 
   var T = { figure:"Figure de confiance", vacant:"Rôle à pourvoir", membres:"Membres", cellules:"Cellules",
             cellule:"Cellule", role:"Rôle / métier", estFigure:"Figure de confiance de la cellule",
-            territoires:"Territoires", citation:"Citation", majContenu:"Modifier territoires & citation" };
+            territoires:"Territoires", citation:"Citation", majContenu:"Modifier nom, territoires & citation",
+            nomCellule:"Nom de la cellule", creerCellule:"Créer une cellule", supprCellule:"Supprimer cette cellule",
+            confSupprCellule:"Supprimer définitivement cette cellule ?" };
   var edit=null;         // membre : null | "new" | pseudo
   var contentEdit=null;  // contenu cellule : null | key
+  var cellCreate=false;  // création de cellule
   var zonesWork=[];      // territoires en cours d'édition
 
-  /* ---------- overrides de contenu ---------- */
+  /* ---------- cellules (config + overrides/créées) ---------- */
   function ov(key){ var b=BHL.rec&&BHL.rec.bandes&&BHL.rec.bandes.maringouins&&BHL.rec.bandes.maringouins.cellules; return (b&&b[key])||null; }
-  function cellZones(key){ var o=ov(key); return (o&&o.zones) ? BHL.vt(o.zones) : (CELLULES[key].zones||[]); }
-  function cellDevise(key){ var o=ov(key); return (o&&o.devise!=null) ? o.devise : (CELLULES[key].devise||""); }
+  function cellData(key){
+    var s=CELLULES[key]||{}, o=ov(key)||{};
+    return { nom:(o.nom!=null?o.nom:(s.nom||key)),
+      zones:(o.zones?BHL.vt(o.zones):(s.zones||[])),
+      devise:(o.devise!=null?o.devise:(s.devise||"")),
+      cree:!CELLULES[key] };
+  }
+  function tousCellules(){
+    var keys={}; Object.keys(CELLULES).forEach(function(k){keys[k]=1;});
+    var o=BHL.rec.bandes&&BHL.rec.bandes.maringouins&&BHL.rec.bandes.maringouins.cellules;
+    if(o) Object.keys(o).forEach(function(k){keys[k]=1;});
+    return Object.keys(keys);
+  }
+  function cellZones(key){ return cellData(key).zones; }
+  function cellDevise(key){ return cellData(key).devise; }
+  function slug(s){ return (s||"cel").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"").slice(0,16)||"cel"; }
 
   /* ---------- helpers ---------- */
-  function optionsCell(sel){ return ORDRE.map(function(k){ return '<option value="'+k+'"'+(k===sel?" selected":"")+'>'+escH(CELLULES[k].nom)+'</option>'; }).join(""); }
+  function optionsCell(sel){ return tousCellules().map(function(k){ return '<option value="'+k+'"'+(k===sel?" selected":"")+'>'+escH(cellData(k).nom)+'</option>'; }).join(""); }
   function optionsMembres(sel){
     var pris={}; BHL.membresDeBande(BANDE).forEach(function(m){ pris[m.pseudo]=1; });
     return '<option value="">'+BHL.T.choisir+'</option>' + BHL.tousMembres().map(function(p){
@@ -43,13 +61,14 @@
   function stats(list){
     return [
       { icon:"fi-tr-users-alt", label:BHL.T.membres, val:list.length },
-      { icon:"fi-tr-crown",     label:T.cellules,    val:ORDRE.length },
+      { icon:"fi-tr-crown",     label:T.cellules,    val:tousCellules().length },
     ];
   }
   function headHTML(key){
-    var ic='<i class="tdlb-mar-ico fi '+(ICON[key]||"fi-sr-bug")+'"></i>';
+    var cd=cellData(key);
+    var ic='<i class="tdlb-mar-ico fi '+(ICON[key]||CREE_ICON)+'"></i>';
     var pen = (BHL.S.admin && contentEdit!==key) ? '<button class="tdlb-ic" data-cedit="'+escA(key)+'" title="'+T.majContenu+'"><i class="fi fi-tr-pencil"></i></button>' : "";
-    return ic+'<div class="tdlb-mar-head">'+pen+'<h3>'+escH(CELLULES[key].nom)+'</h3></div>';
+    return ic+'<div class="tdlb-mar-head">'+pen+'<h3>'+escH(cd.nom)+'</h3></div>';
   }
   function zonesTagsEdit(){
     return zonesWork.map(function(z,i){ return '<span class="tag">'+escH(z)+'<button data-zx="'+i+'">✕</button></span>'; }).join("")
@@ -57,10 +76,14 @@
   }
   function contenuHTML(key){
     if(contentEdit===key){
+      var cd=cellData(key);
+      var nbMem=BHL.membresDeBande(BANDE).filter(function(m){return m.hll.cellule===key;}).length;
+      var del=(cd.cree && nbMem===0) ? '<button class="tdlb-btn" data-cdel="'+escA(key)+'" style="margin-right:auto">'+T.supprCellule+'</button>' : "";
       return '<div class="tdlb-mar-cedit">'
+        + '<label>'+T.nomCellule+'</label><input class="tdlb-in" id="tdlb-mar-nom" value="'+escA(cd.nom)+'">'
         + '<label>'+T.territoires+'</label><div class="tdlb-mc-edit" id="tdlb-mar-zones">'+zonesTagsEdit()+'</div>'
-        + '<label>'+T.citation+'</label><input class="tdlb-in" id="tdlb-mar-cite" value="'+escA(cellDevise(key))+'">'
-        + '<div class="btns"><button class="tdlb-btn prim" data-csave="'+escA(key)+'">'+BHL.T.enregistrer+'</button>'
+        + '<label>'+T.citation+'</label><input class="tdlb-in" id="tdlb-mar-cite" value="'+escA(cd.devise)+'">'
+        + '<div class="btns">'+del+'<button class="tdlb-btn prim" data-csave="'+escA(key)+'">'+BHL.T.enregistrer+'</button>'
         +   '<button class="tdlb-btn" data-ccancel="1">'+BHL.T.annuler+'</button></div></div>';
     }
     var zones = cellZones(key).map(function(z){ return '<span class="tdlb-mar-zone">'+escH(z)+'</span>'; }).join("");
@@ -108,17 +131,23 @@
   }
 
   function formHTML(m){
-    var neuf=!m;
+    var neuf=!m, prem=tousCellules()[0]||"";
     return '<div class="tdlb-bra-form">'
       + (neuf ? '<div><label>Membre</label><select class="tdlb-in" data-f="pseudo">'+optionsMembres("")+'</select></div>'
               : '<div><label>Membre</label><div class="fixe">'+escH(m.nom)+'</div></div>')
-      + '<div><label>'+T.cellule+'</label><select class="tdlb-in" data-f="cellule">'+optionsCell(m?m.hll.cellule:ORDRE[0])+'</select></div>'
+      + '<div><label>'+T.cellule+'</label><select class="tdlb-in" data-f="cellule">'+optionsCell(m?m.hll.cellule:prem)+'</select></div>'
       + '<div><label>'+T.role+'</label><input class="tdlb-in" data-f="role" value="'+escA(m?m.hll.role:"")+'" placeholder="Mécanicien, navigatrice…"></div>'
       + '<div><label>'+BHL.T.depuis+' (année)</label><input class="tdlb-in" data-f="depuis" value="'+escA(m?m.hll.depuis:"")+'" placeholder="2019"></div>'
       + '<div class="chk"><label><input type="checkbox" data-f="figure" '+((m&&m.hll.figure)?"checked":"")+'> '+T.estFigure+'</label></div>'
       + '<div class="btns"><button class="tdlb-btn prim" data-save="'+(neuf?"new":escA(m.pseudo))+'">'+BHL.T.enregistrer+'</button>'
       +   '<button class="tdlb-btn" data-cancel="1">'+BHL.T.annuler+'</button></div>'
       + '</div>';
+  }
+  function createForm(){
+    return '<div class="tdlb-bra-form">'
+      + '<div><label>'+T.nomCellule+'</label><input class="tdlb-in" data-cf="nom" placeholder="Les …"></div>'
+      + '<div class="btns"><button class="tdlb-btn prim" data-ccreate="1">'+BHL.T.enregistrer+'</button>'
+      +   '<button class="tdlb-btn" data-ccancel2="1">'+BHL.T.annuler+'</button></div></div>';
   }
 
   function render(host){
@@ -127,7 +156,8 @@
     host.innerHTML = BHL.heroHTML(BANDE, { emblem:"fi-tr-mosquito", stats:stats(list) })
       + '<div class="tdlb-body">'
       +   (edit ? formHTML(edit==="new"?null:cible) : "")
-      +   '<div class="tdlb-mar-grid">'+ORDRE.map(function(k){ return carteCell(k, list); }).join("")+'</div>'
+      +   (cellCreate ? createForm() : "")
+      +   '<div class="tdlb-mar-grid">'+tousCellules().map(function(k){ return carteCell(k, list); }).join("")+'</div>'
       + '</div>';
     brancher(host);
   }
@@ -136,7 +166,7 @@
   function lire(host){ var o={}; host.querySelectorAll(".tdlb-bra-form [data-f]").forEach(function(el){ o[el.dataset.f]= el.type==="checkbox"?el.checked:el.value.trim(); }); return o; }
   function brancher(host){
     // membre
-    host.querySelectorAll("[data-edit]").forEach(function(b){ b.addEventListener("click", function(e){ e.preventDefault(); edit=b.dataset.edit; contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+    host.querySelectorAll("[data-edit]").forEach(function(b){ b.addEventListener("click", function(e){ e.preventDefault(); edit=b.dataset.edit; cellCreate=false; contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
     host.querySelectorAll("[data-rm]").forEach(function(b){ b.addEventListener("click", function(e){ e.preventDefault(); if(window.confirm(BHL.T.confirmRetrait(b.dataset.rm))) BHL.appliquer(b.dataset.rm, null); }); });
     host.querySelectorAll("[data-cancel]").forEach(function(b){ b.addEventListener("click", function(){ edit=null; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
     host.querySelectorAll("[data-save]").forEach(function(b){ b.addEventListener("click", function(){
@@ -145,8 +175,20 @@
       if(!pseudo || !v.cellule) return; edit=null;
       BHL.appliquer(pseudo, { bande:BANDE, cellule:v.cellule, role:v.role||"", depuis:v.depuis||"", figure:!!v.figure });
     }); });
-    // contenu cellule (territoires + citation)
-    host.querySelectorAll("[data-cedit]").forEach(function(b){ b.addEventListener("click", function(){ contentEdit=b.dataset.cedit; edit=null; zonesWork=cellZones(contentEdit).slice(); BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+
+    // création de cellule
+    host.querySelectorAll("[data-ccreate]").forEach(function(b){ b.addEventListener("click", function(){
+      var nom=((host.querySelector('[data-cf="nom"]')||{}).value||"").trim(); if(!nom) return;
+      var key=slug(nom)+Math.random().toString(36).slice(2,5);
+      var data={ nom:nom, zones:[], devise:"", cree:true };
+      BHL.rec.bandes=BHL.rec.bandes||{}; var mm=BHL.rec.bandes.maringouins=BHL.rec.bandes.maringouins||{}; mm.cellules=mm.cellules||{}; mm.cellules[key]=data;
+      cellCreate=false; BHL.rendreOnglet(); BHL.renderActionbar();
+      BHL.PERSIST.champ("bandes/maringouins/cellules/"+key, data).catch(function(){ BHL.toast(BHL.T.errEcriture); });
+    }); });
+    host.querySelectorAll("[data-ccancel2]").forEach(function(b){ b.addEventListener("click", function(){ cellCreate=false; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+
+    // contenu cellule (nom + territoires + citation)
+    host.querySelectorAll("[data-cedit]").forEach(function(b){ b.addEventListener("click", function(){ contentEdit=b.dataset.cedit; edit=null; cellCreate=false; zonesWork=cellZones(contentEdit).slice(); BHL.rendreOnglet(); BHL.renderActionbar(); }); });
     host.querySelectorAll("[data-ccancel]").forEach(function(b){ b.addEventListener("click", function(){ contentEdit=null; BHL.rendreOnglet(); }); });
     var zbox=$("tdlb-mar-zones");
     if(zbox) zbox.addEventListener("click", function(e){
@@ -160,20 +202,31 @@
       }
     });
     host.querySelectorAll("[data-csave]").forEach(function(b){ b.addEventListener("click", function(){
-      var key=b.dataset.csave, cite=($("tdlb-mar-cite")||{}).value||"";
-      var data={ zones:zonesWork.slice(), devise:cite.trim() };
+      var key=b.dataset.csave, nom=(($("tdlb-mar-nom")||{}).value||"").trim(), cite=(($("tdlb-mar-cite")||{}).value||"").trim();
+      var data={ nom:nom, zones:zonesWork.slice(), devise:cite };
+      if(cellData(key).cree) data.cree=true;
       BHL.rec.bandes=BHL.rec.bandes||{}; var mm=BHL.rec.bandes.maringouins=BHL.rec.bandes.maringouins||{};
       mm.cellules=mm.cellules||{}; mm.cellules[key]=Object.assign({},mm.cellules[key],data);
       contentEdit=null; BHL.rendreOnglet();
-      BHL.PERSIST.champ("bandes/maringouins/cellules/"+key, data).catch(function(){ BHL.toast(BHL.T.errEcriture); });
+      BHL.PERSIST.champ("bandes/maringouins/cellules/"+key, mm.cellules[key]).catch(function(){ BHL.toast(BHL.T.errEcriture); });
+    }); });
+    host.querySelectorAll("[data-cdel]").forEach(function(b){ b.addEventListener("click", function(){
+      var key=b.dataset.cdel; if(!window.confirm(T.confSupprCellule)) return;
+      var mm=BHL.rec.bandes&&BHL.rec.bandes.maringouins; if(mm&&mm.cellules) delete mm.cellules[key];
+      contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar();
+      BHL.PERSIST.champ("bandes/maringouins/cellules/"+key, null).catch(function(){ BHL.toast(BHL.T.errEcriture); });
     }); });
   }
 
   function renderActions(bar){
-    if(edit==="new") return;
+    if(edit==="new"||cellCreate) return;
+    var b1=document.createElement("button"); b1.className="tdlb-btn";
+    b1.innerHTML='<i class="fi fi-tr-plus"></i> '+T.creerCellule;
+    b1.addEventListener("click", function(){ cellCreate=true; edit=null; contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); });
+    bar.appendChild(b1);
     var b=document.createElement("button"); b.className="tdlb-btn add";
     b.innerHTML='<i class="fi fi-tr-plus"></i> '+BHL.T.ajouter;
-    b.addEventListener("click", function(){ edit="new"; contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); });
+    b.addEventListener("click", function(){ edit="new"; cellCreate=false; contentEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); });
     bar.appendChild(b);
   }
 
