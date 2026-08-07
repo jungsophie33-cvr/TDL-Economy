@@ -20,14 +20,14 @@
 .dc-overlay{position:fixed;inset:0;z-index:9000;background:rgba(20,16,14,.62);display:none;
   align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
 .dc-overlay.actif{display:flex}
-.dc-boite,.fi-boite{width:100%;max-width:900px;background:var(--clair1);border-radius:12px;
+.fi-boite{width:100%;max-width:900px;background:var(--clair1);border-radius:12px;
   padding:22px 34px 28px;position:relative;box-shadow:0 22px 60px rgba(0,0,0,.35)}
 .dc-btn-fermer{position:absolute;top:12px;right:16px;background:none;border:0;color:var(--darkopa5);
   font-size:22px;line-height:1;cursor:pointer;transition:.15s}
 .dc-btn-fermer:hover{color:var(--dark)}
-.fi-boite tdl-separator,.dc-boite tdl-separator{display:block;margin:0 auto 4px}
-.dc-titre{font-family:var(--title4);font-weight:600;font-size:26px;letter-spacing:.09em;
-  text-transform:uppercase;text-align:center;color:var(--dark);margin:14px 0 10px}
+.fi-boite tdl-separator {margin:0 auto 4px}
+.dc-titre{font-family:var(--title4);font-weight:600;font-size:25px;letter-spacing:.1em;
+  text-transform:uppercase;text-align:center;color:var(--dark);margin:20px 0 22px}
 
 /* ---------- BARRE DE PROGRESSION ---------- */
 .fi-progress{display:flex;align-items:center;gap:12px;margin:0 0 20px}
@@ -57,10 +57,10 @@
 .fi-label{display:block;font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.05em;
   text-transform:uppercase;color:var(--dark2);margin:10px 0 5px}
 .fi-input,.fi-select,.fi-textarea{width:100%;box-sizing:border-box;font-family:var(--txt2);font-size:15px;
-  color:var(--txt);background:var(--cntr2);border:1px solid var(--cntr5);border-radius:7px;padding:9px 12px;margin-bottom:4px;transition:border-color .15s}
+  color:var(--txt);background:var(--cntr2)!important;border:1px solid var(--cntr5);border-radius:5px;padding:2px 5px!important;margin-bottom:4px;transition:border-color .15s}
 .fi-input:focus,.fi-select:focus,.fi-textarea:focus{outline:none;border-color:var(--dark2)}
 .fi-textarea{min-height:90px;resize:vertical;line-height:1.4}
-.fi-input[readonly]{background:var(--cntr1);color:var(--darkopa6);cursor:not-allowed}
+.fi-input[readonly]{background:var(--cntr4)!important;color:var(--darkopa6);cursor:not-allowed}
 
 /* ---------- RANGÉE OUI/NON ---------- */
 .fi-rangee{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:12px 0 4px}
@@ -131,7 +131,7 @@
 .fi-radios label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--txt2);font-size:15px}
 .fi-radios input[type="radio"]{accent-color:var(--dark2)}
 /* un conditionnel qui sert de cellule de grille s'affiche en colonne, sans liseré */
-.fi-grid > .fi-conditionnel.fi-visible,.fi-row > .fi-conditionnel.fi-visible{border-left:none;padding-left:0;margin:6px 0;display:flex;flex-direction:column}
+.fi-grid > .fi-conditionnel.fi-visible,.fi-row > .fi-conditionnel.fi-visible{border-left:none;padding-left:0;margin:0;display:flex;flex-direction:column}
 
 /* ============================================================
    TEMPS 2b — lignes compactes, révélations inline, bande à plat
@@ -149,11 +149,11 @@
 .fi-hll-doigt{display:none}
 .fi-hll-doigt.fi-visible{display:contents}
 .pleine{grid-column:1/-1}
-.fi-hll-row{align-items:end}
+.fi-hll-row{align-items:start}
 .fi-hll-row .fi-hll-chk{margin-top:4px}
 .fi-hll-row .fi-hll-hint{margin-top:2px}
 
 /* métier : « depuis » + boutons créer sur une même ligne */
 .fi-met-ligne{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:12px 0 4px}
 .fi-met-ligne .fi-field{flex:0 0 auto;min-width:150px}
-.fi-met-ligne .fi-met-actions{margin:0}
+.fi-met-ligne .fi-met-actions{margin:0 0 6px}
