@@ -18,9 +18,9 @@
   var $=BHL.$, escH=BHL.escH, escA=BHL.escA, ini=BHL.initiales, vt=BHL.vt;
 
   var T = { membres:"Membres", doigts:"Doigts", reseau:"Réseau d'influence",
-            chefLbl:"La Main", fondateur:"Fondateur de la Main de la Providence", aDefinir:"À définir",
+            chefLbl:"La Main", fondateur:"Fondateur & vision d'ensemble", aDefinir:"À définir",
             cavaliers:"Les Cavaliers", dirige:"Dirigé par", tous:"Tous", dette:"Dette / service",
-            porteur:"Porteur du Doigt", concours:"Situation vis-à-vis de la Main" };
+            porteur:"Doigt", concours:"Situation vis-à-vis de la Main" };
   var memEdit=null;    // hors_la_loi : null | "new" | pseudo
   var doigtEdit=null;  // chef d'un Doigt (PL) : null | key
   var resEdit=null;    // réseau (lien) : null | "new" | "pseudo\u0001idx"
