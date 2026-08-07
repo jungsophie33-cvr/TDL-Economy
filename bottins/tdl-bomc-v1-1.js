@@ -277,7 +277,7 @@ window.BMC = window.BMC || {};
   function joueurHTML(j, i){
     var nb = j.chars.length, cols = nb===5 ? 3 : nb, maxw = cols*320 + (cols-1)*18;
     var av = j.avatar ? '<img src="'+escA(j.avatar)+'" alt="">' : escH(initiales(j.principal));
-    var star = j.admin ? '<i class="fi fi-tr-sheriff tdlm-star" title="Équipe"></i>' : '';
+    var star = j.admin ? '<i class="fi fi-tr-badge-sheriff tdlm-star" title="Équipe"></i>' : '';
     return '<div class="tdlm-player'+(i===0?" open":"")+'">'
       + '<div class="tdlm-phead">'
       +   '<span class="tdlm-pav">'+av+'</span>'
