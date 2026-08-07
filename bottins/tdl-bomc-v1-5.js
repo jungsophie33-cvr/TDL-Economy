@@ -147,7 +147,7 @@ window.BMC = window.BMC || {};
     else if(b==="flottille"){
       detail=(hll.capitaine?"Capitaine — ":"")+(hll.role||"")+(hll.navire?" ⟡ "+nomNavireR(rec,hll.navire):""); }
     else if(b==="main"){ var cm=cfgBande("main");
-      if(hll.type==="main") detail="Le Chef";
+      if(hll.type==="main") detail="La Main";
       else if(hll.type==="doigt") detail=nomDe(cm&&cm.doigts,hll.doigt)+(hll.role?" ⟡ "+hll.role:"")+(hll.chef?" (Porteur)":"");
       else detail="Cavalier"; }
     else if(b==="sorcieres"){ var cs=cfgBande("sorcieres");
