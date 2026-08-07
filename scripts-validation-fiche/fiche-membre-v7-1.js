@@ -125,7 +125,12 @@
     overlay.innerHTML = `
       <div class="dc-boite fi-boite">
         <button class="dc-btn-fermer">${T.BTN_FERMER}</button>
+        <tdl-separator></tdl-separator>
         <h3 class="dc-titre">${T.TITRE_MODAL}</h3>
+        <div class="fi-progress">
+          <div class="fi-progress-track"><div class="fi-progress-bar" id="fi-progress-bar"></div></div>
+          <span class="fi-progress-pct" id="fi-progress-pct">0 %</span>
+        </div>
         <div id="fi-info-doublon" class="dc-zone-info" style="display:none;"></div>
         <div id="fi-champs" class="fi-champs">
           ${htmlSectionPrincipale()}
@@ -397,10 +402,12 @@
     bindFermeture(overlay);
     bindToggles(overlay);
     bindFaceclaimModes(overlay);
+    FI.progressInit(overlay);
 
   bouton.querySelector('[data-act="ouvrir"]').addEventListener("click", () => {
   overlay.classList.add("actif");
       document.body.style.overflow = "hidden";
+      if (FI.progressMaj) FI.progressMaj();
       if (!overlay.dataset.initialise) {
         overlay.dataset.initialise = "1";
         chargerListesMembres(overlay, pseudo);
