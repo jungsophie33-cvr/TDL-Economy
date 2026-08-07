@@ -201,7 +201,7 @@
     var form="";
     if(memEdit) form=memForm(memEdit==="new"?null:membres().filter(function(m){return m.pseudo===memEdit;})[0]);
     else if(resEdit) form=resForm(resEdit);
-    host.innerHTML = BHL.heroHTML(BANDE, { emblem:"fi-tr-hand", stats:[
+    host.innerHTML = BHL.heroHTML(BANDE, { emblem:"fi-tr-hands-usd", stats:[
         { icon:"fi-tr-users-alt", label:T.membres, val:membres().length },
         { icon:"fi-tr-fingerprint", label:T.doigts, val:ORDRE.length },
         { icon:"fi-tr-share", label:T.reseau, val:tousReseau().length } ] })
