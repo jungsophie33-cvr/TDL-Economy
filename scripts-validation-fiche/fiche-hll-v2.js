@@ -45,13 +45,14 @@
     HLL_POSITION:   "Position",
     HLL_DOIGT:      "Doigt",
     HLL_CAPITAINE:  "Je tiens la barre de ce navire (capitaine)",
-    HLL_PORTEUR:    "Je porte ce Doigt (porteur)",
-    HLL_LIEN_Q:     "Fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
+    HLL_PORTEUR:    "Je dirige ce Doigt",
+    HLL_LIEN_Q:     "Ton personnage fait-il partie du réseau de contacts de la Main ou de la Flottille ?",
     HLL_LIEN_AUCUN: "Aucun",
     HLL_LIEN_MAIN:  "Réseau de la Main",
     HLL_LIEN_FLO:   "Pilier de la Flottille",
     HLL_CONCOURS:   "Concours apporté",
     HLL_FLO_HINT:   "Ton propre bateau ? Il doit d'abord être créé par le staff pour apparaître ici — contacte un admin.",
+    HLL_MAR_HINT:   "Une nouvelle cellule ? Elle doit d'abord être créée par le staff pour apparaître ici — contacte un admin.",
     ERR_HLL_BANDE:  "⚠️ Choisis ta bande hors-la-loi (ou réponds Non).",
     ERR_HLL_CHAMPS: "⚠️ Complète les champs de ta bande (sélection et rôle).",
     ERR_HLL_LIEN:   "⚠️ Complète les champs de ton lien (catégorie/rôle ou concours).",
@@ -75,7 +76,8 @@
       + lbl(T.HLL_ROLE) + '<input id="fi-hll-bra-role" class="fi-input" type="text" placeholder="Trappeur, préparateur…">');
     var gMar = grp("maringouins",
       lbl(T.HLL_CELLULE) + '<select id="fi-hll-mar-cellule" class="fi-select">' + optNom(B.maringouins.cellules) + '</select>'
-      + lbl(T.HLL_ROLE) + '<input id="fi-hll-mar-role" class="fi-input" type="text" placeholder="Guetteur, passeur…">');
+      + lbl(T.HLL_ROLE) + '<input id="fi-hll-mar-role" class="fi-input" type="text" placeholder="Guetteur, passeur…">'
+      + '<p class="fi-hll-hint">' + T.HLL_MAR_HINT + '</p>');
     var gFlo = grp("flottille",
       lbl(T.HLL_NAVIRE) + '<select id="fi-hll-flo-navire" class="fi-select">' + optNom(B.flottille.navires) + '</select>'
       + lbl(T.HLL_ROLE) + '<input id="fi-hll-flo-role" class="fi-input" type="text" placeholder="Mécanicien, guide…">'
@@ -163,7 +165,19 @@
         selN.innerHTML = Object.keys(noms).map(function (k) { return '<option value="' + k + '">' + esc(noms[k]) + '</option>'; }).join("");
         if (cur && noms[cur]) selN.value = cur;
       }
-    } catch (e) { if (window.console) console.warn("[fiche-hll] navires staff", e); }
+
+      // Cellules Maringouins : canon + créées par le staff (même logique).
+      var seedC = C().bandes.maringouins.cellules, nomsC = {};
+      Object.keys(seedC).forEach(function (k) { nomsC[k] = seedC[k].nom; });
+      var ovC = rec && rec.bandes && rec.bandes.maringouins && rec.bandes.maringouins.cellules;
+      if (ovC) Object.keys(ovC).forEach(function (k) { nomsC[k] = (ovC[k] && ovC[k].nom) || nomsC[k] || k; });
+      var selC = overlay.querySelector("#fi-hll-mar-cellule");
+      if (selC) {
+        var curC = selC.value;
+        selC.innerHTML = Object.keys(nomsC).map(function (k) { return '<option value="' + k + '">' + esc(nomsC[k]) + '</option>'; }).join("");
+        if (curC && nomsC[curC]) selC.value = curC;
+      }
+    } catch (e) { if (window.console) console.warn("[fiche-hll] navires/cellules staff", e); }
   };
 
   /* === LECTURE === */
