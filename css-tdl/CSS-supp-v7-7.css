@@ -585,7 +585,7 @@ div#\/f1-guidebook .sj-cateright a span:hover {transform:rotateX(90deg) translat
 
 .sj-topic-listbox .sj-topic-list > div:nth-child(3) {display: flex; height:100%; flex-direction: column; justify-content: space-around; padding: 0; font-size: 1.2em; font-family: var(--txt2);}
 .sj-topic-listbox .sj-topic-list > div:nth-child(3) > span {position:relative; z-index:999;text-align: center;font-size: 1.1em;color: var(--darkopa7);}
-.sj-topic-listbox .sj-topic-list > div:nth-child(3) > span:nth-child(1):before, .sj-topic-listbox .sj-topic-list > div:nth-child(3) > span:nth-child(2):before { font-family: "uicons-thin-rounded"; content: "\e50b"; position:absolute; font-size:25px;color: var(--clair2opa5);top: 50%;left: 50%;transform: translate(-100%, -80%);}
+.sj-topic-listbox .sj-topic-list > div:nth-child(3) > span:nth-child(1):before, .sj-topic-listbox .sj-topic-list > div:nth-child(3) > span:nth-child(2):before { font-family: "uicons-thin-rounded"; content: "\e553"; position:absolute; font-size:25px;color: var(--clair2opa5);top: 50%;left: 50%;transform: translate(-100%, -80%);}
 .sj-topic-listbox .sj-topic-list > div:nth-child(3) > span:nth-child(2):before {font-family: "uicons-thin-chubby"; content: '\e7bb';transform: translate(30%, 0%);}
 
 .sj-topic-listbox .sj-topic-list > div:nth-child(4) {display: flex; align-items: center; justify-content:space-evenly; font-family: var(--txt3); font-size: 0.9em;}
