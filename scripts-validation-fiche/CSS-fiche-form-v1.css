@@ -118,3 +118,17 @@
   .dc-boite,.fi-boite{padding:18px 18px 24px}
   .dc-titre{font-size:22px}
 }
+
+/* ============================================================
+   TEMPS 2 — grille 2 colonnes & lignes alignées
+   Envelopper chaque paire label+champ dans .fi-field, grouper par .fi-grid
+   (2 col) ou .fi-row (auto-fit). Les conditionnels restent des blocs pleins.
+   ============================================================ */
+.fi-field .fi-label{margin-top:0}
+.fi-field .fi-input,.fi-field .fi-select,.fi-field .fi-textarea{margin-bottom:0}
+/* question oui/non alignée comme un champ (label au-dessus, radios dessous) */
+.fi-radios{display:flex;align-items:center;gap:18px;min-height:40px}
+.fi-radios label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--txt2);font-size:15px}
+.fi-radios input[type="radio"]{accent-color:var(--dark2)}
+/* un conditionnel qui sert de cellule de grille s'affiche en colonne, sans liseré */
+.fi-grid > .fi-conditionnel.fi-visible,.fi-row > .fi-conditionnel.fi-visible{border-left:none;padding-left:0;margin:6px 0;display:flex;flex-direction:column}
