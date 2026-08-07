@@ -108,18 +108,7 @@
 
   function htmlSectionDetails() {
     return `
-      <div class="fi-rangee">
-        <span class="fi-label">${T.L_BANDE}</span>
-        <label><input type="radio" name="fi-bande" value="non" checked> Non</label>
-        <label><input type="radio" name="fi-bande" value="oui"> Oui</label>
-      </div>
-      <div id="fi-bande-detail" class="fi-conditionnel">
-        <label class="fi-label">${T.L_NOM_BANDE}</label>
-        <select id="fi-nom-bande" class="fi-select">${optsAvecVide(CFG.LISTES.BANDES)}</select>
-        <label class="fi-label">${T.L_ROLE_BANDE}</label>
-        <input id="fi-role-bande" class="fi-input" type="text"
-          placeholder="Votre rôle dans la bande…">
-      </div>
+      ${FI.hllHTML()}
 
       ${FI.metierHTML()}
 
@@ -180,7 +169,6 @@
   function bindToggles(overlay) {
     bindToggle(overlay, "fi-prelien", "oui", "fi-prelien-detail");
     bindToggle(overlay, "fi-mc",      "oui", "fi-mc-detail");
-    bindToggle(overlay, "fi-bande",   "oui", "fi-bande-detail");
   }
 
   /* === CHARGEMENT === */
@@ -322,9 +310,7 @@
       premier_compte:  overlay.querySelector("#fi-premier-compte").value,
       faceclaim:       overlay.querySelector("#fi-faceclaim").value.trim(),
       groupe:          overlay.querySelector("#fi-groupe").value,
-      bande:           radio(overlay, "fi-bande") === "oui",
-      nom_bande:       overlay.querySelector("#fi-nom-bande").value,
-      role_bande:      overlay.querySelector("#fi-role-bande").value.trim(),
+      ...FI.hllLecture(overlay),
       ...FI.metierLecture(overlay),
       ...FI.habitationLecture(overlay),
     };
@@ -338,8 +324,8 @@
     if (d.multicompte && !d.premier_compte) return T.ERR_PREMIER_COMPTE;
     if (!d.faceclaim)                       return T.ERR_FACECLAIM;
     if (!d.groupe)                          return T.ERR_GROUPE;
-    if (d.bande && !d.nom_bande)            return T.ERR_BANDE_NOM;
-    if (d.bande && !d.role_bande)           return T.ERR_BANDE_ROLE;
+    const errHll = FI.hllVerifier(d);
+    if (errHll)                             return errHll;
     const errMetier = FI.metierVerifier(d);
     if (errMetier)                          return errMetier;
     const errHab = FI.habitationVerifier(d);
@@ -421,6 +407,7 @@
         // listes zone → entreprise → poste, lues dans le bottin des métiers
         FI.metierBrancher(overlay);
         FI.habitationBrancher(overlay);
+        FI.hllBrancher(overlay);
       }
     });
 
