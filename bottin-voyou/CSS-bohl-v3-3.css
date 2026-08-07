@@ -297,7 +297,7 @@ body.tdlb-body-admin .tdlb-mar-figure .actes{display:flex; position: absolute;ri
 .tag-dette.du{background:var(--gr2-color)}
 .tag-dette.prioritaire{background:var(--gr6-color)}
 .tag-dette.longue{background:var(--gr1-color)}
-.tdlb-flo-pilier .actes{position:absolute;top:8px;right:8px;display:none;gap:4px}
+.tdlb-flo-pilier .actes{position:absolute;top:-15px;right:-8px;display:none;gap:4px}
 body.tdlb-body-admin .tdlb-flo-pilier:hover .actes{display:flex}
 
 /* ============================================================
