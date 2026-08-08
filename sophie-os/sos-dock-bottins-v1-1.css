@@ -81,7 +81,7 @@
     white-space:nowrap;
 
     padding:5px 12px;
-    border-radius:8px;
+    border-radius:6px;
     background:var(--clair1);
     color:var(--txt);
     font:14px var(--font2);
@@ -92,10 +92,10 @@
 .bot-dock .tooltip::before{
     content:"";
     position:absolute;
-    left:-5px;
+    left:-4px;
     top:50%;
-    width:10px;
-    height:10px;
+    width:8px;
+    height:8px;
     transform:translateY(-50%) rotate(45deg);
     background:inherit;
 }
