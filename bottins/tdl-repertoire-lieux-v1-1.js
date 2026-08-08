@@ -419,7 +419,11 @@ function init(){
   elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
-  const edit=$(SEL.edit); if(edit) edit.setAttribute('href',EDIT_URL);
+  const edit=$(SEL.edit); 
+   if(edit){
+    edit.setAttribute('href',EDIT_URL);
+    edit.addEventListener('click',(ev)=>{ev.preventDefault();ev.stopPropagation();window.open(EDIT_URL,'_blank','noopener');});
+  }
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
   $(SEL.lEntete).textContent    = TEXTES.entete;
   $(SEL.lLieux).textContent     = TEXTES.lieux;
