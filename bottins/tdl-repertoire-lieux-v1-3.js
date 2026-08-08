@@ -423,9 +423,9 @@ function init(){
    if(edit){
     edit.setAttribute('href',EDIT_URL);
     edit.addEventListener("click", function(ev){
-      ev.preventDefault(); ev.stopPropagation();
-      window.location.href = CFG.EDIT_URL;
-     });  
+  ev.preventDefault(); ev.stopPropagation();
+  window.open(CFG.EDIT_URL, "_blank", "noopener");
+});
    }
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
   $(SEL.lEntete).textContent    = TEXTES.entete;
