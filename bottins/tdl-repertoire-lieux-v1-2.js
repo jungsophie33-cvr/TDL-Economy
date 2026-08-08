@@ -422,8 +422,11 @@ function init(){
   const edit=$(SEL.edit); 
    if(edit){
     edit.setAttribute('href',EDIT_URL);
-    edit.addEventListener('click',(ev)=>{ev.preventDefault();ev.stopPropagation();window.open(EDIT_URL,'_blank','noopener');});
-  }
+    edit.addEventListener("click", function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      window.location.href = CFG.EDIT_URL;
+     });  
+   }
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
   $(SEL.lEntete).textContent    = TEXTES.entete;
   $(SEL.lLieux).textContent     = TEXTES.lieux;
