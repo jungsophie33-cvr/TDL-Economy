@@ -84,8 +84,7 @@
     border-radius:6px;
     background:var(--clair1);
     color:var(--txt);
-    font:14px var(--font2);
-    letter-spacing:-0.5s;
+    font:600 14px var(--font2);
     box-shadow:0 8px 18px rgba(0,0,0,.15);
 }
 
