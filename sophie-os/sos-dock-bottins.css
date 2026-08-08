@@ -1,20 +1,19 @@
 
 /* dock-bottins.css */
-
+#dock-bottin {position: absolute; left: 5px; top: 30%;}
 .bot-dock{
     position:sticky;
-    top:90px;
     display:flex;
     flex-direction:column;
     gap:2px;
-    width:62px;
-    padding:6px;
+    width:52px;
+    padding:6px 0;
     overflow:visible;
     z-index:99999;
 
     background:var(--clair1opa5);
     border:1px solid var(--clair1opa4);
-    border-radius:24px;
+    border-radius:15px;
 
     backdrop-filter:blur(8px) saturate(160%);
     -webkit-backdrop-filter:blur(8px) saturate(160%);
@@ -47,7 +46,7 @@
 }
 
 .bot-dock .icon i{
-    font-size:23px;
+    font-size:25px;
     background:var(--gradark);
     -webkit-background-clip:text;
     background-clip:text;
@@ -73,7 +72,7 @@
 
 .bot-dock .tooltip{
     position:absolute;
-    left:66px;
+    left:60px;
     top:50%;
     transform:translate(8px,-50%);
     opacity:0;
@@ -81,13 +80,12 @@
     transition:.18s;
     white-space:nowrap;
 
-    padding:8px 12px;
-    border-radius:12px;
+    padding:5px 12px;
+    border-radius:8px;
     background:var(--clair1);
     color:var(--txt);
-    font:600 11px var(--font3);
-    text-transform:uppercase;
-    letter-spacing:.08em;
+    font:14px var(--font2);
+    letter-spacing:-0.5s;
     box-shadow:0 8px 18px rgba(0,0,0,.15);
 }
 
