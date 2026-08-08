@@ -61,13 +61,13 @@
 .bot-dock .item.active::before{
     content:"";
     position:absolute;
-    left:-10px;
+    left:1px;
     top:50%;
     transform:translateY(-50%);
     width:3px;
-    height:22px;
+    height:13px;
     border-radius:99px;
-    background:var(--gradient0);
+    background:var(--gradark);
 }
 
 .bot-dock .tooltip{
