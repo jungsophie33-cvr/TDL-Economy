@@ -1,6 +1,6 @@
 
 /* dock-bottins.css */
-#dock-bottin {position: absolute; left: 5px; top: 50%;transform:translateY(-50%);}
+#dock-bottin {position: absolute; left: 5px; top: 50%;transform:translateY(-50%);z-index:9999;}
 .bot-dock{
     position:sticky;
     display:flex;
@@ -9,7 +9,6 @@
     width:52px;
     padding:6px 0;
     overflow:visible;
-    z-index:99999;
 
     background:var(--clair1opa3);
     border:1px solid var(--clair1opa4);
