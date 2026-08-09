@@ -33,10 +33,11 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
 .bm-edit i{font-size:15px;line-height:1}
 
 /* ===================== ZONES ===================== */
-.bm-zonebar{flex:none;display:flex;align-items:center;padding:4px 26px;border-bottom:1px solid var(--cntr4)}
-.bm-tabs{display:flex;gap:20px;flex-wrap:wrap}
-.bm-tabs button{font-family:var(--txt2);font-weight:600;text-transform:uppercase;font-size:.95em;background:none;border:0;
-  padding:10px 2px;color:var(--darkopa6);cursor:pointer;position:relative;line-height:1}
+.bm-zonebar{flex:none;display:flex;align-items:center;padding:4px 26px;border-bottom:1px solid var(--cntr4);overflow-x:auto;scrollbar-width:none;}
+.bm-tabs{display:flex;gap:20px;flex-wrap:nowrap}
+.bm-tabs button{font-family:var(--txt2);font-weight:600;text-transform:uppercase;font-size:17px;background:none;border:0;
+  padding:10px 2px;color:var(--darkopa6);cursor:pointer;position:relative;line-height:1;white-space:nowrap;transition:0.15s;}
+.bm-tabs button:hover {color:var(--dark);}
 .bm-tabs button[aria-selected="true"]{color:var(--dark)}
 .bm-tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;background:var(--dark)}
 
