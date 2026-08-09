@@ -39,7 +39,7 @@ html:has(.bm-rep)#min-width, body:has(.bm-rep), #wrap:has(.bm-rep), #sj-main:has
   padding:10px 2px;color:var(--darkopa6);cursor:pointer;position:relative;line-height:1;white-space:nowrap;transition:0.15s;}
 .bm-tabs button:hover {color:var(--dark);}
 .bm-tabs button[aria-selected="true"]{color:var(--dark)}
-.bm-tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:1px;background:var(--dark)}
+.bm-tabs button[aria-selected="true"]::after{content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;background:var(--dark)}
 
 /* ===================== BARRE COMPTEUR / VUE ===================== */
 .bm-statusrow{flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 26px;
@@ -294,6 +294,7 @@ body.bm-body-admin .bm-adminonly{display:inline-flex}
   .bm-split{grid-template-columns:minmax(0,380px) minmax(0,1fr)}
   .bm-ident{flex-direction:column;gap:16px}
   .bm-ident-cult{flex:1 1 auto}
+  .bm-catcol.bm-ligne .bm-cat {flex: 0 0 auto;}
   .bm-cols{grid-template-columns:1fr;gap:0}
   .bm-cols>div+div{border-top:1px solid var(--cntr4);margin-top:14px;padding-top:14px}
 }
@@ -302,9 +303,10 @@ body.bm-body-admin .bm-adminonly{display:inline-flex}
   .bm-topbar{gap:10px;padding:10px 12px}
   .bm-accueil span{display:none}
   .bm-eyebrow{font-size:18px;white-space:nowrap;letter-spacing:0}
-  .bm-zonebar,.bm-statusrow{padding:6px 12px}
-  .bm-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:16px}
+  .bm-zonebar,.bm-statusrow{padding:4px 12px}
+  .bm-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:16px;overflow-y:hidden;}
   .bm-tabs::-webkit-scrollbar{display:none}
+  .bm-tabs button[aria-selected="true"]::after {bottom:0;}
   .bm-statusrow{flex-wrap:wrap;gap:8px}
   .bm-legende{display:none}
   .bm-catcol,.bm-catcol.bm-ligne{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
