@@ -2,7 +2,7 @@
    SOS — Sophia OS · NOYAU (sos-core.js)
    -------------------------------------------------------------
    Rôle unique : transformer des posts ForumActif en enregistrements
-   structurés. Le noyau ne connaît NI « annexes » NI le sens des
+   structurés. Le noyau ne connaît NI « communautés » NI le sens des
    blocs — il livre des données, le rendu (sos-annexe.js) s'en occupe.
 
    Sortie d'un post parsé :
@@ -169,7 +169,7 @@
 
   /* ---------------------------------------------------------
      6. PAGINATION : pages suivantes du sujet (fetch same-origin)
-     Utile seulement si les posts-annexes débordent de la page 1.
+     Utile seulement si les posts-communautés débordent de la page 1.
      Détection best-effort : à ajuster au besoin selon l'instance FA.
      --------------------------------------------------------- */
   function detecterPages() {
