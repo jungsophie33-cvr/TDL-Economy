@@ -170,7 +170,7 @@
       corps.style.maxHeight = ((p1 ? p1.offsetHeight : corps.scrollHeight)) + 'px';
     }
     function ouvrir() {
-      var openW = Math.round((duo.clientWidth - GAP_DUO) * 0.5);
+      var openW = Math.round((duo.clientWidth - GAP_DUO) * 0.65);
       carte.style.width = openW + 'px';
       corps.style.maxHeight = corps.scrollHeight + 'px';
       carte.classList.remove('replie');
