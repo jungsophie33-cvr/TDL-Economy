@@ -67,7 +67,7 @@
   var reP   = /^===\s*PANNEAU:\s*(.+?)\s*===\s*$/;
   var reFin = /^===\s*FIN\s*===\s*$/;
   var reB   = /^---\s*BLOC\s+([\w-]+)\s*---\s*$/;
-  var reCle = /^([A-Z_]+):\s?(.*)$/;
+  var reCle = /^([A-Z][A-Z0-9_]*):\s?(.*)$/;
 
   function interpMeta(m) {
     var out = { brut: m };
