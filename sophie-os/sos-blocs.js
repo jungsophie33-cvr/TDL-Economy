@@ -134,14 +134,67 @@
     return zz;
   }
 
-  // duo — .duo (transition gauche + carte-scène droite)
+  // duo — .duo (transition gauche + carte-scène droite, repliable)
+  var GAP_DUO = 44;
   function rendreDuo(bloc) {
     var duo = h('div', 'duo');
     duo.appendChild(h('div', 'trans', para(champ(bloc, 'GAUCHE'))));
-    var carte = h('div', 'narr-card');
+
+    var carte = h('div', 'narr-card replie');
     carte.appendChild(h('h4', null, nu(champ(bloc, 'TITRE_SCENE'))));
-    carte.insertAdjacentHTML('beforeend', para(champ(bloc, 'SCENE')));
+    var corps = h('div', 'narr-corps');
+    corps.insertAdjacentHTML('beforeend', para(champ(bloc, 'SCENE')));
+    carte.appendChild(corps);
+    var btn = h('button', 'narr-plus', 'lire la suite&nbsp;&rsaquo;');
+    carte.appendChild(btn);
     duo.appendChild(carte);
+
+    function mobile() {
+      return global.matchMedia && global.matchMedia('(max-width:960px)').matches;
+    }
+    function metriquesReplie() {
+      var h4 = carte.querySelector('h4'), p1 = corps.querySelector('p');
+      if (!h4) { return; }
+      var padX = 0;
+      try { var cs = getComputedStyle(carte); padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight); } catch (e) {}
+      // largeur INTRINSÈQUE du titre (un <h4> bloc remplit la carte : on le
+      // passe en inline-block + nowrap le temps de lire sa vraie largeur)
+      var wsav = h4.style.whiteSpace, dsav = h4.style.display;
+      h4.style.whiteSpace = 'nowrap';
+      h4.style.display = 'inline-block';
+      var titreW = h4.offsetWidth;
+      h4.style.whiteSpace = wsav;
+      h4.style.display = dsav;
+      carte.style.width = Math.ceil(titreW + padX) + 'px';
+      // hauteur du corps = 1er paragraphe, à cette largeur
+      corps.style.maxHeight = ((p1 ? p1.offsetHeight : corps.scrollHeight)) + 'px';
+    }
+    function ouvrir() {
+      var openW = Math.round((duo.clientWidth - GAP_DUO) * 0.5);
+      carte.style.width = openW + 'px';
+      corps.style.maxHeight = corps.scrollHeight + 'px';
+      carte.classList.remove('replie');
+      carte.classList.add('deplie');
+    }
+    btn.addEventListener('click', ouvrir);
+    // libère le corps après l'ouverture (redevient responsive)
+    corps.addEventListener('transitionend', function (ev) {
+      if (ev.propertyName === 'max-height' && carte.classList.contains('deplie')) {
+        corps.style.maxHeight = 'none';
+      }
+    });
+    // mesure initiale (une fois inséré dans le DOM par le shell) + resize
+    requestAnimationFrame(function () { if (!mobile()) { metriquesReplie(); } });
+    var rz;
+    global.addEventListener('resize', function () {
+      clearTimeout(rz);
+      rz = setTimeout(function () {
+        if (mobile()) { carte.style.width = ''; corps.style.maxHeight = ''; return; }
+        if (carte.classList.contains('deplie')) {
+          carte.style.width = Math.round((duo.clientWidth - GAP_DUO) * 0.5) + 'px';
+        } else { metriquesReplie(); }
+      }, 150);
+    });
     return duo;
   }
 
