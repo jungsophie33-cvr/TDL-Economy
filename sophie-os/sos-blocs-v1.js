@@ -50,7 +50,7 @@
     var main = h('div', 'hero-main');
     main.appendChild(h('h1', 'hero-titre', nu(champ(bloc, 'TITRE'))));
     var cit = champ(bloc, 'CITATION');
-    if (existe(cit)) { main.appendChild(h('blockquote', 'hero-cit', vers(cit))); }
+    if (existe(cit)) { main.appendChild(h('div', 'hero-cit', vers(cit))); }
     wrap.appendChild(main);
 
     var sections = champ(bloc, 'SECTIONS');
