@@ -92,9 +92,9 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 }
 .somm-carte:hover{transform:translateY(-3px);border-color:var(--darkopa4);background:var(--cntr4)}
 .somm-carte:focus-visible{outline:2px solid var(--dark);outline-offset:3px}
-.somm-ic{position:absolute;font-size:85px;opacity:.4;bottom:-25px;right:-10px;z-index:1;color:var(--clair1);line-height:1}
-.somm-nom{position:relative;z-index:2;font-family:var(--font2);font-weight:500;font-size:22px;line-height:1.1;color:var(--dark)}
-.somm-sous{position:relative;z-index:3;font-family:var(--txt3);font-size:14px;line-height:1.55;color:var(--darkopa7);text-align:justify}
+.somm-ic{position:absolute;font-size:85px;opacity:.4;bottom:-15px;right:-10px;z-index:1;color:var(--clair1);line-height:1}
+.somm-nom{position:relative;z-index:2;font-family:var(--font2);font-weight:500;font-size:22px;line-height:1.1;color:var(--dark);margin-bottom:0;padding-bottom:0;letter-spacing:0;}
+.somm-sous{position:relative;z-index:3;font-family:var(--txt3);font-size:14px;line-height:1.55;color:var(--darkopa7);text-align:left}
 
 .somm-carte.courant{border-color:var(--dark);background:var(--cntr5)}
 .somm-carte.courant::after{
