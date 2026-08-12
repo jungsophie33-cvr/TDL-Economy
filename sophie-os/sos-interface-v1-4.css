@@ -244,7 +244,7 @@ html:has(.sos-app)#min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:
 .p-stub .fleur{width:38px;height:38px;background:var(--fleurlys) center/contain no-repeat;opacity:.55;margin-bottom:16px}
 .p-stub h3{font-family:var(--font2);font-size:30px;color:var(--dark);margin-bottom:8px}
 .p-stub p{font-family:var(--txt3);font-size:15px;letter-spacing:.08em;text-transform:uppercase}
-@media(max-width:960px){
+@media(max-width:990px){
   .sos-tabs{gap:16px;padding:14px 18px;font-size:13px;overflow-x:auto;white-space:nowrap}.sos-tab .num{font-size:13px}.sos-dots{display:none}
   .hero-in{grid-template-columns:1fr;padding:0 26px}.hero-toc{display:none}
   .e2top {top:50px;}
@@ -267,11 +267,11 @@ html:has(.sos-app)#min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:
 /* =========================================================
    RESPONSIVE + MOTION
    ========================================================= */
-@media(max-width:960px){
+@media(max-width:990px){
   .sos-tabs{gap:16px;padding:14px 18px;font-size:13px;overflow-x:auto;white-space:nowrap}
   .sos-tab .num{font-size:13px}.sos-dots{display:none}
   .p-somm{padding:80px 18px 40px}
-  .somm-wrap{max-width:100%}
+  .somm-wrap{max-width:100%; overflow:auto;}
   .somm-grille{grid-template-columns:1fr 1fr;gap:12px}
   .sep::before,.sep::after{width:90px}
   .sos-lecteur{left:12px;bottom:12px}
