@@ -2,7 +2,7 @@ html:has(.sos-app)#min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:
 /* ----- VOILE DE CHARGEMENT ANNEXES SOS ---- */
 /* voile de pré-chargement : couvre le forum brut jusqu'au montage de SOS */
 .sos-preload{
-  position:fixed; inset:0; z-index: 999; display:none; place-items:center;
+  position:fixed; inset:0; z-index: 99990; display:none; place-items:center;
   background:linear-gradient(var(--clair1opa8) 80%, var(--cntr0)), var(--bgimg) center;
   background-size:cover; transition:opacity .4s ease;
 }
