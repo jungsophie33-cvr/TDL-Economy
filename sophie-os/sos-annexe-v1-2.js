@@ -29,7 +29,7 @@
   var h = SOS.h;
 
   /* ---- état ---- */
-  var app, tabsEl, dotsEl, deckEl, editBtn;
+  var app, tabsEl, dotsEl, deckEl;
   var volets = [];        // volets (posts à onglet) du topic courant
   var iVolet = -1;        // volet actif
   var panneaux = [];      // panneaux du volet actif (DOM sections)
@@ -61,6 +61,9 @@
 
     brancherEvenements();               // écouteurs : une seule fois
     reconstruireDepuis(SOS.annexes);    // premier remplissage
+
+    // coquille en place : on lève le voile de pré-chargement (anti-FUOC)
+    document.documentElement.classList.add('sos-pret');
   }
 
   /* Filtre + trie les enregistrements en volets affichables. */
@@ -112,28 +115,6 @@
       b.innerHTML = '<span class="num">' + (o.num || '') + '</span>' + (o.libelle || '');
       tabsEl.appendChild(b);
     });
-
-    // bouton d'édition (réutilise tes classes de bottin : style + gating admin)
-    editBtn = h('a', 'sos-edit');
-    editBtn.href = '#';
-    editBtn.title = 'Éditer ce message';
-    editBtn.setAttribute('aria-label', 'Éditer ce message');
-    editBtn.innerHTML = '<i class="fi fi-tr-pen-field"></i>';
-    editBtn.addEventListener('click', function (ev) {
-      ev.preventDefault(); ev.stopPropagation();
-      var url = editBtn.getAttribute('data-edit');
-      if (url) { window.open(url, '_blank', 'noopener'); }
-    });
-    tabsEl.appendChild(editBtn);
-  }
-
-  // URL d'édition FA depuis la métadonnée EDIT (id de post OU url complète).
-  // On rétablit les & que FA/innerHTML encode en &amp; (sinon param « amp; » cassé).
-  function urlEdition(v) {
-    if (!v) { return ''; }
-    v = v.replace(/&amp;/gi, '&');
-    if (/^https?:/i.test(v)) { return v; }
-    return location.origin + '/post?p=' + encodeURIComponent(v) + '&mode=editpost';
   }
 
   /* =========================================================
@@ -147,13 +128,6 @@
 
     // couleur du volet (les variantes --commu40/20 se dérivent en CSS)
     if (volet.meta.couleur) { app.style.setProperty('--commu', 'var(' + volet.meta.couleur + ')'); }
-
-    // bouton d'édition : URL du post de CE volet
-    if (editBtn) {
-      var urlE = urlEdition(volet.meta.edit);
-      if (urlE) { editBtn.setAttribute('data-edit', urlE); editBtn.style.display = ''; }
-      else { editBtn.removeAttribute('data-edit'); editBtn.style.display = 'none'; }
-    }
 
     // bouton sommaire inactif, onglet actif
     var sb = tabsEl.querySelector('.sos-somm');
@@ -206,7 +180,6 @@
     });
     var sb = tabsEl.querySelector('.sos-somm');
     if (sb) { sb.classList.toggle('actif', !!o.ongletSomm); }
-    if (editBtn) { editBtn.style.display = 'none'; }
 
     dotsEl.innerHTML = '';
     dotsEl.style.display = 'none';
