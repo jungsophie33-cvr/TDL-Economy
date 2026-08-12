@@ -39,7 +39,7 @@
     {
       titre:     'Les Communautés',
       soustitre: 'Les groupes de TDL.',
-      url:       '/t88-test-plouf#462',
+      url:       '/t88-test-plouf',
       icone:     'fi-sr-users-alt'
     },
 
