@@ -2,7 +2,7 @@
    SOS — Sophia OS · MANIFESTE DES ANNEXES (sos-manifeste.js)
    -------------------------------------------------------------
    Table déclarative des GRANDS SUJETS d'annexes. Elle alimente :
-     • le sommaire général (bouton à côté de l'accueil forum) ;
+     • le sommaire « Guidebook du Bayou » (bouton boussole) ;
      • la navigation in-page entre topics (chargement sans reload,
        donc sans coupure de l'ambiance sonore).
 
@@ -17,16 +17,16 @@
      soustitre (facultatif)  — une ligne qui éclaire le contenu de
                                l'annexe pour le joueur
      url       (obligatoire) — adresse du topic, MÊME ORIGINE, qui
-                               commence par « / ». Copie-la depuis la
-                               barre d'adresse du topic, ex. :
-                               '/t123-les-communautes'
-     icone     (facultatif)  — classe Flaticon, ex. 'fi-tr-compass'.
-                               Laisse la chaîne vide '' si aucune.
+                               commence par « / », ex. :
+                               '/t38-03-les-communautes'
+     icone     (facultatif)  — classe Flaticon SOLID (fi-sr-*) pour le
+                               filigrane d'angle, ex. 'fi-sr-users-alt'.
+                               (nécessite la feuille uicons-solid-rounded)
 
    IMPORTANT — ordre de chargement des scripts :
      ce fichier doit être chargé APRÈS sos-core.js, car le noyau
      réassigne window.SOS à l'initialisation. Ordre conseillé :
-       sos-core.js  →  sos-manifeste.js  →  sos-blocs.js  →  sos-annexe.js
+       sos-core.js → sos-manifeste.js → sos-blocs.js → sos-annexe.js → sos-nav.js
    ============================================================= */
 (function (global) {
   'use strict';
@@ -38,25 +38,41 @@
 
     {
       titre:     'Les Communautés',
-      soustitre: 'Les groupes de TDL',
-      url:       'https://thedrownedlands.forumactif.com/t38-03-les-communautes',          // ← REMPLACER par l'URL réelle du topic
-      icone:     'fi-tr-people-group'
+      soustitre: 'Les groupes de TDL.',
+      url:       '/t38-03-les-communautes',
+      icone:     'fi-sr-users-alt'
     },
 
     {
       titre:     'Les Bandes hors-la-loi',
-      soustitre: 'Les organisations clandestines',
-      url:       'https://thedrownedlands.forumactif.com/t32-les-bandes-hors-la-loi',          // ← REMPLACER par l'URL réelle du topic
-      icone:     'fi-tr-skull'
+      soustitre: 'Organisations clandestines jouables.',
+      url:       '/t32-les-bandes-hors-la-loi',
+      icone:     'fi-sr-skull'
+    },
+
+    {
+      titre:     'Le Folklore',
+      soustitre: 'Croyances, esprits et récits de la paroisse.',
+      url:       '/t40-le-folklore',          // ← URL réelle quand le topic existera
+      icone:     'fi-sr-moon-stars'
+    },
+
+    {
+      titre:     'Découvrir Terrebonne',
+      soustitre: 'Repères de la région et société.',
+      url:       '/t12-terrebonne-parish',          // ← URL réelle quand le topic existera
+      icone:     'fi-sr-map'
+    },
+
+    {
+      titre:     'Le Système de jeu',
+      soustitre: 'Intrigues, économie et gameplay.',
+      url:       '/t72-le-systeme-de-jeu',          // ← URL réelle quand le topic existera
+      icone:     'fi-sr-book-open-cover'
     }
 
-    // Gabarit à copier pour une nouvelle annexe (retire les // et complète) :
-    // ,{
-    //   titre:     '',
-    //   soustitre: '',
-    //   url:       '/t000-a-remplacer',
-    //   icone:     ''
-    // }
+    // Gabarit à copier pour une nouvelle annexe :
+    // ,{ titre: '', soustitre: '', url: '/t000-a-remplacer', icone: 'fi-sr-' }
 
   ];
 
