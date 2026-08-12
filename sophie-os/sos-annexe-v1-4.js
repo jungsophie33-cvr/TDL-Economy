@@ -117,7 +117,7 @@
     });
 
     // bouton d'édition (réutilise tes classes de bottin : style + gating admin)
-    editBtn = h('a', 'tdlb-edit tdlb-adminonly sos-edit');
+    editBtn = h('a', 'sos-edit');
     editBtn.href = '#';
     editBtn.title = 'Éditer ce message';
     editBtn.setAttribute('aria-label', 'Éditer ce message');
