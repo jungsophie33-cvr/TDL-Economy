@@ -155,21 +155,42 @@
     if (ev.state && ev.state.sos) { chargerTopic(location.href, { push: false }); }
   });
 
-  // marque l'entrée d'historique du boot comme pilotée par SOS, pour que
-  // le premier « retour » sache qu'il doit rejouer un chargement.
-  global.addEventListener('sos:pret', function () {
-    if (shell().app) {
-      try { history.replaceState({ sos: true, url: location.href }, '', location.href); } catch (e) {}
+  // Ouvre le sommaire au boot s'il est demandé — soit par #sommaire dans l'URL,
+  // soit par le drapeau posé au clic du bouton (robuste même si FA mange le #).
+  function ouvrirSommaireSiDemande() {
+    if (!shell().app) { return; }
+    var demande = (location.hash === '#sommaire');
+    try { if (sessionStorage.getItem('sos_sommaire') === '1') { demande = true; } } catch (e) {}
+    if (demande) {
+      try { sessionStorage.removeItem('sos_sommaire'); } catch (e) {}
+      monterSommaire();
     }
+  }
+
+  // Au boot : marque l'entrée d'historique comme pilotée par SOS, puis ouvre le
+  // sommaire si demandé. Différé (setTimeout 0) pour s'exécuter APRÈS le montage
+  // de la coquille, quel que soit l'ordre de chargement des scripts.
+  global.addEventListener('sos:pret', function () {
+    setTimeout(function () {
+      if (!shell().app) {
+        // page sans SOS : on ne laisse pas traîner un drapeau non consommé
+        try { sessionStorage.removeItem('sos_sommaire'); } catch (e) {}
+        return;
+      }
+      try { history.replaceState({ sos: true, url: location.href }, '', location.href); } catch (e) {}
+      ouvrirSommaireSiDemande();
+    }, 0);
   });
 
-   // Bouton « Guidebook » posé n'importe où dans le forum (id="tdl-guidebook") :
+  // Bouton « Guidebook » posé n'importe où dans le forum (id="tdl-guidebook") :
   //  - sur une page SOS  -> ouvre le sommaire in-page (pas de rechargement) ;
-  //  - ailleurs (SOS absent) -> laisse le lien suivre son href (repli).
+  //  - ailleurs (SOS absent) -> pose un drapeau, laisse le lien suivre son href,
+  //    et la page-annexe cible ouvre le sommaire à son boot.
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('#tdl-guidebook') : null;
     if (!b) { return; }
     if (shell().app) { ev.preventDefault(); monterSommaire(); }
+    else { try { sessionStorage.setItem('sos_sommaire', '1'); } catch (e) {} }
   });
-   
+
 })(window);
