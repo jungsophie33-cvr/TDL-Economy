@@ -1,11 +1,23 @@
 /* =============================================================
-   SOS — Sophia OS · SHELL D'ANNEXE (sos-annexe.js)
+   SOS — Sophia OS · COQUILLE D'ANNEXE (sos-annexe.js)
    -------------------------------------------------------------
-   Construit l'overlay : barre d'onglets (agrégée depuis les métas
-   de toutes les communautés), deck de panneaux, transitions façon
-   « site », flèche/suite, sommaire du hero, accordéons, routage des
-   liens (panneau:/post:/sujet:), thème, réduction de barre au scroll,
-   navigation molette/clavier, et tracé SVG du zigzag mesuré au JS.
+   LA COQUILLE, et elle seule : barre d'onglets (agrégée depuis les
+   métas des VOLETS du topic courant), deck de panneaux, transitions,
+   flèche/suite, sommaire du hero, accordéons, routage des liens
+   INTERNES (panneau:/post:), thème, réduction de barre au scroll,
+   navigation molette/clavier, tracé SVG du zigzag mesuré au JS.
+
+   La navigation ENTRE annexes (sommaire, chargement in-page d'un
+   autre topic, pushState/popstate, voile de chargement) vit dans
+   sos-nav.js. La coquille lui expose SOS.shell (reconstruire,
+   filtrerVolets, monterSection). Si sos-nav.js est absent, la
+   coquille fonctionne quand même : navigation intra-annexe intacte,
+   « sujet: » retombe sur l'ouverture d'onglet, pas de bouton sommaire.
+
+   VOCABULAIRE :
+     annexe  = grand sujet (une entrée du manifeste / un topic FA)
+     volet   = un post à onglet dans une annexe (ex. une communauté)
+     panneau = une section défilante d'un volet
 
    Dépend de : sos-core.js, sos-blocs.js.
    ============================================================= */
@@ -18,23 +30,22 @@
 
   /* ---- état ---- */
   var app, tabsEl, dotsEl, deckEl;
-  var communautes = [];   // annexes ayant un onglet
-  var iCommu = -1;        // communauté active
-  var panneaux = [];      // panneaux de la communauté active (DOM sections)
+  var volets = [];        // volets (posts à onglet) du topic courant
+  var iVolet = -1;        // volet actif
+  var panneaux = [];      // panneaux du volet actif (DOM sections)
   var courant = 0, enTransit = false;
+  var mode = 'contenu';   // 'contenu' | 'special' (vue montée par la nav)
+
+  /* Interface offerte à sos-nav.js (couche inter-annexe). */
+  var shell = SOS.shell = SOS.shell || {};
 
   /* =========================================================
-     CONSTRUCTION DE L'OVERLAY
+     CONSTRUCTION DE L'OVERLAY (une seule fois)
      ========================================================= */
   function construire(opts) {
     opts = opts || {};
-    var toutes = SOS.annexes || [];
-    communautes = toutes.filter(function (a) { return a.meta && a.meta.onglet; });
-    if (!communautes.length) { communautes = toutes.filter(function (a) { return a.panneaux.length; }); }
-    if (!communautes.length) { return; }
-    communautes.sort(function (a, b) {
-      return (a.meta.onglet ? a.meta.onglet.num : '').localeCompare(b.meta.onglet ? b.meta.onglet.num : '');
-    });
+    // Pas d'annexe sur cette page -> on ne pose aucun overlay.
+    if (!filtrerVolets(SOS.annexes).length) { return; }
 
     app = h('div', 'sos-app');
     app.setAttribute('data-theme', 'sombre');
@@ -46,13 +57,37 @@
     app.appendChild(deckEl);
     (opts.mount || document.body).appendChild(app);
 
+    shell.app = app;   // la nav y accroche son voile, et s'y réfère
+
+    brancherEvenements();               // écouteurs : une seule fois
+    reconstruireDepuis(SOS.annexes);    // premier remplissage
+  }
+
+  /* Filtre + trie les enregistrements en volets affichables. */
+  function filtrerVolets(records) {
+    var toutes = records || [];
+    var v = toutes.filter(function (a) { return a.meta && a.meta.onglet; });
+    if (!v.length) { v = toutes.filter(function (a) { return a.panneaux.length; }); }
+    v.sort(function (a, b) {
+      return (a.meta.onglet ? a.meta.onglet.num : '').localeCompare(b.meta.onglet ? b.meta.onglet.num : '');
+    });
+    return v;
+  }
+
+  /* Reconstruit tabs + deck à partir d'un jeu d'enregistrements.
+     Utilisé au boot ET après un chargement in-page (via la nav) :
+     « chargé directement » et « navigué vers » passent par le même
+     chemin. */
+  function reconstruireDepuis(records) {
+    volets = filtrerVolets(records);
     construireOnglets();
-    brancherEvenements();
-    monterCommunaute(0);
+    mode = 'contenu';
+    monterVolet(0);
   }
 
   function construireOnglets() {
     tabsEl.innerHTML = '';
+
     var home = h('a', 'sos-home');
     home.href = '/';
     home.title = 'Accueil';
@@ -60,7 +95,17 @@
     home.innerHTML = '<i class="fi fi-tr-house-flood"></i>';
     tabsEl.appendChild(home);
 
-    communautes.forEach(function (a, i) {
+    // Bouton sommaire : seulement si la couche nav est présente.
+    if (SOS.nav) {
+      var somm = h('button', 'sos-somm');
+      somm.title = 'Sommaire des annexes';
+      somm.setAttribute('aria-label', 'Sommaire des annexes');
+      somm.setAttribute('data-somm', '1');
+      somm.innerHTML = '<i class="fi fi-tr-cardinal-compass"></i>';
+      tabsEl.appendChild(somm);
+    }
+
+    volets.forEach(function (a, i) {
       var o = a.meta.onglet || { num: '', libelle: a.meta.communaute || '' };
       var b = h('button', 'sos-tab');
       b.setAttribute('data-commu', i);
@@ -70,17 +115,20 @@
   }
 
   /* =========================================================
-     MONTER UNE COMMUNAUTÉ (change --commu, reconstruit le deck)
+     MONTER UN VOLET (change --commu, reconstruit le deck)
      ========================================================= */
-  function monterCommunaute(idx) {
-    if (idx < 0 || idx >= communautes.length) { return; }
-    iCommu = idx;
-    var annexe = communautes[idx];
+  function monterVolet(idx) {
+    if (idx < 0 || idx >= volets.length) { return; }
+    mode = 'contenu';
+    iVolet = idx;
+    var volet = volets[idx];
 
-    // couleur de communauté (les variantes --commu40/20 se dérivent en CSS)
-    if (annexe.meta.couleur) { app.style.setProperty('--commu', 'var(' + annexe.meta.couleur + ')'); }
+    // couleur du volet (les variantes --commu40/20 se dérivent en CSS)
+    if (volet.meta.couleur) { app.style.setProperty('--commu', 'var(' + volet.meta.couleur + ')'); }
 
-    // onglet actif
+    // bouton sommaire inactif, onglet actif
+    var sb = tabsEl.querySelector('.sos-somm');
+    if (sb) { sb.classList.remove('actif'); }
     Array.prototype.forEach.call(tabsEl.querySelectorAll('.sos-tab'), function (t, i) {
       t.classList.toggle('actif', i === idx);
     });
@@ -88,14 +136,15 @@
     // deck
     deckEl.innerHTML = '';
     panneaux = [];
-    var total = annexe.panneaux.length;
-    annexe.panneaux.forEach(function (pan, i) {
+    var total = volet.panneaux.length;
+    volet.panneaux.forEach(function (pan, i) {
       var sec = rendrePanneau(pan, i, total);
       deckEl.appendChild(sec);
       panneaux.push(sec);
     });
 
     // pastilles
+    dotsEl.style.display = '';
     dotsEl.innerHTML = '';
     panneaux.forEach(function (_, i) {
       var d = h('button', 'sos-dot');
@@ -111,6 +160,32 @@
     if (dotsEl.firstChild) { dotsEl.firstChild.classList.add('actif'); }
     app.classList.remove('reduit');
     tracer(panneaux[0]);
+  }
+
+  /* Monte une section arbitraire (non-volet) dans le deck : primitive
+     utilisée par la nav pour afficher le sommaire. */
+  function monterSection(el, o) {
+    o = o || {};
+    if (!app || !el) { return; }
+    mode = 'special';
+    iVolet = -1;
+    app.classList.remove('reduit');
+    app.setAttribute('data-theme', o.theme || 'sombre');
+
+    Array.prototype.forEach.call(tabsEl.querySelectorAll('.sos-tab'), function (t) {
+      t.classList.remove('actif');
+    });
+    var sb = tabsEl.querySelector('.sos-somm');
+    if (sb) { sb.classList.toggle('actif', !!o.ongletSomm); }
+
+    dotsEl.innerHTML = '';
+    dotsEl.style.display = 'none';
+
+    deckEl.innerHTML = '';
+    deckEl.appendChild(el);
+    panneaux = [el];
+    courant = 0; enTransit = false;
+    el.classList.add('actif');
   }
 
   /* =========================================================
@@ -174,7 +249,8 @@
   }
 
   /* =========================================================
-     ROUTAGE DES LIENS (panneau: / post: / sujet:)
+     ROUTAGE DES LIENS INTERNES (panneau: / post:)
+     Le préfixe « sujet: » (inter-topic) est délégué à la nav.
      ========================================================= */
   function router(cible) {
     if (!cible) { return; }
@@ -186,23 +262,24 @@
       var idx = panneauParId(arg);
       if (idx >= 0) { aller(idx); } else { console.warn('SOS: panneau introuvable «' + arg + '»'); }
     } else if (type === 'post') {
-      // post N -> communauté correspondante (best-effort : index dans SOS.annexes)
+      // post N -> volet correspondant dans le topic courant (index dans SOS.annexes)
       var n = parseInt(arg, 10);
       var visee = (SOS.annexes || [])[n - 1];
-      var ic = communautes.indexOf(visee);
-      if (ic >= 0) { basculerCommunaute(ic); } else { console.warn('SOS: post:' + arg + ' non résolu'); }
+      var ic = volets.indexOf(visee);
+      if (ic >= 0) { basculerVolet(ic); } else { console.warn('SOS: post:' + arg + ' non résolu'); }
     } else if (type === 'sujet') {
-      // autre topic FA : window.open (jamais location.href / <a> nu — piège FA)
-      window.open(location.origin + '/' + arg.replace(/^\//, ''), '_blank');
+      // autre topic FA : in-page si la nav est là, sinon nouvel onglet
+      var url = '/' + arg.replace(/^\//, '');
+      if (SOS.nav && SOS.nav.charger) { SOS.nav.charger(url); }
+      else { window.open(location.origin + url, '_blank'); }
     } else {
       console.warn('SOS: cible non préfixée «' + cible + '»');
     }
   }
 
-  function basculerCommunaute(idx) {
-    if (idx === iCommu) { return; }
-    // fondu doux : on laisse monterCommunaute réinitialiser le deck
-    monterCommunaute(idx);
+  function basculerVolet(idx) {
+    if (idx === iVolet && mode === 'contenu') { return; }
+    monterVolet(idx);
   }
 
   /* =========================================================
@@ -250,17 +327,32 @@
   }
 
   /* =========================================================
-     ÉVÉNEMENTS
+     ÉVÉNEMENTS (branchés une seule fois, sur la coquille permanente)
      ========================================================= */
   function brancherEvenements() {
     // délégation des clics
     app.addEventListener('click', function (ev) {
       var g = ev.target.closest('[data-goto]');
       if (g) { aller(parseInt(g.getAttribute('data-goto'), 10)); return; }
+
+      // carte du sommaire -> chargement in-page (délégué à la nav)
+      var an = ev.target.closest('[data-annexe]');
+      if (an) {
+        // clic gauche simple -> in-page ; modificateurs -> nouvel onglet natif
+        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button === 1) { return; }
+        if (SOS.nav && SOS.nav.charger) { ev.preventDefault(); SOS.nav.charger(an.getAttribute('data-annexe')); }
+        return;
+      }
+
+      // bouton sommaire (délégué à la nav)
+      var s = ev.target.closest('[data-somm]');
+      if (s) { if (SOS.nav && SOS.nav.sommaire) { SOS.nav.sommaire(); } return; }
+
       var c = ev.target.closest('[data-cible]');
       if (c) { router(c.getAttribute('data-cible')); return; }
+
       var t = ev.target.closest('[data-commu]');
-      if (t) { basculerCommunaute(parseInt(t.getAttribute('data-commu'), 10)); return; }
+      if (t) { basculerVolet(parseInt(t.getAttribute('data-commu'), 10)); return; }
     });
 
     // réduction de la barre au scroll (panneaux éditoriaux)
@@ -306,8 +398,12 @@
   }
 
   /* =========================================================
-     API + AUTO-MONTAGE
+     INTERFACE POUR LA NAV + API + AUTO-MONTAGE
      ========================================================= */
+  shell.reconstruire   = reconstruireDepuis;  // rebâtir tabs+deck depuis des records
+  shell.filtrerVolets  = filtrerVolets;       // valider qu'un topic a des données
+  shell.monterSection  = monterSection;       // afficher une vue arbitraire (sommaire)
+
   SOS.monter = construire;
 
   global.addEventListener('sos:pret', function () {
