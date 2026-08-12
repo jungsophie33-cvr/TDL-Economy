@@ -1,5 +1,13 @@
 html:has(.sos-app)#min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:has(.sos-app) {min-width:0;overflow:hidden;}
-
+/* ----- VOILE DE CHARGEMENT ANNEXES SOS ---- */
+/* voile de pré-chargement : couvre le forum brut jusqu'au montage de SOS */
+.sos-preload{
+  position:fixed; inset:0; z-index: 999; display:none; place-items:center;
+  background:linear-gradient(var(--clair1opa8) 80%, var(--cntr0)), var(--bgimg) center;
+  background-size:cover; transition:opacity .4s ease;
+}
+body:has(#sos-annexe) .sos-preload{ display:grid; }        /* visible SEULEMENT sur une annexe */
+html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> on le lève */
 /* =========================================================
    COQUILLE + NAVIGATION — VERBATIM de ta maquette
    (.sos-app, .sos-tabs, .sos-home, .sos-tab, .sos-dots) + variante claire.
