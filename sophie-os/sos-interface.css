@@ -43,6 +43,11 @@
 .sep::after{background:linear-gradient(90deg,transparent,var(--clair2),transparent)}
 .sep .fleur{width:30px;height:30px;background:var(--fleurlys) center/contain no-repeat}
 
+.sos-edit{margin-left:auto;display:flex;align-items:center;font-size:19px;text-decoration:none;color:var(--clair1opa6);transition:color .25s}
+.sos-edit:hover{color:var(--commu)}
+.sos-app[data-theme="clair"] .sos-edit{color:var(--darkopa5)}
+.sos-app[data-theme="clair"] .sos-edit:hover{color:var(--commu)}
+
 /* =========================================================
    SOMMAIRE (.p-somm) — clair, fond = ton .p-edito
    ========================================================= */
