@@ -130,7 +130,8 @@ html:has(.sos-app)#min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:
    SOS ANNEXE - BLOCS
    ========================================================= */
 
-.sos-app{position:fixed;z-index:9999;inset:0;overflow:hidden;--commu40:color-mix(in srgb, var(--commu) 25%, transparent);--commu20:color-mix(in srgb, var(--commu) 13%, transparent)}
+.sos-app{position:fixed;z-index:9999;inset:0;overflow:hidden;--commu40:color-mix(in srgb, var(--commu) 25%, transparent);--commu20:color-mix(in srgb, var(--commu) 13%, transparent);text-align:left;}
+.sos-app p {margin-bottom:0!important;}
 .sos-tabs{position:absolute;top:0;left:0;right:0;z-index:40;display:flex;align-items:center;gap:34px;padding:18px 46px;font-family:var(--txt3);font-size:15px;letter-spacing:.05em;transition:padding .3s ease,background .3s ease;background:rgba(26,20,21,.74);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);border-bottom:1px solid rgba(236,229,226,.12)}
 .sos-home{display:flex;align-items:center;color:var(--clair1opa6);font-size:20px;text-decoration:none;padding-right:18px;margin-right:4px;border-right:1px solid rgba(236,229,226,.18);transition:color .25s}.sos-home:hover{color:var(--commu)}.sos-app[data-theme="clair"] .sos-home{color:var(--darkopa5);border-right-color:var(--darkopa2)}.sos-app[data-theme="clair"] .sos-home:hover{color:var(--commu)}
 .sos-app.reduit .sos-tabs{padding-top:9px;padding-bottom:9px}
