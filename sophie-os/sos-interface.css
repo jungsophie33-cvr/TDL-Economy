@@ -145,6 +145,7 @@
 .sos-panneau{position:absolute;inset:0;opacity:0;visibility:hidden;transform:translateY(38px);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1),visibility 0s .7s;overflow:hidden}
 .sos-panneau.actif{opacity:1;visibility:visible;transform:translateY(0);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1)}
 .sos-panneau.avant{transform:translateY(-38px)}
+
 .btn-suite{display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;background:none;border:0}
 .btn-suite .rond{width:44px;height:44px;border-radius:50%;border:1px solid currentColor;display:grid;place-items:center;transition:.3s;animation:flotte 2.4s ease-in-out infinite}
 .btn-suite:hover .rond{background:var(--gr1-20);border-color:var(--commu)}
