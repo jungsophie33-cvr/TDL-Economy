@@ -163,4 +163,13 @@
     }
   });
 
+   // Bouton « Guidebook » posé n'importe où dans le forum (id="tdl-guidebook") :
+  //  - sur une page SOS  -> ouvre le sommaire in-page (pas de rechargement) ;
+  //  - ailleurs (SOS absent) -> laisse le lien suivre son href (repli).
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest ? ev.target.closest('#tdl-guidebook') : null;
+    if (!b) { return; }
+    if (shell().app) { ev.preventDefault(); monterSommaire(); }
+  });
+   
 })(window);
