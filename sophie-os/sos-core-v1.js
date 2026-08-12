@@ -73,6 +73,7 @@
     var out = { brut: m };
     if (m.COMMUNAUTE) { out.communaute = m.COMMUNAUTE.trim(); }
     if (m.COULEUR)    { out.couleur    = m.COULEUR.trim(); }
+    if (m.EDIT)       { out.edit       = m.EDIT.trim(); }
     if (m.ONGLET) {
       var p = util.pipe(m.ONGLET);
       out.onglet = { num: p[0] || '', libelle: p.slice(1).join(' | ') };
