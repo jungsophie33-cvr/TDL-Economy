@@ -6,8 +6,9 @@
    d'intégré à la coquille (à venir : le lecteur audio) ne soit
    interrompu. Trois responsabilités :
 
-     1. SOMMAIRE — une vue de cartes lues dans SOS.manifeste, montée
-        dans le deck via SOS.shell.monterSection.
+     1. SOMMAIRE — « Guidebook du Bayou », une vue de cartes lues
+        dans SOS.manifeste, montée dans le deck via
+        SOS.shell.monterSection (thème clair).
      2. CHARGEMENT IN-PAGE — fetch same-origin du topic cible, extrait
         ses données tdl-data, demande à la coquille de se reconstruire
         (SOS.shell.reconstruire), puis met à jour l'URL (pushState).
@@ -48,7 +49,7 @@
     var app = shell().app;
     if (!app) { return null; }
     chargeEl = h('div', 'sos-chargement');
-    chargeEl.innerHTML = '<div class="sos-orbite"><div class="sos-bille"></div></div>';
+    chargeEl.innerHTML = '<div class="sos-orbite"><span class="sos-bille"></span></div>';
     app.appendChild(chargeEl);
     return chargeEl;
   }
@@ -58,16 +59,17 @@
   }
 
   /* =========================================================
-     SOMMAIRE (cartes lues dans SOS.manifeste)
+     SOMMAIRE — « Guidebook du Bayou » (cartes lues dans SOS.manifeste)
      ========================================================= */
   function rendreSommaire() {
     var sec = h('section', 'sos-panneau p-somm');
-    sec.setAttribute('data-theme', 'sombre');
+    sec.setAttribute('data-theme', 'clair');
 
     var wrap = h('div', 'somm-wrap');
     var head = h('div', 'somm-head');
-    head.appendChild(h('h1', 'somm-titre', 'Les Annexes'));
-    head.appendChild(h('p', 'somm-intro', 'Choisissez un grand sujet à parcourir.'));
+    head.appendChild(h('h1', 'somm-titre', 'Guidebook du Bayou'));
+    head.appendChild(h('p', 'somm-intro', 'Choisissez une annexe à parcourir.'));
+    head.appendChild(h('div', 'sep', '<span class="fleur"></span>'));
     wrap.appendChild(head);
 
     var man = SOS.manifeste || [];
@@ -98,8 +100,8 @@
   function monterSommaire() {
     var s = shell();
     if (!s.app || !s.monterSection) { return; }
-    s.app.style.setProperty('--commu', 'var(--clair2)');   // teinte globale, hors annexe
-    s.monterSection(rendreSommaire(), { ongletSomm: true, theme: 'sombre' });
+    s.app.style.setProperty('--commu', 'var(--dark)');   // accent hors-annexe
+    s.monterSection(rendreSommaire(), { ongletSomm: true, theme: 'clair' });
   }
 
   /* =========================================================
