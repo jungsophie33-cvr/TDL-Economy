@@ -113,7 +113,7 @@
       var cote = (i % 2 === 0) ? 'g' : 'd';
       var dernier = (i === items.length - 1) ? ' last' : '';
       var meta = U.pipe(it.ouverture[0] || '');   // [icone, url]
-      var icone = meta[0] || '', url = meta[1] || '';
+      var icone = U.sansBalises(meta[0] || ''), url = U.sansBalises(meta[1] || '');
       var row = h('div', 'zz-row ' + cote + dernier);
       row.appendChild(h('img'));
       row.lastChild.src = url;
