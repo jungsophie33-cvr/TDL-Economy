@@ -42,6 +42,13 @@
       url:       '/t76-01-le-reglement',
       icone:     'fi-sr-legal-case'
     },
+
+     {
+      titre:     'Le Contexte',
+      soustitre: 'lecture obligatoire ; disclaimer & tw',
+      url:       '/t37-02-le-contexte',
+      icone:     'fi-sr-quill-pen-story'
+    },
      
     {
       titre:     'Les Communautés',
