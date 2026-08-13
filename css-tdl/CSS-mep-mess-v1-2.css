@@ -90,7 +90,7 @@ font-weight: 700;font-size: 2em;font-family: var(--txt2);background: var(--grado
 .sj-post-msg blockquote {margin:0 80px; background:none; border:none; font-size:1em;}
 .sj-post-msg blockquote:before {content:none;}
 .cdre blockquote.warning, .time blockquote.warning, .systab blockquote.warning, .sj-fiche blockquote.warning {color:var(--txt);margin:15px 60px;}
-.cdre .warning:before, .time .warning:before, .systab .warning:before, .sj-fiche .warning:before {content:'\f340'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
+.cdre .warning:before, .time .warning:before, .systab .warning:before, .sj-fiche .warning:before {content:'\f488'; font-family: "uicons-solid-rounded";font-size:5em;line-height:1em;background:var(--gradoc1);background-clip:text;color:transparent;opacity:0.5;position:absolute;z-index:0;width:100px;text-align:center;left:-80px;top:25%;transform:rotate(-15deg);}
 .sj-post-msg blockquote:has(cite) {background:none; border:none; border-radius: 0px;box-shadow:none;overflow:visible;}
 .sj-post-msg blockquote:has(cite):before {content:'❝'; font-size:9em;color:var(--cntr2);position: absolute;top: -20px;left: -5px; z-index:0;}
 .sj-post-msg blockquote:has(cite) > div {font-family: var(--txt2); font-size: 18px;position:relative;}
