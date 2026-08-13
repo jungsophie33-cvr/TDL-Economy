@@ -49,8 +49,11 @@
     var wrap = h('div', 'hero-in');
     var main = h('div', 'hero-main');
     main.appendChild(h('h1', 'hero-titre', nu(champ(bloc, 'TITRE'))));
+ 
     var cit = champ(bloc, 'CITATION');
     if (existe(cit)) { main.appendChild(h('div', 'hero-cit', vers(cit))); }
+    var intro = champ(bloc, 'INTRO');
+    if (existe(intro)) { main.appendChild(h('div', 'hero-intro', para(intro))); }
     wrap.appendChild(main);
 
     var sections = champ(bloc, 'SECTIONS');
@@ -240,6 +243,23 @@
     return s;
   }
 
+   // cadre-admin — .cdre (bloc de document : règlement, système de jeu…)
+  function rendreCadreAdmin(bloc) {
+    var c = h('div', 'cdre');
+    var titre = nu(champ(bloc, 'TITRE'));
+    if (titre) { c.appendChild(h('h4', null, titre)); }
+    champ(bloc, 'CORPS').forEach(function (l) {
+      l = l.trim();
+      if (!l) { return; }
+      // déjà block-level : injecté nu ; sinon, un paragraphe
+      if (/^<(ul|ol|li|blockquote|div|h[1-6]|table|figure|dl)\b/i.test(l)) {
+        c.insertAdjacentHTML('beforeend', l);
+      } else {
+        c.appendChild(h('p', null, l));
+      }
+    });
+    return c;
+  }
   /* ---- registre + méta ---- */
   SOS.blocs = {
     'hero': rendreHero,
@@ -251,8 +271,9 @@
     'colonnes-verre': rendreColonnes,
     'citation': rendreCitation,
     'conclusion': rendreConclusion,
-    'suite': rendreSuite
-  };
+    'suite': rendreSuite,
+    'cadre-admin': rendreCadreAdmin
+  };  };
   // blocs pleine largeur (hors .e2wrap)
   SOS.blocsPleineLargeur = { 'scene-photo': 1, 'separateur': 1 };
   SOS.FLECHE = FLECHE;
