@@ -243,7 +243,7 @@
     return s;
   }
 
-   // cadre-admin — .cdre (bloc de document : règlement, système de jeu…)
+  // cadre-admin — .cdre (bloc de document : règlement, système de jeu…)
   function rendreCadreAdmin(bloc) {
     var c = h('div', 'cdre');
     var titre = nu(champ(bloc, 'TITRE'));
@@ -251,7 +251,6 @@
     champ(bloc, 'CORPS').forEach(function (l) {
       l = l.trim();
       if (!l) { return; }
-      // déjà block-level : injecté nu ; sinon, un paragraphe
       if (/^<(ul|ol|li|blockquote|div|h[1-6]|table|figure|dl)\b/i.test(l)) {
         c.insertAdjacentHTML('beforeend', l);
       } else {
@@ -273,7 +272,7 @@
     'conclusion': rendreConclusion,
     'suite': rendreSuite,
     'cadre-admin': rendreCadreAdmin
-  };  };
+  }; 
   // blocs pleine largeur (hors .e2wrap)
   SOS.blocsPleineLargeur = { 'scene-photo': 1, 'separateur': 1 };
   SOS.FLECHE = FLECHE;
