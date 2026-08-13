@@ -36,6 +36,13 @@
 
   SOS.manifeste = [
 
+     {
+      titre:     'Le Règlement',
+      soustitre: 'lecture obligatoire.',
+      url:       '/t76-01-le-reglement',
+      icone:     'fi-sr-legal-case'
+    },
+     
     {
       titre:     'Les Communautés',
       soustitre: 'Les groupes de TDL.',
