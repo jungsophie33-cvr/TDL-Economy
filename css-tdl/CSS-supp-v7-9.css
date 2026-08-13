@@ -849,10 +849,10 @@ border-radius: 10px;}
 .sj-prlinks > dl {position:relative;width: 44%; padding: 3px 5px; margin: 5px 9px; background: var(--clair1opa6); border-radius: 3px; border: 1px solid var(--cntr); font-family: var(--txt3); text-transform: uppercase; font-size: 0.8em; overflow: hidden; text-align: left;}
 .sj-prlinks > dl:before {transition:all ease 0.5s;position:absolute; right:-3px;font-family: "uicons-solid-rounded";color:var(--groups);font-size:1.9em; opacity:0.3;}
 .sj-prlinks > dl:hover:before {font-size:2.5em;color:var(--cntr);transition:all ease 0.5s;}
-.sj-prlinks > dl#field_id1:before {content: "\f008";}
-.sj-prlinks > dl#field_id2:before {content: "\e856";}
-.sj-prlinks > dl#field_id3:before {content: "\e330";}
-.sj-prlinks > dl#field_id4:before {content: "\e60a";}
+.sj-prlinks > dl#field_id1:before {content: "\f12c";}
+.sj-prlinks > dl#field_id2:before {content: "\e8f7";}
+.sj-prlinks > dl#field_id3:before {content: "\e385";}
+.sj-prlinks > dl#field_id4:before {content: "\e68f";}
 .sj-profil .field-multicomptes .field_uneditable > img, .sj-post-proftop-right .field-multicomptes img {max-width:60px; border-radius:10px; border:3px solid var(--clair1); margin-right:8px; margin-bottom:5px;display:inline-block;vertical-align:middle;}
 .sj-profil .field-multicomptes i, .sj-post-proftop-right .field-multicomptes i {display:inline-block;vertical-align:middle;;width:246px;margin-bottom:5px;}
 .sj-profil .field-multicomptes strong, .sj-post-proftop-right .field-multicomptes strong {display:block;font-family:var(--txt3);text-transform:uppercase; font-style:normal; font-weight:900; font-size:0.8em;}
