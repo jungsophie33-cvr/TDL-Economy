@@ -640,10 +640,10 @@ div#\/f1-guidebook .sj-cateright a span:hover {transform:rotateX(90deg) translat
 .sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) {display: flex; flex-flow: row wrap; justify-content: start; width:90%;}
 .sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) a {position:relative;overflow:hidden;width:46%;background:var(--clair1opa5); padding:2px 10px; border:1px solid var(--darkopa6);border-radius:3px;margin:2px 10px 2px 0;font-family:var(--txt3); color:var(--dark);font-size:11px; text-transform:uppercase;}
 .sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) a:before {transition:all ease 0.5s;position:absolute; right:-3px;font-family: "uicons-solid-rounded";color:var(--groups);font-size:1.9em; opacity:0.3;}
-.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(1):before {content: "\f008";}
-.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(2):before {content: "\e856";}
-.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(3):before {content: "\e60a";}
-.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(4):before {content: "\e330";}
+.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(1):before {content: "\f12c";}
+.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(2):before {content: "\e8f7";}
+.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(3):before {content: "\e68f";}
+.sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) > a:nth-child(4):before {content: "\e385";}
 .sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) a:hover {color:var(--groups)!important;}
 .sj-post-proftop .sj-post-proftop-left .sj-proftopl-link > div:nth-child(2) a:hover:before {font-size:2.5em;color:var(--cntr);transition:all ease 0.5s;}
 
