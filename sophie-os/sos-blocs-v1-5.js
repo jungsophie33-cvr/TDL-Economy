@@ -270,7 +270,7 @@
     return c;
   }
    
-   // duo-image — .duoimg (texte gauche + image droite, pleine largeur)
+ // duo-image — .duoimg (texte gauche + image droite, pleine largeur)
   function rendreDuoImage(bloc) {
     var d = h('div', 'duoimg');
     var txt = h('div', 'duoimg-txt');
@@ -278,10 +278,13 @@
     if (titre) { txt.appendChild(h('h4', null, titre)); }
     txt.insertAdjacentHTML('beforeend', para(champ(bloc, 'TEXTE')));
     d.appendChild(txt);
-    var img = h('div', 'duoimg-img');
     var url = nu(champ(bloc, 'IMAGE'));
-    if (url) { img.style.setProperty('--img', "url('" + url + "')"); }
-    d.appendChild(img);
+    if (url) {
+      var fig = h('div', 'duoimg-img');
+      var im = h('img'); im.src = url; im.alt = '';
+      fig.appendChild(im);
+      d.appendChild(fig);
+    }
     return d;
   }
   /* ---- registre + méta ---- */
