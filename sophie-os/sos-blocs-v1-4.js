@@ -55,6 +55,8 @@
     var intro = champ(bloc, 'INTRO');
     if (existe(intro)) { main.appendChild(h('div', 'hero-intro', para(intro))); }
     wrap.appendChild(main);
+    var vibes = champ(bloc, 'VIBES');
+    if (existe(vibes)) { wrap.appendChild(h('div', 'hero-vibes', para(vibes))); }
 
     var sections = champ(bloc, 'SECTIONS');
     if (existe(sections)) {
@@ -243,21 +245,44 @@
     return s;
   }
 
-  // cadre-admin — .cdre (bloc de document : règlement, système de jeu…)
+// cadre-admin — .cdre (bloc de document : règlement, contexte…)
   function rendreCadreAdmin(bloc) {
     var c = h('div', 'cdre');
     var titre = nu(champ(bloc, 'TITRE'));
     if (titre) { c.appendChild(h('h4', null, titre)); }
+    var imgs = [];
+    (bloc.entrees || []).forEach(function (e) {
+      if (e.cle === 'IMAGE') { var u = nu(e.lignes); if (u) { imgs.push(u); } }
+    });
+    if (imgs.length) {
+      var box = h('div', 'cdre-imgs');
+      imgs.forEach(function (u) { var im = h('img'); im.src = u; im.alt = ''; box.appendChild(im); });
+      c.appendChild(box);
+    }
     champ(bloc, 'CORPS').forEach(function (l) {
       l = l.trim();
       if (!l) { return; }
-      if (/^<(ul|ol|li|blockquote|div|h[1-6]|table|figure|dl)\b/i.test(l)) {
-        c.insertAdjacentHTML('beforeend', l);
-      } else {
-        c.appendChild(h('p', null, l));
-      }
+      var estBloc = /^<(ul|ol|li|blockquote|div|h[1-6]|table|figure|dl|section|aside|p)\b/i.test(l)
+                 || /^<[a-z][^>]*style=["'][^"']*display\s*:\s*block/i.test(l);
+      if (estBloc) { c.insertAdjacentHTML('beforeend', l); }
+      else { c.appendChild(h('p', null, l)); }
     });
     return c;
+  }
+   
+   // duo-image — .duoimg (texte gauche + image droite, pleine largeur)
+  function rendreDuoImage(bloc) {
+    var d = h('div', 'duoimg');
+    var txt = h('div', 'duoimg-txt');
+    var titre = nu(champ(bloc, 'TITRE'));
+    if (titre) { txt.appendChild(h('h4', null, titre)); }
+    txt.insertAdjacentHTML('beforeend', para(champ(bloc, 'TEXTE')));
+    d.appendChild(txt);
+    var img = h('div', 'duoimg-img');
+    var url = nu(champ(bloc, 'IMAGE'));
+    if (url) { img.style.setProperty('--img', "url('" + url + "')"); }
+    d.appendChild(img);
+    return d;
   }
   /* ---- registre + méta ---- */
   SOS.blocs = {
@@ -271,10 +296,11 @@
     'citation': rendreCitation,
     'conclusion': rendreConclusion,
     'suite': rendreSuite,
-    'cadre-admin': rendreCadreAdmin
+    'cadre-admin': rendreCadreAdmin,
+    'duo-image': rendreDuoImage
   }; 
   // blocs pleine largeur (hors .e2wrap)
-  SOS.blocsPleineLargeur = { 'scene-photo': 1, 'separateur': 1 };
+  SOS.blocsPleineLargeur = { 'scene-photo': 1, 'separateur': 1, 'duo-image': 1 };
   SOS.FLECHE = FLECHE;
 
   // rendu sécurisé d'un bloc (try/catch : un bloc raté n'abat pas le panneau)
