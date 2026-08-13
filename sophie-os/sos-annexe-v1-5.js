@@ -27,6 +27,7 @@
   var SOS = global.SOS;
   if (!SOS) { console.error('sos-annexe.js : sos-core.js doit être chargé avant.'); return; }
   var h = SOS.h;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   /* ---- état ---- */
   var app, tabsEl, dotsEl, deckEl, editBtn;
@@ -112,7 +113,7 @@
       var o = a.meta.onglet || { num: '', libelle: a.meta.communaute || '' };
       var b = h('button', 'sos-tab');
       b.setAttribute('data-commu', i);
-      b.innerHTML = '<span class="num">' + (o.num || '') + '</span>' + (o.libelle || '');
+      b.innerHTML = '<span class="num">' + (o.num || pad(i + 1)) + '</span>' + (o.libelle || '');
       tabsEl.appendChild(b);
     });
 
@@ -171,6 +172,7 @@
     var total = volet.panneaux.length;
     volet.panneaux.forEach(function (pan, i) {
       var sec = rendrePanneau(pan, i, total);
+      sec.setAttribute('data-num', pad(idx + 1));
       deckEl.appendChild(sec);
       panneaux.push(sec);
     });
@@ -183,6 +185,7 @@
       d.setAttribute('data-goto', i);
       dotsEl.appendChild(d);
     });
+    dotsEl.style.display = (panneaux.length <= 1) ? 'none' : '';
 
     courant = 0; enTransit = false;
     if (panneaux[0]) {
