@@ -47,11 +47,11 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .sos-panneau.actif{opacity:1;visibility:visible;transform:translateY(0);transition:opacity .7s ease,transform .7s cubic-bezier(.22,.61,.36,1)}
 
 /* séparateur/fleur  */
-.sep{display:flex;align-items:center;justify-content:center;gap:16px;padding:24px 0;color:var(--commu)}
-.sep::before,.sep::after{content:"";height:1px;width:190px}
-.sep::before{background:linear-gradient(90deg,transparent,var(--clair2),transparent)}
-.sep::after{background:linear-gradient(90deg,transparent,var(--clair2),transparent)}
-.sep .fleur{width:30px;height:30px;background:var(--fleurlys) center/contain no-repeat}
+.sos-app .sep{display:flex;align-items:center;justify-content:center;gap:16px;padding:24px 0;color:var(--commu)}
+.sos-app .sep::before,.sep::after{content:"";height:1px;width:190px}
+.sos-app .sep::before{background:linear-gradient(90deg,transparent,var(--clair2),transparent)}
+.sos-app .sep::after{background:linear-gradient(90deg,transparent,var(--clair2),transparent)}
+.sos-app .sep .fleur{width:30px;height:30px;background:var(--fleurlys) center/contain no-repeat}
 
 .sos-edit{margin-left:auto;display:flex;align-items:center;font-size:19px;text-decoration:none;color:var(--clair1opa6);transition:color .25s}
 .sos-edit:hover{color:var(--commu)}
@@ -167,10 +167,12 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .btn-suite:hover .rond{background:var(--gr1-20);border-color:var(--commu)}
 .btn-suite span{font-family:var(--txt3);font-size:15px;letter-spacing:.12em;text-transform:uppercase}
 @keyframes flotte{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
-.p-hero{color:var(--clair1);background:var(--gradark)}
+.p-hero{color:var(--clair1);background:var(--gradark);align-content:center;}
 .p-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 110% at 16% 34%,rgba(161,83,80,.35) 0%,rgba(26,20,21,.9) 68%)}
-.hero-in{position:relative;z-index:2;height:100%;display:grid;grid-template-columns:1fr 300px;gap:48px;align-content:center;padding:0 64px;max-width:90%}
+.hero-in{position:relative;z-index:2;height:fit-content;display:grid;grid-template-columns:1fr 300px;gap:48px;align-content:center;padding:0 64px;max-width:90%}
 .hero-titre{font-family:var(--font2);font-weight:600;line-height:.92;font-size:clamp(56px,7.6vw,112px);color:var(--clair1);margin-bottom:32px}
+.hero-intro{background:var(--clair1opa7);padding:18px 26px;margin:50px 20px 0;border-radius:8px;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)line-height:1.7!important;color:var(--txt);}
+.hero-intro p {margin-bottom:12px;}
 .hero-cit{border-left:2px solid var(--commu);padding:6px 0 6px 24px;}
 .hero-cit p{font-family:var(--txt1);font-style:italic;font-size:clamp(20px,2.2vw,27px);line-height:1.5;color:var(--clair1opa8)}
 .hero-toc{align-self:flex-end;border-left:1px solid var(--clair1opa2);padding-left:22px}
@@ -181,6 +183,9 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .hero-toc li:hover{color:var(--clair1)}.hero-toc li:hover::before{background:var(--commu);border-color:var(--commu)}
 .hero-suite{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);z-index:5;color:var(--clair1opa6)}
 .hero-suite svg{stroke:currentColor}
+.p-hero .rond {border-color:var(--commu)}
+.p-hero .suite2 svg {stroke:var(--commu)}
+.p-hero .btn-suite span {color:var(--clair1opa8)}
 .p-edito{background:linear-gradient(var(--clair1opa8) 80%, var(--cntr0)), var(--bgimg) center; background-size:cover;color:var(--txt);overflow-y:auto}
 .e2top{height:55px}
 .ouv{position:relative;min-height:58vh;display:flex;align-items:center;padding:54px 64px;overflow:hidden;background:var(--clair1);}
@@ -246,7 +251,7 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .concl .mark{font-size:60px;color:var(--commu);opacity:.25;position:absolute;top:-10px;left:-10px;}
 .concl .body p{font-family:var(--txt3);font-size:15px;line-height:1.7;text-align:justify;}
 .concl .body p:last-child {font-family:var(--font2);font-style:italic;text-align:right;}
-.suite2{display:flex;justify-content:center;padding:34px 0 54px;color:var(--commu)}
+.suite2{display:flex;justify-content:center;padding:34px 0 54px;color:var(--commu);position:relative;z-index:4}
 .suite2 svg{stroke:currentColor}
 .p-stub{background:var(--clair1);display:grid;place-items:center;text-align:center;color:var(--darkopa5)}
 .p-stub .fleur{width:38px;height:38px;background:var(--fleurlys) center/contain no-repeat;opacity:.55;margin-bottom:16px}
