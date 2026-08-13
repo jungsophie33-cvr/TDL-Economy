@@ -171,8 +171,9 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .p-hero::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 110% at 16% 34%,rgba(161,83,80,.35) 0%,rgba(26,20,21,.9) 68%)}
 .hero-in{position:relative;z-index:2;height:fit-content;display:grid;grid-template-columns:1fr 300px;gap:48px;align-content:center;padding:0 64px;max-width:90%}
 .hero-titre{font-family:var(--font2);font-weight:600;line-height:.92;font-size:clamp(56px,7.6vw,112px);color:var(--clair1);margin-bottom:32px}
-.hero-intro{background:var(--clair1opa7);padding:18px 26px;margin:50px 20px 0;border-radius:8px;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)line-height:1.7!important;color:var(--txt);}
+.hero-intro{background:var(--clair1opa7);padding:18px 26px;margin:50px 0 0;border-radius:8px;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)line-height:1.7!important;color:var(--txt);}
 .hero-intro p {margin-bottom:12px;}
+.hero-main:has(.hero-intro) .hero-titre {margin-top:100px;}
 .hero-cit{border-left:2px solid var(--commu);padding:6px 0 6px 24px;}
 .hero-cit p{font-family:var(--txt1);font-style:italic;font-size:clamp(20px,2.2vw,27px);line-height:1.5;color:var(--clair1opa8)}
 .hero-toc{align-self:flex-end;border-left:1px solid var(--clair1opa2);padding-left:22px}
