@@ -214,7 +214,7 @@
     sel:  function(champ, opts){ return '<select data-champ="'+esc(champ)+'"><option>— Sélectionner —</option>'+opts.map(function(o){return '<option>'+esc(o)+'</option>';}).join("")+'</select>'; },
     /* carte d'option (payer comptant / dette). act ∈ comptant|dette|demande ; montant en $ */
     optcard: function(o){
-      return '<div class="qb-optcard'+(o.pay?" qb-pay":"")+'"><div class="qb-optcircle"><i class="ti '+esc(o.ic)+'"></i></div>'
+      return '<div class="qb-optcard'+(o.pay?" qb-pay":"")+'"><div class="qb-optcircle"><i class="'+esc(o.ic)+'"></i></div>'
         + '<div class="qb-optbody"><div class="qb-opttitle">'+esc(o.titre)+'</div><div class="qb-optdesc">'+esc(o.desc)+'</div>'
         + (o.note?'<div class="qb-optnote">'+esc(o.note)+'</div>':"")+'</div>'
         + '<div class="qb-optright">'+(o.prix?'<div class="qb-optprice">'+esc(o.prix)+'</div>':"")
@@ -227,7 +227,7 @@
     /* grille « Informations clés » façon Comptoir : liste [label, valeur] + carte icône */
     infosCles: function(paires, iconOf){
       return '<div class="qb-sec">'+ui.lab("Informations clés")+'<div class="qb-kg4">'
-        + paires.map(function(f){ return '<div class="qb-kf"><i class="ti '+esc((iconOf&&iconOf(f[0]))||"ti-point")+'"></i><div><div class="qb-kl">'+esc(f[0])+'</div><div class="qb-kv">'+esc(f[1])+'</div></div></div>'; }).join("")
+        + paires.map(function(f){ return '<div class="qb-kf"><i class="'+esc((iconOf&&iconOf(f[0]))||"fi fi-tr-diamond")+'"></i><div><div class="qb-kl">'+esc(f[0])+'</div><div class="qb-kv">'+esc(f[1])+'</div></div></div>'; }).join("")
         + '</div></div>';
     }
   };
@@ -263,13 +263,13 @@
       +   '<span class="qb-uname">'+esc(etatMembre.pseudo||"Invité")+'</span>'
       +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.SOLDE+'</span><span class="qb-usolde">'+money(etatMembre.solde)+'</span></div>'
       +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.DETTES+'</span><span class="qb-dots">'+dots+'</span></div>'
-      +   (isStaff()?'<button class="qb-stafftgl" id="qb-edittopic" title="'+TXT.EDIT_TOPIC+'"><i class="ti ti-file-pencil"></i></button>':"")
-      +   (isStaff()?'<button class="qb-stafftgl'+(st.staff?" qb-on":"")+'" id="qb-stafftgl" title="'+TXT.STAFF_TITRE+'"><i class="ti ti-pencil"></i></button>':"")
+      +   (isStaff()?'<button class="qb-stafftgl" id="qb-edittopic" title="'+TXT.EDIT_TOPIC+'"><i class="fi fi-tr-edit"></i></button>':"")
+      +   (isStaff()?'<button class="qb-stafftgl'+(st.staff?" qb-on":"")+'" id="qb-stafftgl" title="'+TXT.STAFF_TITRE+'"><i class="fi fi-tr-customize-edit"></i></button>':"")
       + '</div></div>';
   }
   function renderTabs(){
     return '<div class="qb-tabs" id="qb-tabs">'+registre.map(function(m){
-      return '<button class="qb-tab'+(m.key===st.tab?" qb-on":"")+'" data-tab="'+m.key+'"><span class="qb-tl"><i class="ti '+esc(m.icon)+'"></i> '+esc(m.label)+'</span><span class="qb-tsub">'+esc(m.sub||"")+'</span></button>';
+      return '<button class="qb-tab'+(m.key===st.tab?" qb-on":"")+'" data-tab="'+m.key+'"><span class="qb-tl"><i class="'+esc(m.icon)+'"></i> '+esc(m.label)+'</span><span class="qb-tsub">'+esc(m.sub||"")+'</span></button>';
     }).join("")+'</div>';
   }
 
@@ -310,12 +310,12 @@
     var html="";
     mod.cats.forEach(function(c){
       var op = st.open===c.k, ids = itemsOfCat(mod, c);
-      html += '<div class="qb-acc'+(op?" qb-open":"")+'" data-c="'+c.k+'"><button class="qb-accbar"><i class="ti '+esc(c.ic)+' qb-h"></i><span class="qb-an">'+esc(c.l)+'</span><span class="qb-ct">'+ids.length+'</span><span class="qb-chev">›</span></button><div class="qb-cardswrap"><div class="qb-cards qb-c'+(mod.cols||3)+'">';
+      html += '<div class="qb-acc'+(op?" qb-open":"")+'" data-c="'+c.k+'"><button class="qb-accbar"><i class="'+esc(c.ic)+' qb-h"></i><span class="qb-an">'+esc(c.l)+'</span><span class="qb-ct">'+ids.length+'</span><span class="qb-chev">›</span></button><div class="qb-cardswrap"><div class="qb-cards qb-c'+(mod.cols||3)+'">';
       if (!ids.length) html += '<div class="qb-empty" style="grid-column:1/-1">'+TXT.BIENTOT+'</div>';
       else ids.forEach(function(id){ html += cardHTML(mod, id); });
       html += '</div></div></div>';
     });
-    if (st.staff) html += '<button class="qb-addbtn" id="qb-addbtn"><i class="ti ti-plus"></i> Ajouter un item</button>';
+    if (st.staff) html += '<button class="qb-addbtn" id="qb-addbtn"><i class="fi fi-tr-add"></i> Ajouter un item</button>';
     return html;
   }
   function renderLeftGrid(mod){
@@ -326,14 +326,14 @@
     var ids = band ? itemsOfCat(mod, band) : [];
     if (!ids.length) html += '<div class="qb-empty">'+TXT.BIENTOT+'</div>';
     else html += '<div class="qb-cards qb-c2">'+ids.map(function(id){ return cardHTML(mod, id); }).join("")+'</div>';
-    if (st.staff) html += '<button class="qb-addbtn" id="qb-addbtn"><i class="ti ti-plus"></i> Ajouter un item</button>';
+    if (st.staff) html += '<button class="qb-addbtn" id="qb-addbtn"><i class="fi fi-tr-add"></i> Ajouter un item</button>';
     return html + '</div>';
   }
   function cardHTML(mod, id){
     var a = itemData(mod, id);
     var prix = mod.cardPrice ? mod.cardPrice(a) : (typeof a.p==="number"?money(a.p):(a.p||""));
-    return '<button class="qb-card'+(id===st.sel?" qb-on":"")+'" data-k="'+id+'"><i class="ti '+esc(a.ic)+' qb-bgic"></i>'
-      + (st.staff?'<i class="ti ti-pencil qb-editm"></i>':(a.gd?'<span class="qb-gdmark" title="Génère une dette"></span>':""))
+    return '<button class="qb-card'+(id===st.sel?" qb-on":"")+'" data-k="'+id+'"><i class="fi fi-sr-'+esc(a.ic)+' qb-bgic"></i>'
+      + (st.staff?'<i class="fi fi-tr-edit qb-editm"></i>':(a.gd?'<span class="qb-gdmark" title="Génère une dette"></span>':""))
       + '<span class="qb-cn">'+esc(a.n)+'</span><span class="qb-cp">'+esc(prix)+'</span></button>';
   }
   function renderLeft(mod){ return mod.mode==="grid" ? renderLeftGrid(mod) : renderLeftAccordion(mod); }
