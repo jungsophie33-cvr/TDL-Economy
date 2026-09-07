@@ -30,6 +30,7 @@
     NODE_MEMBRES:   "membres",             /* [MAJ] membres/<pseudo>/dollars | /dettes */
     MAX_DETTES_LOURDES: 3,
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
+    EDIT_URL:       "https://thedrownedlands.forumactif.com/post?p=465&mode=editpost", /* [MAJ] édition du 1er post du sujet */
     MONNAIE:        "$",
     RETRY_MS:       250,
     RETRY_MAX:      60
@@ -42,7 +43,8 @@
     DETTES:           "Dettes",
     SERVICES:         "Services",
     BIENTOT:          "Bientôt disponible.",
-    STAFF_TITRE:      "Mode staff",
+    STAFF_TITRE:      "Éditer les items",
+    EDIT_TOPIC:       "Éditer le sujet",
     NON_CONNECTE:     "Connecte-toi pour effectuer un achat.",
     FONDS:            "Fonds insuffisants.",
     ERR_ACHAT:        "Erreur lors de l'opération — rien n'a été débité.",
@@ -250,6 +252,7 @@
       +   '<span class="qb-uname">'+esc(etatMembre.pseudo||"Invité")+'</span>'
       +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.SOLDE+'</span><span class="qb-usolde">'+money(etatMembre.solde)+'</span></div>'
       +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.DETTES+'</span><span class="qb-dots">'+dots+'</span></div>'
+      +   (isStaff()?'<button class="qb-stafftgl" id="qb-edittopic" title="'+TXT.EDIT_TOPIC+'"><i class="ti ti-file-pencil"></i></button>':"")
       +   (isStaff()?'<button class="qb-stafftgl'+(st.staff?" qb-on":"")+'" id="qb-stafftgl" title="'+TXT.STAFF_TITRE+'"><i class="ti ti-pencil"></i></button>':"")
       + '</div></div>';
   }
@@ -346,6 +349,7 @@
     var tabs = root.querySelectorAll(".qb-tab");
     Array.prototype.forEach.call(tabs, function(b){ b.onclick = function(){ selectTab(b.getAttribute("data-tab")); }; });
     var tgl = root.querySelector("#qb-stafftgl"); if (tgl) tgl.onclick = function(){ st.staff=!st.staff; st.formMode=false; render(); };
+    var edt = root.querySelector("#qb-edittopic"); if (edt) edt.onclick = function(e){ e.stopPropagation(); window.open(CFG.EDIT_URL, "_blank"); };
 
     Array.prototype.forEach.call(root.querySelectorAll(".qb-accbar"), function(b){
       b.onclick = function(){ var it=b.parentElement, was=it.classList.contains("qb-open");
