@@ -67,8 +67,15 @@
     n = n||0;
     var mount = document.querySelector(CFG.MONTAGE);
     var eco = window.EcoCore && typeof EcoCore.safeReadBin==="function" && typeof EcoCore.firebaseTransaction==="function";
-    if (mount && eco) { cb(mount); return; }
-    if (n > CFG.RETRY_MAX) { if(window.console) console.warn("[Quais] EcoCore ou "+CFG.MONTAGE+" introuvable."); return; }
+    if (mount && eco && registre.length) { cb(mount); return; }
+    if (n > CFG.RETRY_MAX) {
+      if (window.console) console.warn("[Quais] démarrage impossible — eco:"+!!eco+" conteneur:"+!!mount+" modules:"+registre.length);
+      if (mount) { monter(mount); mount.innerHTML = '<div class="qb-empty" style="padding:24px">'
+        + (!eco ? "EcoCore introuvable — vérifie l'ordre de chargement (eco-core avant quais-core)."
+                : !registre.length ? "Aucun module de boutique chargé — quais-comptoir.js est-il bien inclus après quais-core.js ?"
+                : "Conteneur "+CFG.MONTAGE+" introuvable.") + '</div>'; }
+      return;
+    }
     setTimeout(function(){ quandPret(cb, n+1); }, CFG.RETRY_MS);
   }
 
@@ -230,7 +237,11 @@
        sousChemin(fn id→path OU string), data(defaut), cats,
        detail(id, api)→html, form?(item, api)→html } */
   var registre = [];
-  function register(mod){ registre.push(mod); if (mod.key===st.tab) st.dirty=true; }
+  var mounted = false;
+  function register(mod){
+    registre.push(mod);
+    if (mounted) chargerModule(mod).then(function(){ render(); });  /* module arrivé après le montage (chargeur séquentiel) */
+  }
   function modByKey(k){ for (var i=0;i<registre.length;i++) if (registre[i].key===k) return registre[i]; return null; }
 
   /* état + catalogues chargés */
@@ -418,28 +429,28 @@
   }
 
   /* ===================== BOOT / REFRESH ===================== */
-  async function chargerCatalogues(){
-    for (var i=0;i<registre.length;i++){
-      var m = registre[i];
-      var chemin = typeof m.sousChemin==="string" ? m.sousChemin : m.key; /* pour les modules mono-chemin */
-      try { cat[m.key] = await catalogue.lire(chemin, m.data||null); } catch(e){ cat[m.key] = m.data||{}; }
-    }
+  async function chargerModule(m){
+    var chemin = typeof m.sousChemin==="string" ? m.sousChemin : m.key;
+    try { cat[m.key] = await catalogue.lire(chemin, m.data||null); } catch(e){ cat[m.key] = m.data||{}; }
   }
+  async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
   async function refresh(){
     E().invalidateCache();
     etatMembre = await membre.lire();
     render();
   }
 
+  /* réparente le conteneur vers <body> (échappe aux contextes d'empilement FA) + fige le fond */
+  function monter(mount){
+    if (mount.parentNode !== document.body) document.body.appendChild(mount);
+    document.documentElement.style.overflow = "hidden";   /* iOS Safari : sur <html>, pas <body> */
+    root = mount; root.classList.add("qb");
+  }
+
   function boot(){
     quandPret(async function(mount){
-      /* FA piège le position:fixed dans des contextes d'empilement (transform/filter/
-         contain sur un conteneur de message) : on sort le nœud vers <body> pour que
-         l'overlay se cale bien sur le viewport, et on fige le scroll de l'arrière-plan. */
-      if (mount.parentNode !== document.body) document.body.appendChild(mount);
-      document.documentElement.style.overflow = "hidden";   /* iOS Safari : sur <html>, pas <body> */
-      root = mount; root.classList.add("qb");
-      if (!registre.length) { root.innerHTML = '<div class="qb-empty" style="padding:24px">Aucun module de boutique chargé.</div>'; return; }
+      if (mounted) return;
+      monter(mount); mounted = true;
       st.tab = registre[0].key;
       etatMembre = await membre.lire();
       await chargerCatalogues();
