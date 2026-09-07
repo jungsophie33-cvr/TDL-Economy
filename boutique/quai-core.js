@@ -429,6 +429,11 @@
 
   function boot(){
     quandPret(async function(mount){
+      /* FA piège le position:fixed dans des contextes d'empilement (transform/filter/
+         contain sur un conteneur de message) : on sort le nœud vers <body> pour que
+         l'overlay se cale bien sur le viewport, et on fige le scroll de l'arrière-plan. */
+      if (mount.parentNode !== document.body) document.body.appendChild(mount);
+      document.documentElement.style.overflow = "hidden";   /* iOS Safari : sur <html>, pas <body> */
       root = mount; root.classList.add("qb");
       if (!registre.length) { root.innerHTML = '<div class="qb-empty" style="padding:24px">Aucun module de boutique chargé.</div>'; return; }
       st.tab = registre[0].key;
