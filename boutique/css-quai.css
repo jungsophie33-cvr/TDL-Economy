@@ -1,0 +1,168 @@
+/* ============================================================
+   TDL — LES QUAIS DU BAYOU · quais.css
+   Feuille externe. Référence les variables :root du forum
+   (aucune redéclaration, aucune police importée ici).
+   Tout est scopé sous .qb (le conteneur #quais-app).
+   Classes émises par quais-core + les modules (préfixe qb-).
+   ============================================================ */
+
+/* ---------- COQUILLE PLEIN ÉCRAN ---------- */
+.qb{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;
+  background:var(--clair1);color:var(--txt);font-family:var(--txt1);font-size:14px;line-height:1.4}
+.qb *{box-sizing:border-box}
+.qb button{font-family:inherit;cursor:pointer}
+.qb a{text-decoration:none;color:inherit}
+.qb ::-webkit-scrollbar{width:9px;height:9px}
+.qb ::-webkit-scrollbar-thumb{background:var(--dark2opa5);border-radius:4px}
+.qb-lab{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.1em;font-size:14px;color:var(--darkopa6)}
+.qb-empty{font-size:14px;color:var(--darkopa6);font-style:italic;padding:6px 2px 10px}
+.qb-helper{font-size:14px;color:var(--darkopa6);font-style:italic;margin-top:4px;line-height:1.45}
+.qb-rule{border-top:1px solid var(--cntr6);margin:20px 0}
+
+/* ---------- BARRE ---------- */
+.qb-bar{flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:13px 24px;border-bottom:1px solid var(--cntr6)}
+.qb-accueil{justify-self:start;display:flex;align-items:center;gap:8px;background:var(--cntr3);border:1px solid var(--cntr6);border-radius:22px;padding:9px 18px;font-family:var(--txt3);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--txt)}
+.qb-accueil i{font-size:18px;line-height:1}
+.qb-title{justify-self:center;font-family:var(--title1);font-size:25px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:var(--txt)}
+.qb-user{justify-self:end;display:flex;align-items:center;gap:15px}
+.qb-uname{font-family:var(--font2);font-size:15px}
+.qb-ublock{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.qb-ublock .qb-lab{font-size:14px}
+.qb-usolde{font-family:var(--font2);font-size:16px}
+.qb-dots{display:flex;gap:5px}
+.qb-dot{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--dark2)}
+.qb-dot.qb-on{background:var(--dark2)}
+.qb-stafftgl{width:40px;height:40px;border-radius:50%;border:1px solid var(--cntr6);background:var(--cntr3);display:flex;align-items:center;justify-content:center;color:var(--darkopa6)}
+.qb-stafftgl.qb-on{background:var(--dark2);color:var(--clair1);border-color:var(--dark2)}
+.qb-stafftgl i{font-size:18px}
+
+/* ---------- ONGLETS ---------- */
+.qb-tabs{flex:none;display:flex;gap:34px;justify-content:center;border-bottom:1px solid var(--cntr6);padding:6px 20px 0}
+.qb-tab{background:none;border:none;padding:8px 4px 10px;color:var(--darkopa6);border-bottom:3px solid transparent;display:flex;flex-direction:column;align-items:center;gap:1px}
+.qb-tab.qb-on{border-bottom-color:var(--dark2)}
+.qb-tab.qb-on .qb-tl{color:var(--txt)}
+.qb-tl{font-family:var(--title1);font-size:15px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.qb-tl i{font-size:17px}
+.qb-tsub{font-family:var(--txt1);font-style:italic;font-size:14px;color:var(--darkopa6)}
+
+/* ---------- COLONNES ---------- */
+.qb-main{flex:1;min-height:0;display:grid}
+.qb-col{height:100%;min-height:0;overflow-y:auto}
+.qb-left{border-right:1px solid var(--cntr6);padding:16px 16px 18px}
+.qb-left.qb-flush{padding:0}
+.qb-leftbody{padding:16px}
+.qb-detail{padding:18px 24px 24px}
+.qb-detail.qb-flush{padding:0}
+
+/* ---------- ACCORDÉON ---------- */
+.qb-acc{margin-bottom:8px}
+.qb-accbar{width:100%;display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--cntr6);border-radius:6px;background:var(--cntr2);text-align:left;color:var(--txt)}
+.qb-acc.qb-open .qb-accbar{border-color:var(--dark2)}
+.qb-accbar i.qb-h{font-size:18px;color:var(--dark2)}
+.qb-an{flex:1;font-family:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-size:14px}
+.qb-ct{font-family:var(--font2);font-size:14px;background:var(--cntr3);border-radius:10px;padding:0 9px;color:var(--darkopa6)}
+.qb-chev{font-size:18px;color:var(--darkopa6);transition:transform .3s ease}
+.qb-acc.qb-open .qb-chev{transform:rotate(90deg)}
+.qb-cardswrap{max-height:0;overflow:hidden;opacity:0;transition:max-height .38s ease,opacity .3s ease}
+.qb-acc.qb-open .qb-cardswrap{max-height:2600px;opacity:1}
+
+/* ---------- CARTES ---------- */
+.qb-cards{display:grid;gap:8px;padding:9px 1px 4px}
+.qb-cards.qb-c3{grid-template-columns:repeat(3,1fr)}
+.qb-cards.qb-c2{grid-template-columns:repeat(2,1fr)}
+.qb-card{position:relative;min-height:112px;border:1px solid var(--cntr6);border-radius:8px;background:var(--clair1);padding:14px 12px 26px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+.qb-card.qb-on{border-color:var(--dark2);background:var(--cntr4)}
+.qb-bgic{position:absolute;top:8px;left:10px;font-size:54px;opacity:.15;line-height:1;color:var(--dark2)}
+.qb-cn{position:relative;z-index:1;font-family:var(--txt1);font-size:14px;line-height:1.2;padding:0 2px}
+.qb-cp{position:absolute;bottom:9px;right:12px;font-family:var(--font2);font-size:14px;z-index:1}
+.qb-gdmark{position:absolute;top:9px;right:11px;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--darkopa6);z-index:1}
+.qb-editm{position:absolute;top:8px;right:10px;font-size:14px;color:var(--dark2);z-index:1}
+.qb-addbtn{width:100%;margin-top:14px;padding:12px;border:1px dashed var(--dark2);background:none;border-radius:6px;color:var(--dark2);font-family:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+
+/* ---------- GRILLE DES BANDES (marché noir) ---------- */
+.qb-bandgrid{display:grid;grid-template-columns:repeat(3,1fr);background:var(--cntr2);border-bottom:1px solid var(--cntr4)}
+.qb-bandcell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:13px 4px 14px;cursor:pointer;position:relative;background:none;border:0;border-left:1px solid var(--cntr4);border-top:1px solid var(--cntr4);min-height:76px;color:var(--darkopa5)}
+.qb-bandcell:nth-child(-n+3){border-top:0}
+.qb-bandcell:nth-child(3n+1){border-left:0}
+.qb-bandcell i{font-size:22px;color:var(--c);line-height:1}
+.qb-bandcell span{font-family:var(--txt3);font-size:11px;text-transform:uppercase;letter-spacing:.03em;line-height:1.15;text-align:center}
+.qb-bandcell.qb-on span{color:var(--dark)}
+.qb-bandcell.qb-on::after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:2px;background:var(--c)}
+
+/* ---------- EN-TÊTE DE FICHE ---------- */
+.qb-dhl{color:var(--dark2);margin-bottom:11px;display:block}
+.qb-dhead{display:flex;gap:14px;align-items:stretch;border:1px solid var(--cntr6);border-radius:8px;padding:16px}
+.qb-dic{width:62px;height:62px;border-radius:8px;background:var(--clair1);border:1px solid var(--cntr6);display:flex;align-items:center;justify-content:center;flex:none}
+.qb-dic i{font-size:32px;color:var(--dark2);opacity:.55}
+.qb-dmid{flex:1;min-width:180px}
+.qb-dname{font-family:var(--font2);font-size:22px;line-height:1.1;text-transform:uppercase;letter-spacing:.01em}
+.qb-dtag{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.09em;font-size:14px;margin:4px 0 8px;color:var(--dark2)}
+.qb-ddesc{font-size:15px;line-height:1.5}
+.qb-dprice{text-align:right;min-width:126px;border-left:1px solid var(--cntr6);padding-left:22px;display:flex;flex-direction:column;justify-content:center}
+.qb-dprice .qb-v{font-family:var(--font2);font-size:30px;color:var(--dark2);line-height:1.05;margin-top:4px}
+
+/* ---------- SECTIONS / INFORMATIONS CLÉS ---------- */
+.qb-sec{margin-top:20px}
+.qb-sec>.qb-lab{margin-bottom:12px;display:block}
+.qb-kg4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 20px}
+.qb-kg2{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
+.qb-infos{display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:start}
+.qb-kf{display:flex;gap:10px}
+.qb-kf i{font-size:18px;margin-top:2px;color:var(--dark2)}
+.qb-kl{font-family:var(--txt3);font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--darkopa6)}
+.qb-kv{font-size:14px;line-height:1.4}
+.qb-asbox{border:1px solid var(--cntr6);border-radius:8px;padding:14px 15px;background:var(--cntr2)}
+.qb-asbox .qb-lab{color:var(--dark2)}
+.qb-asbox p{margin:6px 0 0;font-size:14px;line-height:1.55}
+.qb-rolls{display:flex;flex-direction:column;gap:7px;max-width:480px;margin-top:14px}
+.qb-rollrow{display:flex;gap:12px;align-items:center;font-size:14px}
+.qb-rolldie{font-family:var(--font2);min-width:52px;text-align:center;border:1px solid var(--cntr6);border-radius:6px;padding:3px 8px;font-size:14px}
+
+/* ---------- FORMULAIRES ---------- */
+.qb-pcgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.qb-pcgrid.qb-single{grid-template-columns:1fr}
+.qb-staffgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 20px}
+.qb-fld{margin-bottom:12px}
+.qb-flab{display:block;font-family:var(--txt3);text-transform:uppercase;letter-spacing:.08em;font-size:14px;color:var(--dark2);margin-bottom:6px}
+.qb-detail textarea,.qb-detail input,.qb-detail select{width:100%;font-family:var(--txt1);font-size:14px;background:var(--cntr2);border:1px solid var(--cntr6);border-radius:5px;padding:10px 12px;color:var(--txt)}
+.qb-detail textarea{min-height:80px;resize:vertical}
+
+/* ---------- CARTES D'OPTION ---------- */
+.qb-opts{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.qb-opts.qb-center{justify-content:center}
+.qb-optcard{flex:1;min-width:288px;border:1px solid var(--cntr6);border-radius:8px;padding:16px;display:flex;align-items:center;gap:14px}
+.qb-optcard.qb-pay{border-color:var(--dark2)}
+.qb-optcircle{width:50px;height:50px;border-radius:50%;border:1.5px solid var(--dark);display:flex;align-items:center;justify-content:center;flex:none}
+.qb-optcircle i{font-size:23px;color:var(--dark)}
+.qb-optbody{flex:1}
+.qb-opttitle{font-family:var(--txt3);font-weight:600;font-size:15px;color:var(--dark2);text-transform:uppercase;letter-spacing:.04em}
+.qb-optdesc{font-size:14px;color:var(--darkopa6);line-height:1.4;margin-top:3px}
+.qb-optnote{font-size:14px;color:var(--darkopa6);font-style:italic;line-height:1.4;margin-top:6px}
+.qb-optright{display:flex;flex-direction:column;gap:9px;align-items:flex-end;text-align:right}
+.qb-optprice{font-family:var(--font2);font-size:19px}
+.qb-optbtn{font-family:var(--txt3);padding:10px 16px;border-radius:5px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--dark2);white-space:nowrap;color:var(--txt);background:none}
+.qb-optbtn.qb-pay{background:var(--dark2);color:var(--clair1);border:none}
+.qb-optbtn[disabled]{opacity:.5;cursor:default}
+
+/* ---------- HERO (marché noir) ---------- */
+.qb-hero{position:relative;overflow:hidden;padding:26px;background:linear-gradient(120deg,var(--dark),var(--dark2))}
+.qb-heroin{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+.qb-herologo{width:74px;height:74px;border-radius:50%;border:2px solid var(--clair2);display:flex;align-items:center;justify-content:center;flex:none}
+.qb-herologo i{font-size:33px;color:var(--clair2);line-height:1}
+.qb-heromid{flex:1;min-width:230px}
+.qb-herosub{font-family:var(--txt3);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--clair2)}
+.qb-heroname{font-family:var(--font2);font-size:26px;text-transform:uppercase;letter-spacing:.02em;color:var(--clair1);line-height:1.05;margin:5px 0 8px}
+.qb-herodesc{font-size:15px;line-height:1.5;color:var(--clair1opa8);max-width:640px}
+.qb-heroprice{background:var(--clair1opa2);border-radius:8px;padding:15px 22px;text-align:center;min-width:160px}
+.qb-heroprice .qb-lab{color:var(--clair1opa8);font-size:12px}
+.qb-heroprice .qb-v{font-family:var(--font2);font-size:26px;color:var(--clair1);margin-top:5px;line-height:1.05}
+.qb-bargebody{padding:20px 26px 26px}
+
+/* ---------- RESPONSIVE ---------- */
+@media(max-width:1100px){
+  .qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
+  .qb-kg4{grid-template-columns:repeat(2,1fr)}
+  .qb-infos{grid-template-columns:1fr}
+  .qb-pcgrid{grid-template-columns:1fr}
+  .qb-staffgrid{grid-template-columns:1fr 1fr}
+}
