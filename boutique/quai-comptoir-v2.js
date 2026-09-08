@@ -52,9 +52,9 @@
   };
 
   var CATS = [
-    { k:"presages", l:"Présages & aides aux dés", ic:"fi fi-tr-crystal-ball" },
-    { k:"rendre",   l:"Services à rendre",        ic:"fi fi-tr-comment-user" },
-    { k:"mondaine", l:"Vie mondaine",             ic:"fi fi-tr-cocktail" }
+    { k:"presages", l:"Présages & aides aux dés", ic:"fi fi-tr-crystal-ball", c:"var(--gr4-color)" },
+    { k:"rendre",   l:"Services à rendre",        ic:"fi fi-tr-comment-user", c:"var(--gr6-color)" },
+    { k:"mondaine", l:"Vie mondaine",             ic:"fi fi-tr-cocktail",      c:"var(--gr1-color)" }
   ];
 
   /* ordre + icônes (classes fi-tr complètes) des « Informations clés » */
@@ -68,8 +68,7 @@
   /* ===================== RENDU DE FICHE ===================== */
   function detail(id, api){
     var a = api.item(id), c = api.cat(id) || {};
-    var html = '<span class="qb-lab qb-dhl">Détails du service</span>'
-      + '<div class="qb-dhead"><span class="qb-dic"><i class="fi fi-tr-'+esc(a.ic)+'"></i></span>'
+    var html = '<div class="qb-dhead"><span class="qb-dic"><i class="fi fi-tr-'+esc(a.ic)+'"></i></span>'
       + '<div class="qb-dmid"><div class="qb-dname">'+esc(a.n)+'</div><div class="qb-dtag">'+esc(c.l||"")+'</div><div class="qb-ddesc">'+esc(a.desc)+'</div></div>'
       + '<div class="qb-dprice">'+ui.lab("Prix")+'<div class="qb-v">'+money(a.p)+'</div></div></div><div class="qb-rule"></div>';
 
@@ -150,11 +149,28 @@
     var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
   }
 
+  /* ===================== MIGRATION ICÔNES (ti- → Flaticon) ===================== */
+  /* Corrige les items semés en base avant le passage à Flaticon : on ne touche
+     qu'au champ ic, tout le reste (prix, description édités) est préservé. */
+  function migre(catalogue){
+    var patch = null;
+    Object.keys(catalogue).forEach(function(id){
+      var it = catalogue[id];
+      if (it && typeof it.ic === "string" && it.ic.indexOf("ti-") === 0) {
+        var neuf = (DEFAUT[id] && DEFAUT[id].ic) || it.ic.replace(/^ti-/, "");
+        var copie = {}; for (var k in it) if (it.hasOwnProperty(k)) copie[k] = it[k];
+        copie.ic = neuf;
+        (patch || (patch = {}))[id] = copie;
+      }
+    });
+    return patch;
+  }
+
   /* ===================== ENREGISTREMENT ===================== */
   Q.register({
     key:"comptoir", label:"Le Comptoir", sub:"personnel", icon:"fi fi-tr-cash-register",
-    mode:"accordion", leftW:"450px", cols:3, sousChemin:"comptoir",
-    cats: CATS, data: DEFAUT,
+    mode:"grid", leftW:"450px", cols:3, sousChemin:"comptoir",
+    cats: CATS, data: DEFAUT, migre: migre,
     cardPrice: function(a){ return typeof a.p==="number" ? money(a.p) : (a.p||""); },
     detail: detail, form: form, wireDetail: wireDetail
   });
