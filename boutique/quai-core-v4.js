@@ -321,11 +321,11 @@
   function renderLeftGrid(mod){
     var html = '<div class="qb-bandgrid">'+mod.cats.map(function(c){
       return '<button class="qb-bandcell'+(c.k===st.band?" qb-on":"")+'" data-b="'+c.k+'" style="--c:'+(c.c||"var(--dark2)")+'"><i class="'+esc(c.ic)+'"></i><span>'+esc(c.l)+'</span></button>';
-    }).join("")+'</div><div class="qb-leftbody">'+ui.lab(TXT.SERVICES);
+    }).join("")+'</div><div class="qb-leftbody">'+(mod.itemsLabel?ui.lab(mod.itemsLabel):"");
     var band = mod.cats.filter(function(c){return c.k===st.band;})[0];
     var ids = band ? itemsOfCat(mod, band) : [];
     if (!ids.length) html += '<div class="qb-empty">'+TXT.BIENTOT+'</div>';
-    else html += '<div class="qb-cards qb-c2">'+ids.map(function(id){ return cardHTML(mod, id); }).join("")+'</div>';
+    else html += '<div class="qb-cards qb-c'+(mod.cols||2)+'">'+ids.map(function(id){ return cardHTML(mod, id); }).join("")+'</div>';
     if (st.staff) html += '<button class="qb-addbtn" id="qb-addbtn"><i class="fi fi-tr-add"></i> Ajouter un item</button>';
     return html + '</div>';
   }
@@ -350,7 +350,7 @@
     root.innerHTML = renderBar() + renderTabs()
       + '<div class="qb-main" style="grid-template-columns:'+(mod.leftW||"440px")+' 1fr">'
       +   '<div class="qb-col qb-left'+(isGrid?" qb-flush":"")+'" id="qb-left">'+renderLeft(mod)+'</div>'
-      +   '<div class="qb-col qb-detail'+(isGrid&&!st.formMode?" qb-flush":"")+'" id="qb-detail">'+renderDetail(mod)+'</div>'
+      +   '<div class="qb-col qb-detail'+(mod.detailFlush&&!st.formMode?" qb-flush":"")+'" id="qb-detail">'+renderDetail(mod)+'</div>'
       + '</div>';
     wire(mod);
   }
@@ -432,6 +432,17 @@
   async function chargerModule(m){
     var chemin = typeof m.sousChemin==="string" ? m.sousChemin : m.key;
     try { cat[m.key] = await catalogue.lire(chemin, m.data||null); } catch(e){ cat[m.key] = m.data||{}; }
+    if (m.migre) { try { await appliquerMigration(m, chemin); } catch(e){ if (window.console) console.warn("[Quais] migration "+chemin, e); } }
+  }
+  /* migration ciblée : le module renvoie { id: itemCorrigé } pour les seuls items
+     à corriger ; on écrit le patch et on met à jour la mémoire. Préserve tout le reste. */
+  async function appliquerMigration(m, chemin){
+    var patch = m.migre(cat[m.key]); if (!patch) return;
+    var ids = Object.keys(patch); if (!ids.length) return;
+    var maj = {};
+    ids.forEach(function(id){ maj[CFG.NODE_BOUTIQUE+"/"+chemin+"/"+id] = patch[id]; cat[m.key][id] = patch[id]; });
+    await E().firebaseUpdate(maj);
+    if (window.console) console.log("[Quais] migration "+chemin+" : "+ids.length+" item(s) corrigé(s).");
   }
   async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
   async function refresh(){
