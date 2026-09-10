@@ -319,10 +319,11 @@
     return html;
   }
   function renderLeftGrid(mod){
+    var band = mod.cats.filter(function(c){return c.k===st.band;})[0];
+    var couleur = (band && band.c) || "var(--dark2)";   /* couleur de la catégorie active, héritée par les cartes */
     var html = '<div class="qb-bandgrid">'+mod.cats.map(function(c){
       return '<button class="qb-bandcell'+(c.k===st.band?" qb-on":"")+'" data-b="'+c.k+'" style="--c:'+(c.c||"var(--dark2)")+'"><i class="'+esc(c.ic)+'"></i><span>'+esc(c.l)+'</span></button>';
-    }).join("")+'</div><div class="qb-leftbody">'+(mod.itemsLabel?ui.lab(mod.itemsLabel):"");
-    var band = mod.cats.filter(function(c){return c.k===st.band;})[0];
+    }).join("")+'</div><div class="qb-leftbody" style="--c:'+couleur+'">'+(mod.itemsLabel?ui.lab(mod.itemsLabel):"");
     var ids = band ? itemsOfCat(mod, band) : [];
     if (!ids.length) html += '<div class="qb-empty">'+TXT.BIENTOT+'</div>';
     else html += '<div class="qb-cards qb-c'+(mod.cols||2)+'">'+ids.map(function(id){ return cardHTML(mod, id); }).join("")+'</div>';
