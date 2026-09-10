@@ -78,14 +78,15 @@ padding: 8px 14px; }
 .qb-acc.qb-open .qb-cardswrap{max-height:2600px;opacity:1}
 
 /* ---------- CARTES ---------- */
-.qb-cards{display:grid;gap:8px;padding:9px 1px 4px}
-.qb-cards.qb-c3{grid-template-columns:repeat(3,1fr)}
+.qb-cards{display:grid;gap:8px;}
+.qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
 .qb-cards.qb-c2{grid-template-columns:repeat(2,1fr)}
-.qb-card{position:relative;min-height:112px;border:1px solid var(--cntr6);border-radius:8px;background:var(--clair1);padding:14px 12px 26px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
-.qb-card.qb-on{border-color:var(--c,var(--dark2));background:var(--cntr4)}
-.qb-bgic{position:absolute;top:8px;left:10px;font-size:54px;opacity:.15;line-height:1;color:var(--c,var(--dark2))}
-.qb-cn{position:relative;z-index:1;font-family:var(--txt1);font-size:14px;line-height:1.2;padding:0 2px}
-.qb-cp{position:absolute;bottom:9px;right:12px;font-family:var(--font2);font-size:14px;z-index:1}
+.qb-card{transition:all ease 0.5s; position:relative;min-height:112px;border:1px solid var(--cntr6);border-radius:8px;background:var(--clair1);padding:14px 12px 26px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+.qb-card.qb-on{border-color:var(--c,var(--dark2));background:var(--cntr2)}
+.qb-card:hover {background:var(--cntr2);}
+.qb-bgic{position:absolute;top:-2px;left:-14px;font-size:70px;opacity:.15;line-height:1;color:var(--c,var(--dark2))}
+.qb-cn{position:relative;z-index:1;font-family:var(--font2);font-size:1.7em;line-height:1.1;font-style:italic;font-weight:500;letter-spacing:-0.5px;}
+.qb-cp{position:absolute;bottom:9px;right:12px;font-family:var(--txt1);font-size:1.7em;z-index:1;background: var(--cntr4);padding: 2px 5px;line-height: 1;border-radius: 5px;}
 .qb-gdmark{position:absolute;top:9px;right:11px;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--darkopa6);z-index:1}
 .qb-editm{position:absolute;top:8px;right:10px;font-size:14px;color:var(--dark2);z-index:1}
 .qb-addbtn{width:100%;margin-top:14px;padding:12px;border:1px dashed var(--dark2);background:none;border-radius:6px;color:var(--dark2);font-family:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
