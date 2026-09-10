@@ -19,7 +19,7 @@
 .qb-lab{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.1em;font-size:14px;color:var(--darkopa6)}
 .qb-empty{font-size:14px;color:var(--darkopa6);font-style:italic;padding:6px 2px 10px}
 .qb-helper{font-size:14px;color:var(--darkopa6);font-style:italic;margin-top:4px;line-height:1.45}
-.qb-rule{border-top:1px solid var(--cntr6);margin:20px 0}
+.qb-rule{border-top:1px solid var(--cntr6);margin:20px 0;display:none;}
 
 /* ---------- BARRE ---------- */
 .qb-bar{background:var(--clair1opa8);flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid var(--cntr6)}
@@ -118,7 +118,7 @@ padding: 8px 14px; }
 .qb-sec>.qb-lab{margin-bottom:12px;display:block;}
 .qb-kg4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 20px;text-align:left;}
 .qb-kg2{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
-.qb-infos{display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:start}
+.qb-infos{display:grid;grid-template-columns:2fr 1fr;gap:22px;align-items:start;text-align:left;}
 .qb-kf{display:flex;gap:10px}
 .qb-kf i{font-size:18px;margin-top:2px;color:var(--dark2)}
 .qb-kl{font-family:var(--txt3);font-size:14px;text-transform:uppercase;letter-spacing:.05em;color:var(--darkopa6)}
@@ -140,9 +140,9 @@ padding: 8px 14px; }
 .qb-detail textarea{min-height:80px;resize:vertical}
 
 /* ---------- CARTES D'OPTION ---------- */
-.qb-opts{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.qb-opts{display:flex;gap:12px;margin-top:16px}
 .qb-opts.qb-center{justify-content:center}
-.qb-optcard{min-width:288px;border:1px solid var(--cntr6);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px;margin: auto;background: var(--clair1opa4);-webkit-backdrop-filter: blur(4px);backdrop-filter:blur(4px)}
+.qb-optcard{min-width:288px;border:1px solid var(--cntr6);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px;margin: 0 auto;background: var(--clair1opa4);-webkit-backdrop-filter: blur(4px);backdrop-filter:blur(4px)}
 .qb-optcard.qb-pay{border-color:var(--dark2opa6)}
 .qb-optcircle{width:50px;height:50px;border-radius:50%;border:1.5px solid var(--dark);display:flex;align-items:center;justify-content:center;flex:none}
 .qb-optcircle i{font-size:23px;color:var(--dark)}
