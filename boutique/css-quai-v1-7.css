@@ -134,7 +134,7 @@ padding: 8px 14px; }
 .qb-pcgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
 .qb-pcgrid.qb-single{grid-template-columns:1fr}
 .qb-staffgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 20px}
-.qb-fld{margin-bottom:12px}
+.qb-fld{margin-bottom:12px;display:inline-block;width:32%;margin:0 15px;}
 .qb-flab{display:block;font-family:var(--txt3);text-transform:uppercase;letter-spacing:.08em;font-size:14px;color:var(--dark2);margin-bottom:6px}
 .qb-detail textarea,.qb-detail input,.qb-detail select{width:100%;font-family:var(--font0);font-size:14px;background:var(--cntr2);border:1px solid var(--cntr8);border-radius:5px;padding:10px 12px;color:var(--txt);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
 .qb-detail textarea{min-height:80px;resize:vertical}
