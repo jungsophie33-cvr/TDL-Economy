@@ -168,8 +168,8 @@
 
   /* ===================== ENREGISTREMENT ===================== */
   Q.register({
-    key:"comptoir", label:"Le Comptoir", sub:"personnel", icon:"fi fi-tr-cash-register",
-    mode:"grid", leftW:"450px", cols:3, sousChemin:"comptoir",
+    key:"comptoir", label:"Le Comptoir", sub:"boutique personnelle", icon:"fi fi-tr-marketplace-store",
+    mode:"grid", leftW:"450px", cols:2, sousChemin:"comptoir",
     cats: CATS, data: DEFAUT, migre: migre,
     cardPrice: function(a){ return typeof a.p==="number" ? money(a.p) : (a.p||""); },
     detail: detail, form: form, wireDetail: wireDetail
