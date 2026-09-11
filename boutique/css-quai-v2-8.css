@@ -8,7 +8,7 @@
 
 /* ---------- COQUILLE PLEIN ÉCRAN ---------- */
 .qb{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;
-  background:linear-gradient(var(--clair1opa8) 80%, var(--cntr0)), var(--bgimg) center; background-size:cover;color:var(--txt);font-family:var(--txt3);font-size:14px;line-height:1.4}
+  background:linear-gradient(var(--clair1opa8) 80%, var(--clair1opa2)), var(--bgimg) center; background-size:cover;color:var(--txt);font-family:var(--txt3);font-size:14px;line-height:1.4}
 .qb *{box-sizing:border-box}
 .qb button{font-family:inherit;cursor:pointer}
 .qb a{text-decoration:none;color:inherit}
