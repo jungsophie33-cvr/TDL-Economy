@@ -30,14 +30,14 @@
   /* cats de la grille + catalogue fusionné (chaque item porte cat = clé de bande) */
   var CATS = bandes.map(function(b){ return { k:b.k, l:b.l, ic:b.ic, c:b.c }; });
   var DATA = {};
-  bandes.forEach(function(b){ if (b.data) Object.keys(b.data).forEach(function(id){ var it=b.data[id]; it.cat=b.k; DATA[id]=it; }); });
+  bandes.forEach(function(b){ if (b.data) Object.keys(b.data).forEach(function(id){ var it=b.data[id]; it.cat=b.k; if (b.cagnotte && !it.cagnotte) it.cagnotte=b.cagnotte; DATA[id]=it; }); });
 
   /* ---------- HERO (commun à toutes les bandes) ---------- */
   function heroPrix(b, item){
     if (b.heroPrice) return b.heroPrice(item);
     if (typeof item.pi==="number") return { l:"Prix indicatif", v:money(item.pi) };
     if (typeof item.p==="number")  return { l:"Prix", v:money(item.p) };
-    var mod = { nego:"Sur proposition", prix:"À définir", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande" };
+    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande" };
     return { l:"Modalité", v: mod[item.flow] || "À négocier" };
   }
   function hero(b, sur, titre, desc, prix, api){
@@ -71,6 +71,7 @@
   function cardPrice(a){
     if (a.flow==="nego")     return typeof a.pi==="number" ? money(a.pi) : "à négocier";
     if (a.flow==="prix")     return typeof a.p==="number" ? money(a.p) : "à définir";
+    if (a.flow==="pret")     return "prêt";
     if (a.flow==="don")      return "don";
     if (a.flow==="mission")  return "mission";
     if (a.flow==="offrande") return "offrande";
