@@ -129,6 +129,8 @@ padding: 8px 14px; }
 .qb-rolls{display:flex;justify-content:space-evenly;gap:7px;}
 .qb-rollrow{display:flex;gap:12px;align-items:center;font-size:14px}
 .qb-rolldie{font-family:var(--txt2);min-width:52px;text-align:center;border-radius:5px;padding:3px 8px;font-size:14px;background:var(--dark2);color:var(--clair1);}
+.qb-selrow{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.qb-selrow>*{flex:1;min-width:190px}
 
 /* ---------- FORMULAIRES ---------- */
 .qb-pcgrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
