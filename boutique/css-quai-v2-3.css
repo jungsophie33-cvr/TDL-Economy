@@ -142,9 +142,9 @@ padding: 8px 14px; }
 .qb-detail textarea{min-height:80px;resize:vertical}
 
 /* ---------- CARTES D'OPTION ---------- */
-.qb-opts{display:flex;gap:12px;margin-top:16px}
+.qb-opts{display:flex;gap:12px;margin-top:26px}
 .qb-opts.qb-center{justify-content:center}
-.qb-optcard{min-width:288px;border:1px solid var(--cntr6);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px;margin: 0 auto;background: var(--clair1opa4);-webkit-backdrop-filter: blur(4px);backdrop-filter:blur(4px)}
+.qb-optcard{flex:1;min-width:288px;border:1px solid var(--cntr6);border-radius:8px;padding:12px 16px;display:flex;align-items:center;gap:14px;margin: 0 auto;background: var(--clair1opa4);-webkit-backdrop-filter: blur(4px);backdrop-filter:blur(4px)}
 .qb-optcard.qb-pay{border-color:var(--dark2opa6)}
 .qb-optcircle{width:50px;height:50px;border-radius:50%;border:1.5px solid var(--dark);display:flex;align-items:center;justify-content:center;flex:none}
 .qb-optcircle i{font-size:23px;color:var(--dark)}
