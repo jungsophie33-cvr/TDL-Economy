@@ -31,6 +31,7 @@
     NODE_CAGNOTTES: "cagnottes",           /* [MAJ] cagnottes/<groupe> (Providence = cagnotte de la Main) */
     NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
     MAX_DETTES_LOURDES: 3,
+    COOLDOWN_JOURS: 7,                     /* renégociation d'un service bloquée après un renoncement */
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
     EDIT_URL:       "https://thedrownedlands.forumactif.com/post?p=465&mode=editpost", /* [MAJ] édition du 1er post du sujet */
     MONNAIE:        "$",
@@ -113,7 +114,7 @@
       var p = pseudo(); if (!p) return { pseudo:null, solde:0, dettes:[] };
       var root = await E().safeReadBin();
       var m = root && root[CFG.NODE_MEMBRES] && root[CFG.NODE_MEMBRES][p];
-      return { pseudo:p, solde:(m && m.dollars)||0, dettes: versTableau(m && m.dettes) };
+      return { pseudo:p, solde:(m && m.dollars)||0, dettes: versTableau(m && m.dettes), cooldowns:(m && m.nego_cd)||{} };
     },
     dettesLourdesActives(dettes){
       return versTableau(dettes).filter(function(d){
@@ -270,7 +271,7 @@
   /* état + catalogues chargés */
   var st = { tab:null, open:null, band:null, sel:null, staff:false, formMode:false, formItem:null, dirty:false };
   var cat = {};      /* cat[key] = catalogue chargé du module (id→item) */
-  var etatMembre = { pseudo:null, solde:0, dettes:[] };
+  var etatMembre = { pseudo:null, solde:0, dettes:[], cooldowns:{} };
   var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
   var BANDES_INFO = {};    /* bottin-voyou : bandes/<bande> = { image, desc, motscles } */
 
@@ -316,6 +317,42 @@
     cat:  function(id){ return catOf(modByKey(st.tab), id); },
     cats: function(){ var m=modByKey(st.tab); return m?m.cats:[]; },
     band: function(){ return st.band; },
+    selId: function(){ return st.sel; },
+    /* achat déclenché par un module (ex. après le dé), en réutilisant les champs du détail */
+    acheter: async function(opts){
+      var mod = modByKey(st.tab); if (!mod) return { ok:false };
+      var a = itemData(mod, st.sel), c = catOf(mod, st.sel);
+      var det = root.querySelector("#qb-detail");
+      var champs = det ? collecterChamps(det) : {};
+      if (opts.champs) for (var k in opts.champs) champs[k] = opts.champs[k];
+      var base = {
+        boutique: mod.key,
+        bande: mod.mode==="grid" ? (c&&c.l||"") : "",
+        sousChemin: typeof mod.sousChemin==="function" ? mod.sousChemin(st.sel, c) : mod.sousChemin,
+        itemId: st.sel, nom: a.n,
+        montant: opts.montant, demandeType: opts.demandeType, detteType: opts.detteType,
+        cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte
+      };
+      var res = opts.act==="comptant" ? await achat.comptant(base, champs)
+              : opts.act==="dette"    ? await achat.dette(base, champs)
+              : opts.act==="pret"     ? await achat.pret(base, champs)
+              :                         await achat.demande(base, champs);
+      if (res && res.ok) { if (res.message && !opts.silent) alert(res.message); await refresh(); }
+      return res;
+    },
+    /* cooldown de renégociation : date de fin si actif, sinon null */
+    cooldownActif: function(id){
+      var iso = etatMembre.cooldowns && etatMembre.cooldowns[id]; if (!iso) return null;
+      var t = new Date(iso).getTime(); if (isNaN(t)) return null;
+      var fin = t + CFG.COOLDOWN_JOURS*86400000;
+      return Date.now() < fin ? new Date(fin) : null;
+    },
+    setCooldown: async function(id){
+      var p = etatMembre.pseudo; if (!p) return;
+      var iso = new Date().toISOString();
+      if (!etatMembre.cooldowns) etatMembre.cooldowns = {}; etatMembre.cooldowns[id] = iso;
+      try { await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/nego_cd/"+id, iso); } catch(e){}
+    },
     pseudos: function(){ return PSEUDOS; },
     bandeInfo: function(key){ return BANDES_INFO[key] || null; },
     staff: function(){ return st.staff; },
