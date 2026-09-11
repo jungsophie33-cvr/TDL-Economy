@@ -30,7 +30,7 @@
   /* cats de la grille + catalogue fusionné (chaque item porte cat = clé de bande) */
   var CATS = bandes.map(function(b){ return { k:b.k, l:b.l, ic:b.ic, c:b.c }; });
   var DATA = {};
-  bandes.forEach(function(b){ if (b.data) Object.keys(b.data).forEach(function(id){ var it=b.data[id]; it.cat=b.k; if (b.cagnotte && !it.cagnotte) it.cagnotte=b.cagnotte; DATA[id]=it; }); });
+  bandes.forEach(function(b){ if (b.data) Object.keys(b.data).forEach(function(id){ var it=b.data[id]; it.cat=b.k; if (b.cagnotte && !it.cagnotte) it.cagnotte=b.cagnotte; if (b.l && !it.creancier) it.creancier=b.l; DATA[id]=it; }); });
 
   /* ---------- HERO (commun à toutes les bandes) ---------- */
   function heroPrix(b, item){
