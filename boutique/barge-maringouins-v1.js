@@ -36,7 +36,7 @@
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"maring", ordre:2, l:"Les Maringouins", ic:"fi fi-tr-mosquito", c:"var(--gr2-color)",
+    k:"maring", bohl:"maringouins", ordre:2, l:"Les Maringouins", ic:"fi fi-tr-mosquito", c:"var(--gr2-color)",
     hero:{ logo:"fi fi-tr-mosquito", desc:"Un réseau de cellules discrètes, soudées par l\u2019entraide. On ne les achète pas : on sollicite leur attention." },
     data: DATA, body: body
   });
