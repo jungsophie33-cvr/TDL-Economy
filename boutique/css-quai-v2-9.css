@@ -167,6 +167,37 @@
 .qb-bull{margin:0;padding-left:18px}
 .qb-bull li{font-size:14px;line-height:1.55;margin-bottom:4px}
 
+#quais-staff .qsd-tabs{display:flex;gap:24px;flex-wrap:wrap;margin:0 0 18px;border-bottom:1px solid var(--cntr6)}
+#quais-staff .qsd-tab{background:none;border:none;padding:6px 2px 9px;border-bottom:3px solid transparent;color:var(--darkopa6);text-transform:uppercase;letter-spacing:.06em;font-size:13px;font-family:var(--txt3);cursor:pointer;display:flex;align-items:center;gap:7px}
+#quais-staff .qsd-tab.qsd-on{border-bottom-color:var(--dark2);color:var(--txt)}
+#quais-staff .qsd-tab .qsd-n{font-size:12px;background:var(--cntr3);border-radius:10px;padding:0 8px;color:var(--darkopa6)}
+#quais-staff .qsd-chip{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:3px 9px;border-radius:4px;background:var(--cntr3);color:var(--dark)}
+#quais-staff .qsd-st{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:3px 9px;border-radius:4px;color:var(--clair1)}
+#quais-staff .qsd-st-en_attente{background:var(--gr1-color)}
+#quais-staff .qsd-st-validee{background:var(--gr2-color)}
+#quais-staff .qsd-st-traitee{background:var(--gr3-color)}
+#quais-staff .qsd-st-refusee{background:var(--dark2)}
+#quais-staff .qsd-st-annulee{background:var(--darkopa5)}
+#quais-staff .qsd-acc{border:1px solid var(--cntr6);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--clair1)}
+#quais-staff .qsd-accbar{width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;background:none;border:0;text-align:left;cursor:pointer;color:var(--txt)}
+#quais-staff .qsd-accnom{font-family:var(--font2);font-size:16px;text-transform:uppercase;letter-spacing:.01em}
+#quais-staff .qsd-accps{font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--darkopa6)}
+#quais-staff .qsd-accchips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+#quais-staff .qsd-chev{font-size:18px;color:var(--darkopa6);transition:transform .25s;flex:none}
+#quais-staff .qsd-acc.qsd-open .qsd-chev{transform:rotate(90deg)}
+#quais-staff .qsd-accbody{padding:2px 14px 14px}
+#quais-staff .qsd-grp{margin-bottom:20px}
+#quais-staff .qsd-grphead{display:flex;align-items:center;gap:10px;padding:6px 2px 8px;border-bottom:1px solid var(--cntr4);margin-bottom:6px}
+#quais-staff .qsd-grphead .nom{font-family:var(--font2);font-size:17px;text-transform:uppercase}
+#quais-staff .qsd-grphead .n{font-family:var(--txt3);font-size:12px;background:var(--cntr3);border-radius:10px;padding:1px 9px;color:var(--darkopa6)}
+#quais-staff .qsd-drow{display:flex;align-items:center;gap:12px;padding:9px 2px;border-top:1px solid var(--cntr2)}
+#quais-staff .qsd-drow:first-of-type{border-top:0}
+#quais-staff .qsd-drow .m{flex:1;font-family:var(--txt1);font-size:15px;line-height:1.35}
+#quais-staff .qsd-drow .dt{font-size:12px;color:var(--darkopa6);white-space:nowrap}
+#quais-staff .qsd-regler{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 12px;border-radius:4px;border:1px solid var(--dark2);background:none;color:var(--dark2);cursor:pointer;white-space:nowrap}
+#quais-staff .qsd-btn{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:12px;padding:7px 14px;border-radius:4px;border:1px solid var(--cntr6);background:none;color:var(--darkopa6);cursor:pointer}
+#quais-staff .qsd-gate{margin:auto;font-family:var(--font2);font-size:18px;color:var(--darkopa6)}
+
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1100px){
   .qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
