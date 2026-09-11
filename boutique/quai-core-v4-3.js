@@ -28,6 +28,7 @@
     NODE_BOUTIQUE:  "boutique",            /* [MAJ] racine catalogue */
     NODE_DEMANDES:  "boutique_demandes",   /* [MAJ] file des demandes pour le staff */
     NODE_MEMBRES:   "membres",             /* [MAJ] membres/<pseudo>/dollars | /dettes */
+    NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
     MAX_DETTES_LOURDES: 3,
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
     EDIT_URL:       "https://thedrownedlands.forumactif.com/post?p=465&mode=editpost", /* [MAJ] édition du 1er post du sujet */
@@ -248,6 +249,8 @@
   var st = { tab:null, open:null, band:null, sel:null, staff:false, formMode:false, formItem:null, dirty:false };
   var cat = {};      /* cat[key] = catalogue chargé du module (id→item) */
   var etatMembre = { pseudo:null, solde:0, dettes:[] };
+  var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
+  var BANDES_INFO = {};    /* bottin-voyou : bandes/<bande> = { image, desc, motscles } */
 
   /* ===================== RENDU COQUILLE ===================== */
   var root; /* conteneur monté */
@@ -291,6 +294,8 @@
     cat:  function(id){ return catOf(modByKey(st.tab), id); },
     cats: function(){ var m=modByKey(st.tab); return m?m.cats:[]; },
     band: function(){ return st.band; },
+    pseudos: function(){ return PSEUDOS; },
+    bandeInfo: function(key){ return BANDES_INFO[key] || null; },
     staff: function(){ return st.staff; },
     membre: function(){ return etatMembre; },
     nouvelId: function(){ return "it" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); },
@@ -447,6 +452,13 @@
     if (window.console) console.log("[Quais] migration "+chemin+" : "+ids.length+" item(s) corrigé(s).");
   }
   async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
+  async function chargerAnnexes(){
+    try {
+      var root = await E().safeReadBin();
+      PSEUDOS = Object.keys((root && root[CFG.NODE_MEMBRES]) || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
+      BANDES_INFO = (root && root[CFG.NODE_BANDES]) || {};
+    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; }
+  }
   async function refresh(){
     E().invalidateCache();
     etatMembre = await membre.lire();
@@ -466,6 +478,7 @@
       monter(mount); mounted = true;
       st.tab = registre[0].key;
       etatMembre = await membre.lire();
+      await chargerAnnexes();
       await chargerCatalogues();
       selectTab(st.tab);
     });
