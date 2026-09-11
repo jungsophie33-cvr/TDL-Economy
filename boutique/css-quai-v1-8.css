@@ -170,6 +170,9 @@ padding: 8px 14px; }
 .qb-heroprice .qb-v{font-family:var(--font2);font-size:26px;color:var(--clair1);margin-top:5px;line-height:1.05}
 .qb-bargebody{padding:20px 26px 26px}
 
+.qb-bull{margin:0;padding-left:18px}
+.qb-bull li{font-size:14px;line-height:1.55;margin-bottom:4px}
+
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1100px){
   .qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
