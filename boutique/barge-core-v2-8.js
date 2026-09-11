@@ -140,6 +140,8 @@
       if (def.flow && cur.flow !== def.flow) { copie.flow = def.flow; changed = true; }
       if (def.cagnotte && !cur.cagnotte) { copie.cagnotte = def.cagnotte; changed = true; }
       if (def.rpOnly && !cur.rpOnly) { copie.rpOnly = true; changed = true; }
+      if (def.reseau_auto && cur.reseau_auto !== def.reseau_auto) { copie.reseau_auto = def.reseau_auto; changed = true; }
+      if (def.creancier && !cur.creancier) { copie.creancier = def.creancier; changed = true; }
       if (changed) (patch || (patch = {}))[id] = copie;
     });
     return patch;
