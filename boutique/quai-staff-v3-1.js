@@ -101,9 +101,12 @@
   }
   async function reglerDette(pseudo, key){
     if (!confirm("Régler et retirer cette dette de "+pseudo+" ? (à faire quand elle a été honorée en RP)")) return;
-    var o = {}; o[CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/dettes/"+key] = null;
-    try { await E().firebaseUpdate(o); } catch(e){ if (window.console) console.error(e); alert("Impossible de régler la dette."); return; }
-    E().invalidateCache(); await charger(); render();
+    var o = {}; o[CFG.NODE_MEMBRES+"/"+pseudo+"/dettes/"+key] = null;   /* chemin BRUT : firebaseUpdate est un PATCH racine, pas une URL */
+    try { await E().firebaseUpdate(o); }
+    catch(e){ if (window.console) console.error("[quais-staff] régler dette", e); alert("Impossible de régler la dette."); return; }
+    dettesList = dettesList.filter(function(x){ return !(x.pseudo===pseudo && x.key===key); });  /* retrait optimiste : l'UI réagit tout de suite */
+    render();
+    E().invalidateCache(); charger().then(render);
   }
 
   function filtree(){ var f=st.filtre; return demandes.filter(function(d){ if(f==="toutes")return true; if(f==="en_attente")return d.statut==="en_attente"; return d.statut!=="en_attente"; }); }
