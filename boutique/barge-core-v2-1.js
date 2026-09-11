@@ -127,6 +127,6 @@
     key:"barge", label:"La Barge abandonnée", sub:"marché noir", icon:"fi fi-tr-ship",
     mode:"grid", detailFlush:true, itemsLabel:"Services", leftW:"450px", cols:2, sousChemin:"barge",
     cats: CATS, data: DATA,
-    cardPrice: cardPrice, detail: detail, emptyDetail: emptyDetail
+    cardPrice: cardPrice, detail: detail, emptyDetail: emptyDetail, form: form, wireDetail: wireDetail
   });
 })();
