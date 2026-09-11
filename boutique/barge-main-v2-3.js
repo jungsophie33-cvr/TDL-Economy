@@ -11,8 +11,8 @@
   var Q = window.Quais, ui = Q.ui, money = Q.money, esc = ui.esc;
 
   var DATA = {
-    pcom:{flow:"nego",rpOnly:true,qual:"Négociable",pi:800,n:"Protection d\u2019un commerce",desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange. Tarif selon négociation en RP.",infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
-    pfam:{flow:"nego",rpOnly:true,qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
+    pcom:{flow:"nego",rpOnly:true,reseau_auto:"entreprises",qual:"Négociable",pi:800,n:"Protection d\u2019un commerce",desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange. Tarif selon négociation en RP.",infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
+    pfam:{flow:"nego",rpOnly:true,reseau_auto:"informateurs",qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     ploc:{flow:"nego",qual:"Négociable",pi:1000,n:"Protection d\u2019un projet local",desc:"Un projet reçoit le soutien discret de la Main. En échange : influence future sur ce projet. La Main n\u2019investit que dans ce qu\u2019elle juge utile.",infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     pret:{flow:"pret",qual:"Négociable",pi:null,n:"Prêt discret",desc:"Argent prêté par la Main pour lancer une activité, sauver un commerce. Remboursement ou dette de service. Les intérêts prennent la forme de services à rendre.",infos:[["Provenance","Cagnotte de la Main"],["Intérêts","Services rendus — en RP"],["Contrepartie","Remboursement ou dette lourde"],["Validation","Staff obligatoire"]]},
     med:{flow:"nego",qual:"Justice officieuse",pi:1500,n:"Médiation forcée",desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie — au prix que la Main juge approprié.",infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]]},
@@ -44,7 +44,10 @@
         +   ui.fld("Méthode de négociation", '<select data-champ="methode"><option value="rp">En RP</option><option value="des">Avec les dés</option></select>')
         +   ui.fld("Compensation", '<select data-champ="compensation" id="qb-compensation"><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')
         + '</div>'
-        + '<div id="qb-situationwrap" style="display:none">'+ui.fld("Situation vis-à-vis de la Main", ui.ta("situation_main","Ce que vous pouvez offrir : accès, informations, services, loyauté… (entrée au réseau d\u2019influence si le deal est accepté)"))+'</div>';
+        + '<div id="qb-situationwrap" style="display:none">'
+        +   '<div class="qb-selrow">'+ui.fld("Catégorie du réseau", '<select data-champ="reseau_cat"><option value="autorites">Autorités corrompues</option><option value="prestataires">Prestataires &amp; Services</option><option value="informateurs">Informateurs locaux</option></select>')+'</div>'
+        +   ui.fld("Situation vis-à-vis de la Main", ui.ta("situation_main","Ce que vous pouvez offrir : accès, informations, services, loyauté… (entrée au réseau d\u2019influence si le deal est accepté)"))
+        + '</div>';
       envoi = '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay" id="qb-nego-envoi" data-min="'+min+'" style="flex:none">Envoyer la requête à la Main</button></div>';
     }
     return b + envoi + '</div>';
