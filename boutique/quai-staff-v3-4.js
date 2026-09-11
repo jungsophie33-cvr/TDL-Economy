@@ -39,40 +39,6 @@
   var st = { filtre:"en_attente" };
   var root, demandes = [], dettesList = [];
 
-  function styles(){
-    if (document.getElementById("qsd-style")) return;
-    var s = document.createElement("style"); s.id = "qsd-style";
-    s.textContent = ""
-    + "#quais-staff .qsd-tabs{display:flex;gap:24px;flex-wrap:wrap;margin:0 0 18px;border-bottom:1px solid var(--cntr6)}"
-    + "#quais-staff .qsd-tab{background:none;border:none;padding:6px 2px 9px;border-bottom:3px solid transparent;color:var(--darkopa6);text-transform:uppercase;letter-spacing:.06em;font-size:13px;font-family:var(--txt3);cursor:pointer;display:flex;align-items:center;gap:7px}"
-    + "#quais-staff .qsd-tab.qsd-on{border-bottom-color:var(--dark2);color:var(--txt)}"
-    + "#quais-staff .qsd-tab .qsd-n{font-size:12px;background:var(--cntr3);border-radius:10px;padding:0 8px;color:var(--darkopa6)}"
-    + "#quais-staff .qsd-chip{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:3px 9px;border-radius:4px;background:var(--cntr3);color:var(--dark)}"
-    + "#quais-staff .qsd-st{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:3px 9px;border-radius:4px;color:var(--clair1)}"
-    + "#quais-staff .qsd-st-en_attente{background:var(--gr1-color)}#quais-staff .qsd-st-validee{background:var(--gr2-color)}#quais-staff .qsd-st-traitee{background:var(--gr3-color)}#quais-staff .qsd-st-refusee{background:var(--dark2)}#quais-staff .qsd-st-annulee{background:var(--darkopa5)}"
-    /* accordéon des demandes */
-    + "#quais-staff .qsd-acc{border:1px solid var(--cntr6);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--clair1)}"
-    + "#quais-staff .qsd-accbar{width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;background:none;border:0;text-align:left;cursor:pointer;color:var(--txt)}"
-    + "#quais-staff .qsd-accnom{font-family:var(--font2);font-size:16px;text-transform:uppercase;letter-spacing:.01em}"
-    + "#quais-staff .qsd-accps{font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--darkopa6)}"
-    + "#quais-staff .qsd-accchips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}"
-    + "#quais-staff .qsd-chev{font-size:18px;color:var(--darkopa6);transition:transform .25s;flex:none}"
-    + "#quais-staff .qsd-acc.qsd-open .qsd-chev{transform:rotate(90deg)}"
-    + "#quais-staff .qsd-accbody{padding:2px 14px 14px}"
-    /* groupes de dettes par membre */
-    + "#quais-staff .qsd-grp{margin-bottom:20px}"
-    + "#quais-staff .qsd-grphead{display:flex;align-items:center;gap:10px;padding:6px 2px 8px;border-bottom:1px solid var(--cntr4);margin-bottom:6px}"
-    + "#quais-staff .qsd-grphead .nom{font-family:var(--font2);font-size:17px;text-transform:uppercase}"
-    + "#quais-staff .qsd-grphead .n{font-family:var(--txt3);font-size:12px;background:var(--cntr3);border-radius:10px;padding:1px 9px;color:var(--darkopa6)}"
-    + "#quais-staff .qsd-drow{display:flex;align-items:center;gap:12px;padding:9px 2px;border-top:1px solid var(--cntr2)}"
-    + "#quais-staff .qsd-drow:first-of-type{border-top:0}"
-    + "#quais-staff .qsd-drow .m{flex:1;font-family:var(--txt1);font-size:15px;line-height:1.35}"
-    + "#quais-staff .qsd-drow .dt{font-size:12px;color:var(--darkopa6);white-space:nowrap}"
-    + "#quais-staff .qsd-regler{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 12px;border-radius:4px;border:1px solid var(--dark2);background:none;color:var(--dark2);cursor:pointer;white-space:nowrap}"
-    + "#quais-staff .qsd-gate{margin:auto;font-family:var(--font2);font-size:18px;color:var(--darkopa6)}";
-    document.head.appendChild(s);
-  }
-
   function chip(t){ return '<span class="qsd-chip">'+esc(TYPES[t]||t||"—")+'</span>'; }
   function stChip(s){ return '<span class="qsd-st qsd-st-'+esc(s||"en_attente")+'">'+esc(STATUTS[s]||s||"—")+'</span>'; }
   function detteChip(t){ var cls = { lourde:"refusee", legere:"en_attente", karmique:"traitee", longue:"validee", du:"traitee", prioritaire:"refusee" }[t] || "en_attente"; return '<span class="qsd-st qsd-st-'+cls+'">'+esc(DETTE_LIB[t]||t)+'</span>'; }
@@ -85,8 +51,8 @@
     return null;
   }
   function reseauAInscrire(d){
-    if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue", role:d.situation_main||d.contexte||d.nom||"" };
-    if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:"du", role:d.situation_main||d.nom||"" };
+    if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue", role:d.nom||"" };
+    if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:"du", role:d.situation_main||"" };
     return null;
   }
 
@@ -122,15 +88,16 @@
   }
 
   function reglerBtn(x){
+    if (x.source==="pret") return '<button class="qsd-regler" data-source="pret" data-pseudo="'+esc(x.pseudo)+'" data-key="'+esc(x.key)+'" data-montant="'+(x.montant|0)+'" data-cag="'+esc(x.cagnotte||"Providence")+'">Procéder au remboursement</button>';
     return '<button class="qsd-regler" data-source="'+x.source+'" data-pseudo="'+esc(x.pseudo)+'"'
       + (x.source==="dette"?' data-key="'+esc(x.key)+'"':' data-idx="'+x.idx+'"')+'>Régler</button>';
   }
   function detteRow(x){
-    var label = (x.source==="lien")
-      ? (RESEAU_LIB[x.categorie]||x.categorie||"Réseau")+(x.motif?" — "+x.motif:"")
-      : (x.motif || x.creancier || "—");
-    return '<div class="qsd-drow">'+detteChip(x.type)+'<div class="m">'+esc(label)+(x.creancier&&x.source==="dette"?' <span style="color:var(--darkopa6)">· '+esc(x.creancier)+'</span>':"")+'</div>'
-      + '<span class="dt">'+dateFr(x.date)+'</span>'+reglerBtn(x)+'</div>';
+    var puce, label;
+    if (x.source==="pret") { puce = '<span class="qsd-st qsd-st-validee">Prêt à rembourser</span>'; label = money(x.montant)+(x.motif?" · "+x.motif:""); }
+    else if (x.source==="lien") { puce = detteChip(x.type); label = (RESEAU_LIB[x.categorie]||x.categorie||"Réseau")+(x.motif?" — "+x.motif:""); }
+    else { puce = detteChip(x.type); label = (x.motif || x.creancier || "—")+(x.creancier?" · "+x.creancier:""); }
+    return '<div class="qsd-drow">'+puce+'<div class="m">'+esc(label)+'</div><span class="dt">'+dateFr(x.date)+'</span>'+reglerBtn(x)+'</div>';
   }
 
   function filtree(){ var f=st.filtre; return demandes.filter(function(d){ if(f==="toutes")return true; if(f==="en_attente")return d.statut==="en_attente"; return d.statut!=="en_attente"; }); }
@@ -167,7 +134,7 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qsd-tab"), function(b){ b.onclick = function(){ st.filtre = b.getAttribute("data-f"); render(); }; });
     Array.prototype.forEach.call(root.querySelectorAll(".qsd-accbar"), function(b){ b.onclick = function(){ var acc=b.parentElement, bd=b.nextElementSibling; var open=acc.classList.toggle("qsd-open"); bd.style.display = open?"":"none"; }; });
     Array.prototype.forEach.call(root.querySelectorAll("[data-act]"), function(b){ b.onclick = function(){ action(b.getAttribute("data-id"), b.getAttribute("data-act")); }; });
-    Array.prototype.forEach.call(root.querySelectorAll(".qsd-regler"), function(b){ b.onclick = function(){ regler(b.getAttribute("data-source"), b.getAttribute("data-pseudo"), b.getAttribute("data-key"), b.getAttribute("data-idx")); }; });
+    Array.prototype.forEach.call(root.querySelectorAll(".qsd-regler"), function(b){ b.onclick = function(){ regler(b.getAttribute("data-source"), b.getAttribute("data-pseudo"), b.getAttribute("data-key"), b.getAttribute("data-idx"), b.getAttribute("data-montant"), b.getAttribute("data-cag")); }; });
   }
 
   async function ajouterLien(pseudo, lien){
@@ -195,6 +162,7 @@
               await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cible), function(cur){ var c=cur||0; if (c < d.montant) throw new Error("CAG"); return c - d.montant; });
               await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
             } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
+            if (d.pret_contrepartie==="remboursement") { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/prets", { montant:d.montant|0, cagnotte:cible, nom:d.nom||"Prêt", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] prêt", e); } }
           } else if (d.type==="comptant" && d.cagnotte && d.montant){
             try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); }
             catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
@@ -211,7 +179,18 @@
     E().invalidateCache(); await charger(); render();
   }
 
-  async function regler(source, pseudo, key, idx){
+  async function regler(source, pseudo, key, idx, montant, cag){
+    if (source==="pret") {
+      montant = parseInt(montant,10)||0;
+      if (!confirm("Procéder au remboursement de "+money(montant)+" par "+pseudo+" ? (débité de son solde, recrédité à la cagnotte « "+cag+" »)")) return;
+      try {
+        await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/dollars", function(cur){ var c=cur||0; if (c < montant) throw new Error("FONDS"); return c - montant; });
+        await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cag||"Providence"), function(cur){ return (cur||0)+montant; });
+        var op = {}; op[CFG.NODE_MEMBRES+"/"+pseudo+"/prets/"+key] = null; await E().firebaseUpdate(op);
+      } catch(e){ if (e&&e.message==="FONDS"){ alert(pseudo+" n'a pas les fonds pour rembourser ("+money(montant)+")."); return; } if (window.console) console.error("[quais-staff] remboursement", e); alert("Remboursement impossible."); return; }
+      dettesList = dettesList.filter(function(x){ return !(x.source==="pret" && x.pseudo===pseudo && x.key===key); });
+      render(); E().invalidateCache(); charger().then(render); return;
+    }
     if (!confirm("Régler et retirer cette entrée de "+pseudo+" ? (à faire quand elle a été honorée en RP)")) return;
     try {
       if (source==="lien") {
@@ -242,6 +221,8 @@
         var dts = m.dettes;
         if (dts && typeof dts==="object") Object.keys(dts).forEach(function(key){ var e = dts[key]; if (e && typeof e==="object") dettesList.push({ pseudo:p, source:"dette", key:key, type:e.type, motif:e.motif, creancier:e.creancier, date:e.date }); });
         vt(m.liens).forEach(function(l, idx){ if (l && l.type==="reseau_main" && l.statut) dettesList.push({ pseudo:p, source:"lien", idx:idx, type:l.statut, categorie:l.categorie, motif:l.role, date:l.date }); });
+        var prets = m.prets;
+        if (prets && typeof prets==="object") Object.keys(prets).forEach(function(key){ var e = prets[key]; if (e && typeof e==="object") dettesList.push({ pseudo:p, source:"pret", key:key, montant:e.montant, cagnotte:e.cagnotte, motif:e.nom, date:e.date }); });
       });
       dettesList.sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
     } catch(e){ demandes = []; dettesList = []; }
@@ -258,7 +239,7 @@
     })();
   }
   function demarrer(m){
-    root = m; styles();
+    root = m;
     if (!isStaff()){ root.innerHTML = ""; return; }
     charger().then(render);
   }
