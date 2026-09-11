@@ -123,6 +123,8 @@
       api.enregistrer(id, item);
     };
     var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
+    var comp = det.querySelector("#qb-compensation"), sit = det.querySelector("#qb-situationwrap");
+    if (comp && sit) comp.onchange = function(){ sit.style.display = comp.value==="reseau" ? "" : "none"; };
   }
 
   Q.register({
