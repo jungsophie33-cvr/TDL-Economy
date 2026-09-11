@@ -307,6 +307,7 @@
       cat[mod.key][id] = item;
       try { await catalogue.sauverItem(chemin, id, item); }
       catch(e){ if (window.console) console.error("[Quais] enregistrer", e); alert("Sauvegarde échouée."); return false; }
+      if (item.cat) { st.band = item.cat; st.open = item.cat; }
       st.formMode=false; st.sel=id; render(); return true;
     },
     annulerForm: function(){ st.formMode=false; render(); }
