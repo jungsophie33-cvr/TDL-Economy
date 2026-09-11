@@ -84,13 +84,17 @@
 
     var need = a.rp && a.rp!==false, link = (a.rp===true || a.rp==="ctxlink");
     if (need || link || a.pick || a.targetPJ || a.article) {
-      var L = "", R = "";
-      if (need)  L += ui.fld((a.ctxLabel||"Contexte RP de la demande")+" *", ui.ta("contexte","Expliquez pourquoi vous avez besoin de ce service, dans quel contexte narratif…"));
-      if (a.article) R += ui.fld("Article de presse à publier", ui.ta("article","Rédigez ici l'article destiné au Journal…"));
-      if (link)  R += ui.fld(a.linkLabel||"Lien du RP concerné (si applicable)", ui.inp("lien","https://"));
-      if (a.pick) R += ui.fld(a.pick.l, ui.sel("cible", a.pick.o));
-      if (a.targetPJ) R += ui.fld("Cible du service", ui.sel("cible_pj", ["— PNJ (staff) —","— Choisir un PJ dans la liste —"]));
-      html += '<div class="qb-sec">'+ui.lab("Passer commande")+'<div class="qb-pcgrid'+(!(L&&R)?" qb-single":"")+'"><div>'+L+'</div><div>'+R+'</div></div><div class="qb-helper">Merci d\'être précis. Cela aide le staff à valider votre demande.</div></div><div class="qb-rule"></div>';
+      var blocs = "", sels = "";
+      if (need)  blocs += ui.fld((a.ctxLabel||"Contexte RP de la demande")+" *", ui.ta("contexte","Expliquez pourquoi vous avez besoin de ce service, dans quel contexte narratif…"));
+      if (a.article) blocs += ui.fld("Article de presse à publier", ui.ta("article","Rédigez ici l'article destiné au Journal…"));
+      if (link)  sels += ui.fld(a.linkLabel||"Lien du RP concerné (si applicable)", ui.inp("lien","https://"));
+      if (a.pick) sels += ui.fld(a.pick.l, ui.sel("cible", a.pick.o));
+      if (a.targetPJ) {
+        sels += ui.fld("Cible du service", '<select data-champ="cible_type" id="qb-cibletype"><option>— PNJ (staff) —</option><option>— Choisir un PJ —</option></select>');
+        var opts = api.pseudos().map(function(p){ return '<option>'+esc(p)+'</option>'; }).join("");
+        sels += '<div class="qb-fld" id="qb-pjwrap" style="display:none"><span class="qb-flab">Personnage ciblé</span><select data-champ="cible_pj"><option>— Sélectionner —</option>'+opts+'</select></div>';
+      }
+      html += '<div class="qb-sec">'+ui.lab("Passer commande")+blocs+(sels?'<div class="qb-selrow">'+sels+'</div>':"")+'<div class="qb-helper">Merci d\'être précis. Cela aide le staff à valider votre demande.</div></div><div class="qb-rule"></div>';
     }
 
     html += '<div class="qb-opts">';
@@ -147,6 +151,8 @@
       api.enregistrer(id, item);
     };
     var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
+    var ct = det.querySelector("#qb-cibletype"), pw = det.querySelector("#qb-pjwrap");
+    if (ct && pw) ct.onchange = function(){ pw.style.display = /Choisir/.test(ct.value) ? "" : "none"; };
   }
 
   /* ===================== MIGRATION ICÔNES (ti- → Flaticon) ===================== */
@@ -169,7 +175,7 @@
   /* ===================== ENREGISTREMENT ===================== */
   Q.register({
     key:"comptoir", label:"Le Comptoir", sub:"boutique personnelle", icon:"fi fi-tr-marketplace-store",
-    mode:"grid", leftW:"450px", cols:2, sousChemin:"comptoir",
+    mode:"grid", leftW:"450px", cols:3, sousChemin:"comptoir",
     cats: CATS, data: DEFAUT, migre: migre,
     cardPrice: function(a){ return typeof a.p==="number" ? money(a.p) : (a.p||""); },
     detail: detail, form: form, wireDetail: wireDetail
