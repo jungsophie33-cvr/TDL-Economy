@@ -40,9 +40,12 @@
     var mod = { nego:"Sur proposition", prix:"À définir", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande" };
     return { l:"Modalité", v: mod[item.flow] || "À négocier" };
   }
-  function hero(b, sur, titre, desc, prix){
-    return '<div class="qb-hero"><div class="qb-heroin">'
-      + '<div class="qb-herologo"><i class="'+esc(b.hero&&b.hero.logo||b.ic)+'"></i></div>'
+  function hero(b, sur, titre, desc, prix, api){
+    var info = api && api.bandeInfo ? api.bandeInfo(b.bohl || b.k) : null;
+    var img = info && info.image;
+    var style = img ? ' style="background:linear-gradient(120deg,var(--darkopa8),var(--dark2opa6)), url('+img+') center/cover"' : '';
+    return '<div class="qb-hero"'+style+'><div class="qb-heroin">'
+      + '<div class="qb-herologo"><i class="'+esc((b.hero&&b.hero.logo)||b.ic)+'"></i></div>'
       + '<div class="qb-heromid"><div class="qb-herosub">'+esc(sur)+'</div><div class="qb-heroname">'+esc(titre)+'</div><div class="qb-herodesc">'+esc(desc)+'</div></div>'
       + (prix ? '<div class="qb-heroprice"><div class="qb-lab">'+esc(prix.l)+'</div><div class="qb-v" style="font-size:'+(/\d/.test(prix.v)&&prix.v.length<10?"26px":"18px")+'">'+esc(prix.v)+'</div></div>' : "")
       + '</div></div>';
@@ -52,7 +55,7 @@
   function detail(id, api){
     var item = api.item(id), b = bande(item.cat);
     if (!b) return '<div class="qb-bargebody"><div class="qb-empty">Bande inconnue.</div></div>';
-    var h = hero(b, b.l, item.n, item.desc, heroPrix(b, item));
+    var h = hero(b, b.l, item.n, item.desc, heroPrix(b, item), api);
     var corps = b.body ? b.body(item, api) : "";
     return h + '<div class="qb-bargebody">' + corps + '</div>';
   }
@@ -61,7 +64,7 @@
   function emptyDetail(api){
     var b = bande(api.band());
     if (!b) return '<div class="qb-empty">'+Q.TXT.BIENTOT+'</div>';
-    return hero(b, "Marché noir", b.l, (b.hero&&b.hero.desc)||"", null)
+    return hero(b, "Marché noir", b.l, (b.hero&&b.hero.desc)||"", null, api)
       + '<div class="qb-bargebody"><div class="qb-helper">Cette bande n\u2019a pas encore de services disponibles.</div></div>';
   }
 
