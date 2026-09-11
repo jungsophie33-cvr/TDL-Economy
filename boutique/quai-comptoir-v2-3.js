@@ -94,7 +94,7 @@
         var opts = api.pseudos().map(function(p){ return '<option>'+esc(p)+'</option>'; }).join("");
         sels += '<div class="qb-fld" id="qb-pjwrap" style="display:none"><span class="qb-flab">Personnage ciblé</span><select data-champ="cible_pj"><option>— Sélectionner —</option>'+opts+'</select></div>';
       }
-      html += '<div class="qb-sec">'+ui.lab("Passer commande")+blocs+(sels?'<div class="qb-selrow">'+sels+'</div>':"")+'<div class="qb-helper">Merci d\'être précis. Cela aide le staff à valider votre demande.</div></div><div class="qb-rule"></div>';
+      html += '<div class="qb-sec">'+ui.lab("Passer commande")+blocs+(sels?'<div class="qb-selrow">'+sels+'</div>':"")+(a.targetPJ?'<div id="qb-pnjwrap">'+ui.fld("Description du PNJ ciblé", ui.ta("cible_pnj","Décrivez le personnage non-joueur visé : qui, où, quel lien avec vous…"))+'</div>':"")+'<div class="qb-helper">Merci d\'être précis. Cela aide le staff à valider votre demande.</div></div><div class="qb-rule"></div>';
     }
 
     html += '<div class="qb-opts">';
@@ -151,8 +151,8 @@
       api.enregistrer(id, item);
     };
     var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
-    var ct = det.querySelector("#qb-cibletype"), pw = det.querySelector("#qb-pjwrap");
-    if (ct && pw) ct.onchange = function(){ pw.style.display = /Choisir/.test(ct.value) ? "" : "none"; };
+    var ct = det.querySelector("#qb-cibletype"), pw = det.querySelector("#qb-pjwrap"), pnw = det.querySelector("#qb-pnjwrap");
+    if (ct) ct.onchange = function(){ var pj = /Choisir/.test(ct.value); if (pw) pw.style.display = pj ? "" : "none"; if (pnw) pnw.style.display = pj ? "none" : ""; };
   }
 
   /* ===================== MIGRATION ICÔNES (ti- → Flaticon) ===================== */
