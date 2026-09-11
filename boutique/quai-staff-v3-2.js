@@ -26,9 +26,11 @@
   var TYPES = { comptant:"Paiement comptant", dette:"Dette", pret:"Prêt", nego:"Négociation", don:"Don", mission:"Mission", offrande:"Offrande", braconneurs:"Braconneurs", demande:"Demande" };
   var STATUTS = { en_attente:"En attente", validee:"Validée", annulee:"Annulée / remboursée", traitee:"Traitée", refusee:"Refusée" };
   var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["methode","Méthode"],["compensation","Compensation"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"]];
-  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" } };
+  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:{ entreprises:"Entreprises & Commerçants", autorites:"Autorités corrompues", prestataires:"Prestataires & Services", informateurs:"Informateurs locaux" } };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
   var DETTE_LIB = { lourde:"Dette lourde", legere:"Dette légère", karmique:"Dette karmique", longue:"Dette longue" };
+  var RESEAU_LIB = { entreprises:"Entreprises & Commerçants", autorites:"Autorités corrompues", prestataires:"Prestataires & Services", informateurs:"Informateurs locaux" };
+  var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
 
   var st = { filtre:"en_attente" };
   var root, demandes = [], dettesList = [];
@@ -61,6 +63,7 @@
     if (typeof d.montant==="number" && d.montant>0) out += ligne("Montant", money(d.montant));
     if (d.type==="dette" && d.dette_num) out += ligne("Rang dette lourde", "n°"+d.dette_num);
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
+    var ri = reseauAInscrire(d); if (ri) out += ligne("Réseau à inscrire", (RESEAU_LIB[ri.categorie]||ri.categorie)+" · "+(STATUT_RES[ri.statut]||ri.statut));
     FIELDS.forEach(function(f){ var v=d[f[0]]; if (v!=null && String(v).trim()!=="") { if (VMAP[f[0]] && VMAP[f[0]][v]) v=VMAP[f[0]][v]; out += ligne(f[1], v); } });
     return out ? '<div class="fi-carte-grille">'+out+'</div>' : "";
   }
@@ -92,6 +95,12 @@
     return null;
   }
   function detteChip(t){ var cls = { lourde:"refusee", legere:"en_attente", karmique:"traitee", longue:"validee" }[t] || "en_attente"; return '<span class="qsd-st qsd-st-'+cls+'">'+esc(DETTE_LIB[t]||t)+'</span>'; }
+  /* entrée au réseau d'influence à inscrire à la validation */
+  function reseauAInscrire(d){
+    if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue" };
+    if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:"du" };
+    return null;
+  }
   function carteDette(d){
     return '<div class="dc-staff-carte"><div class="qsd-chead"><div><div class="qsd-nom">'+esc(d.pseudo)+'</div>'
       + '<div class="qsd-chips">'+detteChip(d.type)+(d.creancier?'<span class="qsd-chip">'+esc(d.creancier)+'</span>':"")+'</div></div>'
@@ -148,22 +157,26 @@
         if (d.pseudo && d.montant) await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
         o[base+"/statut"]="annulee"; await E().firebaseUpdate(o);
       } else if (act==="supprimer"){ o[base]=null; await E().firebaseUpdate(o); }
-      else if (act==="valider"){
-        if (d.type==="pret" && d.montant){
-          var cible = d.cagnotte || "Providence";
-          try {
-            await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cible), function(cur){ var c=cur||0; if (c < d.montant) throw new Error("CAG"); return c - d.montant; });
-            await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
-          } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
-        } else if (d.type==="comptant" && d.cagnotte && d.montant){
-          try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); }
-          catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
+      else if (act==="valider" || act==="traiter"){
+        if (act==="valider"){
+          if (d.type==="pret" && d.montant){
+            var cible = d.cagnotte || "Providence";
+            try {
+              await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cible), function(cur){ var c=cur||0; if (c < d.montant) throw new Error("CAG"); return c - d.montant; });
+              await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
+            } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
+          } else if (d.type==="comptant" && d.cagnotte && d.montant){
+            try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); }
+            catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
+          }
         }
         var di = detteAInscrire(d);
         if (di) { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dettes", { creancier:di.creancier, type:di.type, motif:di.motif, statut:"active", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] inscription dette", e); } }
-        o[base+"/statut"]="validee"; await E().firebaseUpdate(o);
+        var ri = reseauAInscrire(d);
+        if (ri) { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/liens", { type:"reseau_main", categorie:ri.categorie, statut:ri.statut, role:d.nom||"", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] inscription réseau", e); } }
+        o[base+"/statut"] = act==="valider" ? "validee" : "traitee"; await E().firebaseUpdate(o);
       }
-      else { o[base+"/statut"] = act==="traiter"?"traitee":act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
+      else { o[base+"/statut"] = act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
     E().invalidateCache(); await charger(); render();
   }
