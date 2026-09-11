@@ -56,7 +56,7 @@
     var item = api.item(id), b = bande(item.cat);
     if (!b) return '<div class="qb-bargebody"><div class="qb-empty">Bande inconnue.</div></div>';
     var h = hero(b, b.l, item.n, item.desc, heroPrix(b, item), api);
-    var corps = b.body ? b.body(item, api) : "";
+    var corps = b.body ? b.body(item, api, id) : "";
     return h + '<div class="qb-bargebody">' + corps + '</div>';
   }
 
@@ -125,6 +125,8 @@
     var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
     var comp = det.querySelector("#qb-compensation"), sit = det.querySelector("#qb-situationwrap");
     if (comp && sit) comp.onchange = function(){ sit.style.display = comp.value==="reseau" ? "" : "none"; };
+    var sel = api.selId ? api.selId() : null;
+    if (sel) { var it = api.item(sel), bb = it && bande(it.cat); if (bb && bb.wireDetail) bb.wireDetail(det, api, it); }
   }
 
   /* Migration : resynchronise les champs de structure (flow, cagnotte, rpOnly)
