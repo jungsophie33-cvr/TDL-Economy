@@ -87,6 +87,7 @@
       + '<input type="hidden" id="qb-formid" value="'+esc(id||"")+'"><div class="qb-staffgrid">';
     html += ui.fld("Bande", '<select data-champ="cat">'+cats.map(function(c){ return '<option value="'+c.k+'"'+(curB===c.k?" selected":"")+'>'+esc(c.l)+'</option>'; }).join("")+'</select>');
     html += ui.fld("Nom", inp("n", it.n));
+    html += ui.fld("Icône Flaticon (carte, optionnel)", inp("ic", it.ic));
     html += ui.fld("Type de flux", '<select data-champ="flow">'+FLOWS.map(function(f){ return '<option'+(f===(it.flow||"nego")?" selected":"")+'>'+f+'</option>'; }).join("")+'</select>');
     html += ui.fld("Prix indicatif (négociation)", inp("pi", typeof it.pi==="number"?it.pi:""));
     html += ui.fld("Prix comptant (flux prix)", inp("p", typeof it.p==="number"?it.p:""));
@@ -115,7 +116,7 @@
       item.cat = champs.cat; item.n = champs.n || ""; item.desc = champs.desc || ""; item.flow = champs.flow || "nego";
       var pis = (champs.pi||"").trim(); item.pi = pis===""?null:(parseInt(pis,10)); if (isNaN(item.pi)) item.pi = null;
       var ps = (champs.p||"").trim(); if (ps==="") delete item.p; else { var pv=parseInt(ps,10); if (isNaN(pv)) delete item.p; else item.p=pv; }
-      ["qual","tags","note","helper"].forEach(function(f){ var v=(champs[f]||"").trim(); if (v==="") delete item[f]; else item[f]=v; });
+      ["qual","tags","note","helper","ic"].forEach(function(f){ var v=(champs[f]||"").trim(); if (v==="") delete item[f]; else item[f]=v; });
       var infos=[]; for (var i=0;i<4;i++){ var l=(champs["ilabel"+i]||"").trim(), v=(champs["ivalue"+i]||"").trim(); if (l&&v) infos.push([l,v]); }
       if (infos.length) item.infos=infos; else delete item.infos;
       api.enregistrer(id, item);
