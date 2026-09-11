@@ -127,10 +127,26 @@
     if (comp && sit) comp.onchange = function(){ sit.style.display = comp.value==="reseau" ? "" : "none"; };
   }
 
+  /* Migration : resynchronise les champs de structure (flow, cagnotte, rpOnly)
+     des items connus avec les défauts courants — corrige les catalogues semés
+     avant un changement de flux. Le contenu (nom, desc, prix, infos) est préservé. */
+  function migre(catalogue){
+    var patch = null;
+    Object.keys(catalogue).forEach(function(id){
+      var cur = catalogue[id], def = DATA[id]; if (!cur || !def) return;
+      var copie = {}, changed = false; for (var k in cur) if (cur.hasOwnProperty(k)) copie[k]=cur[k];
+      if (def.flow && cur.flow !== def.flow) { copie.flow = def.flow; changed = true; }
+      if (def.cagnotte && !cur.cagnotte) { copie.cagnotte = def.cagnotte; changed = true; }
+      if (def.rpOnly && !cur.rpOnly) { copie.rpOnly = true; changed = true; }
+      if (changed) (patch || (patch = {}))[id] = copie;
+    });
+    return patch;
+  }
+
   Q.register({
     key:"barge", label:"La Barge abandonnée", sub:"marché noir", icon:"fi fi-tr-ship",
     mode:"grid", detailFlush:true, itemsLabel:"Services", leftW:"450px", cols:2, sousChemin:"barge",
-    cats: CATS, data: DATA,
+    cats: CATS, data: DATA, migre: migre,
     cardPrice: cardPrice, detail: detail, emptyDetail: emptyDetail, form: form, wireDetail: wireDetail
   });
 })();
