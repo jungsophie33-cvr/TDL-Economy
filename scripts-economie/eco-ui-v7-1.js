@@ -306,7 +306,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
         alert("Cagnottes:\n" + JSON.stringify(rec.cagnottes, null, 2));
       });
       document.getElementById("eco-btn-shop")?.addEventListener("click", ()=>{
-        location.href = "https://thedrownedlands.forumactif.com/h2-boutique-tdl";
+        location.href = "https://thedrownedlands.forumactif.com/t89-la-boutique";
       });
 
       // --- DON vers la cagnotte du groupe (écritures ciblées, anti-collision) ---
