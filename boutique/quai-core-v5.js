@@ -150,6 +150,7 @@
       try {
         var d = demandeBase(base, champs); d.type="comptant"; d.montant=montant;
         if (base.cagnotte) d.cagnotte = base.cagnotte;
+        if (base.detteAuto) { d.dette_type = base.detteAuto; d.creancier = base.creancier || ""; d.motif = base.nom || ""; }
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){
         /* demande non enregistrée → on rembourse pour ne pas retenir sans trace */
@@ -184,10 +185,8 @@
         }
       }
       try {
-        await E().firebasePush(CFG.NODE_MEMBRES + "/" + P + "/dettes", {
-          creancier: base.bande||"", type:type, motif: base.nom||"", statut:"en_attente", date:new Date().toISOString()
-        });
         var d = demandeBase(base, champs); d.type="dette"; d.dette_type=type;
+        d.creancier = base.creancier || base.bande || ""; d.motif = base.nom || "";
         if (numero) d.dette_num=numero; if (montant) d.montant=montant;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){
@@ -331,7 +330,8 @@
         sousChemin: typeof mod.sousChemin==="function" ? mod.sousChemin(st.sel, c) : mod.sousChemin,
         itemId: st.sel, nom: a.n,
         montant: opts.montant, demandeType: opts.demandeType, detteType: opts.detteType,
-        cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte
+        cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte,
+        creancier: a.creancier, detteAuto: opts.detteAuto!==undefined ? opts.detteAuto : a.detteAuto
       };
       var res = opts.act==="comptant" ? await achat.comptant(base, champs)
               : opts.act==="dette"    ? await achat.dette(base, champs)
@@ -491,7 +491,9 @@
       montant: btn.getAttribute("data-montant")!=null ? parseInt(btn.getAttribute("data-montant"),10) : undefined,
       demandeType: btn.getAttribute("data-type") || undefined,
       detteType: btn.getAttribute("data-dette") || undefined,
-      cagnotte: a.cagnotte || undefined
+      cagnotte: a.cagnotte || undefined,
+      creancier: a.creancier || undefined,
+      detteAuto: a.detteAuto || undefined
     };
     btn.disabled = true;
     var res = act==="comptant" ? await achat.comptant(base, champs)
