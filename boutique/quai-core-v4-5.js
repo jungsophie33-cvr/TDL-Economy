@@ -340,7 +340,7 @@
   function cardHTML(mod, id){
     var a = itemData(mod, id);
     var prix = mod.cardPrice ? mod.cardPrice(a) : (typeof a.p==="number"?money(a.p):(a.p||""));
-    return '<button class="qb-card'+(id===st.sel?" qb-on":"")+'" data-k="'+id+'"><i class="fi fi-sr-'+esc(a.ic)+' qb-bgic"></i>'
+    return '<button class="qb-card'+(id===st.sel?" qb-on":"")+'" data-k="'+id+'">'+(a.ic?'<i class="fi fi-sr-'+esc(a.ic)+' qb-bgic"></i>':"")
       + (st.staff?'<i class="fi fi-tr-edit qb-editm"></i>':(a.gd?'<span class="qb-gdmark" title="Génère une dette"></span>':""))
       + '<span class="qb-cn">'+esc(a.n)+'</span><span class="qb-cp">'+esc(prix)+'</span></button>';
   }
