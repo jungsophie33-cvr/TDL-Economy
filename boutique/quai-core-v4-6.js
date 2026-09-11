@@ -28,6 +28,7 @@
     NODE_BOUTIQUE:  "boutique",            /* [MAJ] racine catalogue */
     NODE_DEMANDES:  "boutique_demandes",   /* [MAJ] file des demandes pour le staff */
     NODE_MEMBRES:   "membres",             /* [MAJ] membres/<pseudo>/dollars | /dettes */
+    NODE_CAGNOTTES: "cagnottes",           /* [MAJ] cagnottes/<groupe> (Providence = cagnotte de la Main) */
     NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
     MAX_DETTES_LOURDES: 3,
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
@@ -147,6 +148,7 @@
       }
       try {
         var d = demandeBase(base, champs); d.type="comptant"; d.montant=montant;
+        if (base.cagnotte) d.cagnotte = base.cagnotte;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){
         /* demande non enregistrée → on rembourse pour ne pas retenir sans trace */
@@ -202,6 +204,26 @@
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){ if (window.console) console.error("[Quais] demande", e); alert(TXT.ERR_ACHAT); return { ok:false }; }
       return { ok:true, message:TXT.OK_DEMANDE };
+    },
+
+    /* Prêt de la Main : aucun débit. On vérifie que la cagnotte a les fonds
+       (message si insuffisant) puis on crée la demande ; le transfert
+       cagnotte → membre se fait à la validation staff. */
+    async pret(base, champs){
+      var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
+      var montant = parseInt(champs.montant_souhaite, 10);
+      if (!montant || montant <= 0) { alert("Indique un montant de prêt valide."); return { ok:false }; }
+      var cible = base.cagnotte || "Providence", cag = 0;
+      try {
+        var root = await E().safeReadBin();
+        cag = (root && root[CFG.NODE_CAGNOTTES] && root[CFG.NODE_CAGNOTTES][cible]) || 0;
+      } catch(e){}
+      if (cag < montant) { alert("La Main n'a pas les fonds nécessaires en ce moment (cagnotte : " + money(cag) + "). Réessaie plus tard, ou demande une somme moindre."); return { ok:false, fonds:true }; }
+      try {
+        var d = demandeBase(base, champs); d.type = "pret"; d.montant = montant; d.cagnotte = cible;
+        await E().firebasePush(CFG.NODE_DEMANDES, d);
+      } catch(e){ if (window.console) console.error("[Quais] prêt", e); alert(TXT.ERR_ACHAT); return { ok:false }; }
+      return { ok:true, message:"Demande de prêt transmise à la Main. Le staff décidera de l'accorder ; l'argent te sera versé à la validation." };
     }
   };
 
@@ -426,11 +448,13 @@
       itemId: st.sel, nom: a.n,
       montant: btn.getAttribute("data-montant")!=null ? parseInt(btn.getAttribute("data-montant"),10) : undefined,
       demandeType: btn.getAttribute("data-type") || undefined,
-      detteType: btn.getAttribute("data-dette") || undefined
+      detteType: btn.getAttribute("data-dette") || undefined,
+      cagnotte: a.cagnotte || undefined
     };
     btn.disabled = true;
     var res = act==="comptant" ? await achat.comptant(base, champs)
             : act==="dette"    ? await achat.dette(base, champs)
+            : act==="pret"     ? await achat.pret(base, champs)
             :                    await achat.demande(base, champs);
     btn.disabled = false;
     if (res && res.ok) { if (res.message) alert(res.message); await refresh(); }
