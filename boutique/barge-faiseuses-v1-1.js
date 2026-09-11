@@ -7,7 +7,7 @@
   "use strict";
   if (!window.Quais) return;
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"faiseuses", bohl:"faiseuses", ordre:4, l:"Les Faiseuses d\u2019Anges", ic:"fi fi-tr-hand-holding-heart", c:"#e060c4",
+    k:"faiseuses", bohl:"faiseuses", ordre:4, l:"Les Faiseuses d\u2019Anges", ic:"fi fi-tr-hand-holding-heart", c:"var(--gr1-color)",
     hero:{ logo:"fi fi-tr-hand-holding-heart", desc:"Bientôt dévoilées." },
     data: {}
   });
