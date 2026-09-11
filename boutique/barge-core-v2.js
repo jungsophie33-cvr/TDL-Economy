@@ -77,6 +77,52 @@
     return "";
   }
 
+  /* ---------- FORMULAIRE STAFF ---------- */
+  var FLOWS = ["nego","prix","don","mission","offrande"];
+  function inp(champ, v){ return '<input data-champ="'+champ+'" value="'+esc(v!=null?v:"")+'">'; }
+  function form(item, api, id){
+    var it = item || {}, cats = api.cats();
+    var curB = it.cat || api.band() || (cats[0] && cats[0].k);
+    var html = '<span class="qb-lab qb-dhl">'+(id?"Éditer un service":"Ajouter un service")+' — La Barge</span>'
+      + '<input type="hidden" id="qb-formid" value="'+esc(id||"")+'"><div class="qb-staffgrid">';
+    html += ui.fld("Bande", '<select data-champ="cat">'+cats.map(function(c){ return '<option value="'+c.k+'"'+(curB===c.k?" selected":"")+'>'+esc(c.l)+'</option>'; }).join("")+'</select>');
+    html += ui.fld("Nom", inp("n", it.n));
+    html += ui.fld("Type de flux", '<select data-champ="flow">'+FLOWS.map(function(f){ return '<option'+(f===(it.flow||"nego")?" selected":"")+'>'+f+'</option>'; }).join("")+'</select>');
+    html += ui.fld("Prix indicatif (négociation)", inp("pi", typeof it.pi==="number"?it.pi:""));
+    html += ui.fld("Prix comptant (flux prix)", inp("p", typeof it.p==="number"?it.p:""));
+    html += ui.fld("Qualificatif", inp("qual", it.qual));
+    html += ui.fld("Étiquette (tags)", inp("tags", it.tags));
+    html += ui.fld("Note", inp("note", it.note));
+    html += ui.fld("Texte d\u2019aide", inp("helper", it.helper));
+    html += '</div>' + ui.fld("Description", '<textarea data-champ="desc">'+esc(it.desc||"")+'</textarea>');
+    var infos = it.infos || [];
+    html += '<div class="qb-sec">'+ui.lab("Informations clés (flux négociation)")+'<div class="qb-pcgrid">';
+    for (var i=0;i<4;i++){
+      html += ui.fld("Label "+(i+1), '<input data-champ="ilabel'+i+'" value="'+esc((infos[i]&&infos[i][0])||"")+'">')
+            + ui.fld("Valeur "+(i+1), '<input data-champ="ivalue'+i+'" value="'+esc((infos[i]&&infos[i][1])||"")+'">');
+    }
+    html += '</div></div>';
+    html += '<div class="qb-opts" style="margin-top:14px"><button class="qb-optbtn qb-pay" id="qb-save" style="flex:none">Enregistrer</button><button class="qb-optbtn" id="qb-cancel" style="flex:none">Annuler</button></div>';
+    return html;
+  }
+  function wireDetail(det, api){
+    var save = det.querySelector("#qb-save");
+    if (save) save.onclick = function(){
+      var champs = {}; Array.prototype.forEach.call(det.querySelectorAll("[data-champ]"), function(el){ champs[el.getAttribute("data-champ")] = el.value; });
+      var idEl = det.querySelector("#qb-formid"); var id = (idEl && idEl.value) || api.nouvelId();
+      var orig = idEl && idEl.value ? api.item(id) : {};
+      var item = {}; for (var k in orig) if (orig.hasOwnProperty(k)) item[k] = orig[k];
+      item.cat = champs.cat; item.n = champs.n || ""; item.desc = champs.desc || ""; item.flow = champs.flow || "nego";
+      var pis = (champs.pi||"").trim(); item.pi = pis===""?null:(parseInt(pis,10)); if (isNaN(item.pi)) item.pi = null;
+      var ps = (champs.p||"").trim(); if (ps==="") delete item.p; else { var pv=parseInt(ps,10); if (isNaN(pv)) delete item.p; else item.p=pv; }
+      ["qual","tags","note","helper"].forEach(function(f){ var v=(champs[f]||"").trim(); if (v==="") delete item[f]; else item[f]=v; });
+      var infos=[]; for (var i=0;i<4;i++){ var l=(champs["ilabel"+i]||"").trim(), v=(champs["ivalue"+i]||"").trim(); if (l&&v) infos.push([l,v]); }
+      if (infos.length) item.infos=infos; else delete item.infos;
+      api.enregistrer(id, item);
+    };
+    var cancel = det.querySelector("#qb-cancel"); if (cancel) cancel.onclick = function(){ api.annulerForm(); };
+  }
+
   Q.register({
     key:"barge", label:"La Barge abandonnée", sub:"marché noir", icon:"fi fi-tr-ship",
     mode:"grid", detailFlush:true, itemsLabel:"Services", leftW:"450px", cols:2, sousChemin:"barge",
