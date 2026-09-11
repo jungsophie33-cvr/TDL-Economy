@@ -37,7 +37,7 @@
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"braco", ordre:3, l:"Les Braconneurs", ic:"fi fi-tr-paw", c:"var(--gr3-color)",
+    k:"braco", bohl:"braconneurs", ordre:3, l:"Les Braconneurs", ic:"fi fi-tr-paw", c:"var(--gr3-color)",
     hero:{ logo:"fi fi-tr-paw", desc:"Pisteurs, saboteurs et hommes de terrain, ils opèrent là où personne d\u2019autre ne s\u2019aventure." },
     data: DATA, body: body
   });
