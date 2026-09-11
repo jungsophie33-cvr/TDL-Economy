@@ -161,7 +161,7 @@
 .qb-herodesc{font-family:var(--txt2);font-size:18px;line-height:1.5;color:var(--clair1);max-width:640px}
 .qb-heroprice{background:var(--clair1opa2);border-radius:8px;padding:15px 22px;text-align:center;min-width:160px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
 .qb-heroprice .qb-lab{color:var(--clair1opa8);font-size:12px}
-.qb-heroprice .qb-v{font-family:var(--font2);font-size:26px;color:var(--clair1);margin-top:5px;line-height:1.05}
+.qb-heroprice .qb-v{font-family:var(--txt1);font-size:26px;color:var(--clair1);margin-top:5px;line-height:1.05}
 .qb-bargebody{padding:20px 26px 26px}
 
 .qb-bull{margin:0;padding-left:18px}
