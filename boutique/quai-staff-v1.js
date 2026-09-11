@@ -16,16 +16,16 @@
  */
 (function () {
   "use strict";
-  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
   function E(){ return window.EcoCore; }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function money(n){ return (typeof n==="number"?n.toLocaleString("fr-FR").replace(/\u202f/g," "):n)+" "+CFG.MONNAIE; }
   function dateFr(iso){ if(!iso) return "—"; var d=new Date(iso); return isNaN(d.getTime())?String(iso):d.toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}); }
 
-  var TYPES = { comptant:"Paiement comptant", dette:"Dette", nego:"Négociation", don:"Don", mission:"Mission", offrande:"Offrande", braconneurs:"Braconneurs", demande:"Demande" };
+  var TYPES = { comptant:"Paiement comptant", dette:"Dette", pret:"Prêt", nego:"Négociation", don:"Don", mission:"Mission", offrande:"Offrande", braconneurs:"Braconneurs", demande:"Demande" };
   var STATUTS = { en_attente:"En attente", validee:"Validée", annulee:"Annulée / remboursée", traitee:"Traitée", refusee:"Refusée" };
-  var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["aide","Nature de l'aide"],["don","Don"],["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Montant souhaité"],["lien","Lien"],["article","Article"]];
+  var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["pret_contrepartie","Contrepartie du prêt"],["aide","Nature de l'aide"],["don","Don"],["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Montant souhaité"],["lien","Lien"],["article","Article"]];
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"]];
 
   var st = { filtre:"en_attente" };
@@ -66,6 +66,7 @@
     var a = "";
     if (d.statut==="en_attente"){
       if (d.type==="comptant") a += btn(d.id,"valider","Valider","dc-btn-valider") + btn(d.id,"annuler","Annuler & rembourser","dc-btn-refuser");
+      else if (d.type==="pret") a += btn(d.id,"valider","Valider le prêt","dc-btn-valider") + btn(d.id,"refuser","Refuser","dc-btn-refuser");
       else if (d.type==="dette") a += btn(d.id,"traiter","Marquer traitée","dc-btn-valider");
       else a += btn(d.id,"traiter","Marquer traitée","dc-btn-valider") + btn(d.id,"refuser","Refuser","dc-btn-refuser");
     } else {
@@ -111,7 +112,20 @@
         if (d.pseudo && d.montant) await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
         o[base+"/statut"]="annulee"; await E().firebaseUpdate(o);
       } else if (act==="supprimer"){ o[base]=null; await E().firebaseUpdate(o); }
-      else { o[base+"/statut"] = act==="valider"?"validee":act==="traiter"?"traitee":act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
+      else if (act==="valider"){
+        if (d.type==="pret" && d.montant){
+          var cible = d.cagnotte || "Providence";
+          try {
+            await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cible), function(cur){ var c=cur||0; if (c < d.montant) throw new Error("CAG"); return c - d.montant; });
+            await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
+          } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
+        } else if (d.type==="comptant" && d.cagnotte && d.montant){
+          try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); }
+          catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
+        }
+        o[base+"/statut"]="validee"; await E().firebaseUpdate(o);
+      }
+      else { o[base+"/statut"] = act==="traiter"?"traitee":act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
     E().invalidateCache(); await charger(); render();
   }
