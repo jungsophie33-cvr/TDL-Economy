@@ -151,6 +151,7 @@
         var d = demandeBase(base, champs); d.type="comptant"; d.montant=montant;
         if (base.cagnotte) d.cagnotte = base.cagnotte;
         if (base.detteAuto) { d.dette_type = base.detteAuto; d.creancier = base.creancier || ""; d.motif = base.nom || ""; }
+        if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){
         /* demande non enregistrée → on rembourse pour ne pas retenir sans trace */
@@ -201,6 +202,7 @@
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
       try {
         var d = demandeBase(base, champs); d.type = base.demandeType || "demande";
+        if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
       } catch(e){ if (window.console) console.error("[Quais] demande", e); alert(TXT.ERR_ACHAT); return { ok:false }; }
       return { ok:true, message:TXT.OK_DEMANDE };
@@ -331,7 +333,7 @@
         itemId: st.sel, nom: a.n,
         montant: opts.montant, demandeType: opts.demandeType, detteType: opts.detteType,
         cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte,
-        creancier: a.creancier, detteAuto: opts.detteAuto!==undefined ? opts.detteAuto : a.detteAuto
+        creancier: a.creancier, detteAuto: opts.detteAuto!==undefined ? opts.detteAuto : a.detteAuto, reseau_auto: a.reseau_auto
       };
       var res = opts.act==="comptant" ? await achat.comptant(base, champs)
               : opts.act==="dette"    ? await achat.dette(base, champs)
@@ -493,7 +495,8 @@
       detteType: btn.getAttribute("data-dette") || undefined,
       cagnotte: a.cagnotte || undefined,
       creancier: a.creancier || undefined,
-      detteAuto: a.detteAuto || undefined
+      detteAuto: a.detteAuto || undefined,
+      reseau_auto: a.reseau_auto || undefined
     };
     btn.disabled = true;
     var res = act==="comptant" ? await achat.comptant(base, champs)
