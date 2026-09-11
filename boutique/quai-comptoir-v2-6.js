@@ -155,19 +155,23 @@
     if (ct) ct.onchange = function(){ var pj = /Choisir/.test(ct.value); if (pw) pw.style.display = pj ? "" : "none"; if (pnw) pnw.style.display = pj ? "none" : ""; };
   }
 
-  /* ===================== MIGRATION ICÔNES (ti- → Flaticon) ===================== */
-  /* Corrige les items semés en base avant le passage à Flaticon : on ne touche
-     qu'au champ ic, tout le reste (prix, description édités) est préservé. */
+  /* ===================== MIGRATION ===================== */
+  /* Resynchronise les items semés avant un changement : l'icône (ti- → Flaticon)
+     et les champs de structure (detteAuto, creancier, dette). Le contenu édité
+     (prix, description) est préservé. */
   function migre(catalogue){
     var patch = null;
     Object.keys(catalogue).forEach(function(id){
-      var it = catalogue[id];
-      if (it && typeof it.ic === "string" && it.ic.indexOf("ti-") === 0) {
-        var neuf = (DEFAUT[id] && DEFAUT[id].ic) || it.ic.replace(/^ti-/, "");
-        var copie = {}; for (var k in it) if (it.hasOwnProperty(k)) copie[k] = it[k];
-        copie.ic = neuf;
-        (patch || (patch = {}))[id] = copie;
+      var it = catalogue[id], def = DEFAUT[id]; if (!it) return;
+      var copie = null;
+      function set(k, v){ if (!copie){ copie = {}; for (var x in it) if (it.hasOwnProperty(x)) copie[x] = it[x]; } copie[k] = v; }
+      if (typeof it.ic === "string" && it.ic.indexOf("ti-") === 0) set("ic", (def && def.ic) || it.ic.replace(/^ti-/, ""));
+      if (def) {
+        if (def.detteAuto && it.detteAuto !== def.detteAuto) set("detteAuto", def.detteAuto);
+        if (def.creancier && !it.creancier) set("creancier", def.creancier);
+        if (def.dette && it.dette !== def.dette) set("dette", def.dette);
       }
+      if (copie) (patch || (patch = {}))[id] = copie;
     });
     return patch;
   }
