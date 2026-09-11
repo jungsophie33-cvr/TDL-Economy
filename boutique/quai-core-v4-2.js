@@ -290,6 +290,7 @@
     item: function(id){ return itemData(modByKey(st.tab), id); },
     cat:  function(id){ return catOf(modByKey(st.tab), id); },
     cats: function(){ var m=modByKey(st.tab); return m?m.cats:[]; },
+    band: function(){ return st.band; },
     staff: function(){ return st.staff; },
     membre: function(){ return etatMembre; },
     nouvelId: function(){ return "it" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); },
@@ -341,7 +342,7 @@
 
   function renderDetail(mod){
     if (st.formMode) return mod.form ? mod.form(st.formItem?itemData(mod,st.formItem):null, api, st.formItem) : '<div class="qb-empty">Édition indisponible.</div>';
-    if (!st.sel) return '<div class="qb-empty">'+TXT.BIENTOT+'</div>';
+    if (!st.sel) return mod.emptyDetail ? mod.emptyDetail(api) : '<div class="qb-empty">'+TXT.BIENTOT+'</div>';
     return mod.detail(st.sel, api);
   }
 
