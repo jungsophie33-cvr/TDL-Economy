@@ -14,7 +14,7 @@
     pcom:{flow:"nego",qual:"Négociable",pi:800,n:"Protection d\u2019un commerce",desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange. Tarif selon négociation en RP.",infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     pfam:{flow:"nego",qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     ploc:{flow:"nego",qual:"Négociable",pi:1000,n:"Protection d\u2019un projet local",desc:"Un projet reçoit le soutien discret de la Main. En échange : influence future sur ce projet. La Main n\u2019investit que dans ce qu\u2019elle juge utile.",infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
-    pret:{flow:"nego",qual:"Négociable",pi:null,n:"Prêt discret",desc:"Argent prêté pour lancer une activité, sauver un commerce. Remboursement ou dette de service. Les intérêts prennent la forme de services à rendre.",infos:[["Contrepartie","Remboursement ou service futur"],["Intérêts","Forme de service — pas d\u2019argent"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
+    pret:{flow:"pret",qual:"Négociable",pi:null,n:"Prêt discret",desc:"Argent prêté par la Main pour lancer une activité, sauver un commerce. Remboursement ou dette de service. Les intérêts prennent la forme de services à rendre.",infos:[["Provenance","Cagnotte de la Main"],["Intérêts","Services rendus — en RP"],["Contrepartie","Remboursement ou dette lourde"],["Validation","Staff obligatoire"]]},
     med:{flow:"nego",qual:"Justice officieuse",pi:1500,n:"Médiation forcée",desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie — au prix que la Main juge approprié.",infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]]},
     intim:{flow:"nego",qual:"Avertissement",pi:1500,n:"Intimidation sérieuse",desc:"Avertissement très clair, au-delà du niveau façade. La Main n\u2019avertit qu\u2019une fois. Tarif indicatif — la négociation peut réduire ou augmenter.",infos:[["Niveau","Au-delà de la façade"],["Limite","Une seule fois — la Main n\u2019avertit pas deux fois"],["Condition","Badge + validation staff"],["Note","La suite, c\u2019est la Vendetta"]]},
     vend:{flow:"nego",qual:"Réponse définitive",pi:3000,n:"Vendetta",desc:"Réponse violente organisée. Décision exceptionnelle. Conditions strictes. Quasi-inaccessible sans dette pour un joueur moyen. Conséquences permanentes garanties.",infos:[["Nature","Réponse violente organisée"],["Conditions","Injustice grave + équilibre menacé"],["Validation","Staff obligatoire — délai possible"],["Conséquences","Permanentes et irréversibles"]]},
@@ -48,21 +48,24 @@
         + '<div>'+ui.fld("Rémunération proposée *", ui.ta("remuneration","Dollars, service rendu, dette envers la Main…"))+'</div></div>'
         + (item.helper?'<div class="qb-helper">'+esc(item.helper)+'</div>':"")
         + '</div>' + ui.envoi("Envoyer la requête à la Main","nego");
-    } else if (typeof item.pi==="number") {
+    } else if (item.flow==="pret") {
+      b += '<div class="qb-sec">'+ui.lab("Demande de prêt")
+        + ui.fld("Contexte de votre demande *", ui.ta("contexte","Pourquoi ce prêt ? Quel commerce à sauver, quelle activité à lancer…"))
+        + '<div class="qb-pcgrid"><div>'+ui.fld("Montant souhaité *", ui.inp("montant_souhaite","$"))+'</div>'
+        + '<div>'+ui.fld("Contrepartie", '<select data-champ="pret_contrepartie"><option value="remboursement">Remboursement (+ intérêts en services RP)</option><option value="dette">Dette lourde envers la Main</option></select>')+'</div></div>'
+        + '<div class="qb-helper">L\u2019argent provient de la cagnotte de la Main. Les intérêts se règlent en services rendus, en RP. Seule la Main peut lever une dette.</div>'
+        + '</div>' + '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay qb-act" data-act="pret" style="flex:none">Demander le prêt à la Main</button></div>';
+    } else {
+      b += '<div class="qb-sec">'+ui.lab("Contexte")+ui.fld("Contexte de votre demande *", ui.ta("contexte","Exposez la situation qui motive votre demande…"))+'</div>';
       b += '<div class="qb-opts">'
         + ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant", desc:"Réglez le prix indicatif en dollars.", prix:money(item.pi), btn:"Payer maintenant", act:"comptant", montant:item.pi, pay:true })
         + negoCard() + '</div>' + negoReveal();
-    } else {
-      b += '<div class="qb-sec">'+ui.lab("Négocier avec la Main")
-        + '<div class="qb-pcgrid"><div>'+ui.fld("Montant souhaité", ui.inp("montant_souhaite","$"))+'</div>'
-        + '<div>'+ui.fld("Contrepartie proposée *", ui.ta("remuneration","Remboursement, service futur…"))+'</div></div>'
-        + '</div>' + ui.envoi("Envoyer la requête à la Main","nego");
     }
     return b;
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"main", bohl:"main", ordre:1, l:"La Main de la Providence", ic:"fi fi-tr-hands-usd", c:"var(--gr6-color)",
+    k:"main", bohl:"main", ordre:1, l:"La Main de la Providence", ic:"fi fi-tr-hands-usd", c:"var(--gr6-color)", cagnotte:"Providence",
     hero:{ logo:"fi fi-tr-hands-usd", desc:"La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis 20 ans." },
     data: DATA, body: body
   });
