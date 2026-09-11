@@ -11,8 +11,8 @@
   var Q = window.Quais, ui = Q.ui, money = Q.money, esc = ui.esc;
 
   var DATA = {
-    pcom:{flow:"nego",qual:"Négociable",pi:800,n:"Protection d\u2019un commerce",desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange. Tarif selon négociation en RP.",infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
-    pfam:{flow:"nego",qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
+    pcom:{flow:"nego",rpOnly:true,qual:"Négociable",pi:800,n:"Protection d\u2019un commerce",desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange. Tarif selon négociation en RP.",infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
+    pfam:{flow:"nego",rpOnly:true,qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     ploc:{flow:"nego",qual:"Négociable",pi:1000,n:"Protection d\u2019un projet local",desc:"Un projet reçoit le soutien discret de la Main. En échange : influence future sur ce projet. La Main n\u2019investit que dans ce qu\u2019elle juge utile.",infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     pret:{flow:"pret",qual:"Négociable",pi:null,n:"Prêt discret",desc:"Argent prêté par la Main pour lancer une activité, sauver un commerce. Remboursement ou dette de service. Les intérêts prennent la forme de services à rendre.",infos:[["Provenance","Cagnotte de la Main"],["Intérêts","Services rendus — en RP"],["Contrepartie","Remboursement ou dette lourde"],["Validation","Staff obligatoire"]]},
     med:{flow:"nego",qual:"Justice officieuse",pi:1500,n:"Médiation forcée",desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie — au prix que la Main juge approprié.",infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]]},
@@ -28,13 +28,25 @@
   var RETRO = "Ce que vous proposez : dollars, service rendu, dette envers la Main…";
   function negoCard(){
     return '<div class="qb-optcard"><div class="qb-optcircle"><i class="fi fi-tr-balance-scale-left"></i></div>'
-      + '<div class="qb-optbody"><div class="qb-opttitle">Négocier</div><div class="qb-optdesc">Proposez votre rémunération : dollars, service rendu ou dette envers la Main.</div></div>'
+      + '<div class="qb-optbody"><div class="qb-opttitle">Négocier</div><div class="qb-optdesc">Proposez un prix et une compensation à la Main.</div></div>'
       + '<div class="qb-optright"><button class="qb-optbtn" id="qb-negobtn">Négocier</button></div></div>';
   }
-  function negoReveal(){
-    return '<div id="qb-negoreveal" style="display:none;margin-top:14px">'
-      + ui.fld("Rémunération proposée *", ui.ta("remuneration", RETRO))
-      + ui.envoi("Envoyer la requête à la Main", "nego") + '</div>';
+  function negoReveal(item){
+    var min = Math.ceil((item.pi||0) * 0.6);   /* rabais plafonné à 40 % */
+    var envoi = '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay qb-act" data-act="demande" data-type="nego" data-min="'+min+'" data-minchamp="prix_negocie" style="flex:none">Envoyer la requête à la Main</button></div>';
+    var b = '<div id="qb-negoreveal" style="display:none;margin-top:14px">';
+    if (item.rpOnly) {
+      b += '<div class="qb-selrow">'+ui.fld("Prix négocié *", ui.inp("prix_negocie","$ (rabais max 40 %)"))+'</div>'
+        + '<div class="qb-helper">Négociation en RP uniquement. Une <b>dette longue</b> vous sera attribuée : c\u2019est le prix permanent de la protection, un lien de loyauté durable envers la Main (visible au bottin des hors-la-loi).</div>';
+    } else {
+      b += '<div class="qb-selrow">'
+        +   ui.fld("Prix négocié *", ui.inp("prix_negocie","$ (rabais max 40 %)"))
+        +   ui.fld("Méthode de négociation", '<select data-champ="methode"><option value="rp">En RP</option><option value="des">Avec les dés</option></select>')
+        +   ui.fld("Compensation", '<select data-champ="compensation" id="qb-compensation"><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')
+        + '</div>'
+        + '<div id="qb-situationwrap" style="display:none">'+ui.fld("Situation vis-à-vis de la Main", ui.ta("situation_main","Ce que vous pouvez offrir : accès, informations, services, loyauté… (entrée au réseau d\u2019influence si le deal est accepté)"))+'</div>';
+    }
+    return b + envoi + '</div>';
   }
 
   function body(item){
@@ -51,15 +63,15 @@
     } else if (item.flow==="pret") {
       b += '<div class="qb-sec">'+ui.lab("Demande de prêt")
         + ui.fld("Contexte de votre demande *", ui.ta("contexte","Pourquoi ce prêt ? Quel commerce à sauver, quelle activité à lancer…"))
-        + '<div class="qb-pcgrid"><div>'+ui.fld("Montant souhaité *", ui.inp("montant_souhaite","$"))+'</div>'
-        + '<div>'+ui.fld("Contrepartie", '<select data-champ="pret_contrepartie"><option value="remboursement">Remboursement (+ intérêts en services RP)</option><option value="dette">Dette lourde envers la Main</option></select>')+'</div></div>'
-        + '<div class="qb-helper">L\u2019argent provient de la cagnotte de la Main. Les intérêts se règlent en services rendus, en RP. Seule la Main peut lever une dette.</div>'
-        + '</div>' + '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay qb-act" data-act="pret" style="flex:none">Demander le prêt à la Main</button></div>';
+        + '<div class="qb-pcgrid"><div>'+ui.fld("Somme demandée *", ui.inp("montant_souhaite","$"))+'</div>'
+        + '<div>'+ui.fld("Remboursement", '<select data-champ="pret_contrepartie"><option value="remboursement">Remboursement en monnaie</option><option value="dette">Compensation par dette lourde</option></select>')+'</div></div>'
+        + '<div class="qb-helper">L\u2019argent provient de la cagnotte de la Main. En cas de remboursement, les intérêts se règlent en services rendus, en RP. Seule la Main peut lever une dette.</div>'
+        + '</div>' + '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay qb-act" data-act="pret" style="flex:none">Envoyer la requête à la Main</button></div>';
     } else {
       b += '<div class="qb-sec">'+ui.lab("Contexte")+ui.fld("Contexte de votre demande *", ui.ta("contexte","Exposez la situation qui motive votre demande…"))+'</div>';
       b += '<div class="qb-opts">'
         + ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant", desc:"Réglez le prix indicatif en dollars.", prix:money(item.pi), btn:"Payer maintenant", act:"comptant", montant:item.pi, pay:true })
-        + negoCard() + '</div>' + negoReveal();
+        + negoCard() + '</div>' + negoReveal(item);
     }
     return b;
   }
