@@ -7,7 +7,7 @@
   "use strict";
   if (!window.Quais) return;
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"flot", ordre:6, l:"La Flottille", ic:"fi fi-tr-anchor", c:"var(--gr5-color)",
+    k:"flot", bohl:"flottille", ordre:6, l:"La Flottille", ic:"fi fi-tr-anchor", c:"var(--gr5-color)",
     hero:{ logo:"fi fi-tr-anchor", desc:"Bientôt dévoilée." },
     data: {}
   });
