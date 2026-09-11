@@ -28,7 +28,7 @@
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
-    k:"sorc", ordre:5, l:"Les Sorcières du Baron", ic:"fi fi-tr-paw", c:"var(--gr4-color)",
+    k:"sorc", bohl:"sorcieres", ordre:5, l:"Les Sorcières du Baron", ic:"fi fi-tr-paw", c:"var(--gr4-color)",
     hero:{ logo:"fi fi-tr-paw", desc:"Les Sorcières du Baron ne connaissent pas les dollars. Elles écoutent les Lwas et pèsent les offrandes." },
     data: DATA, body: body
   });
