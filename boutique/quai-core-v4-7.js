@@ -440,6 +440,11 @@
     var act = btn.getAttribute("data-act");
     var det = root.querySelector("#qb-detail");
     var champs = collecterChamps(det);
+    var minAttr = btn.getAttribute("data-min"), minChamp = btn.getAttribute("data-minchamp");
+    if (minAttr && minChamp) {
+      var mini = parseInt(minAttr,10), prop = parseInt(champs[minChamp],10);
+      if (!prop || prop < mini) { alert("Prix proposé trop bas — le minimum autorisé est " + money(mini) + " (le rabais est plafonné à 40 % du prix de base)."); return; }
+    }
     var a = itemData(mod, st.sel), c = catOf(mod, st.sel);
     var base = {
       boutique: mod.key,
