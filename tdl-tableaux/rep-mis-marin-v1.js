@@ -141,17 +141,15 @@ function renderStage(){
 function viewDossier(){
   var d=filtre(), st=estStaffCourant();
   var rows = d.length ? d.map(function(m){
+    var reqTag=(st&&m.demandeValidation)?'<div class="tdlm-drow-tags"><span class="tdlm-req">⚑ validation</span></div>':'';
     return '<div class="tdlm-drow" data-sel="'+m.id+'" aria-current="'+(m.id===S.sel)+'">'
       +'<span class="tdlm-ddot" style="--sc:'+STATUTS[m.statut].c+'"></span>'
       +'<div style="min-width:0">'
         +'<div class="tdlm-drow-head"><span class="tdlm-type">'+esc(m.titre)+'</span></div>'
         +'<div class="tdlm-drow-sub">'+esc(m.mandataire)+' · '+money(m.prime)+'</div>'
-        +'<div class="tdlm-drow-tags">'+stamp(m)
-          +(st&&m.demandeValidation?'<span class="tdlm-req">⚑ validation</span>':'')
-        +'</div>'
-        +'<div class="tdlm-dateline">posté '+ilya(m.cree)+'</div>'
+        +reqTag
       +'</div>'
-      +'<div style="text-align:right">'+(m.chef?av(m.chef):'')+'</div>'
+      +'<div class="tdlm-drow-right">'+(m.chef?av(m.chef):'')+'<div class="tdlm-posted">posté '+ilya(m.cree)+'</div></div>'
     +'</div>';
   }).join("") : '<div class="tdlm-empty">Aucune mission pour ce filtre.</div>';
   var sel=parId(S.sel)||d[0];
@@ -186,7 +184,8 @@ function panel(m){
   var editVal=(staff&&m.statut==="en_validation");
   var pList=m.participants.length?m.participants.map(function(p){
     var chk=editVal?'<label class="tdlm-chk"><input type="checkbox" data-val="'+escAttr(p)+'" '+(m.valides.indexOf(p)>=0?'checked':'')+'> validé</label>':'';
-    return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)+'<span>'+esc(p)+(p===m.chef?' <span class="tdlm-r">chef de mission</span>':'')+'</span>'+chk+'</div>';
+    var chefLbl=(p===m.chef)?'<span class="tdlm-r">chef de mission</span>':'';
+    return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)+'<span class="tdlm-pname">'+esc(p)+'</span>'+chefLbl+chk+'</div>';
   }).join(""):'<p class="tdlm-todo" style="margin:0">Aucun Maringouin inscrit pour l\'instant.</p>';
   var peutRejoindre=(estMaringouin(me)&&m.participants.indexOf(me)<0&&(m.statut==="en_attente"||m.statut==="acceptee"));
   var joinBtn=peutRejoindre?'<button class="tdlm-abtn prim" data-act="join">Je participe</button>':'';
@@ -221,8 +220,10 @@ function panel(m){
         +'</div>'+banner
       +'</div>'
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Objectif</p><div class="tdlm-prose">'+(m.objectif?esc(m.objectif):'<span class="tdlm-todo">—</span>')+'</div></div>'
-      +'<div class="tdlm-sec"><p class="tdlm-hsec">Contraintes</p>'+contraintes+'</div>'
-      +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div></div>'
+      +'<div class="tdlm-duo">'
+        +'<div class="tdlm-sec"><p class="tdlm-hsec">Contraintes</p>'+contraintes+'</div>'
+        +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div></div>'
+      +'</div>'
       +negoBox
       +cadre
       +bilan
@@ -246,7 +247,7 @@ function actionbar(m){
   }else if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
     label="Chef de mission";
     btns+='<button class="tdlm-abtn" data-act="topic">'+(m.topic?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
-    if(m.statut==="acceptee")btns+='<button class="tdlm-abtn" data-act="nego">Négocier la prime</button>';
+    if(m.statut==="acceptee"&&!m.topic)btns+='<button class="tdlm-abtn" data-act="nego">Négocier la prime</button>';
     btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; passer en validation")+'</button>';
   }else if(payeur&&(m.statut==="en_attente"||m.statut==="acceptee")){
     label="Commanditaire";
@@ -338,7 +339,7 @@ function act(k){
 function doo(k){
   var m=parId(S.sel);
   if(k==="cancel"){S.drawer=null;S.inline=null;renderStage();return;}
-  if(k==="topicok"){var u=(($("#tdlm-topic")||{}).value||"").trim();m.topic=u;patch(m,{topic:u});S.inline=null;toast("Sujet RP enregistré.");renderStage();return;}
+  if(k==="topicok"){var u=(($("#tdlm-topic")||{}).value||"").trim();m.topic=u;var champs={topic:u};if(u&&m.nego){m.nego=null;champs.nego=null;}patch(m,champs);S.inline=null;toast(u?"Sujet RP enregistré — la prime n'est plus négociable.":"Sujet RP retiré.");renderStage();return;}
   if(k==="negook"){
     var v=parseInt((($("#tdlm-negom")||{}).value||"").replace(/[^\d]/g,""),10);
     if(!v||v<0){toast("Montant invalide.");return;}
@@ -428,17 +429,28 @@ function supprimer(m){
   toast("Mission supprimée.");renderAll();
 }
 
-/* ---- refus auto (7 j sans chef), évaluation paresseuse au chargement ---- */
+/* ---- refus auto (7 j sans chef), évaluation paresseuse au chargement ----
+   Le drapeau rembourse est posé dans une TRANSACTION : seul le client qui le
+   fait passer false→true rembourse ; tout autre (le voit déjà true) se contente
+   de refermer la mission localement. Élimine le double-recrédit en cas de
+   chargements simultanés. */
 function autoRefus(){
   var now=Date.now();
   M.forEach(function(m){
-    if(m.statut==="en_attente"&&!m.chef&&!m.rembourse){
-      if(now-new Date(m.cree).getTime()>=DELAI_REFUS){
-        m.statut="refusee";m.rembourse=true;
-        if(m.payeur&&m.prime>0)crediterDollars(m.payeur,m.prime);
-        patch(m,{statut:"refusee",rembourse:true});
-      }
-    }
+    if(m.statut!=="en_attente"||m.chef||m.rembourse)return;
+    if(now-new Date(m.cree).getTime()<DELAI_REFUS)return;
+    var path=CFG.NODE+"/"+encodeURIComponent(m.id)+"/rembourse";
+    var pr;
+    try{pr=window.EcoCore.firebaseTransaction(path,function(cur){if(cur===true)throw new Error("DEJA");return true;});}
+    catch(e){return;}
+    Promise.resolve(pr).then(function(){
+      /* gagnant du verrou : on rembourse le payeur puis on referme la mission */
+      m.rembourse=true;m.statut="refusee";
+      var credit=(m.payeur&&m.prime>0)?crediterDollars(m.payeur,m.prime):Promise.resolve();
+      return Promise.resolve(credit).then(function(){patch(m,{statut:"refusee"});renderAll();});
+    }).catch(function(e){
+      if(e&&e.message==="DEJA"){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});renderAll();}
+    });
   });
 }
 
