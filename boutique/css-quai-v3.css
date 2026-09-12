@@ -198,6 +198,10 @@
 #quais-staff .qsd-regler{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:11px;padding:6px 12px;border-radius:4px;border:1px solid var(--dark2);background:none;color:var(--dark2);cursor:pointer;white-space:nowrap}
 #quais-staff .qsd-btn{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:12px;padding:7px 14px;border-radius:4px;border:1px solid var(--cntr6);background:none;color:var(--darkopa6);cursor:pointer}
 #quais-staff .qsd-gate{margin:auto;font-family:var(--font2);font-size:18px;color:var(--darkopa6)}
+#quais-staff .qsd-accmeta{font-size:12px;color:var(--darkopa6);margin:2px 0 4px}
+#quais-staff .qsd-restatut-wrap{display:flex;align-items:center;gap:10px;margin:10px 0}
+#quais-staff .qsd-restatut-lbl{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--dark2)}
+#quais-staff .qsd-restatut{font-family:var(--txt1);font-size:14px;padding:6px 10px;border:1px solid var(--cntr6);border-radius:5px;background:var(--cntr2);color:var(--txt)}
 
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1100px){
