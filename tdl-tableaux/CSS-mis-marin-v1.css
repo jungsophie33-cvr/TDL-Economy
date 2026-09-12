@@ -15,15 +15,15 @@
   color:var(--txt);font-family:var(--txt2);font-size:17px;line-height:1.4;text-align:left;box-shadow:0 0 60px rgba(0,0,0,.35)}
 
 /* ---- en-tête ---- */
-.tdlm-header{flex:none;display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--cntr)}
+.tdlm-header{flex:none;display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--cntr)}
 .tdlm-home{display:inline-flex;align-items:center;gap:7px;font-family:var(--title1);font-size:13px;text-transform:uppercase;
   color:var(--dark);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px}
 .tdlm-home:hover{background:var(--darkopa7);color:var(--clair1)}
 .tdlm-home i{font-size:16px;line-height:1}
-.tdlm-h1{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:600;font-size:26px;text-transform:uppercase;letter-spacing:.2px}
-.tdlm-badge{flex:none;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+.tdlm-h1{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:500;font-size:30px;text-transform:uppercase;letter-spacing:2px}
+.tdlm-badge{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:var(--cntr3);border:1px solid var(--cntr5);color:var(--dark)}
-.tdlm-badge i{font-size:30px;line-height:1}
+.tdlm-badge i{font-size:25px;line-height:1}
 .tdlm-edit{display:none;flex:none;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;
   background:var(--clair1);border:1px solid var(--cntr);color:var(--dark2);text-decoration:none}
 .tdlm-edit:hover{background:var(--dark);border-color:var(--dark);color:var(--clair1)}
