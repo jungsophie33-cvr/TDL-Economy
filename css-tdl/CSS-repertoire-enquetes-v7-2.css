@@ -22,18 +22,18 @@
 .tdle-dev button[aria-selected="true"]{background:var(--dark);border-color:var(--dark);color:var(--clair1)}
 
 /* ---- en-tête ---- */
-.tdle-header{flex:none;display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--cntr)}
+.tdle-header{flex:none;display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--cntr)}
 .tdle-home{display:inline-flex;align-items:center;gap:7px;font-family:var(--title1);font-size:13px;text-transform:uppercase;
   color:var(--dark);text-decoration:none;background:var(--cntr4);border-radius:7px;padding:8px 14px}
 .tdle-home:hover{background:var(--darkopa7);color:var(--clair1)}
 .tdle-home i{font-size:16px;line-height:1}
-.tdle-h1{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:600;font-size:26px;text-transform:uppercase; letter-spacing:0.2px;}
-.tdle-brand{text-align:center;font-family:var(--font2);line-height:1.4}
+.tdle-h1{flex:1;text-align:center;margin:0;font-family:var(--title1);font-weight:500;font-size:30px;text-transform:uppercase; letter-spacing:2px;}
+.tdle-brand{text-align:center;font-family:var(--font2);line-height:1.4;display:none;}
 .tdle-brand .b1{display:block;font-size:17px; font-family:var(--txt2);letter-spacing:.14em;text-transform:uppercase;}
 .tdle-brand .b2{display:block;font-size:15px;font-style:italic;color:var(--cntr)}
-.tdle-badge{flex:none;width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+.tdle-badge{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   background:var(--cntr3);border:1px solid var(--cntr5);color:var(--dark)}
-.tdle-badge i{font-size:30px;line-height:1}
+.tdle-badge i{font-size:25px;line-height:1}
 .tdle-edit{display:none;flex:none;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;
   background:var(--clair1);border:1px solid var(--cntr);color:var(--dark2);text-decoration:none}
 .tdle-edit:hover{background:var(--dark);border-color:var(--dark);color:var(--clair1)}
