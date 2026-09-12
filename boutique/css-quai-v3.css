@@ -163,6 +163,7 @@
 .qb-heroprice .qb-lab{color:var(--clair1opa8);font-size:12px}
 .qb-heroprice .qb-v{font-family:var(--txt1);font-size:26px;color:var(--clair1);margin-top:5px;line-height:1.05}
 .qb-bargebody{padding:20px 26px 26px}
+.qb-bargebody .qb-dtag {width:fit-content;color: var(--clair1);background: var(--gradark);margin:auto;}
 
 .qb-bull{margin:0;padding-left:18px}
 .qb-bull li{font-size:14px;line-height:1.55;margin-bottom:4px}
