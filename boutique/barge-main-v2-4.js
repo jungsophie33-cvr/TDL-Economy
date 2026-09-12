@@ -60,8 +60,11 @@
     if (item.confesse) {
       b += '<div class="qb-sec">'+ui.lab("Aller à Confesse")
         + ui.fld("Votre situation *", ui.ta("situation","Exposez votre problème, le contexte RP…"))
-        + '<div class="qb-pcgrid"><div>'+ui.fld("Ce que vous attendez de la Main", ui.ta("attentes","Le service espéré…"))+'</div>'
-        + '<div>'+ui.fld("Rémunération proposée *", ui.ta("remuneration","Dollars, service rendu, dette envers la Main…"))+'</div></div>'
+        + ui.fld("Ce que vous attendez de la Main", ui.ta("attentes","Le service espéré…"))
+        + ui.fld("Compensation proposée", '<select data-champ="compensation" id="qb-conf-comp"><option value="prix">Prix (payer la Main)</option><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')
+        + '<div id="qb-conf-prix">'+ui.fld("Prix proposé *", ui.inp("prix_offert","$"))+'</div>'
+        + '<div id="qb-conf-dette" style="display:none">'+ui.fld("Ce que vous offrez à la Main *", ui.ta("dette_argument","En quoi pouvez-vous intéresser la Main ? Quel service conséquent, ou services sur le long terme, offrez-vous en échange ?"))+'</div>'
+        + '<div id="qb-conf-reseau" style="display:none"><div class="qb-selrow">'+ui.fld("Catégorie du réseau", '<select data-champ="reseau_cat"><option value="autorites">Autorités corrompues</option><option value="prestataires">Prestataires &amp; Services</option><option value="informateurs">Informateurs locaux</option></select>')+'</div>'+ui.fld("Situation vis-à-vis de la Main *", ui.ta("situation_main","Votre rôle possible dans le réseau : accès, informations, services, loyauté…"))+'</div>'
         + (item.helper?'<div class="qb-helper">'+esc(item.helper)+'</div>':"")
         + '</div>' + ui.envoi("Envoyer la requête à la Main","nego");
     } else if (item.flow==="pret") {
@@ -137,6 +140,15 @@
   }
 
   function wireDetail(det, api, item){
+    var cc = det.querySelector("#qb-conf-comp");
+    if (cc) {
+      var maj = function(){
+        var w; w=det.querySelector("#qb-conf-prix"); if(w) w.style.display = cc.value==="prix"?"":"none";
+        w=det.querySelector("#qb-conf-dette"); if(w) w.style.display = cc.value==="dette"?"":"none";
+        w=det.querySelector("#qb-conf-reseau"); if(w) w.style.display = cc.value==="reseau"?"":"none";
+      };
+      cc.onchange = maj; maj();
+    }
     var env = det.querySelector("#qb-nego-envoi"); if (!env) return;
     env.onclick = function(){
       var champs = {}; Array.prototype.forEach.call(det.querySelectorAll("[data-champ]"), function(el){ champs[el.getAttribute("data-champ")] = el.value; });
