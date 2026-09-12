@@ -187,7 +187,7 @@
 #quais-staff .qsd-acc.qsd-open .qsd-chev{transform:rotate(90deg)}
 #quais-staff .qsd-accbody{padding:2px 14px 14px}
 #quais-staff .qsd-grp{margin-bottom:20px}
-#quais-staff .qsd-grphead{display:flex;align-items:center;gap:10px;padding:6px 2px 8px;border-bottom:1px solid var(--cntr4);margin-bottom:6px}
+#quais-staff .qsd-grphead{display:flex;align-items:center;gap:10px;padding:6px 2px 8px;margin-bottom:6px}
 #quais-staff .qsd-grphead .nom{font-family:var(--font2);font-size:17px;text-transform:uppercase}
 #quais-staff .qsd-grphead .n{font-family:var(--txt3);font-size:12px;background:var(--cntr3);border-radius:10px;padding:1px 9px;color:var(--darkopa6)}
 #quais-staff .qsd-drow{display:flex;align-items:center;gap:12px;padding:9px 2px;border-top:1px solid var(--cntr2)}
