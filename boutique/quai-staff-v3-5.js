@@ -32,8 +32,8 @@
   var DETTE_LIB = { lourde:"Dette lourde", legere:"Dette légère", karmique:"Dette karmique", longue:"Dette longue", du:"Service dû", prioritaire:"Dette prioritaire" };
   var RESEAU_LIB = { entreprises:"Entreprises & Commerçants", autorites:"Autorités corrompues", prestataires:"Prestataires & Services", informateurs:"Informateurs locaux" };
   var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
-  var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["methode","Méthode"],["compensation","Compensation"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"]];
-  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB };
+  var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"]];
+  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
 
   var st = { filtre:"en_attente" };
@@ -46,13 +46,13 @@
 
   function detteAInscrire(d){
     if (d.dette_type) return { type:d.dette_type, creancier:d.creancier||d.bande||"", motif:d.motif||d.nom||"" };
-    if (d.compensation==="dette") return { type:"lourde", creancier:d.bande||d.creancier||"La Main de la Providence", motif:d.nom||"" };
+    if (d.compensation==="dette") return { type:"lourde", creancier:d.bande||d.creancier||"La Main de la Providence", motif:d.dette_argument||d.nom||"" };
     if (d.pret_contrepartie==="dette") return { type:"lourde", creancier:d.bande||"La Main de la Providence", motif:"Prêt : "+(d.nom||"") };
     return null;
   }
   function reseauAInscrire(d){
-    if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue", role:d.nom||"" };
-    if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:"du", role:d.situation_main||"" };
+    if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue", role:d.nom||"", fixe:true };
+    if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:null, role:d.situation_main||"", fixe:false };
     return null;
   }
 
@@ -61,9 +61,14 @@
     if (typeof d.montant==="number" && d.montant>0) out += ligne("Montant", money(d.montant));
     if (d.type==="dette" && d.dette_num) out += ligne("Rang dette lourde", "n°"+d.dette_num);
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
-    var ri = reseauAInscrire(d); if (ri) out += ligne("Réseau à inscrire", (RESEAU_LIB[ri.categorie]||ri.categorie)+" · "+(STATUT_RES[ri.statut]||ri.statut));
+    var ri = reseauAInscrire(d); if (ri) out += ligne("Réseau à inscrire", (RESEAU_LIB[ri.categorie]||ri.categorie)+" · "+(ri.statut?(STATUT_RES[ri.statut]||ri.statut):"statut à préciser par le staff"));
     FIELDS.forEach(function(f){ var v=d[f[0]]; if (v!=null && String(v).trim()!=="") { if (VMAP[f[0]] && VMAP[f[0]][v]) v=VMAP[f[0]][v]; out += ligne(f[1], v); } });
     return out ? '<div class="fi-carte-grille">'+out+'</div>' : "";
+  }
+  /* si le réseau doit être inscrit et que le staff doit fixer le statut, on affiche un menu */
+  function statutBloc(d){
+    var ri = reseauAInscrire(d); if (!ri || ri.fixe) return "";
+    return '<div class="qsd-restatut-wrap"><span class="qsd-restatut-lbl">Nature de la dette réseau</span><select class="qsd-restatut" data-id="'+esc(d.id)+'"><option value="du">Service dû</option><option value="longue">Dette longue</option><option value="prioritaire">Dette prioritaire</option></select></div>';
   }
   function btn(id, act, label, cls){ return '<button class="'+cls+'" data-id="'+esc(id)+'" data-act="'+act+'">'+label+'</button>'; }
   function actions(d){
@@ -83,8 +88,8 @@
     return '<div class="qsd-acc" data-acc="'+esc(d.id)+'"><button class="qsd-accbar"><span class="qsd-accnom">'+esc(d.nom||d.itemId||"—")+'</span>'
       + '<span class="qsd-accps">'+esc(d.pseudo||"?")+'</span>'
       + '<span class="qsd-accchips">'+chip(d.type)+stChip(d.statut)+'</span><span class="qsd-chev">\u203A</span></button>'
-      + '<div class="qsd-accbody" style="display:none"><div class="qsd-accmeta" style="font-size:12px;color:var(--darkopa6);margin:2px 0 4px">'+dateFr(d.date)+(d.bande?" · "+esc(d.bande):"")+'</div>'
-      + champs(d) + actions(d) + '</div></div>';
+      + '<div class="qsd-accbody" style="display:none"><div class="qsd-accmeta">'+dateFr(d.date)+(d.bande?" · "+esc(d.bande):"")+'</div>'
+      + champs(d) + statutBloc(d) + actions(d) + '</div></div>';
   }
 
   function reglerBtn(x){
@@ -168,10 +173,24 @@
             catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
           }
         }
+        /* Confesse payée en monnaie : on débite le membre vers la cagnotte de la Main */
+        if (d.compensation==="prix" && d.prix_offert){
+          var px = parseInt(d.prix_offert,10)||0, cagP = d.cagnotte||"Providence";
+          if (px>0){
+            try {
+              await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ var c=cur||0; if (c < px) throw new Error("FONDS"); return c - px; });
+              await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cagP), function(cur){ return (cur||0)+px; });
+            } catch(e){ if (e&&e.message==="FONDS"){ alert(d.pseudo+" n'a pas les fonds pour payer "+money(px)+"."); return; } if (window.console) console.error(e); alert("Débit impossible."); return; }
+          }
+        }
         var di = detteAInscrire(d);
         if (di) { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dettes", { creancier:di.creancier, type:di.type, motif:di.motif, statut:"active", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] dette", e); } }
         var ri = reseauAInscrire(d);
-        if (ri) { try { await ajouterLien(d.pseudo, { type:"reseau_main", categorie:ri.categorie, role:ri.role, statut:ri.statut }); } catch(e){ if (window.console) console.error("[quais-staff] réseau", e); } }
+        if (ri) {
+          var statutRes = ri.statut;
+          if (!statutRes) { var selR = root.querySelector('.qsd-restatut[data-id="'+id+'"]'); statutRes = (selR && selR.value) || "du"; }
+          try { await ajouterLien(d.pseudo, { type:"reseau_main", categorie:ri.categorie, role:ri.role, statut:statutRes }); } catch(e){ if (window.console) console.error("[quais-staff] réseau", e); }
+        }
         o[base+"/statut"] = act==="valider" ? "validee" : "traitee"; await E().firebaseUpdate(o);
       }
       else { o[base+"/statut"] = act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
