@@ -17,7 +17,7 @@ html:has(.tdlr-rep)#min-width, body:has(.tdlr-rep), #wrap:has(.tdlr-rep), #sj-ma
 .tdlr-rep *{box-sizing:border-box}
 .tdlr-rep br {display:none;}
 
-.tdlr-app{width:70%;height:100%;margin:auto;background:var(--clair1);display:flex;flex-direction:column;box-shadow:0 0 40px var(--darkopa4)}
+.tdlr-app{width:75%;height:100%;margin:auto;background:var(--clair1);display:flex;flex-direction:column;box-shadow:0 0 40px var(--darkopa4)}
 
 /* ---------- EN-TÊTE ---------- */
 .tdlr-topbar{flex:none;display:flex;align-items:center;gap:16px;padding:12px 26px 10px;border-bottom:1px solid var(--cntr4)}
@@ -64,7 +64,7 @@ html:has(.tdlr-rep)#min-width, body:has(.tdlr-rep), #wrap:has(.tdlr-rep), #sj-ma
 body.tdlr-body-admin .tdlr-adminonly{display:inline-flex}
 
 /* ---------- CORPS ---------- */
-.tdlr-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr)}
+.tdlr-split{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr)}
 .tdlr-idx{min-height:0;border-right:1px solid var(--cntr4);display:flex;flex-direction:column}
 .tdlr-catcol{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));border-bottom:1px solid var(--cntr4);background:var(--cntr2)}
 .tdlr-cat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 0;cursor:pointer;position:relative;background:none;border:0;border-left:1px solid var(--cntr4)}
