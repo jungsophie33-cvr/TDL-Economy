@@ -168,6 +168,10 @@
 .qb-bull{margin:0;padding-left:18px}
 .qb-bull li{font-size:14px;line-height:1.55;margin-bottom:4px}
 
+.qb .qb-check{display:flex;align-items:flex-start;gap:8px;margin-top:10px;
+  font-family:var(--txt3);font-size:12px;color:var(--txt);cursor:pointer;line-height:1.5}
+.qb .qb-check input{margin:2px 0 0;accent-color:var(--gr1-color);flex:none}
+
 #quais-staff .qsd-tabs{display:flex;gap:24px;flex-wrap:wrap;margin:0 0 18px;border-bottom:1px solid var(--cntr6)}
 #quais-staff .qsd-tab{background:none;border:none;padding:6px 2px 9px;border-bottom:3px solid transparent;color:var(--darkopa6);text-transform:uppercase;letter-spacing:.06em;font-size:13px;font-family:var(--txt3);cursor:pointer;display:flex;align-items:center;gap:7px}
 #quais-staff .qsd-tab.qsd-on{border-bottom-color:var(--dark2);color:var(--txt)}
