@@ -114,8 +114,8 @@
   /* le hero n'affiche jamais de prix pour cette bande */
   function heroPrice(item){
     return item.flow==="don_reseau"
-      ? { l:"Modalité", v:"Don en nature \u22a1 aucun dollar" }
-      : { l:"Modalité", v:"Sans tarif \u22a1 contre le silence" };
+      ? { l:"Modalité", v:"Don en nature ⟡ aucun dollar" }
+      : { l:"Modalité", v:"Sans tarif ⟡ contre le silence" };
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
