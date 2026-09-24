@@ -31,7 +31,7 @@
 
   /* ===================== CATALOGUE ===================== */
   var DATA = {
-    faveur:{
+    fa_faveur:{
       flow:"faveur", ic:"comments-question", rpOnly:false,
       n:"Demander une faveur",
       desc:"Vous ne payez pas les Faiseuses : vous vous taisez. Formulez ce dont votre personnage a besoin \u2014 elles regarderont si leur réseau peut y répondre. Parfois oui. Parfois non. Parfois pas tout de suite.",
@@ -44,7 +44,7 @@
       ],
       helper:T.FAV_HELPER
     },
-    don:{
+    fa_don:{
       flow:"don_reseau", ic:"key", reseau_auto:"faiseuses",
       n:"Faire un don",
       desc:"Les Faiseuses ne vivent pas d\u2019argent mais d\u2019accès. Votre personnage leur ouvre temporairement une porte dont elles ont besoin \u2014 et devient, de fait, une ressource de leur réseau.",
@@ -60,7 +60,9 @@
   };
 
   /* ===================== RENDU ===================== */
+    function vt(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
   function bullets(titre, arr){
+    arr = vt(arr); if (!arr.length) return "";
     return '<div class="qb-sec">'+ui.lab(titre)+'<ul class="qb-bull">'
       + arr.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join("") + '</ul></div>';
   }
