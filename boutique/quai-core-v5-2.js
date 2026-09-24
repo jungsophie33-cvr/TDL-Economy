@@ -471,7 +471,9 @@
 
   function collecterChamps(scope){
     var c = {};
-    Array.prototype.forEach.call(scope.querySelectorAll("[data-champ]"), function(el){ c[el.getAttribute("data-champ")] = el.value; });
+    Array.prototype.forEach.call(scope.querySelectorAll("[data-champ]"), function(el){
+      c[el.getAttribute("data-champ")] = el.type==="checkbox" ? (el.checked ? (el.getAttribute("data-on")||"oui") : "") : el.value;
+    });
     return c;
   }
 
