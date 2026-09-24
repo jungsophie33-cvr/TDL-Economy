@@ -37,7 +37,7 @@
     if (b.heroPrice) return b.heroPrice(item);
     if (typeof item.pi==="number") return { l:"Prix indicatif", v:money(item.pi) };
     if (typeof item.p==="number")  return { l:"Prix", v:money(item.p) };
-    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande" };
+    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande", faveur:"Sans tarif ⟡ contre le silence", don_reseau:"Don en nature" };
     return { l:"Modalité", v: mod[item.flow] || "À négocier" };
   }
   function hero(b, sur, titre, desc, prix, api){
@@ -75,11 +75,14 @@
     if (a.flow==="don")      return "don";
     if (a.flow==="mission")  return "mission";
     if (a.flow==="offrande") return "offrande";
+    if (a.flow==="faveur")     return "faveur";
+    if (a.flow==="don_reseau") return "don";
     return "";
   }
 
   /* ---------- FORMULAIRE STAFF ---------- */
-  var FLOWS = ["nego","prix","don","mission","offrande"];
+  var FLOWS = ["nego","prix","don","mission","offrande","faveur","don_reseau"];
+  function vtc(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
   function inp(champ, v){ return '<input data-champ="'+champ+'" value="'+esc(v!=null?v:"")+'">'; }
   function form(item, api, id){
     var it = item || {}, cats = api.cats();
@@ -96,7 +99,9 @@
     html += ui.fld("Étiquette (tags)", inp("tags", it.tags));
     html += ui.fld("Note", inp("note", it.note));
     html += ui.fld("Texte d\u2019aide", inp("helper", it.helper));
+    html += ui.fld("Réseau alimenté à la validation", inp("reseau_auto", it.reseau_auto));
     html += '</div>' + ui.fld("Description", '<textarea data-champ="desc">'+esc(it.desc||"")+'</textarea>');
+    html += ui.fld("Puces de la fiche (une par ligne)", '<textarea data-champ="bullets">'+esc(vtc(it.bullets).join("\n"))+'</textarea>');
     var infos = it.infos || [];
     html += '<div class="qb-sec">'+ui.lab("Informations clés (flux négociation)")+'<div class="qb-pcgrid">';
     for (var i=0;i<4;i++){
@@ -117,7 +122,9 @@
       item.cat = champs.cat; item.n = champs.n || ""; item.desc = champs.desc || ""; item.flow = champs.flow || "nego";
       var pis = (champs.pi||"").trim(); item.pi = pis===""?null:(parseInt(pis,10)); if (isNaN(item.pi)) item.pi = null;
       var ps = (champs.p||"").trim(); if (ps==="") delete item.p; else { var pv=parseInt(ps,10); if (isNaN(pv)) delete item.p; else item.p=pv; }
-      ["qual","tags","note","helper","ic"].forEach(function(f){ var v=(champs[f]||"").trim(); if (v==="") delete item[f]; else item[f]=v; });
+      ["qual","tags","note","helper","ic","reseau_auto"].forEach(function(f){ var v=(champs[f]||"").trim(); if (v==="") delete item[f]; else item[f]=v; });
+      var bl = (champs.bullets||"").split("\n").map(function(s){ return s.trim(); }).filter(Boolean);
+      if (bl.length) item.bullets = bl; else delete item.bullets;
       var infos=[]; for (var i=0;i<4;i++){ var l=(champs["ilabel"+i]||"").trim(), v=(champs["ivalue"+i]||"").trim(); if (l&&v) infos.push([l,v]); }
       if (infos.length) item.infos=infos; else delete item.infos;
       api.enregistrer(id, item);
@@ -142,10 +149,8 @@
       if (def.rpOnly && !cur.rpOnly) { copie.rpOnly = true; changed = true; }
       if (def.reseau_auto && cur.reseau_auto !== def.reseau_auto) { copie.reseau_auto = def.reseau_auto; changed = true; }
       if (def.creancier && !cur.creancier) { copie.creancier = def.creancier; changed = true; }
-          if (changed) (patch || (patch = {}))[id] = copie;
+      if (changed) (patch || (patch = {}))[id] = copie;
     });
-    /* items déclarés par une bande mais absents du catalogue (bande complétée
-       après le semis initial) : on les écrit tels quels. */
     Object.keys(DATA).forEach(function(id){
       if (!catalogue[id]) (patch || (patch = {}))[id] = DATA[id];
     });
