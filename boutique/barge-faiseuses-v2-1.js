@@ -23,10 +23,11 @@
     FAV_CADRE: "La demande doit relever de leur c\u0153ur de métier : un réseau clandestin de soins, de gens du milieu médical et de ressources médicales. Hors de ce cadre, elles ne répondront pas.",
     FAV_SUITE: "Votre demande est d\u2019abord relue par le staff, puis soumise aux Faiseuses elles-mêmes, qui décident collégialement d\u2019accepter, de refuser ou de reporter. Rien ne vous est garanti.",
     DON_HELPER: "Un don aux Faiseuses n\u2019est jamais de l\u2019argent : c\u2019est un accès. Une porte qu\u2019on laisse entrouverte, une clé qu\u2019on prête, un nom qu\u2019on souffle.",
-    DON_SUITE: "Si le don est retenu, votre personnage entre dans le réseau de ressources des Faiseuses et apparaît à leur bottin. Elles pourront faire appel à lui \u2014 et ce sera à lui de répondre, ou pas.",
+    DON_SUITE: "Si le don est retenu, votre personnage entre dans le réseau de ressources des Faiseuses d'Anges et apparaît dans leur bottin. Elles pourront faire appel à votre personnage en cas de besoin...",
     DISPO: [["disponible","Disponible \u2014 on peut compter dessus régulièrement"],
             ["ponctuel","Ponctuel \u2014 une fois de temps en temps, selon les circonstances"],
-            ["indisponible","Pas pour l\u2019instant \u2014 à garder en réserve"]]
+            ["indisponible","Pas pour l\u2019instant \u2014 à garder en réserve"]],
+    RP_HINT: "Décochée, la faveur se règle en coulisses : les Faiseuses tranchent, vous recevez une réponse. Cochée, elle appelle à créer du rp \u2014 une Faiseuse en prendra la charge et un sujet sera ouvert."
   };
 
   /* ===================== CATALOGUE ===================== */
@@ -81,7 +82,10 @@
         + '<div class="qb-pcgrid">'
           + '<div>'+ui.fld("Contexte RP *", ui.ta("contexte","Pourquoi il s\u2019adresse à elles, et comment il a eu le nom\u2026"))+'</div>'
           + '<div>'+ui.fld("Don en nature proposé (optionnel)", ui.ta("don","Ce qu\u2019il offre en remerciement \u2014 sans rien exiger en retour\u2026"))+'</div>'
-        + '</div>'
+          + '</div>'
+        + '<label class="qb-check"><input type="checkbox" data-champ="rp_mission" data-on="oui"> '
+          + esc("Cette faveur a vocation à devenir une mission jouée en RP") + '</label>'
+        + '<div class="qb-helper" style="margin-top:4px">'+esc(T.RP_HINT)+'</div>'
       + '</div>'
       + '<div class="qb-helper">'+esc(item.helper)+'</div>'
       + '<div class="qb-helper" style="margin-top:6px">'+esc(T.FAV_SUITE)+'</div>'
