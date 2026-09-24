@@ -142,7 +142,12 @@
       if (def.rpOnly && !cur.rpOnly) { copie.rpOnly = true; changed = true; }
       if (def.reseau_auto && cur.reseau_auto !== def.reseau_auto) { copie.reseau_auto = def.reseau_auto; changed = true; }
       if (def.creancier && !cur.creancier) { copie.creancier = def.creancier; changed = true; }
-      if (changed) (patch || (patch = {}))[id] = copie;
+          if (changed) (patch || (patch = {}))[id] = copie;
+    });
+    /* items déclarés par une bande mais absents du catalogue (bande complétée
+       après le semis initial) : on les écrit tels quels. */
+    Object.keys(DATA).forEach(function(id){
+      if (!catalogue[id]) (patch || (patch = {}))[id] = DATA[id];
     });
     return patch;
   }
