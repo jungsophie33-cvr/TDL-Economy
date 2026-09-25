@@ -481,9 +481,20 @@ function whenEco(cb){
 }
 
 /* ---- rafraîchissement périodique (co-édition) ---- */
-var REFRESH_MS=20000;
+var REFRESH_MS=60000;
 function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
-function startAutoRefresh(){setInterval(tickRefresh,REFRESH_MS);}
+function startAutoRefresh(){
+  setInterval(tickRefresh,REFRESH_MS);
+  if(window.TDLPoll)window.TDLPoll.suivre({
+    node: CFG.NODE,
+    occupe: function(){ return !!(S.drawer||S.inline)||Date.now()-_lastWrite<5000; },
+    onDonnees: function(raw){
+      M=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
+      M.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+      autoRefus();fixSel();renderAll();
+    }
+  });
+}
 function tickRefresh(){
   if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
   if(S.drawer||S.inline)return;
