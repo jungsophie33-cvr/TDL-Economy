@@ -30,6 +30,7 @@
     NODE_MEMBRES:   "membres",             /* [MAJ] membres/<pseudo>/dollars | /dettes */
     NODE_CAGNOTTES: "cagnottes",           /* [MAJ] cagnottes/<groupe> (Providence = cagnotte de la Main) */
     NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
+    NODE_DOSSIERS:  "dossiers_main",       /* [MAJ] recouvrements de la Main : somme gelée */
     MAX_DETTES_LOURDES: 3,
     COOLDOWN_JOURS: 7,                     /* renégociation d'un service bloquée après un renoncement */
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
@@ -50,6 +51,8 @@
     EDIT_TOPIC:       "Éditer le sujet",
     NON_CONNECTE:     "Connecte-toi pour effectuer un achat.",
     FONDS:            "Fonds insuffisants.",
+    FONDS_GELE:       function (g) { return "Fonds insuffisants : " + money(g) + " de votre solde sont retenus par la Main."; },
+    
     ERR_ACHAT:        "Erreur lors de l'opération — rien n'a été débité.",
     OK_COMPTANT:      "Demande envoyée. Le montant est retenu ; le staff validera ou te le recréditera.",
     OK_DEMANDE:       "Requête transmise à la Main. Réponse en RP.",
@@ -139,6 +142,7 @@
     async comptant(base, champs){
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
       var montant = base.montant|0;
+      if (GELE > 0 && dispo() < montant) { alert(TXT.FONDS_GELE(GELE)); return { ok:false, fonds:true }; }
       try {
         await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){
           var s = cur||0; if (s < montant) throw new Error("FONDS"); return s - montant;
@@ -175,6 +179,7 @@
         if (lourdes >= CFG.MAX_DETTES_LOURDES) { alert(TXT.DETTE_PLAFOND); return { ok:false, plafond:true }; }
         numero = lourdes + 1;
       }
+      if (montant > 0 && GELE > 0 && dispo() < montant) { alert(TXT.FONDS_GELE(GELE)); return { ok:false, fonds:true }; }
       if (montant > 0) {
         try {
           await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + P + "/dollars", function(cur){
@@ -198,8 +203,10 @@
     },
 
     /* Négociation / requête : simple demande, sans débit. */
-    async demande(base, champs){
+      async demande(base, champs){
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
+      var px = parseInt(champs && champs.prix_offert, 10) || 0;   /* confesse payée en monnaie */
+      if (px > 0 && GELE > 0 && dispo() < px) { alert(TXT.FONDS_GELE(GELE)); return { ok:false, fonds:true }; }
       try {
         var d = demandeBase(base, champs); d.type = base.demandeType || "demande";
         if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
@@ -273,8 +280,26 @@
   var st = { tab:null, open:null, band:null, sel:null, staff:false, formMode:false, formItem:null, dirty:false };
   var cat = {};      /* cat[key] = catalogue chargé du module (id→item) */
   var etatMembre = { pseudo:null, solde:0, dettes:[], cooldowns:{} };
-  var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
+    var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
   var BANDES_INFO = {};    /* bottin-voyou : bandes/<bande> = { image, desc, motscles } */
+  var GELE = 0;            /* somme retenue sur le membre courant par un recouvrement ouvert */
+
+  /* Un dossier de recouvrement ouvert fige sa somme : elle reste au solde mais
+     devient indépensable. Le gel vit dans dossiers_main, pas chez le membre —
+     rien à nettoyer si un dossier est supprimé. */
+  var GEL_STATUTS = { ouvert:1, saisi:1, en_validation:1 };
+  function calculerGel(root){
+    var p = pseudo(); if (!p) return 0;
+    var node = (root && root[CFG.NODE_DOSSIERS]) || {}, t = 0;
+    Object.keys(node).forEach(function(id){
+      var d = node[id] || {};
+      if (d.type !== "recouvrement" || !d.montant) return;
+      if (!GEL_STATUTS[d.statut]) return;
+      if (d.dette && d.dette.pseudo === p) t += (d.montant|0);
+    });
+    return t;
+  }
+  function dispo(){ return Math.max(0, (etatMembre.solde|0) - GELE); }
 
   /* ===================== RENDU COQUILLE ===================== */
   var root; /* conteneur monté */
@@ -288,7 +313,8 @@
       + '<div class="qb-title">'+esc(TXT.TITRE)+'</div>'
       + '<div class="qb-user">'
       +   '<span class="qb-uname">'+esc(etatMembre.pseudo||"Invité")+'</span>'
-      +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.SOLDE+'</span><span class="qb-usolde">'+money(etatMembre.solde)+'</span></div>'
+      +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.SOLDE+'</span><span class="qb-usolde">'+money(etatMembre.solde)
+      +     (GELE>0?' <span class="qb-gele">dont '+money(GELE)+' retenus</span>':'')+'</span></div>'
       +   '<div class="qb-ublock"><span class="qb-lab">'+TXT.DETTES+'</span><span class="qb-dots">'+dots+'</span></div>'
       +   (isStaff()?'<button class="qb-stafftgl" id="qb-edittopic" title="'+TXT.EDIT_TOPIC+'"><i class="fi fi-tr-edit"></i></button>':"")
       +   (isStaff()?'<button class="qb-stafftgl'+(st.staff?" qb-on":"")+'" id="qb-stafftgl" title="'+TXT.STAFF_TITRE+'"><i class="fi fi-tr-customize-edit"></i></button>':"")
@@ -528,10 +554,11 @@
   async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
   async function chargerAnnexes(){
     try {
-      var root = await E().safeReadBin();
+      var root = await E().safeReadBin();     
       PSEUDOS = Object.keys((root && root[CFG.NODE_MEMBRES]) || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
       BANDES_INFO = (root && root[CFG.NODE_BANDES]) || {};
-    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; }
+      GELE = calculerGel(root);
+    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; GELE = 0; }
   }
   async function refresh(){
     E().invalidateCache();
