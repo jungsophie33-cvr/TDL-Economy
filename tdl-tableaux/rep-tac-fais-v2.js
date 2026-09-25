@@ -17,6 +17,7 @@
 /* ===================== CONFIG ===================== */
 var CFG = {
   NODE: "taches_faiseuses",
+  NODE_DOSSIERS: "dossiers_main",   
   NODE_MEMBRES: "membres",
   BANDE: "faiseuses",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=468&mode=editpost" /* [MAJ] sujet porteur */
@@ -45,6 +46,17 @@ var CATS = {
 };
 var VOTES = {accepter:"Accepter", reporter:"Reporter", refuser:"Refuser"};
 var DISPO = {disponible:"Disponible", ponctuel:"Ponctuel", indisponible:"Indisponible"};
+   /* Le deal avec la Main : elles donnent le silence, la Main donne la protection.
+   Un signalement n'est pas une quête — c'est un appel au protecteur. Elles
+   fournissent ce qu'elles savent, jamais la solution : à la Main d'enquêter. */
+var CERTITUDE = {certitude:"Certitude — quelqu\u2019un sait que nous existons",
+                 indices:"Faisceau d\u2019indices — plusieurs choses concordent",
+                 soupcon:"Simple soupçon — une impression, rien de plus"};
+var ALERTE = {
+  intro:"La Main nous protège tant que nous nous taisons, et tant que les autres se taisent sur nous. Quand ce n\u2019est plus le cas, on l\u2019appelle. On lui donne ce qu\u2019on sait \u2014 pas ce qu\u2019on croit deviner, et surtout pas ce qu\u2019elle devrait faire.",
+  garde:"Nommer quelqu\u2019un ici ne l\u2019accuse de rien. La Main décidera si la menace est réelle, et d\u2019où elle vient. Nous pouvons nous tromper.",
+  fait:"Le dossier part au tableau des dettes de la Main. Vous seule et eux le verrez. Ils vous répondront par ce tableau."
+};
 
 /* ===================== UTILS ===================== */
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -107,7 +119,7 @@ function patch(m, champs){
 function parId(id){for(var i=0;i<T.length;i++){if(T[i].id===id)return T[i];}return null;}
 
 /* ===================== ÉTAT ===================== */
-var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false};
+var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, alerte:false};
 function $(s,ctx){return (ctx||document).querySelector(s);}
 function av(n){return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';}
 
@@ -156,7 +168,7 @@ function renderStage(){
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=S.creation?formCreation():viewDossier();
+  el.innerHTML=S.alerte?formAlerte():(S.creation?formCreation():viewDossier());
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -359,6 +371,31 @@ function formCreation(){
     +'<label class="tdlm-fl">Contraintes (une par ligne)</label><textarea id="tdlf-ncontr" placeholder="Discrétion absolue&#10;Avant la fin de la semaine"></textarea>'
     +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir la tâche</button><button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
 }
+   
+   /* ---- signalement à la Main (canal d'urgence) ---- */
+function formAlerte(){
+  var opts=Object.keys(CERTITUDE).map(function(k){
+    return '<option value="'+k+'">'+CERTITUDE[k]+'</option>';
+  }).join("");
+  return '<div class="tdlm-dpanel"><div class="tdlm-dp-title"><span class="tdlm-type">Le silence a été rompu</span></div>'
+    +'<div class="tdlm-dp-body">'
+    +'<div class="tdlm-sec"><p class="tdlm-hsec">Appeler la Main de la Providence</p>'
+    +'<div class="tdlm-prose">'+esc(ALERTE.intro)+'</div></div>'
+    +'<div class="tdlm-drawer on" style="margin:0 24px 20px">'
+    +'<label class="tdlm-fl">En une ligne</label>'
+    +'<input type="text" id="tdlf-atitre" placeholder="Ce qui arrive, dit le plus simplement possible">'
+    +'<label class="tdlm-fl">Degré de certitude</label><select id="tdlf-acert">'+opts+'</select>'
+    +'<label class="tdlm-fl">Ce que nous savons</label>'
+    +'<textarea id="tdlf-asait" placeholder="Les faits, dans l\u2019ordre où vous les avez appris. Qui a dit quoi, à qui, quand\u2026"></textarea>'
+    +'<label class="tdlm-fl">Personnes évoquées (facultatif)</label>'
+    +'<input type="text" id="tdlf-aevoq" placeholder="Des noms qui reviennent, sans certitude">'
+    +'<div class="tdlm-todo" style="margin:6px 0 10px">'+esc(ALERTE.garde)+'</div>'
+    +'<label class="tdlm-fl">Ce qui est en jeu pour nous</label>'
+    +'<textarea id="tdlf-aenjeu" placeholder="Ce que nous risquons si rien n\u2019est fait\u2026"></textarea>'
+    +'<div class="tdlm-todo" style="margin:6px 0 0">'+esc(ALERTE.fait)+'</div>'
+    +'<div class="tdlm-row"><button class="tdlm-abtn warn" data-do="alerteok">Transmettre à la Main</button>'
+    +'<button class="tdlm-abtn" data-do="alertecancel">Annuler</button></div></div></div></div>';
+}
 
 /* ===================== ÉVÉNEMENTS ===================== */
 function toast(msg){var t=document.createElement("div");t.className="tdlm-toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);}
@@ -403,6 +440,8 @@ function act(k){
 }
 
 function doo(k){
+  if(k==="alertecancel"){S.alerte=false;renderStage();return;}
+  if(k==="alerteok"){alerter();return;}
   if(k==="newcancel"){S.creation=false;renderStage();return;}
   if(k==="newok"){creer();return;}
   var m=parId(S.sel); if(!m)return;
@@ -528,6 +567,38 @@ function creer(){
   }).catch(function(){toast("Ouverture échouée.");});
 }
 
+   /* Écrit directement dans dossiers_main : pas de vote, pas de quorum. Une seule
+   Faiseuse suffit — c'est une urgence, pas une délibération. Le compteur
+   d'appels, lui, est collectif : il se voit des deux côtés. */
+function alerter(){
+  var me=myPseudo();
+  if(!estFaiseuse(me)&&!isStaff()){toast("Réservé aux Faiseuses d\u2019Anges.");return;}
+  var titre=(($("#tdlf-atitre")||{}).value||"").trim();
+  var sait=(($("#tdlf-asait")||{}).value||"").trim();
+  if(!titre){toast("Résume la situation en une ligne.");return;}
+  if(!sait){toast("Dis à la Main ce que vous savez — sans ça, elle ne peut rien commencer.");return;}
+  if(!window.confirm("Transmettre ce signalement à la Main ?\nElle décidera seule de la suite."))return;
+
+  var o={ type:"silence", origine:"faiseuses", titre:titre,
+          doigt:null, demandeur:me, cible_type:"aucune", cible:"", protege:"les Faiseuses d\u2019Anges",
+          accord:null, defaut:null, dette:null, montant:0,
+          contexte:sait,
+          objectif:(($("#tdlf-aenjeu")||{}).value||"").trim(),
+          contraintes:[],
+          certitude:(($("#tdlf-acert")||{}).value||"soupcon"),
+          evoquees:(($("#tdlf-aevoq")||{}).value||"").trim(), urgence:"",
+          statut:"ouvert", responsable:null, participants:[],
+          sujet:"", resume:"", consequences:"", conclusion:null,
+          demandeValidation:false, verse:false,
+          cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null };
+
+  var id="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  Promise.resolve(window.EcoCore.writeField(CFG.NODE_DOSSIERS+"/"+id,o)).then(function(){
+    S.alerte=false;renderStage();
+    toast("Signalement transmis. Suivez-le au tableau des dettes de la Main.");
+  }).catch(function(){toast("Transmission échouée — rien n\u2019a été envoyé.");});
+}
+
 /* ---- refus auto : 7 j sans chef (origine faiseuse uniquement) ---- */
 function autoRefus(){
   var now=Date.now();
@@ -590,10 +661,15 @@ function tickRefresh(){
 function initApp(){
   var edit=$("#tdlf-edit");
   if(edit){edit.href=CFG.EDIT_URL||"#";if(isStaff())edit.classList.add("on");}
-  var neuf=$("#tdlf-new");
+   var neuf=$("#tdlf-new");
   if(neuf){
     neuf.style.display="none";
-    neuf.onclick=function(){S.creation=true;S.drawer=null;S.inline=null;renderStage();};
+    neuf.onclick=function(){S.alerte=false;S.creation=true;S.drawer=null;S.inline=null;renderStage();};
+  }
+  var alrt=$("#tdlf-alerte");
+  if(alrt){
+    alrt.style.display="none";
+    alrt.onclick=function(){S.creation=false;S.alerte=true;S.drawer=null;S.inline=null;renderStage();};
   }
   whenEco(function(){
     loadData();
@@ -607,8 +683,10 @@ function initApp(){
         autoRefus();fixSel();renderAll();
       }
     });
-    setTimeout(function(){ /* le bouton n'apparaît qu'une fois l'appartenance connue */
-      if(neuf&&(estFaiseuse(myPseudo())||isStaff()))neuf.style.display="";
+    setTimeout(function(){ /* les boutons n'apparaissent qu'une fois l'appartenance connue */
+      var ok=estFaiseuse(myPseudo())||isStaff();
+      if(neuf&&ok)neuf.style.display="";
+      if(alrt&&ok)alrt.style.display="";
     },1200);
   });
 }
