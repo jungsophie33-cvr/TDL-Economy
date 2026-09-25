@@ -171,6 +171,9 @@
       versRp: d.rp_mission==="oui",
       statut:"en_vote", votes:{}, participants:[], sujet:"",
       date:new Date().toISOString()
+    }).then(function(r){
+      try{ if(window.EcoNotif) EcoNotif.bande("faiseuses",130,{titre:d.nom||"Faveur demandée"},"fav"+(d.id||"")); }catch(e){}
+      return r;
     });
   }
   
