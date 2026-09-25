@@ -34,7 +34,8 @@
   var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
   var DISPO_LIB = { disponible:"Disponible", ponctuel:"Ponctuel", indisponible:"Indisponible" };
   var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
-                ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],[["lien","Lien"],["article","Article"],["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
+                ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"],
+                ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
   var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
 
@@ -71,15 +72,16 @@
     return out ? '<div class="fi-carte-grille">'+out+'</div>' : "";
   }
   /* si le réseau doit être inscrit et que le staff doit fixer le statut, on affiche un menu */
-    function statutBloc(d){
+     /* si le réseau doit être inscrit et que le staff doit fixer le statut, on affiche un menu */
+  function statutBloc(d){
     var ri = reseauAInscrire(d); if (!ri || ri.fixe) return "";
     if (ri.reseau==="faiseuses") {
       return '<div class="qsd-restatut-wrap"><span class="qsd-restatut-lbl">Disponibilité du contact</span><select class="qsd-restatut" data-id="'+esc(d.id)+'">'
         + Object.keys(DISPO_LIB).map(function(k){ return '<option value="'+k+'"'+(k===ri.statut?" selected":"")+'>'+esc(DISPO_LIB[k])+'</option>'; }).join("")
         + '</select></div>';
     }
-    return '<div class="qsd-restatut-wrap"><span class="qsd-restatut-lbl">Nature de la dette réseau</span>'
-    }
+    return '<div class="qsd-restatut-wrap"><span class="qsd-restatut-lbl">Nature de la dette réseau</span><select class="qsd-restatut" data-id="'+esc(d.id)+'"><option value="du">Service dû</option><option value="longue">Dette longue</option><option value="prioritaire">Dette prioritaire</option></select></div>';
+  }
   function btn(id, act, label, cls){ return '<button class="'+cls+'" data-id="'+esc(id)+'" data-act="'+act+'">'+label+'</button>'; }
   function actions(d){
     var a = "";
