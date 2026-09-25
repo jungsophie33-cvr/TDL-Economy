@@ -586,12 +586,14 @@
   }
 
   /* ===================== EXPORT ===================== */
-  window.Quais = {
+    window.Quais = {
     CFG: CFG, TXT: TXT, ui: ui,
     register: register,
     catalogue: catalogue, membre: membre, achat: achat,
     refresh: refresh, boot: boot,
-    versTableau: versTableau, money: money
+    versTableau: versTableau, money: money,
+    gele: function(){ return GELE; },
+    dispo: dispo
   };
 
   if (document.readyState==="loading") document.addEventListener("DOMContentLoaded", boot); else boot();
