@@ -25,12 +25,17 @@ var CFG = {
   NODE_PSEUDO: "notifs_pseudo",    /* repli si UID non résolu */
   NODE_GLOB:   "notifs_globales",  /* canal « tous les membres » */
   NODE_FAITS:  "notifs_faits",     /* verrous anti-double-émission */
-  NODE_META:   "notifs_meta",      /* compteurs (dernier événement calendrier) */
+  NODE_META:   "notifs_meta",      /* compteurs (dernier sujet détecté) */
   NODE_MEMBRES:"membres",
   NODE_UID:    "uid_index",        /* uid_index/{uid} = pseudo */
-  EVENTS_URL:  "/events",          /* [MAJ] page des événements FA */
-  EV_THROTTLE: 15 * 60000,         /* relecture de /events au plus tous les 1/4 h */
-  EV_CLE:      "tdl_notif_ev_check"
+  /* Source primaire des nouveaux sujets : les sujets actifs, une requête pour
+     tout le forum. [MAJ] si FA renomme ce paramètre de recherche. */
+  SUJETS_URL:  "/search?search_id=activetopics",
+  /* Repli si la recherche ne renvoie rien : balayage des zones RP, lues dans
+     EcoCore.RP_ZONES (exposé par eco-gain). Laisser vide pour ne pas doubler. */
+  FORUMS:      [],
+  EV_THROTTLE: 15 * 60000,         /* relecture au plus tous les 1/4 h */
+  EV_CLE:      "tdl_notif_topic_check"
 };
 
 /* [MAJ] sujets porteurs */
@@ -58,7 +63,7 @@ var NOTIFS = {
   103:{n:C.BOUT, ic:"inbox-in",       url:U.STAFF,     txt:function(d){return "Nouvelle demande d'achat de "+esc(d.pseudo)+" : &laquo;&nbsp;"+esc(d.nom)+"&nbsp;&raquo;.";}},
 
   /* --- Missions des Maringouins --- */
-  110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;  prime "+(+d.prime||0)+" $.";}},
+  110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
   111:{n:C.MIS,  ic:"user-check",     url:U.MISSIONS,  txt:function(d){return esc(d.chef)+" prend la tête de votre mission &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   112:{n:C.MIS,  ic:"comment-dollar", url:U.MISSIONS,  txt:function(d){return "Renégociation de la prime sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; : "+(+d.montant||0)+" $ demandés.";}},
   113:{n:C.MIS,  ic:"handshake",      url:U.MISSIONS,  txt:function(d){return "Votre renégociation sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+(d.ok?"acceptée":"refusée")+".";}},
@@ -214,8 +219,11 @@ function uneFois(verrou, fn) {
 }
 
 /* ===================== CALENDRIER =====================
-   Aucun webhook sur FA : la détection se fait au passage d'un membre.
-   /events est lu au plus tous les 1/4 h, et un seul client émet (transaction
+   Aucun webhook sur FA, et aucun lien entre les sujets et les événements
+   natifs : les intrigues sont de simples TOPICS repérés par le préfixe de
+   leur titre. Le filtre est donc le préfixe, pas l'emplacement — une seule
+   requête sur les sujets actifs couvre tout le forum. Détection au passage
+   d'un membre, au plus tous les 1/4 h, et un seul client émet (transaction
    sur le compteur). Premier passage = amorçage silencieux. */
 function typeDe(titre) {
   var t = String(titre || "").toUpperCase();
@@ -228,34 +236,35 @@ function nettoyer(titre) {
   return t.replace(/\s+/g, " ").trim();
 }
 
+/* liens de sujets d'une page : a.topictitle en priorité, sinon tout lien
+   /tNN- (FA change de gabarit selon la page et le thème). */
 function scanner(html) {
   var tmp = document.createElement("div");
   tmp.innerHTML = html;
+  var liens = tmp.querySelectorAll("a.topictitle");
+  if (!liens.length) liens = tmp.querySelectorAll('a[href*="/t"]');
   var out = [], vus = {};
-  Array.prototype.forEach.call(tmp.querySelectorAll('a[href*="/e"]'), function (a) {
-    var m = (a.getAttribute("href") || "").match(/\/e(\d+)-/);
+  Array.prototype.forEach.call(liens, function (a) {
+    var href = a.getAttribute("href") || "";
+    var m = href.match(/\/t(\d+)-/);
     if (!m) return;
     var id = parseInt(m[1], 10);
     if (!id || vus[id]) return;
     var t = (a.getAttribute("title") || a.textContent || "").trim();
-    if (!t) {
-      var row = a.closest('[class*="event"]');
-      var te = row && row.querySelector(".event_title, h3, h2");
-      t = te ? te.textContent.trim() : "";
-    }
+    if (!t) return;
     vus[id] = 1;
-    out.push({ id: id, titre: t, href: a.getAttribute("href") });
+    out.push({ id: id, titre: t, href: href.replace(/^https?:\/\/[^\/]+/, "") });
   });
   return out;
 }
 
-function traiterEvents(evs) {
+function traiterTopics(evs) {
   if (!evs.length || !ok() || !E().firebaseTransaction) return;
   var max = 0;
   evs.forEach(function (e) { if (e.id > max) max = e.id; });
   var ancien = null, amorce = false, pr;
   try {
-    pr = E().firebaseTransaction(CFG.NODE_META + "/dernier_event", function (cur) {
+    pr = E().firebaseTransaction(CFG.NODE_META + "/dernier_topic", function (cur) {
       ancien = (cur == null ? null : parseInt(cur, 10));
       amorce = (cur == null);
       if (!amorce && max <= ancien) throw new Error("DEJA");
@@ -267,9 +276,17 @@ function traiterEvents(evs) {
     evs.forEach(function (e) {
       if (e.id <= ancien) return;
       var t = typeDe(e.titre);
-      if (t) global(t, { titre: nettoyer(e.titre), url: e.href }, "ev" + e.id);
+      if (t) global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id);
     });
   }).catch(function () { /* DEJA : un autre client s'en est chargé */ });
+}
+
+/* page HTML → sujets ; tableau vide si la page est inexploitable */
+function lirePage(url) {
+  return fetch(url, { credentials: "same-origin" })
+    .then(function (r) { return r.ok ? r.text() : ""; })
+    .then(function (h) { return h ? scanner(h) : []; })
+    .catch(function () { return []; });
 }
 
 function calendrier() {
@@ -278,10 +295,22 @@ function calendrier() {
   try { last = parseInt(localStorage.getItem(CFG.EV_CLE), 10) || 0; } catch (e) {}
   if (Date.now() - last < CFG.EV_THROTTLE) return;
   try { localStorage.setItem(CFG.EV_CLE, String(Date.now())); } catch (e) {}
-  fetch(CFG.EVENTS_URL, { credentials: "same-origin" })
-    .then(function (r) { return r.text(); })
-    .then(function (html) { traiterEvents(scanner(html)); })
-    .catch(function () {});
+
+  lirePage(CFG.SUJETS_URL).then(function (evs) {
+    if (evs.length) { traiterTopics(evs); return; }
+    /* repli : les zones RP, si la recherche est indisponible ou vide */
+    var zones = (CFG.FORUMS && CFG.FORUMS.length)
+      ? CFG.FORUMS
+      : ((E() && E().RP_ZONES) || []);
+    if (!zones.length) return;
+    return Promise.all(zones.map(lirePage)).then(function (lots) {
+      var tout = [], vus = {};
+      lots.forEach(function (l) {
+        l.forEach(function (e) { if (!vus[e.id]) { vus[e.id] = 1; tout.push(e); } });
+      });
+      traiterTopics(tout);
+    });
+  });
 }
 
 /* ===================== API ===================== */
