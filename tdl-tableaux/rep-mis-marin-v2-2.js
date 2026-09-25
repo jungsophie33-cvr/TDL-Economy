@@ -348,13 +348,16 @@ function act(k){
     var champs={participants:m.participants};
     if(!m.chef){m.chef=me;m.statut="acceptee";champs.chef=me;champs.statut="acceptee";}
     patch(m,champs);toast(m.chef===me?"Inscrit·e — vous êtes chef de mission.":"Inscrit·e à la mission.");renderAll();
+    try{ if(window.EcoNotif && m.payeur && m.chef===me) EcoNotif.a(m.payeur,111,{titre:m.titre,chef:me},"chef"+m.id); }catch(e){}
   }
   else if(k==="topic"){S.inline=S.inline==="topic"?null:"topic";S.drawer=null;renderStage();}
   else if(k==="nego"){S.inline=S.inline==="nego"?null:"nego";S.drawer=null;renderStage();}
   else if(k==="bilan"){S.drawer=S.drawer==="bilan"?null:"bilan";S.inline=null;renderStage();}
   else if(k==="edit"){S.drawer=S.drawer==="edit"?null:"edit";S.inline=null;renderStage();}
   else if(k==="negoyes"){accepterNego(m);}
-  else if(k==="negono"){m.nego=null;patch(m,{nego:null});toast("Proposition refusée.");renderStage();}
+  else if(k==="negono"){var nm=m.nego?m.nego.montant:0;m.nego=null;patch(m,{nego:null});
+    try{ if(window.EcoNotif && m.chef) EcoNotif.a(m.chef,113,{titre:m.titre,ok:false},"negor"+m.id+"_"+nm); }catch(e){}
+    toast("Proposition refusée.");renderStage();}
   else if(k==="retirer"){retirer(m);}
   else if(k==="refuser"){refuserStaff(m);}
   else if(k==="valider"){valider(m);}
@@ -369,7 +372,9 @@ function doo(k){
     var v=parseInt((($("#tdlm-negom")||{}).value||"").replace(/[^\d]/g,""),10);
     if(!v||v<0){toast("Montant invalide.");return;}
     m.nego={montant:v,statut:"en_cours",par:myPseudo()||m.chef};
-    patch(m,{nego:m.nego});S.inline=null;toast("Proposition envoyée au commanditaire.");renderStage();return;
+    patch(m,{nego:m.nego});
+    try{ if(window.EcoNotif && m.payeur) EcoNotif.a(m.payeur,112,{titre:m.titre,montant:v},"nego"+m.id+"_"+v); }catch(e){}
+    S.inline=null;toast("Proposition envoyée au commanditaire.");renderStage();return;
   }
   if(k==="bilanok"||k==="bilansave"){
     m.resume=(($("#tdlm-bresume")||{}).value||"").trim();
@@ -380,7 +385,9 @@ function doo(k){
       m.statut="en_validation";m.demandeValidation=true;
       champs.statut="en_validation";champs.demandeValidation=true;
     }
-    patch(m,champs);S.drawer=null;
+    patch(m,champs);
+     try{ if(window.EcoNotif && champs.statut==="en_validation") EcoNotif.staff(114,{titre:m.titre},"val"+m.id); }catch(e){}
+     S.drawer=null;
     toast(k==="bilanok"&&champs.statut==="en_validation"?"Mission envoyée en validation.":"Bilan enregistré.");
     renderAll();return;
   }
@@ -408,6 +415,7 @@ function accepterNego(m){
   op.then(function(){
     m.prime=montant;m.nego=null;
     patch(m,{prime:montant,nego:null});
+    try{ if(window.EcoNotif && m.chef) EcoNotif.a(m.chef,113,{titre:m.titre,ok:true},"negor"+m.id+"_"+montant); }catch(e){}
     toast("Prime ajustée à "+money(montant)+".");renderAll();
   }).catch(function(){toast("Ajustement de la prime échoué.");});
 }
@@ -440,6 +448,10 @@ function valider(m){
   chain.then(function(){
     m.statut="terminee";m.primeVersee=true;m.demandeValidation=false;
     patch(m,{statut:"terminee",primeVersee:true,demandeValidation:false});
+    try{ if(window.EcoNotif) vals.forEach(function(p){
+      var g=part+((m.chef&&p===m.chef)?reste+CHEF_BONUS:0);
+      EcoNotif.a(p,115,{titre:m.titre,montant:g},"prime"+m.id+"_"+p);
+    }); }catch(e){}
     toast("Mission validée. "+n+" × "+money(part)+(m.chef?" + "+money(CHEF_BONUS)+" chef":"")+" versés.");
     renderAll();
   }).catch(function(){toast("Versement échoué — validation annulée.");});
@@ -472,7 +484,9 @@ function autoRefus(){
       /* gagnant du verrou : on rembourse le payeur puis on referme la mission */
       m.rembourse=true;m.statut="refusee";
       var credit=(m.payeur&&m.prime>0)?crediterDollars(m.payeur,m.prime):Promise.resolve();
-      return Promise.resolve(credit).then(function(){patch(m,{statut:"refusee"});renderAll();});
+      return Promise.resolve(credit).then(function(){
+        try{ if(window.EcoNotif && m.payeur) EcoNotif.a(m.payeur,116,{titre:m.titre},"auto"+m.id); }catch(e){}
+        patch(m,{statut:"refusee"});renderAll();});
     }).catch(function(e){
       if(e&&e.message==="DEJA"){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});renderAll();}
     });
