@@ -99,7 +99,23 @@ function parId(id){for(var i=0;i<M.length;i++){if(M[i].id===id)return M[i];}retu
 /* ===================== ÉTAT ===================== */
 var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null};
 function $(s,ctx){return (ctx||document).querySelector(s);}
-function av(n){return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';}
+
+var AVATARS = {};
+function indexAvatars(rec){
+  var fc=(rec&&rec.faceclaims)||{}, idx={};
+  function score(c){ return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0); }
+  Object.keys(fc).forEach(function(k){
+    var c=fc[k]; if(!c||!c.pseudo)return;
+    var a=idx[c.pseudo];
+    if(!a||score(c)>score(a))idx[c.pseudo]=c;
+  });
+  return idx;
+}
+function av(n){
+  var c=AVATARS[n];
+  if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
+  return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
+}
 function aDesDemandes(m){return m.demandeValidation;}
 
 /* ===================== FILTRAGE ===================== */
@@ -233,34 +249,43 @@ function panel(m){
 }
 
 /* ---- barre d'action selon rôle ---- */
+/* ---- barre d'action selon rôle ----
+   Les rôles se CUMULENT : un chef de mission qui est aussi administrateur doit
+   garder ses boutons de chef, sinon celui qui joue un personnage et tient le
+   staff ne peut jamais rien conclure. */
 function actionbar(m){
   var me=myPseudo(), staff=isStaff(), payeur=(me&&me===m.payeur), chef=(me&&me===m.chef);
-  var label, btns="";
-  var edit=staff?'<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>':"";
-  var del=staff?'<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>':"";
-  var refuse=(staff&&m.statut!=="terminee"&&m.statut!=="refusee")?'<button class="tdlm-abtn warn" data-act="refuser">Refuser & rembourser</button>':"";
+  var roles=[], btns="";
 
-  if(staff){
-    label="Staff";
-    if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="valider">Valider &amp; verser la prime</button>';
-    btns+=edit+refuse+del;
-  }else if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
-    label="Chef de mission";
+  if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
+    roles.push("Chef de mission");
     btns+='<button class="tdlm-abtn" data-act="topic">'+(m.topic?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
     if(m.statut==="acceptee"&&!m.topic)btns+='<button class="tdlm-abtn" data-act="nego">Négocier la prime</button>';
     btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; passer en validation")+'</button>';
-  }else if(payeur&&(m.statut==="en_attente"||m.statut==="acceptee")){
-    label="Commanditaire";
-    if(m.statut==="en_attente")btns+='<button class="tdlm-abtn warn" data-act="retirer">Retirer ma mission</button>';
-    if(!btns)btns='<span class="tdlm-idle">En attente du chef de mission.</span>';
-  }else if(!estConnecte()){
-    label="Invité"; btns='<span class="tdlm-idle">Connectez-vous pour interagir.</span>';
-  }else if(estMaringouin(me)){
-    label="Maringouin"; btns='<span class="tdlm-idle">Utilisez « Je participe » ci-dessus.</span>';
-  }else{
-    label="Visiteur"; btns='<span class="tdlm-idle">Table consultable — inscription réservée aux Maringouins.</span>';
   }
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+label+'</span>'+btns+'</div>';
+  if(payeur&&m.statut==="en_attente"){
+    roles.push("Commanditaire");
+    btns+='<button class="tdlm-abtn warn" data-act="retirer">Retirer ma mission</button>';
+  }
+  if(staff){
+    roles.push("Staff");
+    if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="valider">Valider &amp; verser la prime</button>';
+    btns+='<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>';
+    if(m.statut!=="terminee"&&m.statut!=="refusee")btns+='<button class="tdlm-abtn warn" data-act="refuser">Refuser &amp; rembourser</button>';
+    btns+='<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>';
+  }
+  if(!btns){
+    if(payeur){ roles.push("Commanditaire");
+      btns='<span class="tdlm-idle">En attente du chef de mission.</span>'; }
+    else if(!estConnecte()){ roles.push("Invité");
+      btns='<span class="tdlm-idle">Connectez-vous pour interagir.</span>'; }
+    else if(estMaringouin(me)){ roles.push("Maringouin");
+      btns='<span class="tdlm-idle">Utilisez « Je participe » ci-dessus.</span>'; }
+    else { roles.push("Visiteur");
+      btns='<span class="tdlm-idle">Table consultable — inscription réservée aux Maringouins.</span>'; }
+  }
+  if(!roles.length)roles.push("Visiteur");
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" · ")+'</span>'+btns+'</div>';
 }
 
 /* ---- drawers / formulaires ---- */
@@ -463,6 +488,7 @@ function loadData(){
   var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
   Promise.resolve(pr).then(function(rec){
     MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||{};
+    AVATARS=indexAvatars(rec);
     var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
     M=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     M.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
@@ -505,6 +531,7 @@ function tickRefresh(){
   Promise.resolve(pr).then(function(rec){
     if(S.drawer||S.inline||Date.now()-_lastWrite<5000)return;
     MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
+    AVATARS=indexAvatars(rec);
     var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
     var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     next.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
