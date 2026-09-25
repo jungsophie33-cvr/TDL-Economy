@@ -497,6 +497,7 @@ function doo(k){
       champs.statut="en_validation";champs.demandeValidation=true;
     }
     patch(m,champs);S.drawer=null;
+    try{ if(window.EcoNotif && champs.statut==="en_validation") EcoNotif.staff(134,{titre:m.titre},"val"+m.id); }catch(e){}
     toast(champs.statut==="en_validation"?"Tâche envoyée en validation.":"Bilan enregistré.");
     renderAll();return;
   }
@@ -536,6 +537,8 @@ function appliquer(m, choix){
   if(choix==="accepter"){m.statut="acceptee";m.ouverte=new Date().toISOString();patch(m,{statut:"acceptee",ouverte:m.ouverte});}
   else if(choix==="refuser"){m.statut="refusee";patch(m,{statut:"refusee"});}
   else {m.statut="reportee";patch(m,{statut:"reportee"});}
+     try{ if(window.EcoNotif && m.demandeur && choix!=="reporter")
+    EcoNotif.a(m.demandeur,131,{ok:choix==="accepter"},"vote"+m.id+"_"+choix); }catch(e){}
 }
 
 /* ===================== STAFF ===================== */
@@ -557,7 +560,8 @@ function valider(m){
   op.then(function(){
     m.statut="terminee";m.demandeValidation=false;if(cp)m.contactInscrit=true;
     patch(m,{statut:"terminee",demandeValidation:false,contactInscrit:!!cp});
-    toast(cp?"Tâche close — contact inscrit au réseau.":"Tâche close.");renderAll();
+    try{ if(window.EcoNotif && cp && cp.pseudo) EcoNotif.a(cp.pseudo,135,{},"cont"+m.id); }catch(e){}
+    toast(cp?"Tâche close ; contact inscrit au réseau.":"Tâche close.");renderAll();
   }).catch(function(){toast("Inscription du contact échouée — tâche non close.");});
 }
 function classer(m){
@@ -596,6 +600,7 @@ function creer(){
   _lastWrite=Date.now();
   Promise.resolve(window.EcoCore.writeField(CFG.NODE+"/"+id,o)).then(function(){
     o.id=id;T.unshift(normaliser(o));S.creation=false;S.sel=id;S.mob="detail";
+         try{ if(window.EcoNotif) EcoNotif.bande("faiseuses",133,{titre:o.titre},"tac"+id); }catch(e){}
     toast("Tâche ouverte — une semaine pour trouver des volontaires.");renderAll();
   }).catch(function(){toast("Ouverture échouée.");});
 }
@@ -628,6 +633,10 @@ function alerter(){
   var id="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   Promise.resolve(window.EcoCore.writeField(CFG.NODE_DOSSIERS+"/"+id,o)).then(function(){
     S.alerte=false;renderStage();
+    try{ if(window.EcoNotif){
+      EcoNotif.bande("main",132,{url:EcoNotif.URLS.DETTES},"sil"+id);
+      EcoNotif.bande("faiseuses",132,{},"silf"+id);
+    } }catch(e){}
     toast("Signalement transmis. Suivez-le au tableau des dettes de la Main.");
   }).catch(function(){toast("Transmission échouée — rien n\u2019a été envoyé.");});
 }
