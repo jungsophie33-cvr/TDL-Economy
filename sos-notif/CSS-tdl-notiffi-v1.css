@@ -1,0 +1,47 @@
+/* THE DROWNED LANDS — NOTIFICATIONS FIREBASE DANS NOTIFFI
+   Purement ADDITIF. Le fond, les marges et la typographie restent ceux des
+   notifications FA : seuls le liseré de gauche et la pastille d'icône sont
+   propres aux notifications TDL. Scopé sous .tdl, jamais sur .notification. */
+
+/* ---------- couleur par module ---------- */
+.notification.tdl_boutique   { --c: var(--gr1-color); --c20: var(--gr1-20); }
+.notification.tdl_mission    { --c: var(--gr2-color); --c20: var(--gr2-20); }
+.notification.tdl_enquete    { --c: var(--gr3-color); --c20: var(--gr3-20); }
+.notification.tdl_calendrier { --c: var(--gr4-color); --c20: var(--gr4-20); }
+.notification.tdl_faveur     { --c: var(--gr5-color); --c20: var(--gr5-20); }
+.notification.tdl_main       { --c: var(--gr6-color); --c20: var(--gr6-20); }
+.notification.tdl_autre      { --c: var(--cntr);      --c20: var(--cntr2); }
+
+/* ---------- le cadre ----------
+   Aucune surcharge de background : le liseré suffit à distinguer. */
+.notification.tdl {
+  border-left: 2px solid var(--c);
+  cursor: pointer;
+}
+
+/* ---------- l'icône occupe le slot avatar ----------
+   notif_icon sert de pastille en surimpression sur l'avatar FA (le @ des
+   mentions) : positionnée en absolu, elle s'échappe du cadre dès que
+   notif_avatar est vide. On loge donc l'icône DANS notif_avatar, qui porte
+   déjà le gabarit et la place, et on neutralise notif_icon. */
+.notification.tdl .notif_icon { display: none; }
+
+.notification.tdl .notif_avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--c20);
+  color: var(--c);
+  font-size: 16px;
+  line-height: 1;
+  aspect-ratio: 1 / 1;
+}
+.notification.tdl .notif_avatar i { display: block; }
+
+/* la pastille prend le plein ton quand la notification n'est pas lue */
+.notification.tdl.unread .notif_avatar { background: var(--c); color: var(--clair1); }
+
+/* ---------- alerte (toast) ---------- */
+.notification.alert.tdl { border-left: 2px solid var(--c); cursor: pointer; }
+.notification.alert.tdl .notif_avatar { background: var(--c); color: var(--clair1); }
