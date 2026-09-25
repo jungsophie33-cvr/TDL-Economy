@@ -506,8 +506,10 @@ function formCreation(){
       + '</div>';
     g+='<div id="tdld-ncible">'
       + f('<span id="tdld-lcible">Cible</span>','<select id="tdld-nctype">'+cb+'</select>')
-      + f('<span id="tdld-lciblenom">Nom de la cible</span>','<input type="text" id="tdld-ncible-nom" placeholder="Pseudo du PJ, nom du PNJ ou de la famille">')
-      + (peutCibler()
+      + f('<span id="tdld-lciblenom">Nom de la cible</span>',
+          '<select id="tdld-ncible-pj" style="display:none">'+optMembres()+'</select>'
+          +'<input type="text" id="tdld-ncible-nom" placeholder="Nom du PNJ ou de la famille">')
+       + (peutCibler()
          ? '<div class="fld full"><label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdld-ndefaut"> Défaut caractérisé — ouvrir sans l\u2019accord du PJ visé</label>'
            + '<input type="text" id="tdld-ndmotif" placeholder="Motif : refus en RP, dette laissée courir\u2026"></div>' : "")
       + '</div>';
@@ -556,13 +558,25 @@ function brancher(){
     };
     ty.onchange=maj; maj();
   }
+  var ct=$("#tdld-nctype"), cpj=$("#tdld-ncible-pj"), cnom=$("#tdld-ncible-nom");
+  if(ct&&cpj&&cnom){
+    var majCible=function(){
+      var pj=(ct.value==="pj");
+      cpj.style.display=pj?"":"none";
+      cnom.style.display=pj?"none":"";
+    };
+    ct.onchange=majCible; majCible();
+  }
   var deb=$("#tdld-ndeb");
   if(deb)deb.onchange=function(){
     var cr=$("#tdld-ncre"); if(cr)cr.innerHTML=optCreances(deb.value);
     var mt=$("#tdld-nmontant"); if(mt)mt.value="0";
     var cn=$("#tdld-ncible-nom"), ct=$("#tdld-nctype");
-    if(cn&&!cn.value)cn.value=deb.value;                 /* le débiteur est la cible par défaut */
-    if(ct&&deb.value)ct.value="pj";
+    /* cp/cn : le select sert aux PJ, le champ texte aux PNJ et familles */
+    var cp=$("#tdld-ncible-pj");
+    if(cp&&deb.value)cp.value=deb.value;                 /* le débiteur est la cible par défaut */
+    if(cn)cn.value="";
+    if(ct&&deb.value){ ct.value="pj"; if(ct.onchange)ct.onchange(); }
   };
   var cre=$("#tdld-ncre");
   if(cre)cre.onchange=function(){
@@ -757,7 +771,9 @@ function creer(){
   }
   if(main){
     o.cible_type=(($("#tdld-nctype")||{}).value||"aucune");
-    o.cible=(($("#tdld-ncible-nom")||{}).value||"").trim();
+    o.cible=(o.cible_type==="pj"
+      ? (($("#tdld-ncible-pj")||{}).value||"")
+      : (($("#tdld-ncible-nom")||{}).value||"")).trim();
     if(o.cible_type!=="aucune"&&!o.cible){toast("Nomme la cible.");return;}
     if(o.cible_type==="pj"){
       var df=$("#tdld-ndefaut"), forcer=!!(df&&df.checked&&peutCibler());
