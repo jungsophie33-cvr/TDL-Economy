@@ -372,27 +372,30 @@ function formCreation(){
     +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir la tâche</button><button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
 }
    
-   /* ---- signalement à la Main (canal d'urgence) ---- */
+/* ---- signalement à la Main (canal d'urgence) ---- */
 function formAlerte(){
   var opts=Object.keys(CERTITUDE).map(function(k){
     return '<option value="'+k+'">'+CERTITUDE[k]+'</option>';
   }).join("");
+  function f(label, inner, full){
+    return '<div class="fld'+(full?" full":"")+'"><label class="tdlm-fl">'+label+'</label>'+inner+'</div>';
+  }
+  var g="";
+  g+=f("En une ligne",'<input type="text" id="tdlf-atitre" placeholder="Le problème, dit le plus simplement possible">');
+  g+=f("Degré de certitude",'<select id="tdlf-acert">'+opts+'</select>');
+  g+=f("Ce que nous savons",'<textarea id="tdlf-asait" placeholder="Les faits, dans l\u2019ordre où vous les avez appris. Qui a dit quoi, à qui, quand\u2026"></textarea>',true);
+  g+=f("Personnes évoquées (facultatif)",
+       '<input type="text" id="tdlf-aevoq" placeholder="Des noms qui reviennent, sans certitude">'
+       +'<div class="tdlm-todo" style="margin-top:6px">'+esc(ALERTE.garde)+'</div>');
+  g+=f("Ce qui est en jeu pour nous",'<textarea id="tdlf-aenjeu" placeholder="Ce que nous risquons si rien n\u2019est fait\u2026"></textarea>');
+
   return '<div class="tdlm-dpanel"><div class="tdlm-dp-title"><span class="tdlm-type">Le silence a été rompu</span></div>'
     +'<div class="tdlm-dp-body">'
     +'<div class="tdlm-sec"><p class="tdlm-hsec">Appeler la Main de la Providence</p>'
     +'<div class="tdlm-prose">'+esc(ALERTE.intro)+'</div></div>'
     +'<div class="tdlm-drawer on" style="margin:0 24px 20px">'
-    +'<label class="tdlm-fl">En une ligne</label>'
-    +'<input type="text" id="tdlf-atitre" placeholder="Ce qui arrive, dit le plus simplement possible">'
-    +'<label class="tdlm-fl">Degré de certitude</label><select id="tdlf-acert">'+opts+'</select>'
-    +'<label class="tdlm-fl">Ce que nous savons</label>'
-    +'<textarea id="tdlf-asait" placeholder="Les faits, dans l\u2019ordre où vous les avez appris. Qui a dit quoi, à qui, quand\u2026"></textarea>'
-    +'<label class="tdlm-fl">Personnes évoquées (facultatif)</label>'
-    +'<input type="text" id="tdlf-aevoq" placeholder="Des noms qui reviennent, sans certitude">'
-    +'<div class="tdlm-todo" style="margin:6px 0 10px">'+esc(ALERTE.garde)+'</div>'
-    +'<label class="tdlm-fl">Ce qui est en jeu pour nous</label>'
-    +'<textarea id="tdlf-aenjeu" placeholder="Ce que nous risquons si rien n\u2019est fait\u2026"></textarea>'
-    +'<div class="tdlm-todo" style="margin:6px 0 0">'+esc(ALERTE.fait)+'</div>'
+    +'<div class="tdlm-fgrid">'+g+'</div>'
+    +'<div class="tdlm-todo" style="margin:10px 0 0">'+esc(ALERTE.fait)+'</div>'
     +'<div class="tdlm-row"><button class="tdlm-abtn warn" data-do="alerteok">Transmettre à la Main</button>'
     +'<button class="tdlm-abtn" data-do="alertecancel">Annuler</button></div></div></div></div>';
 }
