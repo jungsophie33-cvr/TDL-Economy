@@ -78,6 +78,13 @@
 
     if (!titre) { alert("Donne un titre à la mission."); return; }
     if (!prime || prime <= 0) { alert("Indique une prime valide (en dollars)."); return; }
+    try {
+      var g = (Q.gele && Q.gele()) || 0;
+      if (g > 0 && Q.dispo() < prime) {
+        alert("Fonds insuffisants : " + Q.money(g) + " de votre solde sont retenus par la Main.");
+        return;
+      }
+    } catch(e){}
     var mand = mandLbl || (mandType==="anonyme" ? "Anonyme" : p);
 
     if (!window.confirm("Ouvrir la mission « "+titre+" » ?\nLa prime de "+prime+" $ sera retenue immédiatement (recréditée si aucune cellule ne s\u2019en empare sous 7 jours).")) return;
