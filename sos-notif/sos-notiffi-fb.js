@@ -21,7 +21,9 @@
 
 /* ===================== CONFIG ===================== */
 var CFG = {
-  BASE:       "https://thedrownedlands-b35b4-default-rtdb.europe-west1.firebasedatabase.app",               /* [MAJ] https://xxxx.firebaseio.com — laissé vide : détecté depuis EcoCore */
+  /* [MAJ] miroir de FIREBASE_CONFIG.databaseURL dans eco-core. Le SDK et
+     EcoCore.BASE_URL priment ; ceci n'est qu'un repli. */
+  BASE:       "https://thedrownedlands-b35b4-default-rtdb.europe-west1.firebasedatabase.app",
   NODE:       "notifs",
   NODE_PSEUDO:"notifs_pseudo",
   NODE_GLOB:  "notifs_globales",
@@ -45,6 +47,7 @@ var S = {
   ouvert: 0,                    /* horodatage d'ouverture de session */
   pret:   false,
   flux:   null,
+  sdk:    false,
   vu:     0                     /* dernier signe de vie du flux */
 };
 
@@ -57,22 +60,12 @@ function pseudo() { try { return _userdata.username ? String(_userdata.username)
 function cle(s) { return String(s == null ? "" : s).replace(/[.$#\[\]\/]/g, "_"); }
 function tsDe(id) { var m = String(id || "").match(/^tdl_(\d+)_/); return m ? parseInt(m[1], 10) : 0; }
 
+/* eco-core garde BASE_URL en const privée : si tu ajoutes BASE_URL à son
+   export, il devient la source unique et CFG.BASE ne sert plus à rien. */
 function base() {
-  if (CFG.BASE) return CFG.BASE;
-  var e = E(), k, v;
-  var cand = ["FIREBASE_URL", "DB_URL", "BASE_URL", "BASE", "URL", "DB", "FB_URL"];
-  for (k = 0; k < cand.length; k++) {
-    v = e && e[cand[k]];
-    if (typeof v === "string" && /firebase/i.test(v)) { CFG.BASE = v.replace(/\/+$/, ""); return CFG.BASE; }
-  }
-  for (k in e) {
-    try { v = e[k]; } catch (x) { continue; }
-    if (typeof v === "string" && /firebase(io\.com|database\.app)/i.test(v)) {
-      CFG.BASE = v.replace(/\.json.*$/, "").replace(/\/+$/, "");
-      return CFG.BASE;
-    }
-  }
-  return "";
+  var e = E();
+  var b = (e && typeof e.BASE_URL === "string" && e.BASE_URL) || CFG.BASE;
+  return String(b || "").replace(/\/+$/, "");
 }
 
 function ecrire(map) {
@@ -313,7 +306,40 @@ function alerte(id, n) {
   });
 }
 
-/* ===================== FLUX ===================== */
+/* ===================== FLUX SDK =====================
+   eco-core charge déjà firebase-database-compat et fait initializeApp : le SDK
+   est donc disponible. Il multiplexe TOUTES les écoutes sur une seule
+   websocket — perso + canal global pour une connexion au lieu de deux — et
+   gère seul la reconnexion. On le préfère à EventSource quand il est là.
+   Les enfants déjà présents déclenchent child_added à l'attache : le filtre
+   ts > S.ouvert suffit à ne pas rejouer l'historique en alertes. */
+function arrive(id, n, src) {
+  if (!n || typeof n !== "object") return;
+  var neuf = !(src === "g" ? S.glob[id] : S.perso[id]);
+  if (src === "g") S.glob[id] = n; else S.perso[id] = n;
+  rafraichir();
+  if (neuf && (+n.ts || 0) > S.ouvert && !(src === "g" && S.etat.masquees[id])) alerte(id, n);
+}
+
+function fluxSDK() {
+  var u = uid(), db;
+  if (!u || !window.firebase || !firebase.apps || !firebase.apps.length) return false;
+  try { db = firebase.database(); } catch (e) { return false; }
+  if (!db) return false;
+  try {
+    var rp = db.ref(CFG.NODE + "/" + u);
+    rp.on("child_added",   function (s) { arrive(s.key, s.val(), "u"); });
+    rp.on("child_changed", function (s) { S.perso[s.key] = s.val(); rafraichir(); });
+    rp.on("child_removed", function (s) { delete S.perso[s.key]; rafraichir(); });
+
+    var rg = db.ref(CFG.NODE_GLOB).orderByKey().limitToLast(CFG.GLOB_MAX);
+    rg.on("child_added",   function (s) { arrive(s.key, s.val(), "g"); });
+  } catch (e) { return false; }
+  S.sdk = true;
+  return true;
+}
+
+/* ===================== FLUX REST (repli) ===================== */
 function appliquer(chemin, data, premier) {
   var neuf = [];
   if (chemin === "/") {
@@ -459,8 +485,10 @@ function demarrer() {
     purger(u);
     S.pret = true;
     rafraichir();
-    if (flux()) { globales(true); setInterval(function () { globales(false); }, CFG.POLL_GLOB); }
-    else degrade();
+    if (!fluxSDK()) {
+      if (flux()) { globales(true); setInterval(function () { globales(false); }, CFG.POLL_GLOB); }
+      else degrade();
+    }
     if (window.EcoNotif && window.EcoNotif.calendrier) window.EcoNotif.calendrier();
   });
 }
