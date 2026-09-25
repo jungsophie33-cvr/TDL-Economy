@@ -41,9 +41,8 @@
 .tdlm-req-chip[aria-pressed="true"]{background:var(--dark2);color:#fff}
 
 /* ---- scène ---- */
-#tdlm-stage{flex:1;min-height:0;display:flex;flex-direction:column;padding:0}
-#tdlf-stage{flex:1;min-height:0;display:flex;flex-direction:column;padding:0}
-#tdlf-stf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#tdlm-stage, #tdlf-stage, #tdld-stage {flex:1;min-height:0;display:flex;flex-direction:column;padding:0}
+#tdld-stf, #tdlf-stf {display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 /* ---- éléments partagés ---- */
 .tdlm-stamp{font-family:var(--txt3);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border:1.5px solid var(--sc);color:var(--sc);border-radius:3px;transform:rotate(-2deg);display:inline-block;white-space:nowrap}
