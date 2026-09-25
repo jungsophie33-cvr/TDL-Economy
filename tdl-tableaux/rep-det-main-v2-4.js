@@ -227,7 +227,24 @@ function compteurs(pseudo){
 /* ===================== ÉTAT / FILTRAGE ===================== */
 var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, prefill:null};
 function $(s,ctx){return (ctx||document).querySelector(s);}
-function av(n){return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';}
+/* ---- avatars : lus dans le bottin des faceclaims ----
+   Aucune copie : si un membre change de faceclaim, son avatar suit ici. */
+var AVATARS = {};
+function indexAvatars(rec){
+  var fc=(rec&&rec.faceclaims)||{}, idx={};
+  function score(c){ return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0); }
+  Object.keys(fc).forEach(function(k){
+    var c=fc[k]; if(!c||!c.pseudo)return;
+    var a=idx[c.pseudo];
+    if(!a||score(c)>score(a))idx[c.pseudo]=c;
+  });
+  return idx;
+}
+function av(n){
+  var c=AVATARS[n];
+  if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
+  return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
+}
 function aTraiter(m){return m.demandeValidation||m.statut==="accord_attendu";}
 function filtre(){return D.filter(function(m){
   if(!visible(m))return false;
@@ -817,6 +834,7 @@ function loadData(){
   var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
   Promise.resolve(pr).then(function(rec){
     MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||{};
+    AVATARS=indexAvatars(rec);
     var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
     D=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     D.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
@@ -844,6 +862,7 @@ function tickRefresh(){
   Promise.resolve(pr).then(function(rec){
     if(S.drawer||S.inline||S.creation||Date.now()-_lastWrite<5000)return;
     MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
+    AVATARS=indexAvatars(rec);
     var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
     var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     next.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
