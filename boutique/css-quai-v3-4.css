@@ -165,9 +165,9 @@
 .qb-bargebody{padding:20px 26px 26px}
 .qb-bargebody .qb-dtag {width:fit-content;color: var(--clair1);background: var(--gradark);margin:auto;}
 
-.qb-bull{margin: auto;padding-left: 18px;text-align: left;width: fit-content;}
+.qb-bull{margin: auto;padding-left: 18px;text-align: left;width: fit-content;position:relative;}
 .qb-bull li{font-size: 17px;line-height: 1.55;margin-bottom: 4px;background: var(--clair1opa6);padding: 2px 10px;border-radius: 5px;font-family: var(--txt2);}
-.qb-bull li:before {position: absolute;left: 55px;font-size: 1.2em;font-family: uicons-regular-rounded!important;content: "\e0ec";background: var(--gradark);background-clip: text;color: #fff0;}
+.qb-bull li:before {position: absolute;left: -20px;font-size: 1.2em;font-family: uicons-regular-rounded!important;content: "\e0ec";background: var(--gradark);background-clip: text;color: #fff0;}
 
 .qb .qb-check{display:flex;align-items:flex-start;gap:8px;margin-top:10px;justify-content:center;
   font-family:var(--txt3);color:var(--txt);cursor:pointer;line-height:1.5}
