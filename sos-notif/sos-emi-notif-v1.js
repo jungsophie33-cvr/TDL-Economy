@@ -90,7 +90,8 @@ var NOTIFS = {
   144:{n:C.ENQ,  ic:"hourglass-end",  url:U.ENQUETES,  txt:function(d){return "L'enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; passe en instance de validation.";}},
   145:{n:C.ENQ,  ic:"inbox-in",       url:U.ENQUETES,  txt:function(d){return "L'enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
   146:{n:C.ENQ,  ic:"sack-dollar",    url:U.ENQUETES,  txt:function(d){return "Enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; close : "+(+d.montant||0)+" $ vous ont été versés.";}},
-
+  147:{n:C.ENQ,  ic:"user-crown",     url:U.ENQUETES,  txt:function(d){return esc(d.pseudo)+" demande à devenir référent de &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+   
   /* --- Calendrier --- */
   150:{n:C.CAL,  ic:"drama-masks",    url:"/calendar", txt:function(d){return "Nouvelle intrigue : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   151:{n:C.CAL,  ic:"calendar-star",  url:"/calendar", txt:function(d){return "Nouvel événement membre : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
