@@ -136,7 +136,7 @@
       +   '<div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.reseau)+'</h3></div>'
       +   '<p class="tdlb-main-desc">'+escH(T.reseauTxt)+'</p></div>'
       +   '<div class="tdlb-main-rfiltres">'+filtresRes()+'</div></div>'
-      + (res.length?'<div class="tdlb-flo-pgrid">'+res.map(resCard).join("")+'</div>'
+      + (res.length?'<div class="tdlb-flo-pgrid tdlb-fai-rgrid">'+res.map(resCard).join("")+'</div>'
                    :'<div class="tdlb-empty">'+escH(T.reseauVide)+'</div>')
       + '</section>';
   }
