@@ -21,7 +21,7 @@
     HERO: "Sage-femmes, infirmières, médecins. Elles ne prennent pas d\u2019argent : elles prennent le silence. Ce qu\u2019on leur doit ne se rembourse jamais en dollars.",
     FAV_HELPER: "Les Faiseuses ne facturent rien. Elles travaillent contre le silence et le secret gardé \u2014 c\u2019est la seule contrepartie exigée. Un don en nature, en remerciement, reste possible mais n\u2019achète rien.",
     FAV_CADRE: "La demande doit relever de leur c\u0153ur de métier : un réseau clandestin de soins, de gens du milieu médical et de ressources médicales. Hors de ce cadre, elles ne répondront pas.",
-    FAV_SUITE: "Votre demande est d\u2019abord relue par le staff, puis soumise aux Faiseuses elles-mêmes, qui décident collégialement d\u2019accepter, de refuser ou de reporter. Rien ne vous est garanti.",
+    FAV_SUITE: "Votre demande est d\u2019abord relue par le staff, puis soumise aux Faiseuses elles-mêmes, qui décident collégialement d\u2019accepter, de refuser ou de reporter.",
     DON_HELPER: "Un don aux Faiseuses n\u2019est jamais de l\u2019argent : c\u2019est un accès. Une porte qu\u2019on laisse entrouverte, une clé qu\u2019on prête, un nom qu\u2019on souffle.",
     DON_SUITE: "Si le don est retenu, votre personnage entre dans le réseau de ressources des Faiseuses d'Anges et apparaît dans leur bottin. Elles pourront faire appel à votre personnage en cas de besoin...",
     DISPO: [["disponible","Disponible \u2014 on peut compter dessus régulièrement"],
