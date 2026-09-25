@@ -392,10 +392,17 @@ function brancher(){
 
 function act(k){
   var a=parId(S.sel); if(!a&&k!=="new")return;
-  if(k==="demander"){if(a.cloturee){toast("Affaire close.");return;}if(!estMembre()){toast("Connexion requise.");return;}var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});toast("Demande envoyée au staff.");renderStage();}
+  if(k==="demander"){if(a.cloturee){toast("Affaire close.");return;}if(!estMembre()){toast("Connexion requise.");return;}var moi=myPseudo();if(!moi){toast("Connexion requise.");return;}if(a.demandesReferent.indexOf(moi)<0)a.demandesReferent.push(moi);patch(a,{demandesReferent:a.demandesReferent});
+                         try{ if(window.EcoNotif) EcoNotif.staff(147,{pseudo:moi,titre:a.titre},"ref"+a.id+"_"+moi); }catch(e){}
+                     toast("Demande envoyée au staff.");renderStage();}
   else if(k==="rp"){if(a.cloturee){toast("Affaire close.");return;}if(!estMembre()){toast("Connexion requise.");return;}S.drawer="rp";S.inline=null;renderStage();}
   else if(k==="verif"){if(a.cloturee){toast("Affaire close.");return;}S.onglet="personnes";S.drawer=null;S.inline=null;renderStage();}
-  else if(k==="askclose"){if(a.cloturee){toast("Affaire déjà close.");return;}a.demandeCloture=true;patch(a,{demandeCloture:true});toast("Demande de clôture envoyée au staff.");renderStage();}
+  else if(k==="askclose"){if(a.cloturee){toast("Affaire déjà close.");return;}a.demandeCloture=true;patch(a,{demandeCloture:true});
+    try{ if(window.EcoNotif){ var dc=participants(a).slice();
+      if(a.referent&&dc.indexOf(a.referent)<0)dc.push(a.referent);
+      EcoNotif.a(dc,144,{titre:a.titre},"val"+a.id);
+      EcoNotif.staff(145,{titre:a.titre},"vals"+a.id); } }catch(e){}
+    toast("Demande de clôture envoyée au staff.");renderStage();}
   else if(k==="addel"){S.inline=S.inline==="element"?null:"element";renderStage();}
   else if(k==="addpart"){S.inline=S.inline==="particularite"?null:"particularite";renderStage();}
   else if(k==="addchr"){S.inline=S.inline==="chrono"?null:"chrono";renderStage();}
@@ -419,11 +426,24 @@ function doo(k){
     joins.forEach(function(u){var s=a.sujets.filter(function(s){return s.url===u;})[0];if(s&&s.membres.indexOf(moi)<0)s.membres.push(moi);});
     if(url)a.sujets.push({url:url,titre:cleanTitre({url:url}),membres:[moi]});
     if(!joins.length&&!url){toast("Cochez un sujet ou renseignez une URL.");return;}
-    patch(a,{sujets:a.sujets});S.drawer=null;S.onglet="liens";toast("Inscrit·e comme participant·e.");renderStage();
+    patch(a,{sujets:a.sujets});
+         try{ if(window.EcoNotif){
+      if(a.referent) EcoNotif.a(a.referent,141,{pseudo:moi,titre:a.titre},"insc"+a.id+"_"+moi);
+      EcoNotif.staff(142,{pseudo:moi,titre:a.titre},"inscs"+a.id+"_"+moi);
+    } }catch(e){}
+     S.drawer=null;S.onglet="liens";toast("Inscrit·e comme participant·e.");renderStage();
   }
-  if(k==="elok"){var t=(($("#tdle-elin")||{}).value||"").trim();if(!t){toast("Rien à ajouter.");return;}a.elements.push(t);patch(a,{elements:a.elements});S.inline=null;toast("Élément ajouté.");renderStage();}
+  if(k==="elok"){var t=(($("#tdle-elin")||{}).value||"").trim();if(!t){toast("Rien à ajouter.");return;}a.elements.push(t);patch(a,{elements:a.elements});
+       try{ if(window.EcoNotif){ var dst=participants(a).slice();
+      if(a.referent&&dst.indexOf(a.referent)<0)dst.push(a.referent);
+      EcoNotif.a(dst,143,{titre:a.titre},"el"+a.id+"_"+a.elements.length); } }catch(e){}
+      S.inline=null;toast("Élément ajouté.");renderStage();}
   if(k==="partok"){var tp=(($("#tdle-partin")||{}).value||"").trim();if(!tp){toast("Rien à ajouter.");return;}a.particularites.push(tp);patch(a,{particularites:a.particularites});S.inline=null;toast("Particularité ajoutée.");renderStage();}
-  if(k==="chok"){var dt=(($("#tdle-chdate")||{}).value||"").trim(),tx=(($("#tdle-chtxt")||{}).value||"").trim();if(!tx){toast("Décris l'étape.");return;}a.chrono.push([staffNom(),dt||"date RP ?",tx]);patch(a,{chrono:a.chrono});S.inline=null;toast("Étape ajoutée.");renderStage();}
+  if(k==="chok"){var dt=(($("#tdle-chdate")||{}).value||"").trim(),tx=(($("#tdle-chtxt")||{}).value||"").trim();if(!tx){toast("Décris l'étape.");return;}a.chrono.push([staffNom(),dt||"date RP ?",tx]);patch(a,{chrono:a.chrono});
+       try{ if(window.EcoNotif){ var dst=participants(a).slice();
+      if(a.referent&&dst.indexOf(a.referent)<0)dst.push(a.referent);
+      EcoNotif.a(dst,143,{titre:a.titre},"chr"+a.id+"_"+a.chrono.length); } }catch(e){}
+      S.inline=null;toast("Étape ajoutée.");renderStage();}
   if(k==="rlok"){var tr=(($("#tdle-rlin")||{}).value||"").trim();if(!tr)return;a.roles=a.roles.filter(function(x){return x!=="—";});a.roles.push(tr);patch(a,{roles:a.roles});renderStage();}
   if(k==="lienok"){var tid=(($("#tdle-liensel")||{}).value||"").trim();if(!tid){toast("Aucune affaire à lier.");return;}var note=(($("#tdle-liennote")||{}).value||"").trim();
     if(role(a)==="staff"){ajouterLien(a,tid,note);patch(a,{liens:a.liens});toast("Lien ajouté.");}
@@ -439,7 +459,9 @@ function doo(k){
     a.synthese=(($("#tdle-esyn")||{}).value||"").trim();
     a.statutTxt=(($("#tdle-estatut")||{}).value||"").trim();
     a.rp=(($("#tdle-erp")||{}).value||"").trim();
-    renumeroter();patch(a,{type:a.type,dateISO:a.dateISO,titre:a.titre,victime:a.victime,lieu:a.lieu,enqueteur:a.enqueteur,synthese:a.synthese,statutTxt:a.statutTxt,rp:a.rp});S.drawer=null;toast("Affaire enregistrée — cote : "+a.cote);renderAll();
+    renumeroter();patch(a,{type:a.type,dateISO:a.dateISO,titre:a.titre,victime:a.victime,lieu:a.lieu,enqueteur:a.enqueteur,synthese:a.synthese,statutTxt:a.statutTxt,rp:a.rp});
+         try{ if(window.EcoNotif) EcoNotif.uneFois("enq"+a.id,function(){ EcoNotif.tous(140,{titre:a.titre},"enq"+a.id); }); }catch(e){}
+     S.drawer=null;toast("Affaire enregistrée — cote : "+a.cote);renderAll();
   }
 }
 
@@ -477,6 +499,9 @@ function cloturer(a){
   chain.then(function(){
     a.cloturee=true;a.bonusVerse=true;a.demandeCloture=false;
     patch(a,{cloturee:true,bonusVerse:true,demandeCloture:false});
+         try{ if(window.EcoNotif) vals.forEach(function(p){
+      EcoNotif.a(p,146,{titre:a.titre,montant:BONUS_PARTICIPANT+((a.referent&&p===a.referent)?BONUS_REFERENT:0)},"bonus"+a.id+"_"+p);
+    }); }catch(e){}
     var nb=vals.length,tot=nb*BONUS_PARTICIPANT+(a.referent?BONUS_REFERENT:0);
     toast("Clôturée. "+nb+" × "+BONUS_PARTICIPANT+"$"+(a.referent?" + "+BONUS_REFERENT+"$ référent":"")+" = "+tot+"$.");
     renderAll();
