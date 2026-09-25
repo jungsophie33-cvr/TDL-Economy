@@ -104,7 +104,9 @@
         topic:"", resume:"", consequences:"", demandeValidation:false,
         cree:new Date().toISOString(), rembourse:false, primeVersee:false
       };
-      return E.writeField("missions/"+id, mission).catch(function(e){
+      return E.writeField("missions/"+id, mission).then(function(){
+        try { if (window.EcoNotif) EcoNotif.bande("maringouins", 110, { titre:titre, prime:prime }, "mis"+id); } catch(e){}
+      }).catch(function(e){
         /* écriture échouée → recrédit pour ne pas retenir sans trace */
         E.firebaseTransaction("membres/"+P+"/dollars", function(cur){ return (cur||0)+prime; }).catch(function(){});
         throw e;
