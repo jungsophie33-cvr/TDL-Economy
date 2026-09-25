@@ -566,7 +566,7 @@ function whenEco(cb){
   },125);
 }
 
-var REFRESH_MS=20000;
+var REFRESH_MS=60000;
 function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
 function tickRefresh(){
   if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
@@ -598,6 +598,15 @@ function initApp(){
   whenEco(function(){
     loadData();
     setInterval(tickRefresh,REFRESH_MS);
+    if(window.TDLPoll)window.TDLPoll.suivre({
+      node: CFG.NODE,
+      occupe: function(){ return !!(S.drawer||S.inline||S.creation)||Date.now()-_lastWrite<3000; },
+      onDonnees: function(raw){
+        T=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
+        T.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+        autoRefus();fixSel();renderAll();
+      }
+    });
     setTimeout(function(){ /* le bouton n'apparaît qu'une fois l'appartenance connue */
       if(neuf&&(estFaiseuse(myPseudo())||isStaff()))neuf.style.display="";
     },1200);
