@@ -407,31 +407,36 @@ function panel(m){
     +actionbar(m);
 }
 
+/* Rôles cumulés — voir la même remarque dans rep-tac-fais. */
 function actionbar(m){
-  var me=myPseudo(), staff=isStaff(), resp=(me&&me===m.responsable), label, btns="";
+  var me=myPseudo(), staff=isStaff(), resp=(me&&me===m.responsable), roles=[], btns="";
+
+  if(resp&&(m.statut==="saisi"||m.statut==="en_validation")){
+    roles.push("Responsable");
+    btns+='<button class="tdlm-abtn" data-act="sujet">'+(m.sujet?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
+    btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; validation")+'</button>';
+  }
   if(staff){
-    label="Staff";
+    roles.push("Staff");
     if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="clore">Clore le dossier</button>';
     btns+='<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>';
     if(m.statut!=="close"&&m.statut!=="classee")btns+='<button class="tdlm-abtn warn" data-act="classer">Classer sans suite</button>';
     btns+='<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>';
-  }else if(resp&&(m.statut==="saisi"||m.statut==="en_validation")){
-    label="Responsable";
-    btns+='<button class="tdlm-abtn" data-act="sujet">'+(m.sujet?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
-    btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; validation")+'</button>';
-  }else if(estCible(m)&&m.statut==="accord_attendu"){
-    label="Personnage visé"; btns='<span class="tdlm-idle">Votre réponse est attendue ci-dessus.</span>';
-  }else if(me&&me===m.demandeur){
-    label="Demandeur"; btns='<span class="tdlm-idle">Dossier transmis à la Main — statut : '+STATUTS[m.statut].label.toLowerCase()+'.</span>';
-  }else if(estMain(me)){
-    label=estJason(me)?"La Main":(estCavalier(me)?"Cavalier":"Membre de la Main");
-    btns='<span class="tdlm-idle">'+(peutSaisir(m)?"Saisissez-vous du dossier ci-dessus.":"Rien à faire pour l\u2019instant.")+'</span>';
-  }else if(!estConnecte()){
-    label="Invité"; btns='<span class="tdlm-idle">Connectez-vous.</span>';
-  }else{
-    label="Visiteur"; btns='<span class="tdlm-idle">Ce registre ne vous concerne pas.</span>';
   }
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+label+'</span>'+btns+'</div>';
+  if(!btns){
+    if(estCible(m)&&m.statut==="accord_attendu"){ roles.push("Personnage visé");
+      btns='<span class="tdlm-idle">Votre réponse est attendue ci-dessus.</span>'; }
+    else if(me&&me===m.demandeur){ roles.push("Demandeur");
+      btns='<span class="tdlm-idle">Dossier transmis à la Main — statut : '+STATUTS[m.statut].label.toLowerCase()+'.</span>'; }
+    else if(estMain(me)){ roles.push(estJason(me)?"La Main":(estCavalier(me)?"Cavalier":"Membre de la Main"));
+      btns='<span class="tdlm-idle">'+(peutSaisir(m)?"Saisissez-vous du dossier ci-dessus.":"Rien à faire pour l\u2019instant.")+'</span>'; }
+    else if(!estConnecte()){ roles.push("Invité");
+      btns='<span class="tdlm-idle">Connectez-vous.</span>'; }
+    else { roles.push("Visiteur");
+      btns='<span class="tdlm-idle">Ce registre ne vous concerne pas.</span>'; }
+  }
+  if(!roles.length)roles.push("Visiteur");
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" · ")+'</span>'+btns+'</div>';
 }
 
 /* ---- drawers ---- */
