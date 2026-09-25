@@ -83,7 +83,10 @@ var NOTIFS = {
   130:{n:C.FAV,  ic:"hand-holding-heart", url:U.TACHES, txt:function(d){return "Une faveur est soumise au vote : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   131:{n:C.FAV,  ic:"comment-check",  url:U.TACHES,    txt:function(d){return "Votre demande de faveur a été "+(d.ok?"acceptée":"refusée")+".";}},
   132:{n:C.FAV,  ic:"comment-slash",  url:U.TACHES,    txt:function(){return "Un silence a été rompu. Le canal d'urgence est ouvert.";}},
-
+  133:{n:C.FAV,  ic:"hands-heart",   url:U.TACHES,    txt:function(d){return "Nouvelle tâche ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; — appel à volontaires.";}},
+  134:{n:C.FAV,  ic:"inbox-in",      url:U.TACHES,    txt:function(d){return "La tâche &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
+  135:{n:C.FAV,  ic:"address-book",  url:U.TACHES,    txt:function(){return "Vous avez été inscrit·e au réseau des Faiseuses d'Anges.";}},
+   
   /* --- Panneau des enquêtes --- */
   140:{n:C.ENQ,  ic:"badge-sheriff",  url:U.ENQUETES,  txt:function(d){return "Nouvelle enquête ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   141:{n:C.ENQ,  ic:"user-add",       url:U.ENQUETES,  txt:function(d){return esc(d.pseudo)+" rejoint votre enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
