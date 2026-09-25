@@ -30,7 +30,7 @@ var CFG = {
   NODE_CAGNOTTES: "cagnottes",
   CAGNOTTE: "Providence",
   BANDE: "main",
-  EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=000&mode=editpost" /* [MAJ] sujet porteur */
+  EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=469&mode=editpost" /* [MAJ] sujet porteur */
 };
 
 var STATUTS = {
