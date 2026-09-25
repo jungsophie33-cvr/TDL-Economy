@@ -142,6 +142,9 @@
 .tdlm-chkline{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0}
 .tdlm-chkline input{width:16px;height:16px;accent-color:var(--gr6-color);flex:none}
 
+@container(min-width:900px) {
+   .tdlm-fgrid {grid-template-columns:repeat(auto-fit,minmax(350px,1fr));}
+}
 /* ---- divers ---- */
 .tdlm-empty{padding:50px 20px;text-align:center;color:var(--darkopa7);font-style:italic}
 .tdlm-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;font-family:var(--txt3);font-size:13px;background:var(--dark);color:var(--clair1);padding:11px 18px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.3);max-width:90%;text-align:center}
