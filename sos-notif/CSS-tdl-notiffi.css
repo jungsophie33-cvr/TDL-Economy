@@ -1,0 +1,85 @@
+/* THE DROWNED LANDS — NOTIFICATIONS FIREBASE DANS NOTIFFI
+   Purement ADDITIF : rien ici ne redéfinit .notification, .notif_text ni les
+   autres classes de Notiffi. Tout est scopé sous .tdl, la classe posée par
+   notiffi-fb.js à côté de la classe de module (.tdl.tdl_mission, etc.).
+   Une couleur par module, prise sur les variables de groupe du forum. */
+
+/* ---------- couleur par module ---------- */
+.notification.tdl_boutique   { --c: var(--gr1-color); --c20: var(--gr1-20); }
+.notification.tdl_mission    { --c: var(--gr2-color); --c20: var(--gr2-20); }
+.notification.tdl_enquete    { --c: var(--gr3-color); --c20: var(--gr3-20); }
+.notification.tdl_calendrier { --c: var(--gr4-color); --c20: var(--gr4-20); }
+.notification.tdl_faveur     { --c: var(--gr5-color); --c20: var(--gr5-20); }
+.notification.tdl_main       { --c: var(--gr6-color); --c20: var(--gr6-20); }
+.notification.tdl_autre      { --c: var(--cntr);      --c20: var(--cntr2); }
+
+/* ---------- liseré d'appartenance ---------- */
+.notification.tdl {
+  border-left: 2px solid var(--c);
+  cursor: pointer;
+  transition: background .18s ease;
+}
+.notification.tdl:hover { background: var(--c20); }
+
+/* ---------- l'icône tient lieu d'avatar ----------
+   Nos notifications n'ont pas d'émetteur humain : pastille pleine, pas de
+   portrait. Le slot avatar reste vide et se replie. */
+.notification.tdl .notif_avatar:empty { display: none; }
+
+.notification.tdl .notif_icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--c20);
+  color: var(--c);
+  font-size: 15px;
+  line-height: 1;
+}
+.notification.tdl .notif_icon i { display: block; }
+
+/* ---------- texte ---------- */
+.notification.tdl .notif_text {
+  font-family: var(--txt2);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--txt);
+}
+/* l'italique reste réservé aux noms propres et aux phrases d'ambiance */
+.notification.tdl .notif_text b,
+.notification.tdl .notif_text strong { font-weight: 600; color: var(--dark); }
+
+.notification.tdl .notif_time {
+  font-family: var(--txt3);
+  font-size: 10px;
+  letter-spacing: .04em;
+  color: var(--cntr);
+}
+
+/* ---------- non lue ---------- */
+.notification.tdl.unread { background: var(--c20); }
+.notification.tdl.unread .notif_text { color: var(--dark); }
+.notification.tdl.unread .notif_icon { background: var(--c); color: var(--clair1); }
+
+/* ---------- alerte (toast) ---------- */
+.notification.alert.tdl {
+  border-left: 2px solid var(--c);
+  background: var(--clair1);
+  box-shadow: 0 4px 20px var(--darkopa3);
+  cursor: pointer;
+}
+.notification.alert.tdl .notif_avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--clair1);
+  font-size: 15px;
+  line-height: 1;
+}
+.notification.alert.tdl .notif_avatar:empty { display: none; }
