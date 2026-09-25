@@ -58,7 +58,7 @@ var NOTIFS = {
   103:{n:C.BOUT, ic:"inbox-in",       url:U.STAFF,     txt:function(d){return "Nouvelle demande d'achat de "+esc(d.pseudo)+" : &laquo;&nbsp;"+esc(d.nom)+"&nbsp;&raquo;.";}},
 
   /* --- Missions des Maringouins --- */
-  110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; — prime "+(+d.prime||0)+" $.";}},
+  110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;  prime "+(+d.prime||0)+" $.";}},
   111:{n:C.MIS,  ic:"user-check",     url:U.MISSIONS,  txt:function(d){return esc(d.chef)+" prend la tête de votre mission &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   112:{n:C.MIS,  ic:"comment-dollar", url:U.MISSIONS,  txt:function(d){return "Renégociation de la prime sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; : "+(+d.montant||0)+" $ demandés.";}},
   113:{n:C.MIS,  ic:"handshake",      url:U.MISSIONS,  txt:function(d){return "Votre renégociation sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+(d.ok?"acceptée":"refusée")+".";}},
@@ -76,7 +76,9 @@ var NOTIFS = {
   124:{n:C.MAIN, ic:"lock",           url:U.DETTES,    txt:function(d){return "Une somme de "+(+d.montant||0)+" $ est retenue sur votre solde.";}},
   125:{n:C.MAIN, ic:"badge-check",    url:U.DETTES,    txt:function(){return "Votre dette envers la Main est acquittée.";}},
   126:{n:C.MAIN, ic:"shield-check",   url:U.DETTES,    txt:function(d){return esc(d.pseudo)+" fait appel à la protection de la Main.";}},
-
+  127:{n:C.MAIN, ic:"inbox-in",      url:U.DETTES, txt:function(d){return "Le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
+  128:{n:C.MAIN, ic:"unlock",        url:U.DETTES, txt:function(){return "La somme retenue sur votre solde a été libérée.";}},
+   
   /* --- Faiseuses d'Anges --- */
   130:{n:C.FAV,  ic:"hand-holding-heart", url:U.TACHES, txt:function(d){return "Une faveur est soumise au vote : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   131:{n:C.FAV,  ic:"comment-check",  url:U.TACHES,    txt:function(d){return "Votre demande de faveur a été "+(d.ok?"acceptée":"refusée")+".";}},
