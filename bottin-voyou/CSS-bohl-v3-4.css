@@ -94,6 +94,14 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
   border-top:1px solid var(--cntr5);padding-top:10px;width:100%;justify-content:center}
 .tdlb-fai-since i{color:var(--dark2);opacity:.7}
 
+/* ---- pastilles de disponibilité (réseau des Faiseuses) ---- */
+.tdlb-rep .tag-dispo{font-family:var(--txt3);font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:20px;padding:1px 9px;display:inline-block;color:#fff}
+.tdlb-rep .tag-dispo.disponible{background:var(--gr2-color)}
+.tdlb-rep .tag-dispo.ponctuel{background:var(--gr1-color)}
+.tdlb-rep .tag-dispo.indisponible{background:var(--darkopa5)}
+.tdlb-rep .tdlb-fai-act{font-family:var(--font2);font-style:italic;color:var(--darkopa6);font-size:15px}
+
 /* ---- barre d'action staff (bas) ---- */
 .tdlb-actionbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 26px;border-top:1px solid var(--cntr4);background:var(--cntr2)}
 .tdlb-actionbar.vide{display:none}
