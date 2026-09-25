@@ -682,8 +682,15 @@ function doo(k){
 function repondre(m, oui){
   var me=myPseudo();
   if(!estCible(m)){toast("Vous n\u2019êtes pas le personnage visé.");return;}
-  var raison="";
-  if(!oui){ raison=window.prompt("Pour le staff : en quelques mots, pourquoi refusez-vous ?","")||""; }
+    var raison="";
+  if(!oui){
+    /* prompt renvoie null si on annule, "" si on valide à vide : il faut
+       distinguer les deux, sinon « Annuler » enregistre un refus. */
+    var saisie=window.prompt("Pour le staff : en quelques mots, pourquoi refusez-vous ?","");
+    if(saisie===null) return;
+    raison=saisie.trim();
+    if(!window.confirm("Refuser d\u2019être visé par ce dossier ?\nIl sera classé et votre réponse consignée.")) return;
+  }
   else if(!window.confirm("Accepter que votre personnage soit visé par ce dossier ?\nIl deviendra visible des membres de la Main.")) return;
   m.accord={choix:oui?"accepte":"refuse", par:me, date:new Date().toISOString(), raison:raison};
   m.statut=oui?"ouvert":"classee";
