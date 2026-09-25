@@ -7,11 +7,13 @@
                     refuse de régler. Seul type à porter un montant, donc un GEL.
    - protection   : la Main s'acquitte d'un deal. Ouverte par la Main, ou
                     APPELÉE par un contact porteur d'un lien reseau_main.
+                    protege = qui l'on protège ; cible = ce qui menace.
    - silence      : canal d'urgence des Faiseuses d'Anges (créé par leur
                     tableau, pas ici — voir rep-tac-fais).
 
    ACCÈS : lecture réservée aux membres de la Main et au staff. Le demandeur
-   et le PJ ciblé voient leur seul dossier.
+   et le PJ ciblé voient leur seul dossier. Un dossier en attente d'accord ne
+   sort pas du cercle staff + Jason + intéressé.
    ACCORD : viser un PJ exige son accord horodaté ici, jamais ailleurs. Jason
    et le staff seuls peuvent passer outre, par DÉFAUT CARACTÉRISÉ (constat
    calculé + motif), et uniquement sur une créance tracée.
@@ -66,6 +68,8 @@ function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujour
 function money(n){return (+n||0)+" $";}
 function typeLabel(k){return (TYPES[k]&&TYPES[k].label)||k;}
 function typeIcon(k){return (TYPES[k]&&TYPES[k].ic)||"fi-tr-folder";}
+/* le même champ désigne la menace sur une protection, la cible ailleurs */
+function cibleLbl(m){return m.type==="protection"?"Menace":"Cible";}
 
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
 function estConnecte(){try{return typeof _userdata!=="undefined"&&parseInt(_userdata.user_id,10)>0;}catch(e){return false;}}
@@ -118,7 +122,6 @@ function creanceDe(d){
   }
   return null;
 }
-
 function dossierSur(pseudo, c){
   return D.some(function(m){
     if(!m.dette||m.dette.pseudo!==pseudo)return false;
@@ -146,6 +149,7 @@ function normaliser(o){
   o.demandeur=o.demandeur||null;
   o.cible_type=CIBLES[o.cible_type]?o.cible_type:"aucune";
   o.cible=o.cible||"";
+  o.protege=o.protege||"";
   o.accord=(o.accord&&o.accord.choix)?o.accord:null;
   o.defaut=(o.defaut&&o.defaut.constat)?o.defaut:null;
   o.dette=(o.dette&&o.dette.pseudo)?o.dette:null;
@@ -203,6 +207,8 @@ function peutSaisir(m){
 function estCible(m){var me=myPseudo();return m.cible_type==="pj"&&!!me&&me===m.cible;}
 function visible(m){
   var me=myPseudo();
+  /* tant que le ciblé n'a pas répondu, le dossier ne sort pas du cercle
+     de celui qui l'a ouvert : staff, Jason, et l'intéressé. */
   if(m.statut==="accord_attendu") return isStaff()||estJason(me)||estCible(m);
   return isStaff()||estMain(me)||(!!me&&me===m.demandeur)||estCible(m);
 }
@@ -268,7 +274,7 @@ function renderStage(){
   _lastSel=S.sel;
   brancher();
 }
-   
+
 function viewArdoise(){
   var g=ardoise();
   var corps=g.length?g.map(function(x){
@@ -291,7 +297,7 @@ function viewArdoise(){
     +'<div class="tdlm-prose">Le grand livre, pas le registre. Tant que le débiteur est de bonne foi, tout se règle au panel staff \u2014 on n\u2019ouvre un dossier que sur un refus.</div></div>'
     + corps +'</div></div>';
 }
-   
+
 function viewDossier(){
   var d=filtre();
   var rows=d.length?d.map(function(m){
@@ -300,7 +306,8 @@ function viewDossier(){
     if(m.defaut)tags+='<span class="tdlm-req" style="background:var(--gr6-color)">défaut</span>';
     if(m.montant)tags+='<span class="tdlm-req" style="background:var(--gr1-color)">'+money(m.montant)+'</span>';
     if(m.demandeValidation)tags+='<span class="tdlm-req">⚑ validation</span>';
-    var sub=typeLabel(m.type)+(m.cible?' · '+m.cible:(m.demandeur?' · '+m.demandeur:''));
+    var appui=(m.type==="protection")?(m.protege||m.demandeur||m.cible):(m.cible||m.demandeur);
+    var sub=typeLabel(m.type)+(appui?' · '+appui:'');
     return '<div class="tdlm-drow" data-sel="'+m.id+'" aria-current="'+(m.id===S.sel)+'">'
       +'<span class="tdlm-ddot" style="--sc:'+STATUTS[m.statut].c+'"></span>'
       +'<div style="min-width:0">'
@@ -324,7 +331,8 @@ function panel(m){
     +'<div class="tdlm-m"><span class="tdlm-k">Nature</span><span class="tdlm-v"><i class="fi '+typeIcon(m.type)+'"></i>'+esc(typeLabel(m.type))+'</span></div>'
     +'<div class="tdlm-m"><span class="tdlm-k">Doigt</span><span class="tdlm-v">'+(m.doigt?esc(DOIGTS[m.doigt]||m.doigt):'<span class="tdlm-todo">non rattaché</span>')+'</span></div>'
     +'<div class="tdlm-m"><span class="tdlm-k">Responsable</span><span class="tdlm-v">'+(m.responsable?esc(m.responsable):'<span class="tdlm-todo">à désigner</span>')+'</span></div>'
-    +(m.cible_type!=="aucune"?'<div class="tdlm-m"><span class="tdlm-k">Cible</span><span class="tdlm-v">'+esc(m.cible||"—")+' <span class="tdlm-todo">('+esc(CIBLES[m.cible_type])+')</span></span></div>':'')
+    +(m.protege?'<div class="tdlm-m"><span class="tdlm-k">Sous protection</span><span class="tdlm-v">'+esc(m.protege)+'</span></div>':'')
+    +(m.cible_type!=="aucune"?'<div class="tdlm-m"><span class="tdlm-k">'+cibleLbl(m)+'</span><span class="tdlm-v">'+esc(m.cible||"—")+' <span class="tdlm-todo">('+esc(CIBLES[m.cible_type])+')</span></span></div>':'')
     +(m.demandeur?'<div class="tdlm-m"><span class="tdlm-k">Demandeur</span><span class="tdlm-v">'+esc(m.demandeur)+'</span></div>':'')
     +(m.montant?'<div class="tdlm-m"><span class="tdlm-k">Somme gelée</span><span class="tdlm-v"><b>'+money(m.montant)+'</b></span></div>':'')
     +(m.certitude?'<div class="tdlm-m"><span class="tdlm-k">Degré de certitude</span><span class="tdlm-v">'+esc(CERTITUDE[m.certitude])+'</span></div>':'')
@@ -451,6 +459,7 @@ function drawer(m){
     return '<div class="tdlm-drawer on"><h4>Modifier les termes (staff)</h4>'
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdld-etitre" value="'+escAttr(m.titre)+'">'
       +'<label class="tdlm-fl">Doigt rattaché</label><select id="tdld-edoigt">'+dg+'</select>'
+      +(m.type==="protection"?'<label class="tdlm-fl">Sous protection</label><input type="text" id="tdld-eprot" value="'+escAttr(m.protege)+'">':'')
       +'<label class="tdlm-fl">Objectif</label><textarea id="tdld-eobj">'+esc(m.objectif)+'</textarea>'
       +'<label class="tdlm-fl">Contraintes (une par ligne)</label><textarea id="tdld-econtr">'+esc(m.contraintes.join("\n"))+'</textarea>'
       +'<label class="tdlm-fl">Contexte</label><textarea id="tdld-ectx">'+esc(m.contexte)+'</textarea>'
@@ -485,22 +494,28 @@ function formCreation(){
   var g="";
   g+=f("Nature",'<select id="tdld-ntype">'+types.map(function(k){return '<option value="'+k+'">'+TYPES[k].label+'</option>';}).join("")+'</select>');
   g+=f("Titre",'<input type="text" id="tdld-ntitre" placeholder="Ce que voient les autres en un coup d\u2019\u0153il">');
-  if(main)g+=f("Doigt rattaché",'<select id="tdld-ndoigt">'+dg+'</select>');
   if(main){
+    g+=f("Doigt rattaché",'<select id="tdld-ndoigt">'+dg+'</select>');
     g+='<div id="tdld-nrecouv" style="display:none">'
       + f("Débiteur",'<select id="tdld-ndeb">'+optMembres()+'</select>')
       + f("Créance",'<select id="tdld-ncre"><option value="">— choisir un débiteur d\u2019abord —</option></select>')
       + f("Somme à geler ($)",'<input type="text" id="tdld-nmontant" value="0">')
       + '</div>';
+    g+='<div id="tdld-nprot" style="display:none">'
+      + f("Personne ou groupe protégé",'<input type="text" id="tdld-nprotege" placeholder="Pseudo, famille, commerce\u2026">')
+      + '</div>';
     g+='<div id="tdld-ncible">'
-      + f("Cible",'<select id="tdld-nctype">'+cb+'</select>')
-      + f("Nom de la cible",'<input type="text" id="tdld-ncible-nom" placeholder="Pseudo du PJ, nom du PNJ ou de la famille">')
+      + f('<span id="tdld-lcible">Cible</span>','<select id="tdld-nctype">'+cb+'</select>')
+      + f('<span id="tdld-lciblenom">Nom de la cible</span>','<input type="text" id="tdld-ncible-nom" placeholder="Pseudo du PJ, nom du PNJ ou de la famille">')
       + (peutCibler()
          ? '<div class="fld full"><label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdld-ndefaut"> Défaut caractérisé — ouvrir sans l\u2019accord du PJ visé</label>'
            + '<input type="text" id="tdld-ndmotif" placeholder="Motif : refus en RP, dette laissée courir\u2026"></div>' : "")
       + '</div>';
   }
-  if(appel)g+=f("Urgence",'<input type="text" id="tdld-nurg" placeholder="Immédiate, dans les jours qui viennent\u2026">');
+  if(appel){
+    g+=f("Urgence",'<input type="text" id="tdld-nurg" placeholder="Immédiate, dans les jours qui viennent\u2026">');
+    g+=f("Ce qui vous menace",'<input type="text" id="tdld-ncible-nom" placeholder="Qui, ou quoi, si vous le savez">');
+  }
   g+=f("Contexte",'<textarea id="tdld-nctx" placeholder="Ce qui a mené jusque-là\u2026"></textarea>',true);
   g+=f("Objectif",'<textarea id="tdld-nobj" placeholder="Ce que la Main doit obtenir\u2026"></textarea>',true);
   g+=f("Contraintes (une par ligne)",'<textarea id="tdld-ncontr"></textarea>',true);
@@ -526,16 +541,24 @@ function brancher(){
   };});
   stage.querySelectorAll("[data-act]").forEach(function(el){el.onclick=function(){act(el.getAttribute("data-act"));};});
   stage.querySelectorAll("[data-do]").forEach(function(el){el.onclick=function(){doo(el.getAttribute("data-do"));};});
-  var ty=$("#tdld-ntype"), rec=$("#tdld-nrecouv"), cib=$("#tdld-ncible");
+
+  var ty=$("#tdld-ntype"), rec=$("#tdld-nrecouv"), cib=$("#tdld-ncible"), prot=$("#tdld-nprot");
+  var lc=$("#tdld-lcible"), lcn=$("#tdld-lciblenom");
   if(ty){
-            var maj=function(){
+    /* display:contents pour que les champs restent des cellules de la grille */
+    var maj=function(){
+      var pro=(ty.value==="protection");
       if(rec)rec.style.display=(ty.value==="recouvrement")?"contents":"none";
-      if(cib)cib.style.display="contents";   };
+      if(prot)prot.style.display=pro?"contents":"none";
+      if(cib)cib.style.display="contents";
+      if(lc)lc.textContent=pro?"Menace":"Cible";
+      if(lcn)lcn.textContent=pro?"Nom de la menace":"Nom de la cible";
+    };
     ty.onchange=maj; maj();
   }
   var deb=$("#tdld-ndeb");
   if(deb)deb.onchange=function(){
-    var cre=$("#tdld-ncre"); if(cre)cre.innerHTML=optCreances(deb.value);
+    var cr=$("#tdld-ncre"); if(cr)cr.innerHTML=optCreances(deb.value);
     var mt=$("#tdld-nmontant"); if(mt)mt.value="0";
     var cn=$("#tdld-ncible-nom"), ct=$("#tdld-nctype");
     if(cn&&!cn.value)cn.value=deb.value;                 /* le débiteur est la cible par défaut */
@@ -548,13 +571,13 @@ function brancher(){
     var c=creances(d.value)[+cre.value];
     if(c)mt.value=String(c.montant||0);
   };
-     if(S.creation&&S.prefill){
+  if(S.creation&&S.prefill){
     var pf=S.prefill; S.prefill=null;
     if(ty){ ty.value="recouvrement"; ty.onchange(); }
     var db=$("#tdld-ndeb");
     if(db){ db.value=pf.pseudo; db.onchange(); }
-    var cr=$("#tdld-ncre");
-    if(cr){ cr.value=String(pf.idx); cr.onchange(); }
+    var cr2=$("#tdld-ncre");
+    if(cr2){ cr2.value=String(pf.idx); cr2.onchange(); }
   }
 }
 
@@ -610,10 +633,11 @@ function doo(k){
   if(k==="editok"){
     m.titre=(($("#tdld-etitre")||{}).value||"").trim()||m.titre;
     var dd=$("#tdld-edoigt"); if(dd)m.doigt=dd.value||null;
+    var pe=$("#tdld-eprot"); if(pe)m.protege=pe.value.trim();
     m.objectif=(($("#tdld-eobj")||{}).value||"").trim();
     m.contraintes=(($("#tdld-econtr")||{}).value||"").split("\n").map(function(x){return x.trim();}).filter(Boolean);
     m.contexte=(($("#tdld-ectx")||{}).value||"").trim();
-    patch(m,{titre:m.titre,doigt:m.doigt,objectif:m.objectif,contraintes:m.contraintes,contexte:m.contexte});
+    patch(m,{titre:m.titre,doigt:m.doigt,protege:m.protege,objectif:m.objectif,contraintes:m.contraintes,contexte:m.contexte});
     S.drawer=null;toast("Termes enregistrés.");renderAll();return;
   }
 }
@@ -662,17 +686,17 @@ function clore(m){
    d'être un contact. */
 function acquitter(m){
   if(!m.dette||!m.dette.pseudo)return Promise.resolve();
-  var p=m.dette.pseudo, E=window.EcoCore;
+  var p=m.dette.pseudo, EC=window.EcoCore;
   if(m.dette.source==="lien"){
-    return Promise.resolve(E.safeReadBin()).then(function(r){
+    return Promise.resolve(EC.safeReadBin()).then(function(r){
       var arr=vt(r&&r[CFG.NODE_MEMBRES]&&r[CFG.NODE_MEMBRES][p]&&r[CFG.NODE_MEMBRES][p].liens);
       var ix=+m.dette.idx;
       if(arr[ix]){var l={};for(var k in arr[ix])if(arr[ix].hasOwnProperty(k))l[k]=arr[ix][k];l.statut=null;arr[ix]=l;}
-      return E.writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/liens",arr.length?arr:null);
+      return EC.writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/liens",arr.length?arr:null);
     });
   }
   var o={}; o[CFG.NODE_MEMBRES+"/"+p+"/"+(m.dette.source==="pret"?"prets":"dettes")+"/"+m.dette.key]=null;
-  return E.firebaseUpdate(o);
+  return EC.firebaseUpdate(o);
 }
 function finaliser(m){
   m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
@@ -705,7 +729,7 @@ function creer(){
 
   var o={ type:type, origine:main?"main":"contact", titre:titre,
           doigt:main?((($("#tdld-ndoigt")||{}).value)||null):null,
-          demandeur:main?null:me, cible_type:"aucune", cible:"",
+          demandeur:main?null:me, cible_type:"aucune", cible:"", protege:"",
           accord:null, defaut:null, dette:null, montant:0,
           contexte:(($("#tdld-nctx")||{}).value||"").trim(),
           objectif:(($("#tdld-nobj")||{}).value||"").trim(),
@@ -726,6 +750,11 @@ function creer(){
     o.montant=parseInt((($("#tdld-nmontant")||{}).value||"0").replace(/[^\d]/g,""),10)||0;
     if(o.montant&&solde(deb)<o.montant){toast("Le solde de "+deb+" ("+money(solde(deb))+") ne couvre pas la somme — inutile d\u2019ouvrir.");return;}
   }
+  if(type==="protection"){
+    /* un contact qui appelle est lui-même le protégé */
+    o.protege = main ? (($("#tdld-nprotege")||{}).value||"").trim() : me;
+    if(!o.protege){toast("Nomme la personne ou le groupe que la Main protège.");return;}
+  }
   if(main){
     o.cible_type=(($("#tdld-nctype")||{}).value||"aucune");
     o.cible=(($("#tdld-ncible-nom")||{}).value||"").trim();
@@ -744,6 +773,11 @@ function creer(){
         o.statut="accord_attendu";
       }
     }
+  } else {
+    /* un appelant décrit ce qui lui arrive, il n'accuse pas un PJ : la menace
+       reste un PNJ tant que le staff ne requalifie pas le dossier. */
+    o.cible=(($("#tdld-ncible-nom")||{}).value||"").trim();
+    if(o.cible)o.cible_type="pnj";
   }
 
   var id=newId();
@@ -772,9 +806,9 @@ function loadData(){
 function whenEco(cb){
   if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
   loading("Connexion à la base…");
-  var n=0,iv=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv);cb();}
-    else if(++n>80){clearInterval(iv);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+  var n=0,iv2=setInterval(function(){
+    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv2);cb();}
+    else if(++n>80){clearInterval(iv2);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
   },125);
 }
 var REFRESH_MS=60000;
