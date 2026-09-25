@@ -119,6 +119,25 @@ function creanceDe(d){
   return null;
 }
 
+function dossierSur(pseudo, c){
+  return D.some(function(m){
+    if(!m.dette||m.dette.pseudo!==pseudo)return false;
+    if(m.statut==="close"||m.statut==="classee")return false;
+    if(c.source==="lien")return m.dette.source==="lien"&&String(m.dette.idx)===String(c.idx);
+    return m.dette.source===c.source&&m.dette.key===c.key;
+  });
+}
+function ardoise(){
+  var out=[];
+  Object.keys(MEMBRES).sort(function(a,b){return a.localeCompare(b,"fr");}).forEach(function(p){
+    var list=creances(p); if(!list.length)return;
+    out.push({pseudo:p, solde:solde(p), lignes:list.map(function(c,i){
+      return {i:i, c:c, couvert:dossierSur(p,c)};
+    })});
+  });
+  return out;
+}
+
 function normaliser(o){
   o.titre=o.titre||"Dossier";
   o.type=TYPES[o.type]?o.type:"recouvrement";
@@ -184,6 +203,7 @@ function peutSaisir(m){
 function estCible(m){var me=myPseudo();return m.cible_type==="pj"&&!!me&&me===m.cible;}
 function visible(m){
   var me=myPseudo();
+  if(m.statut==="accord_attendu") return isStaff()||estJason(me)||estCible(m);
   return isStaff()||estMain(me)||(!!me&&me===m.demandeur)||estCible(m);
 }
 
@@ -199,7 +219,7 @@ function compteurs(pseudo){
 }
 
 /* ===================== ÉTAT / FILTRAGE ===================== */
-var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false};
+var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, prefill:null};
 function $(s,ctx){return (ctx||document).querySelector(s);}
 function av(n){return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';}
 function aTraiter(m){return m.demandeValidation||m.statut==="accord_attendu";}
@@ -223,6 +243,10 @@ function renderStatutFilters(){
     var nd=vis.filter(aTraiter).length;
     html+='<button class="tdlm-stf tdlm-req-chip" data-st="demandes" aria-pressed="'+(S.statut==="demandes")+'">⚑ À traiter <b>'+nd+'</b></button>';
   }
+  if(peutOuvrir()){
+    var na=0; ardoise().forEach(function(g){ g.lignes.forEach(function(l){ if(!l.couvert)na++; }); });
+    html+='<button class="tdlm-stf tdlm-req-chip" data-st="ardoise" aria-pressed="'+(S.statut==="ardoise")+'">Ardoise <b>'+na+'</b></button>';
+  }
   var el=$("#tdld-stf");
   if(el){el.innerHTML=html;el.querySelectorAll(".tdlm-stf").forEach(function(b){b.onclick=function(){S.statut=b.getAttribute("data-st");fixSel();renderStage();renderStatutFilters();};});}
 }
@@ -238,13 +262,36 @@ function renderStage(){
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=S.creation?formCreation():viewDossier();
+  el.innerHTML=S.creation?formCreation():(S.statut==="ardoise"&&peutOuvrir()?viewArdoise():viewDossier());
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
   brancher();
 }
-
+   
+function viewArdoise(){
+  var g=ardoise();
+  var corps=g.length?g.map(function(x){
+    return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
+      +'<span class="tdlm-hsec" style="margin:0">'+esc(x.pseudo)+'</span>'
+      +'<span class="tdlm-todo">solde '+money(x.solde)+'</span></div>'
+      + x.lignes.map(function(l){
+          var b=l.couvert
+            ? '<span class="tdlm-r">dossier ouvert</span>'
+            : '<button class="tdlm-abtn" data-ard="'+escAttr(x.pseudo)+'\u0001'+l.i+'">Ouvrir un dossier</button>';
+          return '<div class="tdlm-person">'+av(x.pseudo)
+            +'<span class="tdlm-pname">'+esc(l.c.libelle)
+            +(l.c.date?' <span class="tdlm-todo">· '+esc(ilya(l.c.date))+'</span>':'')+'</span>'+b+'</div>';
+        }).join("")
+      +'</div>';
+  }).join(""):'<div class="tdlm-empty">Personne ne doit rien à la Main.</div>';
+  return '<div class="tdlm-dpanel">'
+    +'<div class="tdlm-dp-title"><span class="tdlm-type">L\u2019ardoise</span></div>'
+    +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on doit à la Main</p>'
+    +'<div class="tdlm-prose">Le grand livre, pas le registre. Tant que le débiteur est de bonne foi, tout se règle au panel staff \u2014 on n\u2019ouvre un dossier que sur un refus.</div></div>'
+    + corps +'</div></div>';
+}
+   
 function viewDossier(){
   var d=filtre();
   var rows=d.length?d.map(function(m){
@@ -425,35 +472,45 @@ function optCreances(p){
   }).join("");
 }
 function formCreation(){
-  var me=myPseudo(), main=peutOuvrir(), appel=!main&&peutAppeler();
+  var main=peutOuvrir(), appel=!main&&peutAppeler();
   var types=main?Object.keys(TYPES).filter(function(k){return k!=="silence";}):["protection"];
   var dg='<option value="">— non rattaché —</option>'+Object.keys(DOIGTS).map(function(k){return '<option value="'+k+'">'+DOIGTS[k]+'</option>';}).join("");
   var cb=Object.keys(CIBLES).map(function(k){return '<option value="'+k+'">'+CIBLES[k]+'</option>';}).join("");
   var intro=main
     ? "Un dossier ne s\u2019ouvre que lorsque quelqu\u2019un refuse de s\u2019exécuter, ou qu\u2019une menace pèse sur un protégé. La bonne foi se règle ailleurs."
     : "Vous faites partie du réseau de la Main. Ce n\u2019est pas un service que vous achetez : c\u2019est un dû que vous invoquez.";
+  function f(label, inner, full){
+    return '<div class="fld'+(full?" full":"")+'"><label class="tdlm-fl">'+label+'</label>'+inner+'</div>';
+  }
+  var g="";
+  g+=f("Nature",'<select id="tdld-ntype">'+types.map(function(k){return '<option value="'+k+'">'+TYPES[k].label+'</option>';}).join("")+'</select>');
+  g+=f("Titre",'<input type="text" id="tdld-ntitre" placeholder="Ce que voient les autres en un coup d\u2019\u0153il">');
+  if(main)g+=f("Doigt rattaché",'<select id="tdld-ndoigt">'+dg+'</select>');
+  if(main){
+    g+='<div id="tdld-nrecouv" style="display:none">'
+      + f("Débiteur",'<select id="tdld-ndeb">'+optMembres()+'</select>')
+      + f("Créance",'<select id="tdld-ncre"><option value="">— choisir un débiteur d\u2019abord —</option></select>')
+      + f("Somme à geler ($)",'<input type="text" id="tdld-nmontant" value="0">')
+      + '</div>';
+    g+='<div id="tdld-ncible">'
+      + f("Cible",'<select id="tdld-nctype">'+cb+'</select>')
+      + f("Nom de la cible",'<input type="text" id="tdld-ncible-nom" placeholder="Pseudo du PJ, nom du PNJ ou de la famille">')
+      + (peutCibler()
+         ? '<div class="fld full"><label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdld-ndefaut"> Défaut caractérisé — ouvrir sans l\u2019accord du PJ visé</label>'
+           + '<input type="text" id="tdld-ndmotif" placeholder="Motif : refus en RP, dette laissée courir\u2026"></div>' : "")
+      + '</div>';
+  }
+  if(appel)g+=f("Urgence",'<input type="text" id="tdld-nurg" placeholder="Immédiate, dans les jours qui viennent\u2026">');
+  g+=f("Contexte",'<textarea id="tdld-nctx" placeholder="Ce qui a mené jusque-là\u2026"></textarea>',true);
+  g+=f("Objectif",'<textarea id="tdld-nobj" placeholder="Ce que la Main doit obtenir\u2026"></textarea>',true);
+  g+=f("Contraintes (une par ligne)",'<textarea id="tdld-ncontr"></textarea>',true);
+
   return '<div class="tdlm-dpanel"><div class="tdlm-dp-title"><span class="tdlm-type">Ouvrir un dossier</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Avant d\u2019écrire</p><div class="tdlm-prose">'+esc(intro)+'</div></div>'
     +'<div class="tdlm-drawer on" style="margin:0 24px 20px">'
-    +'<label class="tdlm-fl">Nature</label><select id="tdld-ntype">'+types.map(function(k){return '<option value="'+k+'">'+TYPES[k].label+'</option>';}).join("")+'</select>'
-    +'<label class="tdlm-fl">Titre</label><input type="text" id="tdld-ntitre" placeholder="Ce que voient les autres en un coup d\u2019\u0153il">'
-    +(main?'<label class="tdlm-fl">Doigt rattaché</label><select id="tdld-ndoigt">'+dg+'</select>':'')
-    +'<div id="tdld-nrecouv" style="display:none">'
-      +'<label class="tdlm-fl">Débiteur</label><select id="tdld-ndeb">'+optMembres()+'</select>'
-      +'<label class="tdlm-fl">Créance</label><select id="tdld-ncre"><option value="">— choisir un débiteur d\u2019abord —</option></select>'
-      +'<label class="tdlm-fl">Somme à geler ($, 0 si la dette n\u2019est pas monétaire)</label><input type="text" id="tdld-nmontant" value="0">'
-    +'</div>'
-    +(main?'<div id="tdld-ncible">'
-      +'<label class="tdlm-fl">Cible</label><select id="tdld-nctype">'+cb+'</select>'
-      +'<label class="tdlm-fl">Nom de la cible</label><input type="text" id="tdld-ncible-nom" placeholder="Pseudo du PJ, nom du PNJ ou de la famille">'
-      +(peutCibler()?'<label class="tdlm-fl" style="margin-top:8px"><input type="checkbox" id="tdld-ndefaut"> Défaut caractérisé — ouvrir sans l\u2019accord du PJ visé</label>'
-        +'<input type="text" id="tdld-ndmotif" placeholder="Motif : refus en RP, dette laissée courir\u2026">':'')
-    +'</div>':'')
-    +(appel?'<label class="tdlm-fl">Urgence</label><input type="text" id="tdld-nurg" placeholder="Immédiate, dans les jours qui viennent\u2026">':'')
-    +'<label class="tdlm-fl">Contexte</label><textarea id="tdld-nctx" placeholder="Ce qui a mené jusque-là\u2026"></textarea>'
-    +'<label class="tdlm-fl">Objectif</label><textarea id="tdld-nobj" placeholder="Ce que la Main doit obtenir\u2026"></textarea>'
-    +'<label class="tdlm-fl">Contraintes (une par ligne)</label><textarea id="tdld-ncontr"></textarea>'
-    +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir le dossier</button><button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
+    +'<div class="tdlm-fgrid">'+g+'</div>'
+    +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir le dossier</button>'
+    +'<button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
 }
 
 /* ===================== ÉVÉNEMENTS ===================== */
@@ -463,12 +520,17 @@ function brancher(){
   var stage=$("#tdld-stage"); if(!stage)return;
   stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};});
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
+  stage.querySelectorAll("[data-ard]").forEach(function(el){el.onclick=function(){
+    var p=el.getAttribute("data-ard").split("\u0001");
+    S.prefill={pseudo:p[0], idx:+p[1]}; S.creation=true; S.drawer=null; S.inline=null; renderStage();
+  };});
   stage.querySelectorAll("[data-act]").forEach(function(el){el.onclick=function(){act(el.getAttribute("data-act"));};});
   stage.querySelectorAll("[data-do]").forEach(function(el){el.onclick=function(){doo(el.getAttribute("data-do"));};});
   var ty=$("#tdld-ntype"), rec=$("#tdld-nrecouv"), cib=$("#tdld-ncible");
   if(ty){
-    var maj=function(){ if(rec)rec.style.display=(ty.value==="recouvrement")?"":"none";
-                        if(cib)cib.style.display=(ty.value==="recouvrement")?"":"none"; };
+            var maj=function(){
+      if(rec)rec.style.display=(ty.value==="recouvrement")?"contents":"none";
+      if(cib)cib.style.display="contents";   };
     ty.onchange=maj; maj();
   }
   var deb=$("#tdld-ndeb");
@@ -486,6 +548,14 @@ function brancher(){
     var c=creances(d.value)[+cre.value];
     if(c)mt.value=String(c.montant||0);
   };
+     if(S.creation&&S.prefill){
+    var pf=S.prefill; S.prefill=null;
+    if(ty){ ty.value="recouvrement"; ty.onchange(); }
+    var db=$("#tdld-ndeb");
+    if(db){ db.value=pf.pseudo; db.onchange(); }
+    var cr=$("#tdld-ncre");
+    if(cr){ cr.value=String(pf.idx); cr.onchange(); }
+  }
 }
 
 function act(k){
@@ -607,7 +677,7 @@ function acquitter(m){
 function finaliser(m){
   m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
   patch(m,{statut:"close",demandeValidation:false,clos:m.clos});
-  toast("Dossier clos.");E.invalider();renderAll();
+  toast("Dossier clos.");E.invalider();loadData();
 }
 function classer(m){
   if(!window.confirm("Classer « "+m.titre+" » sans suite ?"+(m.montant?"\nLa somme gelée sera libérée.":"")))return;
