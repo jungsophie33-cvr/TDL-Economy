@@ -157,6 +157,7 @@
         if (base.detteAuto) { d.dette_type = base.detteAuto; d.creancier = base.creancier || ""; d.motif = base.nom || ""; }
         if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
+        try { if (window.EcoNotif) EcoNotif.staff(103, { pseudo:p, nom:base.nom }); } catch(e){}
       } catch(e){
         /* demande non enregistrée → on rembourse pour ne pas retenir sans trace */
         await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0)+montant; }).catch(function(){});
@@ -195,6 +196,7 @@
         d.creancier = base.creancier || base.bande || ""; d.motif = base.nom || "";
         if (numero) d.dette_num=numero; if (montant) d.montant=montant;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
+        try { if (window.EcoNotif) EcoNotif.staff(103, { pseudo:p, nom:base.nom }); } catch(e){}
       } catch(e){
         if (montant > 0) await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + P + "/dollars", function(cur){ return (cur||0)+montant; }).catch(function(){});
         if (window.console) console.error("[Quais] dette", e); alert(TXT.ERR_ACHAT); return { ok:false };
@@ -211,6 +213,7 @@
         var d = demandeBase(base, champs); d.type = base.demandeType || "demande";
         if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
+        try { if (window.EcoNotif) EcoNotif.staff(103, { pseudo:p, nom:base.nom }); } catch(e){}
       } catch(e){ if (window.console) console.error("[Quais] demande", e); alert(TXT.ERR_ACHAT); return { ok:false }; }
       return { ok:true, message:TXT.OK_DEMANDE };
     },
