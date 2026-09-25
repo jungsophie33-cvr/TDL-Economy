@@ -227,6 +227,20 @@
       }
       else { o[base+"/statut"] = act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
+        /* [NOTIF] après le catch : l'écriture Firebase a réussi, aucun cas d'échec ici */
+    try {
+      if (window.EcoNotif) {
+        if (act==="valider" || act==="traiter") {
+          EcoNotif.a(d.pseudo, 100, { nom:d.nom }, "achat"+d.id);
+          var dn = detteAInscrire(d);
+          if (dn) EcoNotif.a(d.pseudo, 102, { motif:dn.motif || d.nom }, "dette"+d.id);
+        } else if (act==="annuler") {
+          EcoNotif.a(d.pseudo, 101, { nom:d.nom, montant:d.montant||0 }, "annul"+d.id);
+        } else if (act==="refuser") {
+          EcoNotif.a(d.pseudo, 101, { nom:d.nom, montant:0 }, "refus"+d.id);
+        }
+      }
+    } catch(e){}
     E().invalidateCache(); await charger(); render();
   }
 
