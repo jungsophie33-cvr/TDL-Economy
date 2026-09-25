@@ -27,7 +27,7 @@
     DISPO: [["disponible","Disponible \u2014 on peut compter dessus régulièrement"],
             ["ponctuel","Ponctuel \u2014 une fois de temps en temps, selon les circonstances"],
             ["indisponible","Pas pour l\u2019instant \u2014 à garder en réserve"]],
-    RP_HINT: "Décochée, la faveur se règle en coulisses : les Faiseuses tranchent, vous recevez une réponse. Cochée, elle appelle à créer du rp \u2014 une Faiseuse en prendra la charge et un sujet sera ouvert."
+    RP_HINT: "Décochée, la faveur se règle en coulisses : les Faiseuses tranchent, vous recevez une réponse. Cochée, elle appelle à créer du rp : une Faiseuse en prendra la charge et un sujet sera ouvert."
   };
 
   /* ===================== CATALOGUE ===================== */
@@ -118,8 +118,8 @@
   /* le hero n'affiche jamais de prix pour cette bande */
   function heroPrice(item){
     return item.flow==="don_reseau"
-      ? { l:"Modalité", v:"Don en nature ⟡ aucun dollar" }
-      : { l:"Modalité", v:"Sans tarif ⟡ contre le silence" };
+      ? { l:"Modalité", v:"Don en nature" }
+      : { l:"Modalité", v:"Sans tarif ⟡ dette de silence" };
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
