@@ -75,6 +75,7 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 
 /* ---- Faiseuses : cartes ---- */
 .tdlb-fai-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.tdlb-rep .tdlb-fai-rgrid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))!important}
 .tdlb-fai-card{position:relative;background:var(--cntr2);border:1px solid var(--cntr4);border-radius:8px;padding:25px 10px 14px;text-align:center;
   display:flex;flex-direction:column;align-items:center;gap:8px;transition:transform .12s,box-shadow .12s}
 .tdlb-fai-card:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.12)}
@@ -100,7 +101,7 @@ body.tdlb-body-admin .tdlb-adminonly{display:inline-flex}
 .tdlb-rep .tag-dispo.disponible{background:var(--gr2-color)}
 .tdlb-rep .tag-dispo.ponctuel{background:var(--gr1-color)}
 .tdlb-rep .tag-dispo.indisponible{background:var(--darkopa5)}
-.tdlb-rep .tdlb-fai-act{font-family:var(--font2);font-style:italic;color:var(--darkopa6);font-size:15px}
+.tdlb-rep .tdlb-fai-act{font-family:var(--txt3);color:var(--darkopa6);font-size:0.8em;}
 
 /* ---- barre d'action staff (bas) ---- */
 .tdlb-actionbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 26px;border-top:1px solid var(--cntr4);background:var(--cntr2)}
@@ -370,10 +371,10 @@ body.tdlb-body-admin .tdlb-main-cavcard:hover .actes{display:flex}
 
 /* ---- réseau d'influence : description SOUS le titre, filtres à DROITE (2 lignes) ---- */
 .tdlb-main-reseau{margin-top:6px}
-.tdlb-main-rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin-bottom:14px}
+.tdlb-main-rhead{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap;margin:14px 0;}
 .tdlb-main-rhead .rleft{flex:1;min-width:260px}
 .tdlb-main-rhead .tdlb-main-h{margin-bottom:8px}
-.tdlb-main-rhead .tdlb-main-desc{max-width:520px}
+.tdlb-main-rhead .tdlb-main-desc{}
 .tdlb-main-rfiltres{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin:0}
 .tdlb-main-rf{font-family:var(--txt3);font-size:12px;background:var(--cntr4);border:none;border-radius:5px;padding:2px 5px;cursor:pointer;color:var(--darkopa8);transition:.15s}
 .tdlb-main-rf:hover{background:var(--cntr6)}
