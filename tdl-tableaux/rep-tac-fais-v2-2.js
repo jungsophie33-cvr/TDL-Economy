@@ -291,33 +291,40 @@ function panel(m){
     +actionbar(m);
 }
 
+/* Les rôles se CUMULENT. Un chef de tâche qui est aussi administrateur doit
+   garder ses boutons de chef : sans ça, celui qui joue un personnage et tient
+   le staff ne peut jamais rien conclure. */
 function actionbar(m){
-  var me=myPseudo(), staff=isStaff(), chef=(me&&me===m.chef), label, btns="";
+  var me=myPseudo(), staff=isStaff(), chef=(me&&me===m.chef), roles=[], btns="";
+
+  if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
+    roles.push("Chef de tâche");
+    btns+='<button class="tdlm-abtn" data-act="sujet">'+(m.sujet?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
+    btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; validation")+'</button>';
+  }
+  if(estFaiseuse(me)&&m.statut==="reportee"){
+    roles.push("Faiseuse d\u2019Anges");
+    btns+='<button class="tdlm-abtn prim" data-act="rouvrir">Rouvrir le vote</button>';
+  }
   if(staff){
-    label="Staff";
+    roles.push("Staff");
     if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="valider">Valider la tâche</button>';
     btns+='<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>';
     if(m.statut!=="terminee"&&m.statut!=="refusee")btns+='<button class="tdlm-abtn warn" data-act="refuser">Classer sans suite</button>';
     btns+='<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>';
-  }else if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
-    label="Chef de tâche";
-    btns+='<button class="tdlm-abtn" data-act="sujet">'+(m.sujet?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
-    btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; validation")+'</button>';
-  }else if(estFaiseuse(me)&&m.statut==="reportee"){
-    label="Faiseuse d\u2019Anges";
-    btns+='<button class="tdlm-abtn prim" data-act="rouvrir">Rouvrir le vote</button>';
-  }else if(estFaiseuse(me)){
-    label="Faiseuse d\u2019Anges";
-    btns='<span class="tdlm-idle">'+(m.statut==="en_vote"?"Votez ci-dessus.":"Rien à faire pour l\u2019instant.")+'</span>';
-  }else if(me&&me===m.demandeur){
-    label="Demandeur";
-    btns='<span class="tdlm-idle">'+(m.statut==="en_vote"?"Demande en cours d\u2019examen.":"Décision du réseau : "+STATUTS[m.statut].label.toLowerCase()+".")+'</span>';
-  }else if(!estConnecte()){
-    label="Invité"; btns='<span class="tdlm-idle">Connectez-vous pour interagir.</span>';
-  }else{
-    label="Visiteur"; btns='<span class="tdlm-idle">Table consultable — les tâches ouvertes acceptent tous les volontaires.</span>';
   }
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+label+'</span>'+btns+'</div>';
+  if(!btns){
+    if(estFaiseuse(me)){ roles.push("Faiseuse d\u2019Anges");
+      btns='<span class="tdlm-idle">'+(m.statut==="en_vote"?"Votez ci-dessus.":"Rien à faire pour l\u2019instant.")+'</span>'; }
+    else if(me&&me===m.demandeur){ roles.push("Demandeur");
+      btns='<span class="tdlm-idle">'+(m.statut==="en_vote"?"Demande en cours d\u2019examen.":"Décision du réseau : "+STATUTS[m.statut].label.toLowerCase()+".")+'</span>'; }
+    else if(!estConnecte()){ roles.push("Invité");
+      btns='<span class="tdlm-idle">Connectez-vous pour interagir.</span>'; }
+    else { roles.push("Visiteur");
+      btns='<span class="tdlm-idle">Table consultable — les tâches ouvertes acceptent tous les volontaires.</span>'; }
+  }
+  if(!roles.length)roles.push("Visiteur");
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" · ")+'</span>'+btns+'</div>';
 }
 
 /* ---- drawers ---- */
@@ -360,16 +367,23 @@ function formCreation(){
   var keys=["contact","service","situation"];
   var opts=keys.map(function(k){return '<option value="'+k+'">'+CATS[k].label+'</option>';}).join("");
   var amorces=keys.map(function(k){return '<li class="tdlm-puce"><b>'+CATS[k].label+'</b> — '+esc(CATS[k].amorce)+'</li>';}).join("");
+  function f(label, inner, full){
+    return '<div class="fld'+(full?" full":"")+'"><label class="tdlm-fl">'+label+'</label>'+inner+'</div>';
+  }
+  var g="";
+  g+=f("Nature",'<select id="tdlf-ncat">'+opts+'</select>');
+  g+=f("Titre",'<input type="text" id="tdlf-ntitre" placeholder="Ce que voient les autres en un coup d\u2019\u0153il">');
+  g+=f("Objectif",'<textarea id="tdlf-nobj" placeholder="Ce qu\u2019il faut obtenir, trouver ou régler\u2026"></textarea>');
+  g+=f("Contexte",'<textarea id="tdlf-nctx" placeholder="Ce qui a amené cette situation\u2026"></textarea>');
+  g+=f("Contraintes (une par ligne)",'<textarea id="tdlf-ncontr" placeholder="Discrétion absolue&#10;Avant la fin de la semaine"></textarea>',true);
+
   return '<div class="tdlm-dpanel"><div class="tdlm-dp-title"><span class="tdlm-type">Ouvrir une tâche</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Trois façons d\u2019entrer en jeu</p>'
     +'<ul class="tdlm-clean">'+amorces+'</ul></div>'
     +'<div class="tdlm-drawer on" style="margin:0 24px 20px">'
-    +'<label class="tdlm-fl">Nature</label><select id="tdlf-ncat">'+opts+'</select>'
-    +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlf-ntitre" placeholder="Ce que voient les autres en un coup d\u2019\u0153il">'
-    +'<label class="tdlm-fl">Contexte</label><textarea id="tdlf-nctx" placeholder="Ce qui a amené cette situation\u2026"></textarea>'
-    +'<label class="tdlm-fl">Objectif</label><textarea id="tdlf-nobj" placeholder="Ce qu\u2019il faut obtenir, trouver ou régler\u2026"></textarea>'
-    +'<label class="tdlm-fl">Contraintes (une par ligne)</label><textarea id="tdlf-ncontr" placeholder="Discrétion absolue&#10;Avant la fin de la semaine"></textarea>'
-    +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir la tâche</button><button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
+    +'<div class="tdlm-fgrid">'+g+'</div>'
+    +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="newok">Ouvrir la tâche</button>'
+    +'<button class="tdlm-abtn" data-do="newcancel">Annuler</button></div></div></div></div>';
 }
    
 /* ---- signalement à la Main (canal d'urgence) ---- */
