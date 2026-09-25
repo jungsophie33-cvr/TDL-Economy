@@ -626,7 +626,8 @@ function act(k){
     m.responsable=me;m.statut="saisi";
     if(m.participants.indexOf(me)<0)m.participants.push(me);
     patch(m,{responsable:me,statut:"saisi",participants:m.participants});
-    toast("Dossier saisi — vous en êtes responsable.");renderAll();return;
+       try{ if(window.EcoNotif && m.demandeur) EcoNotif.a(m.demandeur,123,{titre:m.titre},"sai"+m.id); }catch(e){}
+    toast("Dossier saisi : vous en êtes responsable.");renderAll();return;
   }
   if(k==="join"){
     if(!estMain(me)){toast("Réservé aux membres de la Main.");return;}
@@ -662,7 +663,9 @@ function doo(k){
       m.statut="en_validation";m.demandeValidation=true;
       champs.statut="en_validation";champs.demandeValidation=true;
     }
-    patch(m,champs);S.drawer=null;
+    patch(m,champs);
+         try{ if(window.EcoNotif && champs.statut==="en_validation") EcoNotif.staff(127,{titre:m.titre},"val"+m.id); }catch(e){}
+     S.drawer=null;
     toast(champs.statut==="en_validation"?"Dossier envoyé en validation.":"Bilan enregistré.");
     renderAll();return;
   }
@@ -696,7 +699,14 @@ function repondre(m, oui){
   m.statut=oui?"ouvert":"classee";
   if(oui)m.ouverte=new Date().toISOString();
   patch(m,{accord:m.accord,statut:m.statut,ouverte:m.ouverte});
-  toast(oui?"Accord consigné — le dossier est ouvert.":"Refus consigné, dossier classé.");
+     try{ if(window.EcoNotif){
+    EcoNotif.staff(121,{pseudo:me,ok:oui},"rep"+m.id);
+    if(oui){
+      EcoNotif.bande("main",122,{titre:m.titre},"dos"+m.id);
+      if(m.montant&&m.dette&&m.dette.pseudo) EcoNotif.a(m.dette.pseudo,124,{montant:m.montant},"gel"+m.id);
+    }
+  } }catch(e){}
+  toast(oui?"Accord consigné : le dossier est ouvert.":"Refus consigné, dossier classé.");
   renderAll();
 }
 
@@ -744,12 +754,14 @@ function acquitter(m){
 function finaliser(m){
   m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
   patch(m,{statut:"close",demandeValidation:false,clos:m.clos});
+     try{ if(window.EcoNotif && m.dette && m.dette.pseudo) EcoNotif.a(m.dette.pseudo,125,{},"clos"+m.id); }catch(e){}
   toast("Dossier clos.");E.invalider();loadData();
 }
 function classer(m){
   if(!window.confirm("Classer « "+m.titre+" » sans suite ?"+(m.montant?"\nLa somme gelée sera libérée.":"")))return;
   m.statut="classee";m.demandeValidation=false;m.clos=new Date().toISOString();
   patch(m,{statut:"classee",demandeValidation:false,clos:m.clos});
+     try{ if(window.EcoNotif && m.montant && m.dette && m.dette.pseudo) EcoNotif.a(m.dette.pseudo,128,{},"clas"+m.id); }catch(e){}
   toast("Dossier classé sans suite.");renderAll();
 }
 function supprimer(m){
@@ -829,8 +841,17 @@ function creer(){
   _lastWrite=Date.now();
   Promise.resolve(window.EcoCore.writeField(CFG.NODE+"/"+id,o)).then(function(){
     o.id=id;D.unshift(normaliser(o));S.creation=false;S.sel=id;S.mob="detail";
-    toast(o.statut==="accord_attendu"?"Dossier créé — en attente de l\u2019accord de "+o.cible+"."
-         :(o.montant?"Dossier ouvert — "+money(o.montant)+" gelés.":"Dossier ouvert."));
+         try{ if(window.EcoNotif){
+      if(o.statut==="accord_attendu"&&o.cible){
+        EcoNotif.a(o.cible,120,{},"acc"+id);          /* la cible SEULE : rien ne sort du cercle */
+      } else {
+        if(o.origine==="contact") EcoNotif.bande("main",126,{pseudo:me},"appel"+id);
+        else                      EcoNotif.bande("main",122,{titre:o.titre},"dos"+id);
+        if(o.montant&&o.dette&&o.dette.pseudo) EcoNotif.a(o.dette.pseudo,124,{montant:o.montant},"gel"+id);
+      }
+    } }catch(e){}
+    toast(o.statut==="accord_attendu"?"Dossier créé : en attente de l\u2019accord de "+o.cible+"."
+         :(o.montant?"Dossier ouvert ; "+money(o.montant)+" gelés.":"Dossier ouvert."));
     renderAll();
   }).catch(function(){toast("Ouverture échouée.");});
 }
