@@ -30,8 +30,9 @@ var CFG = {
   NODE: "dossiers_main",
   NODE_MEMBRES: "membres",
   NODE_CAGNOTTES: "cagnottes",
-  CAGNOTTE: "Providence",
+    CAGNOTTE: "Providence",
   BANDE: "main",
+  CREANCIER: "La Main de la Providence",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=469&mode=editpost" /* [MAJ] sujet porteur */
 };
 
@@ -98,6 +99,7 @@ function creances(p){
   var dts=m.dettes;
   if(dts&&typeof dts==="object")Object.keys(dts).forEach(function(k){
     var e=dts[k]; if(!e||typeof e!=="object")return;
+    if(String(e.creancier||"").trim()!==CFG.CREANCIER)return;   /* liste blanche */
     out.push({source:"dette",key:k,libelle:(e.type||"dette")+(e.motif?" — "+e.motif:""),date:e.date,montant:0});
   });
   var prs=m.prets;
