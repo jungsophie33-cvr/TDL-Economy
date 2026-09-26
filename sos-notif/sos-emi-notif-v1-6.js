@@ -277,9 +277,8 @@ function traiterTopics(evs) {
       if (e.id <= plancher) return;
       var t = typeDe(e.titre);
       if (!t) return;
-      uneFois("top" + e.id, function () {
-        return global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id);
-      });
+      global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id)
+        .then(function () { uneFois("top" + e.id, function () {}); });
     });
   }).catch(function () {});
 }
@@ -313,9 +312,8 @@ function surSujet() {
       return E().firebaseUpdate(up);
     }
     if (id <= plancher) return;
-    return uneFois("top" + id, function () {
-      return global(t, { titre: nettoyer(titre), url: location.pathname }, "top" + id);
-    });
+        return global(t, { titre: nettoyer(titre), url: location.pathname }, "top" + id)
+      .then(function () { return uneFois("top" + id, function () {}); });
   }).catch(function () {});
 }
 
