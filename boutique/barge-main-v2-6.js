@@ -109,14 +109,14 @@
         + '<div class="qb-pcgrid">'
         +   '<div>'+ui.fld("Votre situation *", ui.ta("situation","Exposez votre problème, le contexte RP…"))+'</div>'
         +   '<div>'+ui.fld("Ce que vous attendez de la Main", ui.ta("attentes","Le service espéré…"))+'</div>'
+        + '<div>'+ui.fld("Compensation proposée", '<select data-champ="compensation" id="qb-conf-comp"><option value="prix">Prix (payer la Main)</option><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')+'</div>'
+        + '<div>'+'<div id="qb-conf-prix">'+ui.fld("Prix proposé *", ui.inp("prix_offert","$"))+'</div>'
+        + '<div id="qb-conf-dette" style="display:none">'+ui.fld("Ce que vous offrez à la Main *", ui.ta("dette_argument","En quoi pouvez-vous intéresser la Main ? Quel service conséquent, ou services sur le long terme, offrez-vous en échange ?"))+'</div>'
+        + '<div id="qb-conf-reseau" style="display:none"><div class="qb-selrow">'+ui.fld("Catégorie du réseau", '<select data-champ="reseau_cat"><option value="autorites">Autorités corrompues</option><option value="prestataires">Prestataires &amp; Services</option><option value="informateurs">Informateurs locaux</option></select>')+'</div>'+ui.fld("Situation vis-à-vis de la Main *", ui.ta("situation_main","Votre rôle possible dans le réseau : accès, informations, services, loyauté…"))+'</div>'+'</div>'
         + '</div>'
         + '<label class="qb-check"><input type="checkbox" data-champ="rp_mission" data-on="oui">'
         +   '<div>'+esc("Ce service a vocation à devenir un RP joué avec la Main")+'</div></label>'
         + '<div class="qb-helper" style="margin-top:4px">'+esc(CONF_RP)+'</div>'
-        + ui.fld("Compensation proposée", '<select data-champ="compensation" id="qb-conf-comp"><option value="prix">Prix (payer la Main)</option><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')
-        + '<div id="qb-conf-prix">'+ui.fld("Prix proposé *", ui.inp("prix_offert","$"))+'</div>'
-        + '<div id="qb-conf-dette" style="display:none">'+ui.fld("Ce que vous offrez à la Main *", ui.ta("dette_argument","En quoi pouvez-vous intéresser la Main ? Quel service conséquent, ou services sur le long terme, offrez-vous en échange ?"))+'</div>'
-        + '<div id="qb-conf-reseau" style="display:none"><div class="qb-selrow">'+ui.fld("Catégorie du réseau", '<select data-champ="reseau_cat"><option value="autorites">Autorités corrompues</option><option value="prestataires">Prestataires &amp; Services</option><option value="informateurs">Informateurs locaux</option></select>')+'</div>'+ui.fld("Situation vis-à-vis de la Main *", ui.ta("situation_main","Votre rôle possible dans le réseau : accès, informations, services, loyauté…"))+'</div>'
         + (item.helper?'<div class="qb-helper">'+esc(item.helper)+'</div>':"")
         + '</div>' + ui.envoi("Envoyer la requête à la Main","nego");
 
@@ -204,6 +204,14 @@
       if (no) no.onclick = function(){ close(); if (api.setCooldown) api.setCooldown(id); alert("Négociation abandonnée. Tu ne pourras pas renégocier ce service avant une semaine."); };
     };
   }
+    
+  function avantAchat(item, champs){
+    if (!item || !item.cible) return null;
+    if (!String(champs.contexte||"").trim()) return "Expliquez le contexte de votre demande : la Main ne s\u2019engage pas sans savoir pourquoi.";
+    var nom = (champs.cible_type==="pj") ? (champs.cible_pj||"") : (champs.cible||"");
+    if (!String(nom).trim()) return "Nommez la cible \u2014 la Main ne s\u2019engage pas à l\u2019aveugle.";
+    return null;
+  }
 
   /* ---------- WIRING ---------- */
   function wireDetail(det, api, item){
@@ -245,10 +253,7 @@
       var champs = {}; Array.prototype.forEach.call(det.querySelectorAll("[data-champ]"), function(el){ champs[el.getAttribute("data-champ")] = el.value; });
       var min = parseInt(env.getAttribute("data-min"),10), prop = parseInt(champs.prix_negocie,10);
       if (!prop || prop < min) { alert("Prix proposé trop bas — le minimum autorisé est " + money(min) + " (rabais plafonné à 40 %)."); return; }
-      if (item && item.cible) {
-        var nom = (champs.cible_type==="pj") ? (champs.cible_pj||"") : (champs.cible||"");
-        if (!String(nom).trim()) { alert("Nommez la cible — la Main ne s\u2019engage pas à l\u2019aveugle."); return; }
-      }
+      var refus = avantAchat(item, champs); if (refus) { alert(refus); return; }
       var id = api.selId();
       var cd = api.cooldownActif && api.cooldownActif(id);
       if (cd) { alert("Négociation indisponible pour ce service jusqu'au " + cd.toLocaleDateString("fr-FR") + "."); return; }
@@ -260,6 +265,6 @@
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"main", bohl:"main", ordre:1, l:"La Main de la Providence", ic:"fi fi-tr-hands-usd", c:"var(--gr6-color)", cagnotte:"Providence",
     hero:{ logo:"fi fi-tr-hands-usd", desc:"La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis 20 ans." },
-    data: DATA, body: body, wireDetail: wireDetail
+    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat
   });
 })();
