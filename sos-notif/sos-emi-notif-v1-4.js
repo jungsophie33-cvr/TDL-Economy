@@ -289,8 +289,40 @@ function lirePage(url) {
     .catch(function () { return []; });
 }
 
+/* Détection immédiate : on EST sur la page du sujet. Zéro requête, zéro délai —
+   l'auteur y atterrit dès qu'il poste. Un verrou par sujet (notifs_faits)
+   garantit une seule émission, quel que soit le nombre de lecteurs.
+   dernier_topic sert de PLANCHER : les sujets antérieurs à l'installation
+   ne sont jamais notifiés, même si on les rouvre. */
+function surSujet() {
+  var m = String(location.pathname).match(/^\/t(\d+)-/);
+  if (!m || !ok()) return Promise.resolve();
+  var id = parseInt(m[1], 10);
+  var el = document.querySelector("h1.page-title, .topic-title, h1");
+  var titre = ((el && el.textContent) || document.title || "").trim();
+  var t = typeDe(titre);
+  if (!id || !t) return Promise.resolve();
+  return Promise.resolve(E().safeReadBin()).then(function (rec) {
+    var meta = (rec && rec[CFG.NODE_META]) || {};
+    var plancher = parseInt(meta.dernier_topic, 10);
+    if (isNaN(plancher)) {                    /* amorçage : on note et on se tait */
+      var up = {}; up[CFG.NODE_META + "/dernier_topic"] = id;
+      return E().firebaseUpdate(up);
+    }
+    if (id <= plancher) return;
+    return uneFois("top" + id, function () {
+      return global(t, { titre: nettoyer(titre), url: location.pathname }, "top" + id);
+    });
+  }).catch(function () {});
+}
+
 function calendrier() {
   if (!monUid()) return;
+  surSujet();                                 /* gratuit, à chaque page de sujet */
+
+  /* Filet de sécurité : si l'auteur avait JS coupé, ou si le sujet a été
+     déplacé/renommé après coup, le balayage rattrape au passage suivant.
+     Bridé parce que lui, il coûte une requête. */
   var last = 0;
   try { last = parseInt(localStorage.getItem(CFG.EV_CLE), 10) || 0; } catch (e) {}
   if (Date.now() - last < CFG.EV_THROTTLE) return;
@@ -298,7 +330,6 @@ function calendrier() {
 
   lirePage(CFG.SUJETS_URL).then(function (evs) {
     if (evs.length) { traiterTopics(evs); return; }
-    /* repli : les zones RP, si la recherche est indisponible ou vide */
     var zones = (CFG.FORUMS && CFG.FORUMS.length)
       ? CFG.FORUMS
       : ((E() && E().RP_ZONES) || []);
@@ -335,7 +366,7 @@ window.EcoNotif = {
   tous: function (type, d, ref) { return global(type, d, ref); },
 
   uneFois: uneFois,
-  calendrier: calendrier,
+  calendrier: calendrier, surSujet: surSujet,
   rafraichir: function () { INV = null; MEM = null; }
 };
 
