@@ -258,27 +258,30 @@ function scanner(html) {
   return out;
 }
 
+/* Même logique que surSujet : dernier_topic est un PLANCHER qu'on ne
+   déplace jamais après l'amorçage, et la mémoire du « déjà notifié » vit
+   dans notifs_faits, une entrée par sujet. Les deux voies peuvent donc
+   voir le même sujet sans se marcher dessus ni le notifier deux fois. */
 function traiterTopics(evs) {
-  if (!evs.length || !ok() || !E().firebaseTransaction) return;
-  var max = 0;
-  evs.forEach(function (e) { if (e.id > max) max = e.id; });
-  var ancien = null, amorce = false, pr;
-  try {
-    pr = E().firebaseTransaction(CFG.NODE_META + "/dernier_topic", function (cur) {
-      ancien = (cur == null ? null : parseInt(cur, 10));
-      amorce = (cur == null);
-      if (!amorce && max <= ancien) throw new Error("DEJA");
-      return max;
-    });
-  } catch (e) { return; }
-  Promise.resolve(pr).then(function () {
-    if (amorce) return;                       /* première fois : on n'inonde pas */
+  if (!evs.length || !ok()) return;
+  Promise.resolve(E().safeReadBin()).then(function (rec) {
+    var meta = (rec && rec[CFG.NODE_META]) || {};
+    var plancher = parseInt(meta.dernier_topic, 10);
+    if (isNaN(plancher)) {                   /* amorçage : on note le plus haut et on se tait */
+      var max = 0;
+      evs.forEach(function (e) { if (e.id > max) max = e.id; });
+      var up = {}; up[CFG.NODE_META + "/dernier_topic"] = max;
+      return E().firebaseUpdate(up);
+    }
     evs.forEach(function (e) {
-      if (e.id <= ancien) return;
+      if (e.id <= plancher) return;
       var t = typeDe(e.titre);
-      if (t) global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id);
+      if (!t) return;
+      uneFois("top" + e.id, function () {
+        return global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id);
+      });
     });
-  }).catch(function () { /* DEJA : un autre client s'en est chargé */ });
+  }).catch(function () {});
 }
 
 /* page HTML → sujets ; tableau vide si la page est inexploitable */
