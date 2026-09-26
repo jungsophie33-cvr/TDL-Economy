@@ -232,7 +232,13 @@ function typeDe(titre) {
 }
 function nettoyer(titre) {
   var t = String(titre || "");
-  TAGS.forEach(function (x) { t = t.replace(new RegExp("\\" + x[0].replace(/[\[\]().]/g, "\\$&"), "gi"), ""); });
+  TAGS.forEach(function (x) {
+    var i = t.toUpperCase().indexOf(x[0]);
+    while (i >= 0) {
+      t = t.slice(0, i) + t.slice(i + x[0].length);
+      i = t.toUpperCase().indexOf(x[0]);
+    }
+  });
   return t.replace(/\s+/g, " ").trim();
 }
 
