@@ -3,6 +3,15 @@
  * Mécanique : NÉGOCIATION. Prix indicatif + grille d'informations ; l'acheteur
  * paie comptant l'indicatif OU clique « Négocier » (champ rémunération révélé →
  * requête au staff, sans débit). « Aller à Confesse » = négociation libre.
+ *
+ * VOCATION RP (champ rp_mission) : trois services peuvent viser quelqu'un
+ * (med, intim, vend, drapeau `cible`) et la Confesse peut appeler du jeu. Quand
+ * la case est cochée et la demande validée par le staff, un dossier s'ouvre au
+ * tableau des dettes de la Main. La case est COCHÉE ET VERROUILLÉE quand le RP
+ * est inévitable : médiation forcée (le demandeur est partie prenante) et toute
+ * cible qui est un personnage joueur — un PJ visé par un service acheté ne
+ * refuse pas la scène, il la joue.
+ *
  * Se déclare dans window.QuaisBarge.bandes ; À CHARGER avant barge-core.js.
  */
 (function () {
@@ -15,17 +24,54 @@
     pfam:{flow:"nego",rpOnly:true,reseau_auto:"informateurs",qual:"Négociable",pi:1200,n:"Protection d\u2019une famille",desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     ploc:{flow:"nego",qual:"Négociable",pi:1000,n:"Protection d\u2019un projet local",desc:"Un projet reçoit le soutien discret de la Main. En échange : influence future sur ce projet. La Main n\u2019investit que dans ce qu\u2019elle juge utile.",infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]]},
     pret:{flow:"pret",qual:"Négociable",pi:null,n:"Prêt discret",desc:"Argent prêté par la Main pour lancer une activité, sauver un commerce. Remboursement ou dette de service. Les intérêts prennent la forme de services à rendre.",infos:[["Provenance","Cagnotte de la Main"],["Intérêts","Services rendus — en RP"],["Contrepartie","Remboursement ou dette lourde"],["Validation","Staff obligatoire"]]},
-    med:{flow:"nego",qual:"Justice officieuse",pi:1500,n:"Médiation forcée",desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie — au prix que la Main juge approprié.",infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]]},
-    intim:{flow:"nego",qual:"Avertissement",pi:1500,n:"Intimidation sérieuse",desc:"Avertissement très clair, au-delà du niveau façade. La Main n\u2019avertit qu\u2019une fois. Tarif indicatif — la négociation peut réduire ou augmenter.",infos:[["Niveau","Au-delà de la façade"],["Limite","Une seule fois — la Main n\u2019avertit pas deux fois"],["Condition","Badge + validation staff"],["Note","La suite, c\u2019est la Vendetta"]]},
-    vend:{flow:"nego",qual:"Réponse définitive",pi:3000,n:"Vendetta",desc:"Réponse violente organisée. Décision exceptionnelle. Conditions strictes. Quasi-inaccessible sans dette pour un joueur moyen. Conséquences permanentes garanties.",infos:[["Nature","Réponse violente organisée"],["Conditions","Injustice grave + équilibre menacé"],["Validation","Staff obligatoire — délai possible"],["Conséquences","Permanentes et irréversibles"]]},
+    med:{flow:"nego",qual:"Justice officieuse",pi:1500,cible:true,rpForce:true,n:"Médiation forcée",desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie — au prix que la Main juge approprié.",infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]]},
+    intim:{flow:"nego",qual:"Avertissement",pi:1500,cible:true,n:"Intimidation sérieuse",desc:"Avertissement très clair, au-delà du niveau façade. La Main n\u2019avertit qu\u2019une fois. Tarif indicatif — la négociation peut réduire ou augmenter.",infos:[["Niveau","Au-delà de la façade"],["Limite","Une seule fois — la Main n\u2019avertit pas deux fois"],["Condition","Badge + validation staff"],["Note","La suite, c\u2019est la Vendetta"]]},
+    vend:{flow:"nego",qual:"Réponse définitive",pi:3000,cible:true,n:"Vendetta",desc:"Réponse violente organisée. Décision exceptionnelle. Conditions strictes. Quasi-inaccessible sans dette pour un joueur moyen. Conséquences permanentes garanties.",infos:[["Nature","Réponse violente organisée"],["Conditions","Injustice grave + équilibre menacé"],["Validation","Staff obligatoire — délai possible"],["Conséquences","Permanentes et irréversibles"]]},
     confesse:{flow:"nego",qual:"Sur mesure",pi:null,confesse:true,n:"Aller à Confesse",desc:"Tous les problèmes n\u2019entrent pas dans un menu. Exposez votre situation, ce que vous attendez de la Main et la rémunération que vous êtes prêt à accorder. Si votre affaire l\u2019intéresse, elle vous fera parvenir une proposition.",helper:"La Main négocie toujours."}
   };
+
+  /* ---------- TEXTES ---------- */
+  var RETRO = "Ce que vous proposez : dollars, service rendu, dette envers la Main…";
+  var CONF_RP = "Coché, votre affaire ouvrira une mission au tableau des dettes de la Main : l\u2019un de ses membres s\u2019en chargera et vous jouerez la scène avec lui. Si vous payez en dollars, la somme ira aux participants et la Main gardera une commission.";
+  var CIB_RP  = "Coché, ce service sera joué en RP avec un membre de la Main. Vous vous engagez à participer à cette scène.";
+  var CIB_LOCK_MED = "La médiation se joue toujours en RP : votre personnage est l\u2019une des deux parties.";
+  var CIB_LOCK_PJ  = "La cible est un personnage joueur : la scène sera jouée. Un service acheté ne se refuse pas.";
+  var CIB_HINT = "La Main a besoin de savoir contre qui elle s\u2019engage. Soyez exact : un nom vague fait perdre du temps, et le temps de la Main se facture.";
+
+  var CIBLES = [["pj","Un personnage joueur"],["pnj","Un PNJ"],["famille","Une famille"],
+                ["groupe","Un groupe"],["entreprise","Une entreprise"]];
 
   function iconMain(label){
     var m = { "Contrepartie":"fi fi-tr-arrows-repeat","Niveau":"fi fi-tr-dashboard","Condition":"fi fi-tr-clipboard-check","Note":"fi fi-tr-comment-info","Intérêts":"fi fi-tr-coins","Parties":"fi fi-tr-comment-user","Arbitre":"fi fi-tr-balance-scale-left","Limite":"fi fi-tr-diamond-exclamation","Nature":"fi fi-tr-dagger","Conditions":"fi fi-tr-clipboard-check","Validation":"fi fi-tr-check","Conséquences":"fi fi-tr-danger-sign" };
     return m[label] || "fi fi-tr-diamond";
   }
-  var RETRO = "Ce que vous proposez : dollars, service rendu, dette envers la Main…";
+
+  /* ---------- BRIQUES DE FORMULAIRE ---------- */
+  function selCibleType(){
+    return '<select data-champ="cible_type" id="qb-cibletype">'
+      + CIBLES.map(function(c){ return '<option value="'+c[0]+'">'+esc(c[1])+'</option>'; }).join("")
+      + '</select>';
+  }
+  /* deux contrôles pour un seul renseignement : liste des membres quand la
+     cible est un PJ (le pseudo doit être exact, c'est lui qui déclenchera son
+     accès au dossier), champ libre sinon. wireDetail n'en laisse qu'un visible
+     et vide l'autre, pour qu'aucune valeur fantôme ne parte au staff. */
+  function champCibleNom(api){
+    var ps = (api && api.pseudos) ? api.pseudos() : [];
+    var opts = '<option value="">— choisir un membre —</option>'
+      + ps.map(function(p){ return '<option value="'+esc(p)+'">'+esc(p)+'</option>'; }).join("");
+    return '<select data-champ="cible_pj" id="qb-ciblepj">'+opts+'</select>'
+      + '<input data-champ="cible" id="qb-ciblenom" placeholder="Nom du PNJ, de la famille, du groupe…" style="display:none">';
+  }
+  function caseRp(item){
+    var lock = !!item.rpForce;
+    return '<label class="qb-check"><input type="checkbox" data-champ="rp_mission" data-on="oui" id="qb-rpmission"'
+      + (lock?' checked disabled':'') + '>'
+      + '<div>'+esc("Ce service a vocation à devenir un RP joué avec la Main")+'</div></label>'
+      + '<div class="qb-helper" style="margin-top:4px" id="qb-rphint">'
+      + esc(lock ? CIB_LOCK_MED : CIB_RP) + '</div>';
+  }
+
   function negoCard(){
     return '<div class="qb-optcard"><div class="qb-optcircle"><i class="fi fi-tr-balance-scale-left"></i></div>'
       + '<div class="qb-optbody"><div class="qb-opttitle">Négocier</div><div class="qb-optdesc">Proposez un prix et une compensation à la Main.</div></div>'
@@ -57,16 +103,23 @@
     var b = "";
     if (item.infos) b += ui.infosCles(item.infos, iconMain);
     b += '<div class="qb-rule"></div>';
+
     if (item.confesse) {
       b += '<div class="qb-sec">'+ui.lab("Aller à Confesse")
-        + ui.fld("Votre situation *", ui.ta("situation","Exposez votre problème, le contexte RP…"))
-        + ui.fld("Ce que vous attendez de la Main", ui.ta("attentes","Le service espéré…"))
+        + '<div class="qb-pcgrid">'
+        +   '<div>'+ui.fld("Votre situation *", ui.ta("situation","Exposez votre problème, le contexte RP…"))+'</div>'
+        +   '<div>'+ui.fld("Ce que vous attendez de la Main", ui.ta("attentes","Le service espéré…"))+'</div>'
+        + '</div>'
+        + '<label class="qb-check"><input type="checkbox" data-champ="rp_mission" data-on="oui">'
+        +   '<div>'+esc("Ce service a vocation à devenir un RP joué avec la Main")+'</div></label>'
+        + '<div class="qb-helper" style="margin-top:4px">'+esc(CONF_RP)+'</div>'
         + ui.fld("Compensation proposée", '<select data-champ="compensation" id="qb-conf-comp"><option value="prix">Prix (payer la Main)</option><option value="dette">Dette lourde</option><option value="reseau">Réseau d\u2019influence</option></select>')
         + '<div id="qb-conf-prix">'+ui.fld("Prix proposé *", ui.inp("prix_offert","$"))+'</div>'
         + '<div id="qb-conf-dette" style="display:none">'+ui.fld("Ce que vous offrez à la Main *", ui.ta("dette_argument","En quoi pouvez-vous intéresser la Main ? Quel service conséquent, ou services sur le long terme, offrez-vous en échange ?"))+'</div>'
         + '<div id="qb-conf-reseau" style="display:none"><div class="qb-selrow">'+ui.fld("Catégorie du réseau", '<select data-champ="reseau_cat"><option value="autorites">Autorités corrompues</option><option value="prestataires">Prestataires &amp; Services</option><option value="informateurs">Informateurs locaux</option></select>')+'</div>'+ui.fld("Situation vis-à-vis de la Main *", ui.ta("situation_main","Votre rôle possible dans le réseau : accès, informations, services, loyauté…"))+'</div>'
         + (item.helper?'<div class="qb-helper">'+esc(item.helper)+'</div>':"")
         + '</div>' + ui.envoi("Envoyer la requête à la Main","nego");
+
     } else if (item.flow==="pret") {
       b += '<div class="qb-sec">'+ui.lab("Demande de prêt")
         + ui.fld("Contexte de votre demande *", ui.ta("contexte","Pourquoi ce prêt ? Quel commerce à sauver, quelle activité à lancer…"))
@@ -74,8 +127,21 @@
         + '<div>'+ui.fld("Remboursement", '<select data-champ="pret_contrepartie"><option value="remboursement">Remboursement en monnaie</option><option value="dette">Compensation par dette lourde</option></select>')+'</div></div>'
         + '<div class="qb-helper">L\u2019argent provient de la cagnotte de la Main. En cas de remboursement, les intérêts se règlent en services rendus, en RP. Seule la Main peut lever une dette.</div>'
         + '</div>' + '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay qb-act" data-act="pret" style="flex:none">Envoyer la requête à la Main</button></div>';
+
     } else {
-      b += '<div class="qb-sec">'+ui.lab("Contexte")+ui.fld("Contexte de votre demande *", ui.ta("contexte","Exposez la situation qui motive votre demande…"))+'</div>';
+      if (item.cible) {
+        b += '<div class="qb-sec">'+ui.lab("Contexte et cible")
+          + '<div class="qb-pcgrid">'
+          +   '<div>'+ui.fld("Contexte de votre demande *", ui.ta("contexte","Exposez la situation qui motive votre demande…"))+'</div>'
+          +   '<div>'+ui.fld("Qui est visé ? *", selCibleType())
+          +          ui.fld("Nom de la cible *", champCibleNom(api))
+          +          '<div class="qb-helper">'+esc(CIB_HINT)+'</div></div>'
+          + '</div>'
+          + caseRp(item)
+          + '</div>';
+      } else {
+        b += '<div class="qb-sec">'+ui.lab("Contexte")+ui.fld("Contexte de votre demande *", ui.ta("contexte","Exposez la situation qui motive votre demande…"))+'</div>';
+      }
       var cd = (api && api.cooldownActif) ? api.cooldownActif(id) : null;
       b += '<div class="qb-opts">'
         + ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant", desc:"Réglez le prix indicatif en dollars.", prix:money(item.pi), btn:"Payer maintenant", act:"comptant", montant:item.pi, pay:true })
@@ -139,7 +205,9 @@
     };
   }
 
+  /* ---------- WIRING ---------- */
   function wireDetail(det, api, item){
+    /* Confesse : compensation → bloc correspondant */
     var cc = det.querySelector("#qb-conf-comp");
     if (cc) {
       var maj = function(){
@@ -149,11 +217,38 @@
       };
       cc.onchange = maj; maj();
     }
+
+    /* Services ciblés : type de cible → contrôle de saisie, et verrouillage
+       de la case RP quand la cible est un PJ. */
+    var ct = det.querySelector("#qb-cibletype");
+    if (ct) {
+      var selPj = det.querySelector("#qb-ciblepj"),
+          inNom = det.querySelector("#qb-ciblenom"),
+          box   = det.querySelector("#qb-rpmission"),
+          hint  = det.querySelector("#qb-rphint"),
+          force = !!(item && item.rpForce);
+      var majCible = function(){
+        var pj = (ct.value==="pj");
+        if (selPj){ selPj.style.display = pj?"":"none"; if(!pj) selPj.value=""; }
+        if (inNom){ inNom.style.display = pj?"none":""; if(pj) inNom.value=""; }
+        if (box && !force){
+          box.disabled = pj;
+          if (pj) box.checked = true;
+          if (hint) hint.textContent = pj ? CIB_LOCK_PJ : CIB_RP;
+        }
+      };
+      ct.onchange = majCible; majCible();
+    }
+
     var env = det.querySelector("#qb-nego-envoi"); if (!env) return;
     env.onclick = function(){
       var champs = {}; Array.prototype.forEach.call(det.querySelectorAll("[data-champ]"), function(el){ champs[el.getAttribute("data-champ")] = el.value; });
       var min = parseInt(env.getAttribute("data-min"),10), prop = parseInt(champs.prix_negocie,10);
       if (!prop || prop < min) { alert("Prix proposé trop bas — le minimum autorisé est " + money(min) + " (rabais plafonné à 40 %)."); return; }
+      if (item && item.cible) {
+        var nom = (champs.cible_type==="pj") ? (champs.cible_pj||"") : (champs.cible||"");
+        if (!String(nom).trim()) { alert("Nommez la cible — la Main ne s\u2019engage pas à l\u2019aveugle."); return; }
+      }
       var id = api.selId();
       var cd = api.cooldownActif && api.cooldownActif(id);
       if (cd) { alert("Négociation indisponible pour ce service jusqu'au " + cd.toLocaleDateString("fr-FR") + "."); return; }
