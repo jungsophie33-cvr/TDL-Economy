@@ -159,10 +159,15 @@
     return patch;
   }
 
+  function avantAchat(item, champs, act){
+    var b = bande(item.cat);
+    return (b && b.avantAchat) ? b.avantAchat(item, champs, act) : null;
+  }
+
   Q.register({
     key:"barge", label:"La Barge abandonnée", sub:"marché noir", icon:"fi fi-tr-ship",
     mode:"grid", detailFlush:true, itemsLabel:"Services", leftW:"450px", cols:2, sousChemin:"barge",
-    cats: CATS, data: DATA, migre: migre,
+    cats: CATS, data: DATA, migre: migre, avantAchat: avantAchat,
     cardPrice: cardPrice, detail: detail, emptyDetail: emptyDetail, form: form, wireDetail: wireDetail
   });
 })();
