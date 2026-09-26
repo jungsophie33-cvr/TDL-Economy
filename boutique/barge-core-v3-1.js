@@ -149,6 +149,8 @@
       if (def.rpOnly && !cur.rpOnly) { copie.rpOnly = true; changed = true; }
       if (def.reseau_auto && cur.reseau_auto !== def.reseau_auto) { copie.reseau_auto = def.reseau_auto; changed = true; }
       if (def.creancier && !cur.creancier) { copie.creancier = def.creancier; changed = true; }
+      if (def.cible && !cur.cible) { copie.cible = true; changed = true; }
+      if (def.rpForce && !cur.rpForce) { copie.rpForce = true; changed = true; }
       if (changed) (patch || (patch = {}))[id] = copie;
     });
     Object.keys(DATA).forEach(function(id){
