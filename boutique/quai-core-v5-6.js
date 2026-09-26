@@ -513,9 +513,12 @@
     var minAttr = btn.getAttribute("data-min"), minChamp = btn.getAttribute("data-minchamp");
     if (minAttr && minChamp) {
       var mini = parseInt(minAttr,10), prop = parseInt(champs[minChamp],10);
-      if (!prop || prop < mini) { alert("Prix proposé trop bas — le minimum autorisé est " + money(mini) + " (le rabais est plafonné à 40 % du prix de base)."); return; }
+      if (!prop || prop < mini) { alert("Prix proposé trop bas : le minimum autorisé est " + money(mini) + " (le rabais est plafonné à 40 % du prix de base)."); return; }
     }
     var a = itemData(mod, st.sel), c = catOf(mod, st.sel);
+    /* dernier filet avant tout débit : le module peut refuser l'achat sur la
+       foi des champs saisis. Retourne un message d'erreur, ou rien. */
+    if (mod.avantAchat) { var refus = mod.avantAchat(a, champs, act); if (refus) { alert(refus); return; } }
     var base = {
       boutique: mod.key,
       bande: mod.mode==="grid" ? (c&&c.l||"") : "",
