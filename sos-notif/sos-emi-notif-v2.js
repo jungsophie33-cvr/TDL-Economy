@@ -25,7 +25,7 @@ var CFG = {
   NODE_PSEUDO: "notifs_pseudo",    /* repli si UID non résolu */
   NODE_GLOB:   "notifs_globales",  /* canal « tous les membres » */
   NODE_FAITS:  "notifs_faits",     /* verrous anti-double-émission */
-  NODE_META:   "notifs_meta",      /* compteurs (dernier sujet détecté) */
+  NODE_META:   "notifs_meta",      /* plancher (dernier_topic) */
   NODE_MEMBRES:"membres",
   NODE_UID:    "uid_index",        /* uid_index/{uid} = pseudo */
   /* Source primaire des nouveaux sujets : les sujets actifs, une requête pour
@@ -83,7 +83,7 @@ var NOTIFS = {
   126:{n:C.MAIN, ic:"shield-check",   url:U.DETTES,    txt:function(d){return esc(d.pseudo)+" fait appel à la protection de la Main.";}},
   127:{n:C.MAIN, ic:"inbox-in",      url:U.DETTES, txt:function(d){return "Le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
   128:{n:C.MAIN, ic:"unlock",        url:U.DETTES, txt:function(){return "La somme retenue sur votre solde a été libérée.";}},
-   
+
   /* --- Faiseuses d'Anges --- */
   130:{n:C.FAV,  ic:"hand-holding-heart", url:U.TACHES, txt:function(d){return "Une faveur est soumise au vote : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   131:{n:C.FAV,  ic:"comment-check",  url:U.TACHES,    txt:function(d){return "Votre demande de faveur a été "+(d.ok?"acceptée":"refusée")+".";}},
@@ -91,7 +91,7 @@ var NOTIFS = {
   133:{n:C.FAV,  ic:"hands-heart",   url:U.TACHES,    txt:function(d){return "Nouvelle tâche ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; — appel à volontaires.";}},
   134:{n:C.FAV,  ic:"inbox-in",      url:U.TACHES,    txt:function(d){return "La tâche &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
   135:{n:C.FAV,  ic:"address-book",  url:U.TACHES,    txt:function(){return "Vous avez été inscrit·e au réseau des Faiseuses d'Anges.";}},
-   
+
   /* --- Panneau des enquêtes --- */
   140:{n:C.ENQ,  ic:"badge-sheriff",  url:U.ENQUETES,  txt:function(d){return "Nouvelle enquête ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   141:{n:C.ENQ,  ic:"user-add",       url:U.ENQUETES,  txt:function(d){return esc(d.pseudo)+" rejoint votre enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
@@ -101,13 +101,14 @@ var NOTIFS = {
   145:{n:C.ENQ,  ic:"inbox-in",       url:U.ENQUETES,  txt:function(d){return "L'enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
   146:{n:C.ENQ,  ic:"sack-dollar",    url:U.ENQUETES,  txt:function(d){return "Enquête &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; close : "+(+d.montant||0)+" $ vous ont été versés.";}},
   147:{n:C.ENQ,  ic:"user-crown",     url:U.ENQUETES,  txt:function(d){return esc(d.pseudo)+" demande à devenir référent de &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
-   
-  /* --- Calendrier --- */
-  150:{n:C.CAL,  ic:"drama-masks",    url:"/calendar", txt:function(d){return "Nouvelle intrigue : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+
+  /* --- Calendrier ---
+     url sert de repli : surSujet() passe l'URL réelle du sujet, qui prime. */
+  150:{n:C.CAL,  ic:"theater-masks",  url:"/calendar", txt:function(d){return "Nouvelle intrigue : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   151:{n:C.CAL,  ic:"calendar-star",  url:"/calendar", txt:function(d){return "Nouvel événement membre : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
 };
 
-/* tags du calendrier → type de notification (miroir de TYPE_MAP dans tdl-calendar) */
+/* préfixes de titre → type de notification */
 var TAGS = [["[INTRIGUE]", 150], ["[EV. MEMBRE]", 151]];
 
 /* ===================== UTILS ===================== */
@@ -119,6 +120,8 @@ function cle(s) { return String(s == null ? "" : s).replace(/[.$#\[\]\/]/g, "_")
 function newId(ts) { return "tdl_" + ts + "_" + Math.random().toString(36).slice(2, 7); }
 function monUid() { try { var u = parseInt(_userdata.user_id, 10); return u > 0 ? String(u) : null; } catch (e) { return null; } }
 function monPseudo() { try { return _userdata.username ? String(_userdata.username).trim() : null; } catch (e) { return null; } }
+/* un échec d'émission ne doit jamais casser un panel — mais jamais se taire non plus */
+function rate(e) { if (window.console) console.warn("[EcoNotif]", e); }
 
 /* ===================== INDEX ===================== */
 var INV = null;   /* pseudo → uid */
@@ -191,16 +194,16 @@ function envoyer(pseudos, type, d, ref) {
   }).catch(function (e) { if (window.console) console.error("[EcoNotif] envoi", e); });
 }
 
-/* canal global : une écriture unique, lue par tous via curseur individuel */
+/* canal global : une écriture unique, lue par tous via curseur individuel.
+   Laisse remonter l'échec — annoncer() en a besoin pour relâcher son verrou. */
 function global(type, d, ref) {
   if (!NOTIFS[type] || !ok()) return Promise.resolve();
   var n = paquet(type, d, ref), up = {};
   up[CFG.NODE_GLOB + "/" + newId(n.ts)] = n;
-  return Promise.resolve(E().firebaseUpdate(up))
-    .catch(function (e) { if (window.console) console.error("[EcoNotif] global", e); });
+  return Promise.resolve(E().firebaseUpdate(up));
 }
 
-/* verrou : sur un événement CONSTATÉ (pas cliqué), un seul client émet.
+/* verrou : sur un événement CONSTATÉ (pas cliqué), un seul client agit.
    Même patron que le drapeau rembourse du tableau des missions. */
 function uneFois(verrou, fn) {
   if (!ok() || !E().firebaseTransaction) return Promise.resolve();
@@ -218,18 +221,24 @@ function uneFois(verrou, fn) {
   });
 }
 
-/* ===================== CALENDRIER =====================
+/* ===================== ANNONCE DE SUJET =====================
    Aucun webhook sur FA, et aucun lien entre les sujets et les événements
    natifs : les intrigues sont de simples TOPICS repérés par le préfixe de
-   leur titre. Le filtre est donc le préfixe, pas l'emplacement — une seule
-   requête sur les sujets actifs couvre tout le forum. Détection au passage
-   d'un membre, au plus tous les 1/4 h, et un seul client émet (transaction
-   sur le compteur). Premier passage = amorçage silencieux. */
+   leur titre. Le filtre est donc le préfixe, pas l'emplacement.
+
+   DEUX VOIES, une seule annonce :
+   - surSujet()      : on EST sur la page du sujet. Zéro requête, zéro délai,
+                       l'auteur y atterrit dès qu'il poste.
+   - traiterTopics() : filet de sécurité, derrière un balayage bridé.
+
+   dernier_topic est un PLANCHER figé à l'amorçage, jamais déplacé ensuite ;
+   la mémoire du « déjà annoncé » vit dans notifs_faits, une clé par sujet. */
 function typeDe(titre) {
   var t = String(titre || "").toUpperCase();
   for (var i = 0; i < TAGS.length; i++) if (t.indexOf(TAGS[i][0]) >= 0) return TAGS[i][1];
   return null;
 }
+/* retrait du préfixe sans RegExp construite à la volée (source d'un ancien bug) */
 function nettoyer(titre) {
   var t = String(titre || "");
   TAGS.forEach(function (x) {
@@ -242,6 +251,63 @@ function nettoyer(titre) {
   return t.replace(/\s+/g, " ").trim();
 }
 
+function plancherDe(rec) {
+  var meta = (rec && rec[CFG.NODE_META]) || {};
+  return parseInt(meta.dernier_topic, 10);
+}
+function amorcer(valeur) {
+  var up = {}; up[CFG.NODE_META + "/dernier_topic"] = valeur;
+  return E().firebaseUpdate(up);
+}
+
+/* Verrou posé AVANT l'émission (atomique : deux lecteurs simultanés ne
+   produisent qu'une annonce), relâché si l'émission échoue — sans quoi un
+   accroc réseau condamnerait le sujet définitivement. */
+function annoncer(id, type, titre, url) {
+  return uneFois("top" + id, function () {
+    return global(type, { titre: nettoyer(titre), url: url }, "top" + id)
+      .catch(function (e) {
+        var up = {}; up[CFG.NODE_FAITS + "/top" + id] = null;
+        try { E().firebaseUpdate(up); } catch (x) {}
+        throw e;
+      });
+  });
+}
+
+function surSujet() {
+  var m = String(location.pathname).match(/^\/t(\d+)-/);
+  if (!m || !ok()) return Promise.resolve();
+  var id = parseInt(m[1], 10);
+  var el = document.querySelector("h1.page-title, .topic-title, h1");
+  var titre = ((el && el.textContent) || document.title || "").trim();
+  var t = typeDe(titre);
+  if (!id || !t) return Promise.resolve();
+  return Promise.resolve(E().safeReadBin()).then(function (rec) {
+    var plancher = plancherDe(rec);
+    if (isNaN(plancher)) return amorcer(id);   /* amorçage : on note et on se tait */
+    if (id <= plancher) return;
+    return annoncer(id, t, titre, location.pathname);
+  }).catch(rate);
+}
+
+function traiterTopics(evs) {
+  if (!evs.length || !ok()) return;
+  Promise.resolve(E().safeReadBin()).then(function (rec) {
+    var plancher = plancherDe(rec);
+    if (isNaN(plancher)) {                     /* amorçage : on note le plus haut */
+      var max = 0;
+      evs.forEach(function (e) { if (e.id > max) max = e.id; });
+      return amorcer(max);
+    }
+    evs.forEach(function (e) {
+      if (e.id <= plancher) return;
+      var t = typeDe(e.titre);
+      if (t) annoncer(e.id, t, e.titre, e.href).catch(rate);
+    });
+  }).catch(rate);
+}
+
+/* ===================== BALAYAGE ===================== */
 /* liens de sujets d'une page : a.topictitle en priorité, sinon tout lien
    /tNN- (FA change de gabarit selon la page et le thème). */
 function scanner(html) {
@@ -264,31 +330,6 @@ function scanner(html) {
   return out;
 }
 
-/* Même logique que surSujet : dernier_topic est un PLANCHER qu'on ne
-   déplace jamais après l'amorçage, et la mémoire du « déjà notifié » vit
-   dans notifs_faits, une entrée par sujet. Les deux voies peuvent donc
-   voir le même sujet sans se marcher dessus ni le notifier deux fois. */
-function traiterTopics(evs) {
-  if (!evs.length || !ok()) return;
-  Promise.resolve(E().safeReadBin()).then(function (rec) {
-    var meta = (rec && rec[CFG.NODE_META]) || {};
-    var plancher = parseInt(meta.dernier_topic, 10);
-    if (isNaN(plancher)) {                   /* amorçage : on note le plus haut et on se tait */
-      var max = 0;
-      evs.forEach(function (e) { if (e.id > max) max = e.id; });
-      var up = {}; up[CFG.NODE_META + "/dernier_topic"] = max;
-      return E().firebaseUpdate(up);
-    }
-    evs.forEach(function (e) {
-      if (e.id <= plancher) return;
-      var t = typeDe(e.titre);
-      if (!t) return;
-      global(t, { titre: nettoyer(e.titre), url: e.href }, "top" + e.id)
-        .then(function () { uneFois("top" + e.id, function () {}); });
-    });
-  }).catch(function () {});
-}
-
 /* page HTML → sujets ; tableau vide si la page est inexploitable */
 function lirePage(url) {
   return fetch(url, { credentials: "same-origin" })
@@ -297,38 +338,12 @@ function lirePage(url) {
     .catch(function () { return []; });
 }
 
-/* Détection immédiate : on EST sur la page du sujet. Zéro requête, zéro délai —
-   l'auteur y atterrit dès qu'il poste. Un verrou par sujet (notifs_faits)
-   garantit une seule émission, quel que soit le nombre de lecteurs.
-   dernier_topic sert de PLANCHER : les sujets antérieurs à l'installation
-   ne sont jamais notifiés, même si on les rouvre. */
-function surSujet() {
-  var m = String(location.pathname).match(/^\/t(\d+)-/);
-  if (!m || !ok()) return Promise.resolve();
-  var id = parseInt(m[1], 10);
-  var el = document.querySelector("h1.page-title, .topic-title, h1");
-  var titre = ((el && el.textContent) || document.title || "").trim();
-  var t = typeDe(titre);
-  if (!id || !t) return Promise.resolve();
-  return Promise.resolve(E().safeReadBin()).then(function (rec) {
-    var meta = (rec && rec[CFG.NODE_META]) || {};
-    var plancher = parseInt(meta.dernier_topic, 10);
-    if (isNaN(plancher)) {                    /* amorçage : on note et on se tait */
-      var up = {}; up[CFG.NODE_META + "/dernier_topic"] = id;
-      return E().firebaseUpdate(up);
-    }
-    if (id <= plancher) return;
-        return global(t, { titre: nettoyer(titre), url: location.pathname }, "top" + id)
-      .then(function () { return uneFois("top" + id, function () {}); });
-  }).catch(function () {});
-}
-
 function calendrier() {
   if (!monUid()) return;
   surSujet();                                 /* gratuit, à chaque page de sujet */
 
   /* Filet de sécurité : si l'auteur avait JS coupé, ou si le sujet a été
-     déplacé/renommé après coup, le balayage rattrape au passage suivant.
+     déplacé ou renommé après coup, le balayage rattrape au passage suivant.
      Bridé parce que lui, il coûte une requête. */
   var last = 0;
   try { last = parseInt(localStorage.getItem(CFG.EV_CLE), 10) || 0; } catch (e) {}
@@ -348,7 +363,7 @@ function calendrier() {
       });
       traiterTopics(tout);
     });
-  });
+  }).catch(rate);
 }
 
 /* ===================== API ===================== */
@@ -361,7 +376,7 @@ window.EcoNotif = {
   /* une bande hors-la-loi : main, maringouins, braconneurs, faiseuses, sorcieres, flottille */
   bande: function (b, type, d, ref) {
     return charger().then(function () { return envoyer(membresDe(b), type, d, ref); })
-      .catch(function () {});
+      .catch(rate);
   },
 
   staff: function (type, d, ref) {
@@ -370,10 +385,11 @@ window.EcoNotif = {
   },
 
   /* tous les membres — canal global, jamais de fan-out */
-  tous: function (type, d, ref) { return global(type, d, ref); },
+  tous: function (type, d, ref) { return global(type, d, ref).catch(rate); },
 
   uneFois: uneFois,
-  calendrier: calendrier, surSujet: surSujet,
+  calendrier: calendrier,
+  surSujet: surSujet,
   rafraichir: function () { INV = null; MEM = null; }
 };
 
