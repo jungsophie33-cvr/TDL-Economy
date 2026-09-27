@@ -61,6 +61,8 @@ var NOTIFS = {
   101:{n:C.BOUT, ic:"cross-circle",   url:"",          txt:function(d){return "Votre demande &laquo;&nbsp;"+esc(d.nom)+"&nbsp;&raquo; a été annulée. "+(+d.montant||0)+" $ vous ont été recrédités.";}},
   102:{n:C.BOUT, ic:"file-signature", url:U.DETTES,    txt:function(d){return "Une dette a été inscrite à votre nom : "+esc(d.motif)+".";}},
   103:{n:C.BOUT, ic:"inbox-in",       url:U.STAFF,     txt:function(d){return "Nouvelle demande d'achat de "+esc(d.pseudo)+" : &laquo;&nbsp;"+esc(d.nom)+"&nbsp;&raquo;.";}},
+  104:{n:C.BOUT, ic:"hand-holding-dollar", url:"", txt:function(d){return "Votre prêt de "+(+d.montant||0)+" $ a été accordé : la somme est sur votre compte.";}},
+  105:{n:C.BOUT, ic:"receipt",             url:U.DETTES, txt:function(d){return "Un remboursement de "+(+d.montant||0)+" $ sera attendu de vous.";}},
 
   /* --- Missions des Maringouins --- */
   110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
