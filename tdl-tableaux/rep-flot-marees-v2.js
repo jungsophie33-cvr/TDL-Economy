@@ -8,6 +8,13 @@
    Elle n'est pas achetée en boutique : personne ne la paie, le hangar règle
    les postes à la clôture.
 
+   LES ACCROCHES — deux ou trois faits attachés à la MARÉE, pas à un poste,
+   chacun avec la condition qui l'ouvre. Invisibles de tous sauf du créateur et
+   du staff. Quand un joueur remplit la condition DANS LE SUJET, l'un des deux
+   ouvre l'accroche : elle devient publique, au nom de celui qui l'a obtenue.
+   C'est ce qui force le jeu commun — on n'atteint rien sans l'écrire là où les
+   autres le lisent, et ce qui s'ouvre change ce qu'ils peuvent écrire ensuite.
+
    RÈGLE D'ADMISSION — au moins un poste qui ne soit pas « à bord ». Si tous
    les présents sont payés par la Flottille, ce n'est pas une marée, c'est un
    RP entre capitaines. Deux postes minimum, cinq maximum.
@@ -35,7 +42,7 @@ var SORTIES={
   recuperation:{label:"Récupération",         desc:"Aller chercher ce qui a coulé, été jeté ou oublié."},
   recherche:   {label:"Recherche sur l\u2019eau",desc:"Trouver quelqu\u2019un qui ne veut pas forcément l\u2019être."}
 };
-var MIN_POSTES=2, MAX_POSTES=5;
+var MIN_POSTES=2, MAX_POSTES=5, MAX_ACCROCHES=3;
 
 var T={
   NON_NAV:"Ouvrir une marée demande un navire : réservé à la Flottille.",
@@ -53,6 +60,11 @@ function normaliser(o){
   o.lieu=o.lieu||""; o.quand=o.quand||"";
   o.contexte=o.contexte||"";
   o.postes=vt(o.postes).map(P.normPoste);
+  o.accroches=vt(o.accroches).map(function(a,i){
+    a=a||{}; a.k=a.k||("a"+i); a.fait=a.fait||""; a.condition=a.condition||"";
+    a.ouverte=!!a.ouverte; a.par=a.par||""; a.date=a.date||"";
+    return a;
+  });
   o.statut=STATUTS[o.statut]?o.statut:"en_attente";
   o.sujet=o.sujet||"";
   o.resume=o.resume||""; o.consequences=o.consequences||"";
@@ -64,6 +76,14 @@ function normaliser(o){
 
 /* ===================== RANGÉE ===================== */
 function pourvus(m){var n=0;vt(m.postes).forEach(function(p){if(p.etat==="pris"||p.etat==="clos")n++;});return n;}
+/* ordre horaire : la marée se lit comme une nuit, pas comme quatre fils.
+   Les postes sans heure passent en dernier ; écrire HH:MM les range seuls. */
+function parHeure(m){
+  return vt(m.postes).map(function(p,i){return {p:p,i:i};}).sort(function(a,b){
+    var x=a.p.heure||"~", y=b.p.heure||"~";
+    return x===y ? a.i-b.i : (x<y?-1:1);
+  });
+}
 function sub(m){
   return { sub:SORTIES[m.sortie].label+(m.lieu?" \u00b7 "+m.lieu:""), qui:m.createur, quand:"ouverte "+ilya(m.cree) };
 }
@@ -83,8 +103,9 @@ function panel(m){
       +'<div class="tdlm-reqrow"><span>Les postes non notés seront réglés comme non transmis.</span></div></div>';
   }
 
-  var cartes=vt(m.postes).map(function(p,i){return P.carte(m,p,i,vu);}).join("")
+  var cartes=parHeure(m).map(function(x){return P.carte(m,x.p,x.i,vu);}).join("")
     || '<div class="tdlm-empty">Aucun poste.</div>';
+  var accroches=blocAccroches(m,vu);
 
   var bilan="";
   if(m.resume||m.consequences||m.statut==="en_validation"||m.statut==="close"){
@@ -107,10 +128,43 @@ function panel(m){
       +'</div>'+banner+'</div>'
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on sait</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div>'
       +'<div class="tdlm-prose tdlm-todo">'+esc(SORTIES[m.sortie].desc)+'</div></div>'
+      +accroches
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Les postes</p></div>'
       +cartes+bilan+drawer(m)
     +'</div>'
     +actionbar(m);
+}
+
+/* ---- accroches ---- */
+function blocAccroches(m,vu){
+  var acc=vt(m.accroches);
+  if(!acc.length)return "";
+  var maitre=(vu.createur||vu.staff);
+  var ouvertes=acc.filter(function(a){return a.ouverte;});
+  if(!maitre&&!ouvertes.length)return "";
+
+  var corps=acc.map(function(a,i){
+    if(a.ouverte){
+      return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
+        +'<span class="tdlm-hsec" style="margin:0">Découvert</span>'
+        +(a.par?'<span class="tdlm-r">'+esc(a.par)+'</span>':'')
+        +(a.date?'<span class="tdlm-todo">'+esc(ilya(a.date))+'</span>':'')+'</div>'
+        +'<div class="tdlm-prose">'+esc(a.fait)+'</div></div>';
+    }
+    if(!maitre)return "";
+    return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
+      +'<span class="tdlm-hsec" style="margin:0">Fermée</span>'
+      +'<button class="tdlm-abtn" data-acc="'+i+'">Ouvrir à quelqu\u2019un</button></div>'
+      +'<div class="tdlm-prose">'+esc(a.fait)+'</div>'
+      +'<div class="tdlm-prose tdlm-todo"><b>Condition :</b> '+esc(a.condition||"—")+'</div></div>';
+  }).join("");
+
+  var titre=maitre?"Ce qu\u2019on peut découvrir":"Ce qui a été découvert";
+  var note=maitre
+    ? "Ouvrez une accroche quand un joueur remplit sa condition dans le sujet. Elle devient publique, à son nom."
+    : "Ce que quelqu\u2019un a trouvé pendant la sortie. Tout le monde peut s\u2019en servir désormais.";
+  return '<div class="tdlm-sec"><p class="tdlm-hsec">'+esc(titre)+'</p>'
+    +'<div class="tdlm-prose tdlm-todo">'+esc(note)+'</div></div>'+corps;
 }
 
 /* ---- barre d'action (rôles cumulés) ---- */
@@ -154,6 +208,19 @@ function drawer(m){
       +'<input type="text" id="tdlh-sujet" value="'+escAttr(m.sujet)+'" placeholder="https://thedrownedlands.forumactif.com/t...">'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="sujetok">Enregistrer</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
+  if(S.inline&&S.inline.indexOf("acc:")===0){
+    var ia=+S.inline.split(":")[1], a=vt(m.accroches)[ia];
+    if(a){
+      var tenants=vt(m.postes).filter(function(p){return p.qui&&p.etat!=="abandonne";})
+        .map(function(p){return '<option value="'+escAttr(p.qui)+'">'+esc(p.qui)+' \u2014 '+esc(P.POSTES[p.type].label)+'</option>';}).join("");
+      return '<div class="tdlm-drawer on"><h4>Ouvrir une accroche</h4>'
+        +'<div class="tdlm-prose">'+esc(a.fait)+'</div>'
+        +'<div class="tdlm-prose tdlm-todo"><b>Condition :</b> '+esc(a.condition||"—")+'</div>'
+        +'<label class="tdlm-fl">Qui l\u2019a obtenue</label><select id="tdlh-accqui">'+tenants+'</select>'
+        +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="accok:'+ia+'">Rendre publique</button>'
+        +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
+    }
+  }
   if(S.inline&&S.inline.indexOf("poste:")===0){
     var i=+S.inline.split(":")[1], p=vt(m.postes)[i];
     if(p)return P.tiroirCloture(m,p,i);
@@ -185,6 +252,7 @@ function act(k,m){
 function doo(k,m){
   if(k==="cancel"){S.drawer=null;S.inline=null;F.renderStage();return;}
   if(k&&k.indexOf("posteok:")===0){P.cloturerPoste(m,+k.split(":")[1]);return;}
+  if(k&&k.indexOf("accok:")===0){ouvrirAccroche(m,+k.split(":")[1]);return;}
   if(k==="sujetok"){
     var el=$("#tdlh-sujet"), url=el?String(el.value||"").trim():"";
     m.sujet=url;patch(m,{sujet:url});S.inline=null;toast("Sujet enregistré.");F.renderStage();return;
@@ -205,7 +273,22 @@ function doo(k,m){
   }
 }
 
+function ouvrirAccroche(m,i){
+  var acc=vt(m.accroches), a=acc[i]; if(!a)return;
+  var sel=$("#tdlh-accqui"), qui=sel?sel.value:"";
+  if(!qui){toast("Dis qui l\u2019a obtenue.");return;}
+  a.ouverte=true; a.par=qui; a.date=new Date().toISOString();
+  m.accroches=acc; patch(m,{accroches:acc});
+  S.inline=null;
+  try{if(window.EcoNotif)EcoNotif.a(qui,100,{nom:m.titre},"acc"+m.id+a.k);}catch(e){}
+  toast("Accroche ouverte. Tout le monde la voit maintenant.");
+  F.renderAll();
+}
+
 function brancher(stage){
+  stage.querySelectorAll("[data-acc]").forEach(function(el){
+    el.onclick=function(){S.inline="acc:"+el.getAttribute("data-acc");S.drawer=null;F.renderStage();};
+  });
   stage.querySelectorAll("[data-poste]").forEach(function(el){
     el.onclick=function(){
       var m=F.parId(S.sel); if(!m)return;
@@ -228,7 +311,10 @@ function brancher(stage){
 function clore(m){
   if(m.primeVersee){toast("Marée déjà réglée.");return;}
   var postes=vt(m.postes), aNoter=0;
-  postes.forEach(function(p){ if(p.etat==="pris"&&!p.note){p.note="non_transmise";aNoter++;} });
+  postes.forEach(function(p){
+    if(p.etat!=="pris"||!P.POSTES[p.type].rapporte)return;   /* diversion et écueil : part due, pas de note */
+    if(!p.note){p.note="non_transmise";aNoter++;}
+  });
   if(!window.confirm("Clore la marée et régler les postes ?"
       +(aNoter?"\n"+aNoter+" poste(s) sans note seront réglés comme non transmis.":"")))return;
   m.postes=postes;
@@ -256,13 +342,15 @@ function champPoste(i){
     +'<span class="tdlm-todo" id="tdlh-nh'+i+'">facultatif</span></div>'
     +'<label class="tdlm-fl">Nature</label><select id="tdlh-nt'+i+'">'+ts+'</select>'
     +'<label class="tdlm-fl">Intitulé</label><input type="text" id="tdlh-ni'+i+'" placeholder="Tenir le quai nord, bloquer le chenal…">'
+    +'<label class="tdlm-fl">Heure (HH:MM, pour l\u2019ordre du sujet)</label>'
+    +'<input type="text" id="tdlh-nhr'+i+'" placeholder="02:30">'
     +'<label class="tdlm-fl">Consigne visible de tous</label>'
     +'<input type="text" id="tdlh-nc'+i+'" placeholder="Ce qu\u2019on demande, sans dire pourquoi…">'
     /* le scellé est hors grille : un simple "" suffit à le réafficher */
     +'<div id="tdlh-nsw'+i+'" style="display:none">'
-    +'<label class="tdlm-fl">Scellé \u2014 ce qu\u2019il y a réellement à voir</label>'
-    +'<textarea id="tdlh-ns'+i+'" placeholder="Révélé au titulaire seul, au moment où il prend le poste…"></textarea>'
-    +'<div class="tdlm-prose tdlm-todo">Le titulaire n\u2019invente pas ce qu\u2019il perçoit : il le reçoit. Il choisira ensuite ce qu\u2019il en rapporte.</div>'
+    +'<label class="tdlm-fl">Scellé \u2014 ce qui se produit sous ses yeux</label>'
+    +'<textarea id="tdlh-ns'+i+'" placeholder="Un pick-up remonte le chemin sans phares à 2h40…"></textarea>'
+    +'<div class="tdlm-prose tdlm-todo">Écrivez un fait, pas une conclusion : ce qui se produit, jamais ce que le personnage en déduit. Il reçoit la perception, il garde l\u2019interprétation.</div>'
     +'</div></div>';
 }
 
@@ -278,9 +366,24 @@ function memoPostes(){
     +'</div>';
 }
 
+function champAccroche(i){
+  return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Accroche '+(i+1)+'</span>'
+    +'<span class="tdlm-todo">facultative</span></div>'
+    +'<label class="tdlm-fl">Le fait</label>'
+    +'<textarea id="tdlh-af'+i+'" placeholder="La coque a été repeinte, et un nom transparaît sous le bleu-noir…"></textarea>'
+    +'<label class="tdlm-fl">Ce qu\u2019il faut faire pour l\u2019obtenir</label>'
+    +'<input type="text" id="tdlh-ac'+i+'" placeholder="Approcher du bateau de face, à quelques mètres, avec une lumière…">'
+    +'</div>';
+}
+
 function formOuverture(){
   var me=F.myPseudo();
   var ss=Object.keys(SORTIES).map(function(k){return '<option value="'+k+'">'+esc(SORTIES[k].label)+'</option>';}).join("");
+  var accs="";
+  for(var j=0;j<MAX_ACCROCHES;j+=2){
+    accs+='<div class="tdlm-duo">'+champAccroche(j)
+      +(j+1<MAX_ACCROCHES?champAccroche(j+1):'<div></div>')+'</div>';
+  }
   var cartes="";
   for(var i=0;i<MAX_POSTES;i+=2){
     cartes+='<div class="tdlm-duo">'+champPoste(i)
@@ -299,6 +402,8 @@ function formOuverture(){
       +'<label class="tdlm-fl">Ce qu\u2019on sait \u2014 visible de tous</label><textarea id="tdlh-nctx"></textarea>'
       +memoPostes()
       +cartes
+      +'<div class="tdlm-prose">Les accroches ne sont attachées à aucun poste. Elles sont invisibles de tous sauf de vous et du staff, et vous les ouvrez en cours de RP quand quelqu\u2019un remplit la condition dans le sujet. C\u2019est ce qui empêche chacun de jouer dans son coin.</div>'
+      +accs
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-neuf="ok">Afficher la marée</button>'
       +'<button class="tdlm-abtn" data-neuf="cancel">Annuler</button></div>'
     +'</div></div></div>';
@@ -312,12 +417,20 @@ function creer(){
   for(var i=0;i<MAX_POSTES;i++){
     var t=g("#tdlh-nt"+i); if(!P.POSTES[t])continue;
     postes.push(P.normPoste({k:"p"+i+Date.now().toString(36).slice(-3), type:t,
-      titre:g("#tdlh-ni"+i)||P.POSTES[t].label, consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},i));
+      titre:g("#tdlh-ni"+i)||P.POSTES[t].label, heure:g("#tdlh-nhr"+i),
+      consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},i));
   }
   if(postes.length<MIN_POSTES){toast("Il faut au moins "+MIN_POSTES+" postes.");return;}
   if(!postes.some(function(p){return p.type!=="bord";})){toast(T.ADMISSION);return;}
 
-  var o={ titre:titre, createur:F.myPseudo(), navire:g("#tdlh-nnavire")||"Le hangar",
+  var accroches=[];
+  for(var j=0;j<MAX_ACCROCHES;j++){
+    var fait=g("#tdlh-af"+j); if(!fait)continue;
+    accroches.push({k:"a"+j+Date.now().toString(36).slice(-3), fait:fait,
+      condition:g("#tdlh-ac"+j), ouverte:false, par:"", date:""});
+  }
+
+  var o={ titre:titre, createur:F.myPseudo(), accroches:accroches, navire:g("#tdlh-nnavire")||"Le hangar",
           sortie:g("#tdlh-nsortie")||"extraction", lieu:g("#tdlh-nlieu"), quand:g("#tdlh-nquand"),
           contexte:g("#tdlh-nctx"), postes:postes, statut:"en_attente",
           sujet:"", resume:"", consequences:"", demandeValidation:false,
