@@ -19,7 +19,7 @@
  */
 (function () {
   "use strict";
-  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
   function E(){ return window.EcoCore; }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -33,14 +33,15 @@
   var RESEAU_LIB = { entreprises:"Entreprises & Commerçants", autorites:"Autorités corrompues", prestataires:"Prestataires & Services", informateurs:"Informateurs locaux" };
   var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
   var DISPO_LIB = { disponible:"Disponible", ponctuel:"Ponctuel", indisponible:"Indisponible" };
+  var CIBLE_LIB = { pj:"Un personnage joueur", pnj:"Un PNJ", famille:"Une famille", groupe:"Un groupe", entreprise:"Une entreprise" };
   var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
                 ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"],
                 ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
-  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
+  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
 
   var st = { filtre:"en_attente" };
-  var root, demandes = [], dettesList = [];
+  var root, demandes = [], dettesList = [], CATALOGUE = {};
 
   function chip(t){ return '<span class="qsd-chip">'+esc(TYPES[t]||t||"—")+'</span>'; }
   function stChip(s){ return '<span class="qsd-st qsd-st-'+esc(s||"en_attente")+'">'+esc(STATUTS[s]||s||"—")+'</span>'; }
@@ -65,6 +66,8 @@
     if (typeof d.montant==="number" && d.montant>0) out += ligne("Montant", money(d.montant));
     if (d.type==="dette" && d.dette_num) out += ligne("Rang dette lourde", "n°"+d.dette_num);
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
+    var pn = phaseNego(d), ps = phaseService(d);
+    if (pn || ps) out += ligne("Dossier à ouvrir", "Tableau de la Main · " + (pn&&ps ? "négociation puis service" : (pn ? "négociation en RP" : "service à rendre")));
     var ri = reseauAInscrire(d);
     if (ri && ri.reseau==="faiseuses") out += ligne("Réseau à inscrire", "Faiseuses d\u2019Anges · "+(DISPO_LIB[ri.statut]||ri.statut));
     else if (ri) out += ligne("Réseau à inscrire", (RESEAU_LIB[ri.categorie]||ri.categorie)+" · "+(ri.statut?(STATUT_RES[ri.statut]||ri.statut):"statut à préciser par le staff"));
@@ -176,6 +179,46 @@
       return r;
     });
   }
+
+    /* Une demande « nego » ouvre un dossier au tableau de la Main dans deux cas,
+     éventuellement les deux à la fois :
+       - la négociation se joue en RP (methode « rp », ou service rpOnly qui n'a
+         pas de sélecteur de méthode mais porte un prix négocié) → phase 1 ;
+       - le service a vocation à devenir un RP (case rp_mission) → phase 2.
+     La Confesse n'a pas de prix négocié : elle n'ouvre jamais de phase 1. */
+  function phaseNego(d){
+    if (d.type!=="nego" || d.situation) return false;
+    if (d.methode==="des") return false;
+    return d.methode==="rp" || (!d.methode && !!d.prix_negocie);
+  }
+  function phaseService(d){ return d.rp_mission==="oui"; }
+
+  function creerDossierMain(d, nego, service){
+    var it = CATALOGUE[d.itemId] || {};
+    var cible = (d.cible_type==="pj") ? (d.cible_pj||"") : (d.cible||"");
+    /* la prime est FIGÉE ici : l'argent vient d'être encaissé par la cagnotte,
+       relire la demande plus tard exposerait à une modification entre-temps. */
+    var prime = (d.compensation==="prix") ? (parseInt(d.prix_offert,10)||0) : 0;
+    return E().firebasePush(CFG.NODE_DOSSIERS, {
+      type: service ? "service" : "negociation",
+      origine:"boutique", demandeId:d.id||"", demandeur:d.pseudo||"",
+      titre:d.nom||"Service de la Main", service:d.itemId||"",
+      doigt:null, ouvertTous:true,
+      cible_type:d.cible_type||"aucune", cible:cible, protege:"",
+      contexte:d.contexte||d.situation||"", objectif:d.attentes||"",
+      contraintes:[], montant:0, dette:null, accord:null, defaut:null,
+      prixIndicatif:(typeof it.pi==="number"?it.pi:0),
+      prixPropose:parseInt(d.prix_negocie,10)||0,
+      issue:null, prixFinal:null,
+      prime:prime, primeVersee:false,
+      phase: nego ? "nego" : "service",
+      phaseService: !!service, phase1:null,
+      statut:"ouvert", responsable:null, participants:[],
+      sujet:"", resume:"", consequences:"", conclusion:null,
+      demandeValidation:false, verse:false,
+      cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null
+    });
+  }
   
   async function action(id, act){
     var d = demandes.filter(function(x){ return x.id===id; })[0]; if (!d) return;
@@ -225,6 +268,13 @@
         if (d.type==="faveur" && !d.tacheCreee) {
           try { await creerTache(d); o[base+"/tacheCreee"] = true; }
           catch(e){ if (window.console) console.error("[quais-staff] tâche faiseuses", e); alert("Demande validée, mais la tâche n\u2019a pas pu être créée."); }
+        }
+        if (!d.dossierCree) {
+          var pn = phaseNego(d), ps = phaseService(d);
+          if (pn || ps) {
+            try { await creerDossierMain(d, pn, ps); o[base+"/dossierCree"] = true; }
+            catch(e){ if (window.console) console.error("[quais-staff] dossier main", e); alert("Demande validée, mais le dossier de la Main n\u2019a pas pu être créé."); }
+          }
         }
         o[base+"/statut"] = act==="valider" ? "validee" : "traitee"; await E().firebaseUpdate(o);
       }
@@ -282,6 +332,7 @@
       var node = (r && r[CFG.NODE_DEMANDES]) || {};
       demandes = Object.keys(node).map(function(id){ var d = node[id]||{}; d.id = id; return d; })
         .sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
+      CATALOGUE = (r && r.boutique && r.boutique.barge) || {};
       var membres = (r && r[CFG.NODE_MEMBRES]) || {};
       dettesList = [];
       Object.keys(membres).forEach(function(p){
