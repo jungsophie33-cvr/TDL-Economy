@@ -31,6 +31,7 @@
     NODE_CAGNOTTES: "cagnottes",           /* [MAJ] cagnottes/<groupe> (Providence = cagnotte de la Main) */
     NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
     NODE_DOSSIERS:  "dossiers_main",       /* [MAJ] recouvrements de la Main : somme gelée */
+    NODE_ENQUETES:  "enquetes",            /* [MAJ] panneau des enquêtes : affaires ouvertes */
     MAX_DETTES_LOURDES: 3,
     COOLDOWN_JOURS: 7,                     /* renégociation d'un service bloquée après un renoncement */
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
@@ -283,8 +284,9 @@
   var st = { tab:null, open:null, band:null, sel:null, staff:false, formMode:false, formItem:null, dirty:false };
   var cat = {};      /* cat[key] = catalogue chargé du module (id→item) */
   var etatMembre = { pseudo:null, solde:0, dettes:[], cooldowns:{} };
-    var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
+  var PSEUDOS = [];        /* liste des pseudos (cible d'un service) */
   var BANDES_INFO = {};    /* bottin-voyou : bandes/<bande> = { image, desc, motscles } */
+  var ENQUETES = [];       /* affaires ouvertes (motif de disparition, boutique Flottille) */
   var GELE = 0;            /* somme retenue sur le membre courant par un recouvrement ouvert */
 
   /* Un dossier de recouvrement ouvert fige sa somme : elle reste au solde mais
@@ -302,6 +304,20 @@
     });
     return t;
   }
+    /* Affaires ouvertes : ni classées (cloturee) ni verrouillées staff (intrigue).
+     La cote AG-26-01 est recalculée à l'affichage dans le panneau des enquêtes
+     et n'est jamais stockée — on garde donc id + type + titre. */
+  function lireEnquetes(root){
+    var n = (root && root[CFG.NODE_ENQUETES]) || {}, out = [];
+    Object.keys(n).forEach(function(id){
+      var a = n[id] || {};
+      if (a.cloturee || a.intrigue) return;
+      out.push({ id:id, type:a.type||"", titre:a.titre||"(sans titre)" });
+    });
+    out.sort(function(x,y){ return String(x.titre).localeCompare(String(y.titre),"fr"); });
+    return out;
+  }
+  
   function dispo(){ return Math.max(0, (etatMembre.solde|0) - GELE); }
 
   /* ===================== RENDU COQUILLE ===================== */
@@ -385,6 +401,15 @@
       try { await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/nego_cd/"+id, iso); } catch(e){}
     },
     pseudos: function(){ return PSEUDOS; },
+    /* dettes du membre courant avec leur clé Firebase (objet OU tableau selon
+       l'historique d'écriture) : [{ key, d }] */
+    dettes: function(){
+      var src = etatMembre.dettes, out = [];
+      if (Array.isArray(src)) src.forEach(function(x,i){ if (x) out.push({ key:String(i), d:x }); });
+      else if (src) Object.keys(src).forEach(function(k){ if (src[k]) out.push({ key:k, d:src[k] }); });
+      return out;
+    },
+    enquetes: function(){ return ENQUETES; },
     bandeInfo: function(key){ return BANDES_INFO[key] || null; },
     staff: function(){ return st.staff; },
     membre: function(){ return etatMembre; },
@@ -563,8 +588,9 @@
       var root = await E().safeReadBin();     
       PSEUDOS = Object.keys((root && root[CFG.NODE_MEMBRES]) || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
       BANDES_INFO = (root && root[CFG.NODE_BANDES]) || {};
+      ENQUETES = lireEnquetes(root);
       GELE = calculerGel(root);
-    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; GELE = 0; }
+    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; GELE = 0; }
   }
   async function refresh(){
     E().invalidateCache();
