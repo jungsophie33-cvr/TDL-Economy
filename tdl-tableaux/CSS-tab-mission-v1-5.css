@@ -82,7 +82,7 @@
 .tdlm-k{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dark2)}
 .tdlm-v{font-size:17px}
 .tdlm-v b{font-weight:600}
-.tdlm-v i{color:var(--dark2);font-size:15px;margin-right:2px}
+.tdlm-v i{color:var(--dark2);font-size:15px;margin-right:10px}
 .tdlm-lien{color:var(--dark);font-family:var(--font2);font-style:italic;text-decoration:underline dotted}
 .tdlm-lien:hover{color:var(--dark2)}
 
