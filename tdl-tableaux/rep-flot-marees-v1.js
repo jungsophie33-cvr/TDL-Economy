@@ -251,34 +251,59 @@ function peutOuvrir(){
 function champPoste(i){
   var ts='<option value="">— aucun —</option>'+Object.keys(P.POSTES).map(function(k){
     return '<option value="'+k+'">'+esc(P.POSTES[k].label)+' ('+P.POSTES[k].montant+' $)</option>';}).join("");
-  return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Poste '+(i+1)+'</span></div>'
-    +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Nature</label><select id="tdlh-nt'+i+'">'+ts+'</select></div>'
-    +'<div style="flex:2"><label class="tdlm-fl">Intitulé</label><input type="text" id="tdlh-ni'+i+'" placeholder="Tenir le quai nord, bloquer le chenal…"></div></div>'
-    +'<label class="tdlm-fl">Consigne visible de tous</label><input type="text" id="tdlh-nc'+i+'" placeholder="Ce qu\u2019on demande, sans dire pourquoi…">'
-    +'<label class="tdlm-fl">Scellé \u2014 ce qu\u2019il y a réellement à voir ou à trouver</label>'
-    +'<textarea id="tdlh-ns'+i+'" placeholder="Révélé au titulaire seul, au moment où il prend le poste…"></textarea></div>';
+  return '<div class="tdlm-cadre">'
+    +'<div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Poste '+(i+1)+'</span>'
+    +'<span class="tdlm-todo" id="tdlh-nh'+i+'">facultatif</span></div>'
+    +'<label class="tdlm-fl">Nature</label><select id="tdlh-nt'+i+'">'+ts+'</select>'
+    +'<label class="tdlm-fl">Intitulé</label><input type="text" id="tdlh-ni'+i+'" placeholder="Tenir le quai nord, bloquer le chenal…">'
+    +'<label class="tdlm-fl">Consigne visible de tous</label>'
+    +'<input type="text" id="tdlh-nc'+i+'" placeholder="Ce qu\u2019on demande, sans dire pourquoi…">'
+    /* le scellé est hors grille : un simple "" suffit à le réafficher */
+    +'<div id="tdlh-nsw'+i+'" style="display:none">'
+    +'<label class="tdlm-fl">Scellé \u2014 ce qu\u2019il y a réellement à voir</label>'
+    +'<textarea id="tdlh-ns'+i+'" placeholder="Révélé au titulaire seul, au moment où il prend le poste…"></textarea>'
+    +'<div class="tdlm-prose tdlm-todo">Le titulaire n\u2019invente pas ce qu\u2019il perçoit : il le reçoit. Il choisira ensuite ce qu\u2019il en rapporte.</div>'
+    +'</div></div>';
 }
+
+/* mémo des postes, pour qu\u2019on sache ce qu\u2019on ouvre */
+function memoPostes(){
+  return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Les quatre postes</span></div>'
+    + Object.keys(P.POSTES).map(function(k){
+        var d=P.POSTES[k];
+        return '<div class="tdlm-sec" style="margin:0 0 10px"><p class="tdlm-hsec" style="margin:0">'+esc(d.label)
+          +' <span class="tdlm-r">'+d.montant+' $</span> <span class="tdlm-todo">'+esc(d.legal)+'</span></p>'
+          +'<div class="tdlm-prose">'+esc(d.desc)+'</div></div>';
+      }).join("")
+    +'</div>';
+}
+
 function formOuverture(){
   var me=F.myPseudo();
   var ss=Object.keys(SORTIES).map(function(k){return '<option value="'+k+'">'+esc(SORTIES[k].label)+'</option>';}).join("");
-  var rows=""; for(var i=0;i<MAX_POSTES;i++)rows+=champPoste(i);
+  var cartes="";
+  for(var i=0;i<MAX_POSTES;i+=2){
+    cartes+='<div class="tdlm-duo">'+champPoste(i)
+      +(i+1<MAX_POSTES?champPoste(i+1):'<div></div>')+'</div>';
+  }
   return '<div class="tdlm-dpanel">'
+    +'<button class="tdlm-dret" data-neuf="cancel">← Retour au registre</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Ouvrir une marée</span></div>'
-    +'<div class="tdlm-dp-body">'
-      +'<div class="tdlm-sec"><div class="tdlm-prose">'+esc(T.ADMISSION)+'</div></div>'
-      +'<div class="tdlm-drawer on">'
+    +'<div class="tdlm-dp-body"><div class="tdlm-drawer on">'
+      +'<div class="tdlm-prose">'+esc(T.ADMISSION)+'</div>'
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlh-ntitre" placeholder="Ex. : Relever quelqu\u2019un au ponton Dumas">'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Nature de la sortie</label><select id="tdlh-nsortie">'+ss+'</select></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Au nom de</label><input type="text" id="tdlh-nnavire" value="'+escAttr(F.navireDe(me)||"Le hangar")+'"></div></div>'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Où</label><input type="text" id="tdlh-nlieu" placeholder="Chenal, ponton, bras de bayou…"></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Quand</label><input type="text" id="tdlh-nquand" placeholder="Une nuit de mars, à la marée basse…"></div></div>'
       +'<label class="tdlm-fl">Ce qu\u2019on sait \u2014 visible de tous</label><textarea id="tdlh-nctx"></textarea>'
-      +'</div>'
-      +rows
-      +'<div class="tdlm-row" style="margin:0 24px 20px"><button class="tdlm-abtn prim" data-neuf="ok">Afficher la marée</button>'
+      +memoPostes()
+      +cartes
+      +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-neuf="ok">Afficher la marée</button>'
       +'<button class="tdlm-abtn" data-neuf="cancel">Annuler</button></div>'
-    +'</div></div>';
+    +'</div></div></div>';
 }
+
 function creer(){
   var g=function(id){var e=$(id);return e?String(e.value||"").trim():"";};
   var titre=g("#tdlh-ntitre");
@@ -319,6 +344,20 @@ F.vue({
         else {S.statut="tous";F.renderAll();}
       };
     });
+    /* la diversion n'a pas de scellé : on ne voit rien quand on ne sait pas
+       pourquoi on est là. Les trois autres postes perçoivent quelque chose. */
+    for(var i=0;i<MAX_POSTES;i++)(function(i){
+      var sel=stage.querySelector("#tdlh-nt"+i),
+          wrap=stage.querySelector("#tdlh-nsw"+i),
+          aide=stage.querySelector("#tdlh-nh"+i);
+      if(!sel)return;
+      sel.onchange=function(){
+        var d=P.POSTES[sel.value];
+        if(wrap)wrap.style.display=(d&&d.scelle)?"":"none";
+        if(aide)aide.textContent=d?(d.montant+" $ \u00b7 "+d.legal):"facultatif";
+      };
+      sel.onchange();
+    })(i);
   }
 });
 
