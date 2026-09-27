@@ -533,7 +533,7 @@ function actionbar(m){
     roles.push("Staff");
     if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="clore">Clore le dossier</button>';
     btns+='<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>';
-    if(m.statut!=="close"&&m.statut!=="classee")btns+='<button class="tdlm-abtn warn" data-act="classer">Classer sans suite</button>';
+    if(m.statut!=="close"&&m.statut!=="classee"&&m.origine!=="boutique")btns+='<button class="tdlm-abtn warn" data-act="classer">Classer sans suite</button>';
     btns+='<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>';
   }
   if(!btns){
@@ -744,7 +744,10 @@ function act(k){
     m.responsable=me;m.statut="saisi";
     if(m.participants.indexOf(me)<0)m.participants.push(me);
     patch(m,{responsable:me,statut:"saisi",participants:m.participants});
-       try{ if(window.EcoNotif && m.demandeur) EcoNotif.a(m.demandeur,123,{titre:m.titre},"sai"+m.id); }catch(e){}
+         try{ if(window.EcoNotif){
+      if(m.demandeur) EcoNotif.a(m.demandeur,123,{titre:m.titre},"sai"+m.id);
+      if(m.type==="negociation"||m.phase==="nego") EcoNotif.bande("main",161,{titre:m.titre,chef:me},"pre"+m.id);
+    } }catch(e){}
     toast("Dossier saisi : vous en êtes responsable.");renderAll();return;
   }
   if(k==="join"){
@@ -752,6 +755,7 @@ function act(k){
     if(!estMain(me)){toast("Réservé aux membres de la Main.");return;}
     if(m.participants.indexOf(me)>=0)return;
     m.participants.push(me);patch(m,{participants:m.participants});
+         try{ if(window.EcoNotif && m.responsable) EcoNotif.a(m.responsable,166,{pseudo:me,titre:m.titre},"join"+m.id+"_"+me); }catch(e){}
     toast("Inscrit·e au dossier.");renderAll();return;
   }
   if(k==="sujet"){S.inline=S.inline==="sujet"?null:"sujet";S.drawer=null;renderStage();return;}
@@ -878,7 +882,12 @@ function cloreNego(m){
       .then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+px;}); })
     : Promise.resolve();
 
-  op.then(function(){
+    op.then(function(){
+    var suite=m.phaseService, iss=m.issue;   /* lus avant que la bascule n'écrase m */
+    try{ if(window.EcoNotif){
+      if(p) EcoNotif.a(p,163,{titre:m.titre,montant:px,issue:ISSUES[iss]?ISSUES[iss].label:""},"neg"+m.id);
+      if(suite) EcoNotif.bande("main",162,{titre:m.titre},"ph2"+m.id);
+    } }catch(e){}
     var arch={responsable:m.responsable,participants:m.participants,sujet:m.sujet,
               resume:m.resume,consequences:m.consequences,issue:m.issue,prixFinal:px,
               clos:new Date().toISOString()};
@@ -934,6 +943,15 @@ function cloreService(m){
   op.then(function(){
     m.statut="close";m.primeVersee=true;m.demandeValidation=false;m.clos=new Date().toISOString();
     patch(m,{statut:"close",primeVersee:true,demandeValidation:false,clos:m.clos});
+         try{ if(window.EcoNotif){
+      vals.forEach(function(x){
+        var g=part+((m.responsable&&x===m.responsable)?reste+CFG.CHEF_BONUS:0);
+        EcoNotif.a(x,165,{titre:m.titre,montant:g},"pay"+m.id+"_"+x);
+      });
+      if(m.responsable&&vals.indexOf(m.responsable)<0)
+        EcoNotif.a(m.responsable,165,{titre:m.titre,montant:reste+CFG.CHEF_BONUS},"pay"+m.id+"_"+m.responsable);
+      if(m.demandeur) EcoNotif.a(m.demandeur,164,{titre:m.titre},"fin"+m.id);
+    } }catch(e){}
     toast("Service clos \u2014 "+money(total)+" versés.");
     E.invalider();loadData();
   }).catch(function(e){
@@ -966,6 +984,7 @@ function finaliser(m){
   toast("Dossier clos.");E.invalider();loadData();
 }
 function classer(m){
+  if(m.origine==="boutique"){toast("Un service acheté ne se classe pas : il doit être mené à son terme.");return;}
   if(!window.confirm("Classer « "+m.titre+" » sans suite ?"+(m.montant?"\nLa somme gelée sera libérée.":"")))return;
   m.statut="classee";m.demandeValidation=false;m.clos=new Date().toISOString();
   patch(m,{statut:"classee",demandeValidation:false,clos:m.clos});
