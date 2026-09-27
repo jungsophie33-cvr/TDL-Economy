@@ -30,8 +30,11 @@ var CFG = {
   NODE: "dossiers_main",
   NODE_MEMBRES: "membres",
   NODE_CAGNOTTES: "cagnottes",
-    CAGNOTTE: "Providence",
+  CAGNOTTE: "Providence",
   BANDE: "main",
+  CHEF_BONUS: 30,        /* [MAJ] ALIGNER sur rep-mis-marin-v2-2.js */
+  PART_FIXE: 50,          /* par participant quand rien n'a été payé en dollars */
+  COMMISSION: 0.2,        /* part de la Main sur une prime encaissée */
   CREANCIER: "La Main de la Providence",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=469&mode=editpost" /* [MAJ] sujet porteur */
 };
@@ -49,7 +52,10 @@ var GEL_STATUTS = {ouvert:1, saisi:1, en_validation:1};
 var TYPES = {
   recouvrement:{label:"Recouvrement", ic:"fi-tr-hands-usd"},
   protection:  {label:"Protection",   ic:"fi-tr-shield-check"},
-  silence:     {label:"Silence rompu",ic:"fi-tr-comment-slash"}
+  silence:     {label:"Silence rompu",ic:"fi-tr-comment-slash"},
+  negociation: {label:"Négociation",  ic:"fi-tr-balance-scale-left"},
+  service:     {label:"Service à rendre", ic:"fi-tr-handshake"}
+};
 };
 /* miroir de BHL_CONFIG.bandes.main.doigts — [MAJ] si la structure y change */
 var DOIGTS = {pouce:"Le Pouce", index:"L'Index", majeur:"Le Majeur",
@@ -58,6 +64,24 @@ var CIBLES = {aucune:"Aucune", pj:"Un personnage joueur", pnj:"Un PNJ", famille:
 var CERTITUDE = {certitude:"Certitude", indices:"Faisceau d'indices", soupcon:"Simple soupçon"};
 var CONCLUSIONS = {confirmee:"Menace confirmée", neutralisee:"Menace neutralisée",
                    non_identifiee:"Source non identifiée", fausse:"Fausse alerte"};
+
+/* Issue d'une négociation jouée en RP — équivalent narratif du dé de la
+   boutique. Le responsable choisit ce qui s'est passé, le prix en découle ;
+   le staff peut corriger à la validation s'il lit autre chose dans le RP. */
+var ISSUES = {
+  cc:{label:"Réussite critique", desc:"La Main accepte le prix proposé, tel quel."},
+  rs:{label:"Réussite",          desc:"La Main consent à un geste : rabais de moitié."},
+  es:{label:"Échec",             desc:"Aucun rabais — le prix indicatif s\u2019applique."},
+  ce:{label:"Échec critique",    desc:"Le demandeur a agacé la Main : majoration de 10 %."}
+};
+function prixSelon(m, issue){
+  var pi=m.prixIndicatif|0, pp=m.prixPropose|0;
+  if(!pi) return pp;
+  if(issue==="cc") return pp;
+  if(issue==="rs") return pi - Math.round((pi-pp)/2);
+  if(issue==="ce") return Math.round(pi*1.1);
+  return pi;
+}
 
 /* ===================== UTILS ===================== */
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -167,6 +191,19 @@ function normaliser(o){
   o.conclusion=CONCLUSIONS[o.conclusion]?o.conclusion:null;
   o.demandeValidation=!!o.demandeValidation;
   o.verse=!!o.verse;
+  /* dossiers nés de la boutique */
+  o.service=o.service||"";
+  o.ouvertTous=!!o.ouvertTous;
+  o.prixIndicatif=+o.prixIndicatif||0;
+  o.prixPropose=+o.prixPropose||0;
+  o.issue=ISSUES[o.issue]?o.issue:null;
+  o.prixFinal=(o.prixFinal==null)?null:(+o.prixFinal||0);
+  o.prime=+o.prime||0;
+  o.primeVersee=!!o.primeVersee;
+  o.phase=(o.phase==="service")?"service":(o.phase==="nego"?"nego":null);
+  o.phaseService=!!o.phaseService;
+  o.phase1=(o.phase1&&typeof o.phase1==="object")?o.phase1:null;
+  o.valides=vt(o.valides);
   o.cree=o.cree||new Date().toISOString();
   o.ouverte=o.ouverte||o.cree; o.clos=o.clos||null;
   return o;
@@ -202,6 +239,7 @@ function peutSaisir(m){
   var me=myPseudo();
   if(!me||!estMain(me))return false;
   if(m.statut!=="ouvert")return false;
+  if(m.ouvertTous)return true;                         /* dossiers nés de la boutique */
   if(estCavalier(me)||estJason(me))return true;
   if(aucunPorteur())return true;                       /* forum jeune : personne n'est bloqué */
   return !!m.doigt&&doigtDe(me)===m.doigt;
@@ -227,7 +265,7 @@ function compteurs(pseudo){
 }
 
 /* ===================== ÉTAT / FILTRAGE ===================== */
-var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, prefill:null};
+var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, prefill:null, phase:2};
 function $(s,ctx){return (ctx||document).querySelector(s);}
 /* ---- avatars : lus dans le bottin des faceclaims ----
    Aucune copie : si un membre change de faceclaim, son avatar suit ici. */
@@ -354,6 +392,9 @@ function panel(m){
     +(m.cible_type!=="aucune"?'<div class="tdlm-m"><span class="tdlm-k">'+cibleLbl(m)+'</span><span class="tdlm-v">'+esc(m.cible||"—")+' <span class="tdlm-todo">('+esc(CIBLES[m.cible_type])+')</span></span></div>':'')
     +(m.demandeur?'<div class="tdlm-m"><span class="tdlm-k">Demandeur</span><span class="tdlm-v">'+esc(m.demandeur)+'</span></div>':'')
     +(m.montant?'<div class="tdlm-m"><span class="tdlm-k">Somme gelée</span><span class="tdlm-v"><b>'+money(m.montant)+'</b></span></div>':'')
+    +(m.prixIndicatif?'<div class="tdlm-m"><span class="tdlm-k">Prix indicatif</span><span class="tdlm-v">'+money(m.prixIndicatif)+(m.prixPropose?' <span class="tdlm-todo">· proposé '+money(m.prixPropose)+'</span>':'')+'</span></div>':'')
+    +(m.prixFinal!=null?'<div class="tdlm-m"><span class="tdlm-k">Prix final</span><span class="tdlm-v"><b>'+money(m.prixFinal)+'</b>'+(m.issue?' <span class="tdlm-todo">('+esc(ISSUES[m.issue].label)+')</span>':'')+'</span></div>':'')
+    +(m.prime?'<div class="tdlm-m"><span class="tdlm-k">À redistribuer</span><span class="tdlm-v">'+money(Math.floor(m.prime*(1-CFG.COMMISSION)))+' <span class="tdlm-todo">(sur '+money(m.prime)+')</span></span></div>':'')
     +(m.certitude?'<div class="tdlm-m"><span class="tdlm-k">Degré de certitude</span><span class="tdlm-v">'+esc(CERTITUDE[m.certitude])+'</span></div>':'')
     +(m.urgence?'<div class="tdlm-m"><span class="tdlm-k">Urgence</span><span class="tdlm-v">'+esc(m.urgence)+'</span></div>':'')
     +(m.sujet?'<div class="tdlm-m"><span class="tdlm-k">Sujet RP</span><span class="tdlm-v"><a class="tdlm-lien" href="'+escAttr(m.sujet)+'" target="_blank" rel="noopener">Ouvrir le sujet →</a></span></div>':'')
@@ -403,12 +444,16 @@ function panel(m){
     +m.contraintes.map(function(x){return '<li class="tdlm-puce">'+esc(x)+'</li>';}).join("")+'</ul></div>';
 
   /* participants */
+    var editVal=(staff&&m.statut==="en_validation"&&(m.type==="service"||m.phase==="service"));
   var pList=m.participants.length?m.participants.map(function(p){
+    var chk=editVal?'<label class="tdlm-chk"><input type="checkbox" data-val="'+escAttr(p)+'" '+(m.valides.indexOf(p)>=0?'checked':'')+'> validé</label>':'';
     return '<div class="tdlm-person'+(p===m.responsable?' chef':'')+'">'+av(p)+'<span class="tdlm-pname">'+esc(p)+'</span>'
-      +(p===m.responsable?'<span class="tdlm-r">responsable</span>':'')+'</div>';
+      +(p===m.responsable?'<span class="tdlm-r">responsable</span>':'')+chk+'</div>';
   }).join(""):'<p class="tdlm-todo" style="margin:0">Personne ne s\u2019en est encore saisi.</p>';
   var joinBtn=peutSaisir(m)&&m.participants.indexOf(me)<0?'<button class="tdlm-abtn prim" data-act="saisir">Je m\u2019en saisis</button>':'';
-  var rejoin=(m.statut==="saisi"&&estMain(me)&&m.participants.indexOf(me)<0)?'<button class="tdlm-abtn" data-act="join">Je participe</button>':'';
+  /* une négociation se joue à un seul membre de la Main face au demandeur */
+  var solo=(m.type==="negociation"||m.phase==="nego");
+  var rejoin=(!solo&&m.statut==="saisi"&&estMain(me)&&m.participants.indexOf(me)<0)?'<button class="tdlm-abtn" data-act="join">Je participe</button>':'';
   var cadre=(m.statut==="accord_attendu")?"":'<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Sur le dossier</span>'+joinBtn+rejoin+'</div>'+pList+'</div>';
 
   /* bilan */
@@ -419,11 +464,36 @@ function panel(m){
       +(m.conclusion?'<div class="tdlm-sec"><p class="tdlm-hsec">Conclusion</p><div class="tdlm-prose">'+esc(CONCLUSIONS[m.conclusion])+'</div></div>':'');
   }
 
+    /* deux phases : la phase close est archivée dans phase1, la phase en cours
+     occupe les champs du dossier. Un dossier à une seule phase n'affiche
+     aucun onglet. */
+  var onglets="", contenu=corps+cadre+bilan+drawer(m);
+  if(m.phase1){
+    onglets='<div class="tdlm-ptabs">'
+      +'<button class="tdlm-ptab'+(S.phase===1?" on":"")+'" data-phase="1">Négociation</button>'
+      +'<button class="tdlm-ptab'+(S.phase===2?" on":"")+'" data-phase="2">Service à rendre</button></div>';
+    if(S.phase===1) contenu=phaseClose(m.phase1);
+  }
+
   return '<button class="tdlm-dret" data-back="1">‹ Retour</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">'+esc(m.titre)+'</span>'+stamp(m)+'</div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-dp-hd">'+meta+bandeaux+'</div>'
-    +corps+cadre+bilan+drawer(m)+'</div>'
-    +actionbar(m);
+    +onglets+contenu+'</div>'
+    +(S.phase===1&&m.phase1?'':actionbar(m));
+}
+
+/* rendu en lecture seule de la phase archivée */
+function phaseClose(p){
+  var part=vt(p.participants);
+  return '<div class="tdlm-sec"><p class="tdlm-hsec">Qui s\u2019en est chargé</p>'
+    +'<div class="tdlm-cadre">'+(part.length?part.map(function(x){
+        return '<div class="tdlm-person'+(x===p.responsable?' chef':'')+'">'+av(x)+'<span class="tdlm-pname">'+esc(x)+'</span>'
+          +(x===p.responsable?'<span class="tdlm-r">responsable</span>':'')+'</div>'; }).join("")
+      :'<p class="tdlm-todo" style="margin:0">—</p>')+'</div></div>'
+    +(p.sujet?'<div class="tdlm-sec"><p class="tdlm-hsec">Sujet RP</p><div class="tdlm-prose"><a class="tdlm-lien" href="'+escAttr(p.sujet)+'" target="_blank" rel="noopener">Ouvrir le sujet →</a></div></div>':'')
+    +'<div class="tdlm-sec"><p class="tdlm-hsec">Résumé</p><div class="tdlm-prose">'+(p.resume?esc(p.resume):'<span class="tdlm-todo">—</span>')+'</div></div>'
+    +'<div class="tdlm-sec"><p class="tdlm-hsec">Conséquences</p><div class="tdlm-prose">'+(p.consequences?esc(p.consequences):'<span class="tdlm-todo">—</span>')+'</div></div>'
+    +(p.issue?'<div class="tdlm-sec"><p class="tdlm-hsec">Issue de la négociation</p><div class="tdlm-prose">'+esc(ISSUES[p.issue].label)+' \u2014 prix arrêté à <b>'+money(p.prixFinal||0)+'</b></div></div>':'');
 }
 
 /* Rôles cumulés — voir la même remarque dans rep-tac-fais. */
@@ -466,10 +536,18 @@ function drawer(m){
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="sujetok">Enregistrer</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.drawer==="bilan"){
-    var co=m.type==="silence"
-      ? '<label class="tdlm-fl">Conclusion</label><select id="tdld-bconc">'
-        +Object.keys(CONCLUSIONS).map(function(k){return '<option value="'+k+'"'+(k===m.conclusion?' selected':'')+'>'+CONCLUSIONS[k]+'</option>';}).join("")+'</select>'
-      : '';
+    var co="";
+    if(m.type==="silence"){
+      co='<label class="tdlm-fl">Conclusion</label><select id="tdld-bconc">'
+        +Object.keys(CONCLUSIONS).map(function(k){return '<option value="'+k+'"'+(k===m.conclusion?' selected':'')+'>'+CONCLUSIONS[k]+'</option>';}).join("")+'</select>';
+    } else if(m.type==="negociation"||m.phase==="nego"){
+      co='<label class="tdlm-fl">Issue de la négociation</label><select id="tdld-bissue">'
+        +Object.keys(ISSUES).map(function(k){
+            return '<option value="'+k+'"'+(k===m.issue?' selected':'')+'>'+ISSUES[k].label+' — '+money(prixSelon(m,k))+'</option>'; }).join("")
+        +'</select><div class="tdlm-todo" style="margin-top:6px">'
+        +'Prix indicatif '+money(m.prixIndicatif)+', proposé par le demandeur '+money(m.prixPropose)+'. '
+        +'Le staff vérifiera la conclusion du RP et pourra corriger.</div>';
+    }
     return '<div class="tdlm-drawer on"><h4>Bilan du dossier</h4>'
       +'<label class="tdlm-fl">Résumé</label><textarea id="tdld-bresume">'+esc(m.resume)+'</textarea>'
       +'<label class="tdlm-fl">Conséquences</label><textarea id="tdld-bconseq" placeholder="Ce que ça laisse derrière : une réputation, une rancune, une leçon\u2026">'+esc(m.consequences)+'</textarea>'
@@ -561,6 +639,15 @@ function brancher(){
   var stage=$("#tdld-stage"); if(!stage)return;
   stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};});
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
+  stage.querySelectorAll("[data-phase]").forEach(function(el){el.onclick=function(){
+    S.phase=+el.getAttribute("data-phase"); renderStage();
+  };});
+     stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){
+    var m=parId(S.sel); if(!m)return;
+    var p=el.getAttribute("data-val"), i=m.valides.indexOf(p);
+    if(el.checked && i<0)m.valides.push(p); else if(!el.checked && i>=0)m.valides.splice(i,1);
+    patch(m,{valides:m.valides});
+  };});
   stage.querySelectorAll("[data-ard]").forEach(function(el){el.onclick=function(){
     var p=el.getAttribute("data-ard").split("\u0001");
     S.prefill={pseudo:p[0], idx:+p[1]}; S.creation=true; S.drawer=null; S.inline=null; renderStage();
@@ -632,6 +719,7 @@ function act(k){
     toast("Dossier saisi : vous en êtes responsable.");renderAll();return;
   }
   if(k==="join"){
+    if(m.type==="negociation"||m.phase==="nego"){toast("Une négociation ne nécessite qu\u2019un seul membre de la Main.");return;}
     if(!estMain(me)){toast("Réservé aux membres de la Main.");return;}
     if(m.participants.indexOf(me)>=0)return;
     m.participants.push(me);patch(m,{participants:m.participants});
@@ -660,7 +748,10 @@ function doo(k){
     m.consequences=(($("#tdld-bconseq")||{}).value||"").trim();
     var champs={resume:m.resume,consequences:m.consequences};
     var cc=$("#tdld-bconc"); if(cc){m.conclusion=cc.value;champs.conclusion=cc.value;}
-    if(k==="bilanok"&&m.statut!=="en_validation"){
+    var bi=$("#tdld-bissue");
+    if(bi){ m.issue=bi.value; m.prixFinal=prixSelon(m,bi.value);
+            champs.issue=m.issue; champs.prixFinal=m.prixFinal; }
+     if(k==="bilanok"&&m.statut!=="en_validation"){
       if(!m.resume){toast("Renseigne au moins le résumé.");return;}
       m.statut="en_validation";m.demandeValidation=true;
       champs.statut="en_validation";champs.demandeValidation=true;
@@ -714,6 +805,8 @@ function repondre(m, oui){
 
 /* ===================== CLÔTURE / ARGENT ===================== */
 function clore(m){
+  if(m.type==="negociation"||m.phase==="nego") return cloreNego(m);
+  if(m.type==="service"||m.phase==="service")  return cloreService(m);
   if(m.montant&&!m.verse){
     var p=m.dette&&m.dette.pseudo;
     if(!p){toast("Dossier monétaire sans débiteur rattaché.");return;}
@@ -736,6 +829,90 @@ function clore(m){
   if(!window.confirm("Clore « "+m.titre+" » ?"+(m.dette?"\nLa créance rattachée sera acquittée.":"")))return;
   Promise.resolve(acquitter(m)).then(function(){ finaliser(m); }).catch(function(){ toast("Acquittement échoué — dossier non clos."); });
 }
+
+/* Phase 1 — le prix arrêté en RP est prélevé au demandeur, au profit de la
+   cagnotte. Si un service doit suivre, la phase est archivée et le dossier
+   repart à neuf : autre responsable possible, participants remis à zéro. */
+function cloreNego(m){
+  if(!m.issue){toast("Le responsable doit d\u2019abord renseigner l\u2019issue de la négociation.");return;}
+  var px=m.prixFinal!=null?m.prixFinal:prixSelon(m,m.issue);
+  var p=m.demandeur;
+  if(!p){toast("Dossier sans demandeur.");return;}
+  if(px>0&&solde(p)<px){toast("Solde insuffisant ("+money(solde(p))+") \u2014 le dossier reste ouvert.");return;}
+  if(!window.confirm("Clore la négociation ?\n"+ISSUES[m.issue].label+" \u2014 "+money(px)+" seront prélevés à "+p
+     +" au profit de la cagnotte « "+CFG.CAGNOTTE+" »."
+     +(m.phaseService?"\nLe service à rendre s\u2019ouvrira ensuite.":"")))return;
+
+  var op=px>0
+    ? window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/dollars",function(cur){
+        var c=cur||0; if(c<px)throw new Error("FONDS"); return c-px; })
+      .then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+px;}); })
+    : Promise.resolve();
+
+  op.then(function(){
+    var arch={responsable:m.responsable,participants:m.participants,sujet:m.sujet,
+              resume:m.resume,consequences:m.consequences,issue:m.issue,prixFinal:px,
+              clos:new Date().toISOString()};
+    if(m.phaseService){
+      var ch={phase1:arch, phase:"service", type:"service", prixFinal:px,
+              responsable:null, participants:[], valides:[], sujet:"", resume:"", consequences:"",
+              statut:"ouvert", demandeValidation:false, ouverte:new Date().toISOString()};
+      for(var k in ch) if(ch.hasOwnProperty(k)) m[k]=ch[k];
+      patch(m,ch); S.phase=2;
+      toast("Négociation close \u2014 le service à rendre est ouvert.");
+    } else {
+      m.prixFinal=px;m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
+      patch(m,{prixFinal:px,statut:"close",demandeValidation:false,clos:m.clos});
+      toast("Négociation close.");
+    }
+    E.invalider();loadData();
+  }).catch(function(e){
+    if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant \u2014 rien n\u2019a été prélevé.");return;}
+    toast("Prélèvement échoué \u2014 dossier non clos.");
+  });
+}
+
+/* Phase 2 — versement. Si le demandeur a payé en dollars, la cagnotte reverse
+   la prime moins la commission de la Main ; sinon chacun touche une part fixe.
+   Le bonus du chef s'ajoute dans les deux cas, comme chez les Maringouins. */
+function cloreService(m){
+  if(m.primeVersee){toast("Versement déjà effectué.");return;}
+  var vals=m.valides.length?m.valides.slice():m.participants.slice();
+  if(!vals.length){toast("Coche au moins un participant.");return;}
+  var n=vals.length, pot=m.prime?Math.floor(m.prime*(1-CFG.COMMISSION)):0;
+  var part=pot?Math.floor(pot/n):CFG.PART_FIXE, reste=pot?pot-part*n:0;
+  var total=part*n+reste+CFG.CHEF_BONUS;
+  if(!window.confirm("Clore « "+m.titre+" » ?\n"+n+" participant(s) : "+money(part)+" chacun"
+     +(reste?" (+"+money(reste)+" au chef)":"")+" + "+money(CFG.CHEF_BONUS)+" bonus chef."
+     +(pot?"\nPrélevé sur la cagnotte « "+CFG.CAGNOTTE+" ».":"\nAucun prélèvement sur la cagnotte.")
+     +"\nIrréversible."))return;
+
+  var op=pot
+    ? window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){
+        var c=cur||0; if(c<pot)throw new Error("CAG"); return c-pot; })
+    : Promise.resolve();
+
+  vals.forEach(function(x){
+    op=op.then(function(){
+      var g=part+((m.responsable&&x===m.responsable)?reste+CFG.CHEF_BONUS:0);
+      return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(x)+"/dollars",function(cur){return (cur||0)+g;});
+    });
+  });
+  if(m.responsable&&vals.indexOf(m.responsable)<0){
+    op=op.then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(m.responsable)+"/dollars",function(cur){return (cur||0)+reste+CFG.CHEF_BONUS;}); });
+  }
+
+  op.then(function(){
+    m.statut="close";m.primeVersee=true;m.demandeValidation=false;m.clos=new Date().toISOString();
+    patch(m,{statut:"close",primeVersee:true,demandeValidation:false,clos:m.clos});
+    toast("Service clos \u2014 "+money(total)+" versés.");
+    E.invalider();loadData();
+  }).catch(function(e){
+    if(e&&e.message==="CAG"){toast("Cagnotte insuffisante ("+money(pot)+" nécessaires) \u2014 rien n\u2019a été versé.");return;}
+    toast("Versement échoué \u2014 dossier non clos.");
+  });
+}
+
 /* la créance disparaît du grand livre ; un LIEN réseau perd son statut de
    dette mais reste au bottin — on s'acquitte d'une dette, on ne cesse pas
    d'être un contact. */
