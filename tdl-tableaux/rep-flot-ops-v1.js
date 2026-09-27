@@ -6,8 +6,8 @@
    d'un achat « Opération » en boutique (1 000 $ minimum, prime déjà retenue
    sur le demandeur).
 
-   CYCLE   en_attente → acceptee (un membre de la Flottille s'en empare et
-           devient chef) → en_validation → terminee.
+   CYCLE   en_attente → en_cours (un membre de la Flottille s'en empare et
+           devient chef) → en_validation → clos.
            14 j sans chef → refusee + recrédit du demandeur.
    ARGENT  prime en parts égales aux participants validés, + 50 $ au chef.
    ACCÈS   lecture ouverte à tous ; inscription réservée à la Flottille
@@ -21,19 +21,11 @@ var S=F.S, patch=F.patch, toast=F.toast;
 
 /* ===================== CONFIG ===================== */
 var SOUS="operations";
-var STATUTS={
-  en_attente:   {label:"En attente",    c:"var(--gr3-color)"},
-  acceptee:     {label:"Acceptée",      c:"var(--gr1-color)"},
-  en_validation:{label:"En validation", c:"var(--gr4-color)"},
-  terminee:     {label:"Terminée",      c:"var(--gr2-color)"},
-  refusee:      {label:"Refusée",       c:"var(--gr6-color)"}
-};
+var STATUTS=F.STATUTS;   /* statuts communs à tous les types du hangar */
 var VERROUS={distance:"La distance", incompatibilite:"L\u2019incompatibilité entre les parties", invisibilite:"L\u2019invisibilité nécessaire"};
 var MANDANT={joueur:"", entreprise:"entreprise", famille:"famille", pnj:"PNJ", anonyme:"anonyme"};
 
 var T={
-  VIDE:"Aucune opération à cet endroit du registre.",
-  INTRO:"La Flottille réunit et déplace. Les décisions sur place ne la regardent pas.",
   NON_FLOT:"Inscription réservée aux membres de la Flottille.",
   FERMEE:"Opération fermée à l\u2019inscription.",
   DEJA:"Déjà inscrit\u00b7e.",
@@ -70,14 +62,12 @@ function normaliser(o){
   return o;
 }
 
-/* ===================== LIGNE DE LISTE ===================== */
-function ligne(m){
-  return F.rangee(m,{
-    titre:m.titre,
-    sub:m.mandataire+" \u00b7 "+money(m.prime),
-    tags:[m.nego?"⚑ prime proposée":""],
-    qui:m.chef, quand:"ouverte "+ilya(m.cree)
-  });
+/* ===================== RANGÉE (le socle compose le reste) ===================== */
+function sub(m){
+  return { sub:m.mandataire+" \u00b7 "+money(m.prime), qui:m.chef, quand:"ouverte "+ilya(m.cree) };
+}
+function tags(m){
+  return [ m.nego?"\u2691 prime proposée":"" ];
 }
 
 /* ===================== PANNEAU ===================== */
@@ -110,12 +100,12 @@ function panel(m){
       +(nav?' <span class="tdlm-todo">\u00b7 '+esc(nav)+'</span>':'')+'</span>'+chefLbl+chk+'</div>';
   }).join(""):'<p class="tdlm-todo" style="margin:0">Personne de la Flottille ne s\u2019en est encore emparé.</p>';
 
-  var peutRejoindre=(F.estFlottille(me)&&m.participants.indexOf(me)<0&&(m.statut==="en_attente"||m.statut==="acceptee"));
+  var peutRejoindre=(F.estFlottille(me)&&m.participants.indexOf(me)<0&&(m.statut==="en_attente"||m.statut==="en_cours"));
   var joinBtn=peutRejoindre?'<button class="tdlm-abtn prim" data-act="join">Je participe</button>':'';
   var cadre='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Équipage de l\u2019opération</span>'+joinBtn+'</div>'+pList+'</div>';
 
   var bilan="";
-  if(m.resume||m.consequences||m.statut==="en_validation"||m.statut==="terminee"){
+  if(m.resume||m.consequences||m.statut==="en_validation"||m.statut==="close"){
     bilan='<div class="tdlm-sec"><p class="tdlm-hsec">Résumé</p><div class="tdlm-prose">'+(m.resume?esc(m.resume):'<span class="tdlm-todo">—</span>')+'</div></div>'
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Conséquences</p><div class="tdlm-prose">'+(m.consequences?esc(m.consequences):'<span class="tdlm-todo">—</span>')+'</div></div>';
   }
@@ -156,10 +146,10 @@ function actionbar(m){
   var dem=(me&&me===m.demandeur), chef=(me&&me===m.chef);
   var roles=[], btns="";
 
-  if(chef&&(m.statut==="acceptee"||m.statut==="en_validation")){
+  if(chef&&(m.statut==="en_cours"||m.statut==="en_validation")){
     roles.push("Chef d\u2019opération");
     btns+='<button class="tdlm-abtn" data-act="sujet">'+(m.sujet?"Modifier le sujet RP":"Renseigner le sujet RP")+'</button>';
-    if(m.statut==="acceptee"&&!m.sujet)btns+='<button class="tdlm-abtn" data-act="nego">Négocier la prime</button>';
+    if(m.statut==="en_cours"&&!m.sujet)btns+='<button class="tdlm-abtn" data-act="nego">Négocier la prime</button>';
     btns+='<button class="tdlm-abtn prim" data-act="bilan">'+(m.statut==="en_validation"?"Modifier le bilan":"Bilan &amp; passer en validation")+'</button>';
   }
   if(dem&&m.statut==="en_attente"){
@@ -170,7 +160,7 @@ function actionbar(m){
     roles.push("Staff");
     if(m.statut==="en_validation")btns+='<button class="tdlm-abtn prim" data-act="valider">Valider &amp; verser la prime</button>';
     btns+='<button class="tdlm-abtn" data-act="edit">Modifier les termes</button>';
-    if(m.statut!=="terminee"&&m.statut!=="refusee")btns+='<button class="tdlm-abtn warn" data-act="refuser">Refuser &amp; rembourser</button>';
+    if(m.statut!=="close"&&m.statut!=="refusee")btns+='<button class="tdlm-abtn warn" data-act="refuser">Refuser &amp; rembourser</button>';
     btns+='<button class="tdlm-abtn warn" data-act="delete">Supprimer</button>';
   }
   if(!btns){
@@ -227,11 +217,11 @@ function act(k,m){
 
   if(k==="join"){
     if(!F.estFlottille(me)){toast(T.NON_FLOT);return;}
-    if(m.statut!=="en_attente"&&m.statut!=="acceptee"){toast(T.FERMEE);return;}
+    if(m.statut!=="en_attente"&&m.statut!=="en_cours"){toast(T.FERMEE);return;}
     if(m.participants.indexOf(me)>=0){toast(T.DEJA);return;}
     m.participants.push(me);
     var champs={participants:m.participants};
-    if(!m.chef){m.chef=me;m.statut="acceptee";champs.chef=me;champs.statut="acceptee";}
+    if(!m.chef){m.chef=me;m.statut="en_cours";champs.chef=me;champs.statut="en_cours";}
     patch(m,champs);toast(m.chef===me?T.CHEF:T.PART);F.renderStage();return;
   }
   if(k==="sujet"||k==="nego"){S.inline=k;S.drawer=null;F.renderStage();return;}
@@ -345,8 +335,8 @@ function verser(m){
   gagnants.forEach(function(p){suite=suite.then(function(){return F.crediter(p,part);});});
   if(m.chef)suite=suite.then(function(){return F.crediter(m.chef,F.CHEF_BONUS);});
   suite.then(function(){
-    m.primeVersee=true;m.statut="terminee";m.demandeValidation=false;
-    patch(m,{primeVersee:true,statut:"terminee",demandeValidation:false,valides:gagnants});
+    m.primeVersee=true;m.statut="close";m.demandeValidation=false;
+    patch(m,{primeVersee:true,statut:"close",demandeValidation:false,valides:gagnants});
     gagnants.forEach(function(p){try{if(window.EcoNotif)EcoNotif.a(p,100,{nom:m.titre},"vop"+m.id+p);}catch(e){}});
     toast("Opération close, prime versée.");F.renderAll();
   }).catch(function(){toast("Versement interrompu \u2014 vérifie les soldes avant de recommencer.");});
@@ -379,10 +369,9 @@ function auto(list){
 }
 
 /* ===================== DÉCLARATION ===================== */
-F.flux({
-  k:"operations", sous:SOUS, label:"Opérations", ic:"fi-tr-anchor",
-  vide:T.VIDE, intro:T.INTRO, statuts:STATUTS,
-  normaliser:normaliser, ligne:ligne, panel:panel,
+F.type({
+  k:"operations", sous:SOUS, label:"Opération", ic:"fi-tr-anchor",
+  normaliser:normaliser, sub:sub, tags:tags, panel:panel,
   act:act, doo:doo, brancher:brancher, auto:auto
 });
 
