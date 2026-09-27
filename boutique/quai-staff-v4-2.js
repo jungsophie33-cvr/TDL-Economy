@@ -288,10 +288,16 @@
       else { o[base+"/statut"] = act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
         /* [NOTIF] après le catch : l'écriture Firebase a réussi, aucun cas d'échec ici */
-    try {
+        try {
       if (window.EcoNotif) {
         if (act==="valider" || act==="traiter") {
-          EcoNotif.a(d.pseudo, 100, { nom:d.nom }, "achat"+d.id);
+          if (d.type==="pret" && d.montant) {
+            EcoNotif.a(d.pseudo, 104, { montant:d.montant }, "pret"+d.id);
+            if (d.pret_contrepartie==="remboursement")
+              EcoNotif.a(d.pseudo, 105, { montant:d.montant }, "remb"+d.id);
+          } else {
+            EcoNotif.a(d.pseudo, 100, { nom:d.nom }, "achat"+d.id);
+          }
           var dn = detteAInscrire(d);
           if (dn) EcoNotif.a(d.pseudo, 102, { motif:dn.motif || d.nom }, "dette"+d.id);
         } else if (act==="annuler") {
