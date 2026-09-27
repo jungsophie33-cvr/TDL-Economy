@@ -198,7 +198,7 @@ function ligne(m){
   var chips=tags.filter(Boolean).map(function(x){return '<span class="tdlm-req">'+x+'</span>';}).join("");
   if(isStaff()&&m.demandeValidation)chips+='<span class="tdlm-req">⚑ validation</span>';
   var st=STATUTS[m.statut]||{c:"var(--cntr)"};
-  var sub='<i class="fi '+esc(t.ic)+'"></i> '+esc(t.label)+(o.sub?' \u00b7 '+esc(o.sub):'');
+  var sub=esc(t.label)+(o.sub?' \u00b7 '+esc(o.sub):'');
   return '<div class="tdlm-drow" data-sel="'+m.id+'" aria-current="'+(m.id===S.sel)+'">'
     +'<span class="tdlm-ddot" style="--sc:'+st.c+'"></span>'
     +'<div style="min-width:0">'
