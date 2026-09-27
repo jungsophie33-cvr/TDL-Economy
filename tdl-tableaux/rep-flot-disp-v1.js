@@ -16,10 +16,11 @@
    PRESSION  si le motif est une dette, la Main vient poser des questions. Le
            capitaine choisit : se taire, parler, mentir. Bloc visible du seul
            capitaine et du staff — le demandeur n'a pas à savoir.
-   DÉNOUEMENT  tranché par le staff à la clôture. Si le disparu n'est pas
-           retrouvé, la dette QUITTE son compte : soit elle change de créancier
-           au profit du PJ qui a payé à sa place, soit elle est lavée par
-           l'entourage PNJ et disparaît du grand livre.
+   DÉNOUEMENT  tranché par le staff, PROPRE AU MOTIF, et obligatoire avant la
+           clôture pour le seul motif « dette ». Lui seul écrit dans le grand
+           livre : introuvable → la dette quitte le compte du disparu, soit
+           vers un PJ qui l'a rachetée, soit effacée par l'entourage PNJ.
+           Enquête et raisons personnelles ne touchent à aucun compte.
    ================================================================== */
 (function(F){
 "use strict";
@@ -35,16 +36,32 @@ var PRESSIONS={
   parler: {label:"A parlé",       desc:"La Main sait où le passager a été déposé."},
   mentir: {label:"A menti",       desc:"La Main l\u2019a découvert. Elle pardonne la loyauté, pas la ruse."}
 };
+/* Le dénouement dépend du motif : on ne referme pas une fuite devant la Main
+   comme une fuite devant le shérif ou comme un départ de famille. */
 var ISSUES={
-  retrouve:   {label:"Retrouvé par la Main", desc:"La dette reste au compte du disparu."},
-  introuvable:{label:"Introuvable",          desc:"La dette quitte son compte : quelqu\u2019un d\u2019autre a payé."}
+  dette:{
+    retrouve:   {label:"Retrouvé par la Main", desc:"Elle a remis la main sur lui. La dette reste à son compte, intacte."},
+    introuvable:{label:"Introuvable",          desc:"Elle ne l\u2019a pas trouvé. La dette quitte son compte \u2014 quelqu\u2019un d\u2019autre a payé."}
+  },
+  enquete:{
+    interpelle:{label:"Localisé par les autorités", desc:"On est venu le chercher là où il était. L\u2019affaire reprend son cours."},
+    revenu:    {label:"Rentré de lui-même",         desc:"Il est revenu se présenter. Ce qu\u2019il en attend le regarde."},
+    jamais:    {label:"Jamais localisé",            desc:"Personne ne l\u2019a retrouvé pendant son absence. L\u2019affaire a pris du retard."}
+  },
+  perso:{
+    revenu: {label:"Rentré de lui-même",      desc:"Le temps a fait son affaire."},
+    ramene: {label:"Ramené par ses proches",  desc:"Quelqu\u2019un est allé le chercher, ou l\u2019a convaincu."},
+    reste:  {label:"N\u2019est pas rentré",    desc:"Il est resté là-bas plus longtemps que prévu. Ceux qui l\u2019attendaient le savent."}
+  }
 };
+function issuesDe(m){ return ISSUES[m.motif]||ISSUES.perso; }
+function issueDe(m){ var i=issuesDe(m); return (m.denouement&&i[m.denouement.issue])||null; }
 
 var T={
   NON_CAP:"Prendre un départ exige un navire : réservé aux capitaines de la Flottille.",
   FERME:"Ce départ n\u2019est plus disponible.",
-  PRIS:"Départ pris : le passager quitte la Louisiane.",
-  CONSULT:"Registre consultable : seuls les capitaines prennent les départs.",
+  PRIS:"Départ pris \u2014 le passager quitte la Louisiane.",
+  CONSULT:"Registre consultable \u2014 seuls les capitaines prennent les départs.",
   CONNECT:"Connectez-vous pour interagir.",
   ATTENTE:"En attente d\u2019un capitaine.",
   DEN_MANQUE:"Tranche d\u2019abord le dénouement : la dette doit aller quelque part."
@@ -68,7 +85,8 @@ function normaliser(o){
   o.depart=o.depart||"";
   o.nego=(o.nego&&o.nego.montant!=null)?o.nego:null;
   o.pression=(o.pression&&PRESSIONS[o.pression.choix])?o.pression:null;
-  o.denouement=(o.denouement&&ISSUES[o.denouement.issue])?o.denouement:null;
+  /* un motif changé par le staff invalide un dénouement devenu hors sujet */
+  o.denouement=(o.denouement&&ISSUES[o.motif]&&ISSUES[o.motif][o.denouement.issue])?o.denouement:null;
   o.sujet=o.sujet||"";
   o.resume=o.resume||""; o.consequences=o.consequences||"";
   o.demandeValidation=!!o.demandeValidation;
@@ -106,7 +124,9 @@ function panel(m){
   var banner="";
   if(staff&&m.demandeValidation){
     banner='<div class="tdlm-reqbanner"><p class="tdlm-hsec">⚑ Le capitaine demande la clôture</p>'
-      +'<div class="tdlm-reqrow"><span>Tranche le dénouement avant de verser : la dette doit aller quelque part.</span></div></div>';
+      +'<div class="tdlm-reqrow"><span>'+esc(m.motif==="dette"
+          ?"Tranche le dénouement avant de verser : la dette doit aller quelque part."
+          :"Tu peux noter ce qu\u2019est devenu le passager avant de clore.")+'</span></div></div>';
   }
 
   var negoBox="";
@@ -136,13 +156,13 @@ function panel(m){
   }
 
   /* dénouement : visible de tous une fois tranché */
-  var denBox="";
-  if(m.denouement){
+  var denBox="", iss=issueDe(m);
+  if(iss){
     var d=m.denouement, suite="";
-    if(d.issue==="introuvable"&&d.lavee_par)suite=" La dette a changé de mains : "+esc(d.lavee_par)+" a payé, et attend son dû.";
-    else if(d.issue==="introuvable"&&d.lavee_pnj)suite=" "+esc(d.lavee_pnj)+" a réglé l\u2019ardoise. Le grand livre est propre.";
+    if(d.lavee_par)suite=" La dette a changé de mains : "+esc(d.lavee_par)+" a payé, et attend son dû.";
+    else if(d.lavee_pnj)suite=" "+esc(d.lavee_pnj)+" a réglé l\u2019ardoise. Le grand livre est propre.";
     denBox='<div class="tdlm-sec"><p class="tdlm-hsec">Dénouement</p><div class="tdlm-prose"><b>'
-      +esc(ISSUES[d.issue].label)+'</b> \u2014 '+esc(ISSUES[d.issue].desc)+suite+'</div></div>';
+      +esc(iss.label)+'</b> \u2014 '+esc(iss.desc)+suite+'</div></div>';
   }
 
   var bilan="";
@@ -158,10 +178,12 @@ function panel(m){
 
   var prendreBtn=(F.estCapitaine(me)&&!m.capitaine&&m.statut==="en_attente")
     ? '<button class="tdlm-abtn prim" data-act="prendre">Je prends ce départ</button>' : '';
-  var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
+    var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
     +(m.capitaine
-      ? '<div class="tdlm-person chef">'+av(m.capitaine)+'<span class="tdlm-pname">'+esc(m.capitaine)
-        +(F.navireDe(m.capitaine)?' <span class="tdlm-todo">\u00b7 '+esc(F.navireDe(m.capitaine))+'</span>':'')+'</span></div>'
+      ? '<div class="tdlm-person chef">'+av(m.capitaine)
+        +'<span class="tdlm-pname">'+esc(m.capitaine)+'</span>'
+        +(F.navireDe(m.capitaine)?'<span class="tdlm-r">'+esc(F.navireDe(m.capitaine))+'</span>':'')
+        +'</div>'
       : '<p class="tdlm-todo" style="margin:0">Aucun capitaine n\u2019a encore pris ce départ.</p>')+'</div>';
 
   return ''
@@ -245,16 +267,22 @@ function drawer(m){
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.drawer==="denouement"){
-    var cur=m.denouement||{};
-    var isel=Object.keys(ISSUES).map(function(k){return '<option value="'+k+'"'+(k===cur.issue?' selected':'')+'>'+esc(ISSUES[k].label)+'</option>';}).join("");
-    var pjs=Object.keys(F.membres()).sort(function(a,b){return a.localeCompare(b,"fr");})
-      .map(function(p){return '<option value="'+escAttr(p)+'"'+(p===cur.lavee_par?' selected':'')+'>'+esc(p)+'</option>';}).join("");
+    var cur=m.denouement||{}, jeu=issuesDe(m);
+    var isel='<option value="">— à trancher —</option>'+Object.keys(jeu).map(function(k){
+      return '<option value="'+k+'"'+(k===cur.issue?' selected':'')+'>'+esc(jeu[k].label)+'</option>';}).join("");
+    /* les champs de payeur n'existent que pour une fuite devant la Main */
+    var argent="";
+    if(m.motif==="dette"){
+      var pjs=Object.keys(F.membres()).sort(function(a,b){return a.localeCompare(b,"fr");})
+        .map(function(p){return '<option value="'+escAttr(p)+'"'+(p===cur.lavee_par?' selected':'')+'>'+esc(p)+'</option>';}).join("");
+      argent='<label class="tdlm-fl">Introuvable : la dette rachetée par un PJ — la créance passe à lui</label>'
+        +'<select id="tdlh-dpj"><option value="">— aucun —</option>'+pjs+'</select>'
+        +'<label class="tdlm-fl">Ou lavée par l\u2019entourage (PNJ) — la dette sort du grand livre</label>'
+        +'<input type="text" id="tdlh-dpnj" value="'+escAttr(cur.lavee_pnj||"")+'" placeholder="Qui a payé à sa place…">';
+    }
     return '<div class="tdlm-drawer on"><h4>Dénouement (staff)</h4>'
-      +'<label class="tdlm-fl">Issue</label><select id="tdlh-dissue">'+isel+'</select>'
-      +'<label class="tdlm-fl">Dette lavée par un PJ — la créance passe à lui</label>'
-      +'<select id="tdlh-dpj"><option value="">— aucun —</option>'+pjs+'</select>'
-      +'<label class="tdlm-fl">Ou lavée par l\u2019entourage (PNJ) — la dette sort du grand livre</label>'
-      +'<input type="text" id="tdlh-dpnj" value="'+escAttr(cur.lavee_pnj||"")+'" placeholder="Qui a payé à sa place…">'
+      +'<label class="tdlm-fl">Ce qu\u2019est devenu le passager</label><select id="tdlh-dissue">'+isel+'</select>'
+      +argent
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="denok">Enregistrer le dénouement</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.inline==="pression"){
@@ -382,12 +410,16 @@ function brancher(){ /* aucune case à cocher ici : un seul capitaine, pas de pa
    encodeURIComponent, y compris pour un pseudo qui contient un espace. */
 function denouer(m){
   var i=$("#tdlh-dissue"), pj=$("#tdlh-dpj"), pnj=$("#tdlh-dpnj");
-  var issue=i?i.value:"", lPar=pj?pj.value:"", lPnj=pnj?String(pnj.value||"").trim():"";
-  if(!ISSUES[issue]){toast("Choisis une issue.");return;}
-  if(issue==="introuvable"&&m.motif==="dette"&&!lPar&&!lPnj){
-    toast("Introuvable : dis qui a payé à sa place, un PJ ou l\u2019entourage.");return;
+  var issue=i?i.value:"", jeu=issuesDe(m);
+  var lPar=(m.motif==="dette"&&pj)?pj.value:"";
+  var lPnj=(m.motif==="dette"&&pnj)?String(pnj.value||"").trim():"";
+  if(!jeu[issue]){toast("Choisis ce qu\u2019est devenu le passager.");return;}
+
+  if(m.motif==="dette"){
+    if(issue==="introuvable"&&!lPar&&!lPnj){toast("Introuvable : dis qui a payé à sa place, un PJ ou l\u2019entourage.");return;}
+    if(issue==="retrouve"&&(lPar||lPnj)){toast("Retrouvé : personne n\u2019a payé à sa place, la dette lui reste.");return;}
+    if(lPar&&lPnj){toast("Un seul payeur : un PJ ou l\u2019entourage, pas les deux.");return;}
   }
-  if(lPar&&lPnj){toast("Un seul payeur : un PJ ou l\u2019entourage, pas les deux.");return;}
 
   var den={issue:issue, lavee_par:lPar||"", lavee_pnj:lPnj||"", date:new Date().toISOString(), par:F.myPseudo()};
   var chemin=(m.motif==="dette"&&m.demandeur&&m.dette_key)
@@ -397,7 +429,7 @@ function denouer(m){
   if(chemin&&issue==="introuvable"){
     if(lPar){
       /* la dette change de créancier : elle reste au compte du disparu, mais
-         c'est désormais un PJ qui la détient. */
+         c'est un PJ qui la détient désormais. */
       ecrire[chemin+"/creancier"]=lPar;
       ecrire[chemin+"/motif"]="Dette rachetée pendant sa disparition";
       ecrire[chemin+"/date"]=den.date;
