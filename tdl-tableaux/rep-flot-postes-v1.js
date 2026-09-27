@@ -24,23 +24,23 @@ var S=F.S, toast=F.toast;
 
 /* ===================== CATALOGUE DES POSTES ===================== */
 var POSTES={
-  bord:     {label:"À bord",      montant:100, legal:"illégal selon la cargaison",
+  bord:     {label:"À bord",      montant:100, legal:"illégal selon la cargaison", scelle:true,
              desc:"Vous partez avec le bateau. Vous portez, vous manœuvrez, vous tenez la barre pendant que quelqu\u2019un d\u2019autre fait ce pour quoi on est venu. Vous verrez ce qui se passe, et on saura que vous l\u2019avez vu."},
-  sec:      {label:"Au sec",      montant:75,  legal:"légal",
-             desc:"Vous restez à terre. Un point à tenir, un œil sur ce qui passe. Le travail est légal ; ce qui le rend utile... pas toujours."},
-  diversion:{label:"La diversion",montant:75,  legal:"ambigu",
-             desc:"On vous demande de provoquer un peu de chaos, quelque part, à une heure précise. On ne vous dit pas pourquoi et vous n\u2019êtes pas censé le demander. Ce que vous provoquez, vous, ne vous expose à rien."},
-  ecueil:   {label:"L\u2019écueil",montant:75, legal:"selon qui vous jouez",
+  sec:      {label:"Au sec",      montant:75,  legal:"légal", scelle:true,
+             desc:"Vous restez à terre. Un point à tenir, un moteur à réparer, une pièce à prêter pour la nuit, un œil sur ce qui passe. Le travail est légal ; ce qui le rend utile ne l\u2019est pas toujours."},
+  diversion:{label:"La diversion",montant:75,  legal:"ambigu", scelle:false,
+             desc:"On vous demande de provoquer quelque chose, quelque part, à une heure précise. On ne vous dit pas pourquoi et vous n\u2019êtes pas censé le demander. Ce que vous provoquez, vous, ne vous expose à rien."},
+  ecueil:   {label:"L\u2019écueil",montant:75, legal:"selon qui vous jouez", scelle:true,
              desc:"Vous n\u2019êtes pas du voyage. Vous êtes ce que le voyage n\u2019avait pas prévu : quelqu\u2019un qui surveille ses terres, qui cherche la même chose, qui se trouve là. Vous n\u2019avez aucune raison de laisser faire."}
 };
 var PART_CREATEUR=100;
 
 /* d4 du coût, tiré à l'inscription */
 var COUTS={
-  1:{label:"Rien",     desc:"Sortie propre. Personne n\u2019a rien remarqué."},
+  1:{label:"Rien",     desc:"Sorti propre. Personne n\u2019a rien remarqué."},
   2:{label:"Repéré",   desc:"Quelqu\u2019un vous a vu. À vous de dire si vous savez qui."},
-  3:{label:"Un mensonge", desc:"Vous avez dû mentir à quelqu\u2019un d'important."},
-  4:{label:"Du retard",desc:"Vous rapportez l'info, mais trop tard pour que ça serve."}
+  3:{label:"Un mensonge", desc:"Vous avez dû mentir à quelqu\u2019un qui compte."},
+  4:{label:"Du retard",desc:"Vous rapportez, mais trop tard pour que ça serve."}
 };
 
 /* notation par le créateur : ce que ça paie, ce que ça écrit au carnet */
@@ -68,7 +68,7 @@ function normPoste(p,i){
   p.type=POSTES[p.type]?p.type:"sec";
   p.titre=p.titre||POSTES[p.type].label;
   p.consigne=p.consigne||"";
-  p.scelle=p.scelle||"";
+  p.scelle=(POSTES[p.type].scelle&&p.scelle)||"";   /* la diversion n'en a pas */
   p.qui=p.qui||"";
   p.de=parseInt(p.de,10)||0;
   p.etat=/^(libre|pris|abandonne|clos)$/.test(p.etat)?p.etat:(p.qui?"pris":"libre");
