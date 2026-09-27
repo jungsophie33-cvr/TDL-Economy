@@ -19,7 +19,7 @@
  */
 (function () {
   "use strict";
-  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
   function E(){ return window.EcoCore; }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -34,7 +34,10 @@
   var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
   var DISPO_LIB = { disponible:"Disponible", ponctuel:"Ponctuel", indisponible:"Indisponible" };
   var CIBLE_LIB = { pj:"Un personnage joueur", pnj:"Un PNJ", famille:"Une famille", groupe:"Un groupe", entreprise:"Une entreprise" };
-  var FIELDS = [["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
+  var FIELDS = [["lieu_vise","Lieu ou communauté visée"],["verrou_acces","Ce qui rend l'accès impossible"],["but_passage","Ce que le personnage va y faire"],["titre","Titre de l'opération"],["verrou_libelle","Pourquoi la Flottille"],["parties","Qui doit se retrouver là"],["objectif","Objectif"],
+                  ["contraintes","Contraintes"],["mandtype_libelle","Commanditaire affiché"],["mand","Libellé du commanditaire"],["duree_libelle","Durée d'absence"],["destination","Destination"],["motif_libelle","Motif du départ"],["dette_libelle","Dette fuie"],["enquete_titre","Affaire fuie"],
+                  ["restent","Reste derrière (PJ)"],["restent_pnj","Autres proches"],["prime","Prime"],["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],
+                  ["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
                 ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"],
                 ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
   var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
@@ -66,6 +69,8 @@
     if (typeof d.montant==="number" && d.montant>0) out += ligne("Montant", money(d.montant));
     if (d.type==="dette" && d.dette_num) out += ligne("Rang dette lourde", "n°"+d.dette_num);
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
+    if (d.itemId==="flot_disparition") out += ligne("Entrée à créer", "Tableau du hangar \u00b7 disparition");
+    if (d.itemId==="flot_operation")   out += ligne("Entrée à créer", "Tableau du hangar \u00b7 opération");
     var pn = phaseNego(d), ps = phaseService(d);
     if (pn || ps) out += ligne("Dossier à ouvrir", "Tableau de la Main · " + (pn&&ps ? "négociation puis service" : (pn ? "négociation en RP" : "service à rendre")));
     var ri = reseauAInscrire(d);
@@ -193,6 +198,43 @@
   }
   function phaseService(d){ return d.rp_mission==="oui"; }
 
+    function newIdFlot(){ return "f"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+  /* Une disparition ou une opération validée descend au tableau du hangar.
+     La prime est FIGÉE ici : elle a déjà quitté le demandeur au moment de
+     l'achat, et le tableau la versera au capitaine à la clôture. */
+  function creerEntreeFlottille(d){
+    var dispa = d.itemId==="flot_disparition";
+    var sous  = dispa ? "disparitions" : "operations";
+    var o = {
+      origine:"boutique", demandeId:d.id||"", demandeur:d.pseudo||"",
+      prime:(d.montant|0), primeInitiale:(d.montant|0),
+      statut:"en_attente", capitaine:null, participants:[],
+      contexte:d.contexte||"", sujet:"", resume:"", consequences:"",
+      demandeValidation:false, rembourse:false, primeVersee:false,
+      cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null
+    };
+    if (dispa) {
+      o.titre = "Disparition de " + (d.pseudo||"?");
+      o.duree = parseInt(d.duree,10)||1;
+      o.destination = d.destination||"";
+      o.motif = d.motif||"perso";
+      o.dette_key = d.dette_key||""; o.dette_libelle = d.dette_libelle||"";
+      o.enquete_id = d.enquete_id||""; o.enquete_titre = d.enquete_titre||"";
+      o.restent = d.restent||""; o.restent_pnj = d.restent_pnj||"";
+      o.pression = null; o.denouement = null; o.lavee_par = "";
+    } else {
+      o.titre = d.titre||"Opération";
+      o.verrou = d.verrou||""; o.parties = d.parties||"";
+      o.objectif = d.objectif||"";
+      o.contraintes = String(d.contraintes||"").split("\n").map(function(x){return x.trim();}).filter(Boolean);
+      o.mandataire = d.mand || (d.mandtype==="anonyme" ? "Anonyme" : (d.pseudo||"?"));
+      o.mandataireType = d.mandtype||"joueur";
+      o.chef = null; o.nego = null;
+    }
+    return E().writeField(CFG.NODE_FLOT+"/"+sous+"/"+newIdFlot(), o);
+  }
+  
   function creerDossierMain(d, nego, service){
     var it = CATALOGUE[d.itemId] || {};
     var cible = (d.cible_type==="pj") ? (d.cible_pj||"") : (d.cible||"");
@@ -275,6 +317,10 @@
         if (d.type==="faveur" && !d.tacheCreee) {
           try { await creerTache(d); o[base+"/tacheCreee"] = true; }
           catch(e){ if (window.console) console.error("[quais-staff] tâche faiseuses", e); alert("Demande validée, mais la tâche n\u2019a pas pu être créée."); }
+        }
+        if (act==="valider" && !d.entreeFlottille && (d.itemId==="flot_disparition" || d.itemId==="flot_operation")) {
+          try { await creerEntreeFlottille(d); o[base+"/entreeFlottille"] = true; }
+          catch(e){ if (window.console) console.error("[quais-staff] entrée flottille", e); alert("Demande validée, mais l\u2019entrée du tableau du hangar n\u2019a pas pu être créée."); }
         }
         if (!d.dossierCree) {
           var pn = phaseNego(d), ps = phaseService(d);
