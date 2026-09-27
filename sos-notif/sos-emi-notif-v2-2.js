@@ -105,7 +105,7 @@ var NOTIFS = {
   /* --- Calendrier ---
      url sert de repli : surSujet() passe l'URL réelle du sujet, qui prime. */
   150:{n:C.CAL,  ic:"theater-masks",  url:"/calendar", txt:function(d){return "Nouvelle intrigue : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
-  151:{n:C.CAL,  ic:"calendar-star",  url:"/calendar", txt:function(d){return "Nouvel événement membre : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
+  151:{n:C.CAL,  ic:"calendar-star",  url:"/calendar", txt:function(d){return "Nouvel événement membre : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
 
      /* --- Services de la Main nés de la boutique --- */
   160:{n:C.MAIN, ic:"comments-dollar", url:U.DETTES, txt:function(d){return "Nouveau service à négocier : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;"+(d.prix?" — prix proposé "+(+d.prix||0)+" $.":".");}},
@@ -114,7 +114,7 @@ var NOTIFS = {
   163:{n:C.MAIN, ic:"balance-scale-left", url:U.DETTES, txt:function(d){return "Négociation close sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;"+(d.issue?" ("+esc(d.issue)+")":"")+" : "+(+d.montant||0)+" $ prélevés.";}},
   164:{n:C.MAIN, ic:"badge-check",     url:U.DETTES, txt:function(d){return "Votre dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est clos.";}},
   165:{n:C.MAIN, ic:"sack-dollar",     url:U.DETTES, txt:function(d){return "Dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; clos : "+(+d.montant||0)+" $ vous ont été versés.";}},
-  166:{n:C.MAIN, ic:"user-add",        url:U.DETTES, txt:function(d){return esc(d.pseudo)+" rejoint le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  166:{n:C.MAIN, ic:"user-add",        url:U.DETTES, txt:function(d){return esc(d.pseudo)+" rejoint le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
 };
 
 /* préfixes de titre → type de notification */
