@@ -175,8 +175,6 @@
                   ? selVide("enquete_id", enqs, "\u2014 Choisir \u2014")
                   : '<div class="qb-helper">Aucune affaire ouverte au panneau des enquêtes.</div>')
       +   '</div>'
-      +   '</div>'
-      +   '<div class="qb-pcgrid">'
       +     '<div>'+ui.fld("Personne importante laissée derrière *", selVide("restent", pjs, "\u2014 Choisir un personnage \u2014"))+'</div>'
       +     '<div>'+ui.fld("Autres proches concernés", ui.inp("restent_pnj","PNJ : famille, associés, voisins…"))+'</div>'
       +   '</div>'
