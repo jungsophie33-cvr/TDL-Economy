@@ -216,9 +216,16 @@
       statut:"ouvert", responsable:null, participants:[],
       sujet:"", resume:"", consequences:"", conclusion:null,
       demandeValidation:false, verse:false,
-      cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null
+            cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null
+    }).then(function(r){
+      try{ if(window.EcoNotif){
+        if(nego) EcoNotif.bande("main",160,{titre:d.nom||"Service de la Main",prix:parseInt(d.prix_negocie,10)||0},"dm"+(d.id||""));
+        else     EcoNotif.bande("main",162,{titre:d.nom||"Service de la Main"},"ds"+(d.id||""));
+      } }catch(e){}
+      return r;
     });
   }
+
   
   async function action(id, act){
     var d = demandes.filter(function(x){ return x.id===id; })[0]; if (!d) return;
