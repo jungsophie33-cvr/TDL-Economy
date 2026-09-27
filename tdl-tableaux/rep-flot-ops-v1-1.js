@@ -96,8 +96,10 @@ function panel(m){
     var chk=editVal?'<label class="tdlm-chk"><input type="checkbox" data-val="'+escAttr(p)+'" '+(m.valides.indexOf(p)>=0?'checked':'')+'> validé</label>':'';
     var chefLbl=(p===m.chef)?'<span class="tdlm-r">mène l\u2019opération</span>':'';
     var nav=F.navireDe(p);
-    return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)+'<span class="tdlm-pname">'+esc(p)
-      +(nav?' <span class="tdlm-todo">\u00b7 '+esc(nav)+'</span>':'')+'</span>'+chefLbl+chk+'</div>';
+        return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)
+      +'<span class="tdlm-pname">'+esc(p)+'</span>'
+      +(nav?'<span class="tdlm-r">'+esc(nav)+'</span>':'')
+      +chefLbl+chk+'</div>';
   }).join(""):'<p class="tdlm-todo" style="margin:0">Personne de la Flottille ne s\u2019en est encore emparé.</p>';
 
   var peutRejoindre=(F.estFlottille(me)&&m.participants.indexOf(me)<0&&(m.statut==="en_attente"||m.statut==="en_cours"));
