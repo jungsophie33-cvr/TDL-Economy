@@ -32,7 +32,7 @@ var CFG = {
   NODE_CAGNOTTES: "cagnottes",
   CAGNOTTE: "Providence",
   BANDE: "main",
-  CHEF_BONUS: 30,        /* [MAJ] ALIGNER sur rep-mis-marin-v2-2.js */
+  CHEF_BONUS: 50,        /* [MAJ] ALIGNER sur rep-mis-marin-v2-2.js */
   PART_FIXE: 50,          /* par participant quand rien n'a été payé en dollars */
   COMMISSION: 0.2,        /* part de la Main sur une prime encaissée */
   CREANCIER: "La Main de la Providence",
@@ -56,11 +56,12 @@ var TYPES = {
   negociation: {label:"Négociation",  ic:"fi-tr-balance-scale-left"},
   service:     {label:"Service à rendre", ic:"fi-tr-handshake"}
 };
-};
+
 /* miroir de BHL_CONFIG.bandes.main.doigts — [MAJ] si la structure y change */
 var DOIGTS = {pouce:"Le Pouce", index:"L'Index", majeur:"Le Majeur",
               annulaire:"L'Annulaire", auriculaire:"L'Auriculaire"};
-var CIBLES = {aucune:"Aucune", pj:"Un personnage joueur", pnj:"Un PNJ", famille:"Une famille"};
+var CIBLES = {aucune:"Aucune", pj:"Un personnage joueur", pnj:"Un PNJ", famille:"Une famille",
+              groupe:"Un groupe", entreprise:"Une entreprise"};
 var CERTITUDE = {certitude:"Certitude", indices:"Faisceau d'indices", soupcon:"Simple soupçon"};
 var CONCLUSIONS = {confirmee:"Menace confirmée", neutralisee:"Menace neutralisée",
                    non_identifiee:"Source non identifiée", fausse:"Fausse alerte"};
@@ -427,9 +428,32 @@ function panel(m){
     bandeaux+='<div class="tdlm-negobox"><p class="tdlm-hsec">Recours au protecteur</p><div class="tdlm-negorow"><span>'
       +'<b>'+c.appels+'</b> appel'+(c.appels>1?'s':'')+' à ce jour · <b>'+c.sans+'</b> sans suite ou fausse alerte.</span></div></div>';
   }
+    /* Dossiers nés de la boutique : ce qu'on attend du membre qui s'en saisit.
+     Sans ça, l'issue de la négociation se choisit au petit bonheur. */
+  if(m.type==="negociation"||m.phase==="nego"){
+    bandeaux+='<div class="tdlm-negobox"><p class="tdlm-hsec">Ce que la Main attend de vous</p>'
+      +'<div class="tdlm-negorow"><span>'+esc(m.demandeur||"Le demandeur")+' a proposé '+money(m.prixPropose)
+      +' pour un service affiché à '+money(m.prixIndicatif)+'. Jouez la scène avec '+esc(m.demandeur||"lui")
+      +', puis précisez au bilan comment la négociation a tourné : le prix final en découle.</span></div>'
+      +'<div class="tdlm-negorow"><span class="tdlm-todo">'
+      +Object.keys(ISSUES).map(function(k){
+          return '<b>'+esc(ISSUES[k].label)+'</b> '+money(prixSelon(m,k)); }).join(" \u00B7 ")
+      +'</span></div>'
+      +'<div class="tdlm-negorow"><span class="tdlm-todo">Un seul membre de la Main mène la négociation. '
+      +'Le staff relira le RP et pourra corriger l\u2019issue avant le prélèvement.</span></div></div>';
+  }
+  else if(m.type==="service"||m.phase==="service"){
+    bandeaux+='<div class="tdlm-negobox"><p class="tdlm-hsec">Ce que la Main attend de vous</p>'
+      +'<div class="tdlm-negorow"><span>Service acheté'
+      +(m.prixFinal!=null?' et payé '+money(m.prixFinal):'')+'. Il se joue en RP'
+      +(m.cible?' et vise '+esc(m.cible):'')+'. Ouvrez le sujet, jouez-le, puis renseignez le bilan.</span></div>'
+      +'<div class="tdlm-negorow"><span class="tdlm-todo">'
+      +(m.prime?'À la clôture, '+money(Math.floor(m.prime*(1-CFG.COMMISSION)))+' seront partagés entre les participants validés'
+               :'À la clôture, chaque participant validé touchera '+money(CFG.PART_FIXE))
+      +', plus '+money(CFG.CHEF_BONUS)+' de bonus pour le responsable.</span></div></div>';
+  }
   if(staff&&m.demandeValidation){
-    bandeaux+='<div class="tdlm-reqbanner"><p class="tdlm-hsec">⚑ Le responsable demande la validation</p><div class="tdlm-reqrow"><span>'
-      +(m.montant?'La clôture prélèvera '+money(m.montant)+' sur le solde de '+esc(m.dette?m.dette.pseudo:"?")+' au profit de la cagnotte « '+esc(CFG.CAGNOTTE)+' ».'
+    bandeaux+='<div class="tdlm-reqbanner"><p class="tdlm-hsec">⚑ Le responsable demande la validation</p><div class="tdlm-reqrow"><span>'      +(m.montant?'La clôture prélèvera '+money(m.montant)+' sur le solde de '+esc(m.dette?m.dette.pseudo:"?")+' au profit de la cagnotte « '+esc(CFG.CAGNOTTE)+' ».'
                  :'Relis le bilan, puis clos le dossier.')
       +'</span></div></div>';
   }
@@ -438,7 +462,7 @@ function panel(m){
   var corps='<div class="tdlm-sec"><p class="tdlm-hsec">'+(m.type==="silence"?"Ce que nous savons":"Contexte")+'</p>'
     +'<div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div></div>';
   if(m.evoquees)corps+='<div class="tdlm-sec"><p class="tdlm-hsec">Personnes évoquées</p><div class="tdlm-prose">'+esc(m.evoquees)+'</div>'
-    +'<p class="tdlm-todo" style="margin:6px 0 0">Évoquées, pas accusées. Rien n\u2019est établi.</p></div>';
+    +'<p class="tdlm-todo" style="margin:6px 0 0">Il ne s\u2019agit pas d\u2019accusations : rien n\u2019est prouvé.</p></div>';
   if(m.objectif)corps+='<div class="tdlm-sec"><p class="tdlm-hsec">Objectif</p><div class="tdlm-prose">'+esc(m.objectif)+'</div></div>';
   if(m.contraintes.length)corps+='<div class="tdlm-sec"><p class="tdlm-hsec">Contraintes</p><ul class="tdlm-clean">'
     +m.contraintes.map(function(x){return '<li class="tdlm-puce">'+esc(x)+'</li>';}).join("")+'</ul></div>';
@@ -584,7 +608,10 @@ function optCreances(p){
 }
 function formCreation(){
   var main=peutOuvrir(), appel=!main&&peutAppeler();
-  var types=main?Object.keys(TYPES).filter(function(k){return k!=="silence";}):["protection"];
+    /* silence, négociation et service ne s'ouvrent jamais ici : ils viennent des
+     Faiseuses ou de la boutique, avec des montants que ce formulaire ignore. */
+  var NON_MANUELS={silence:1,negociation:1,service:1};
+  var types=main?Object.keys(TYPES).filter(function(k){return !NON_MANUELS[k];}):["protection"];
   var dg='<option value="">— non rattaché —</option>'+Object.keys(DOIGTS).map(function(k){return '<option value="'+k+'">'+DOIGTS[k]+'</option>';}).join("");
   var cb=Object.keys(CIBLES).map(function(k){return '<option value="'+k+'">'+CIBLES[k]+'</option>';}).join("");
   var intro=main
@@ -637,10 +664,12 @@ function toast(msg){var t=document.createElement("div");t.className="tdlm-toast"
 
 function brancher(){
   var stage=$("#tdld-stage"); if(!stage)return;
-  stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};});
+    stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.phase=2;S.mob="detail";renderStage();};});
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
-  stage.querySelectorAll("[data-phase]").forEach(function(el){el.onclick=function(){
-    S.phase=+el.getAttribute("data-phase"); renderStage();
+    stage.querySelectorAll("[data-phase]").forEach(function(el){el.onclick=function(){
+    S.phase=+el.getAttribute("data-phase");
+    if(S.phase===1){S.drawer=null;S.inline=null;}   
+    renderStage();
   };});
      stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){
     var m=parId(S.sel); if(!m)return;
