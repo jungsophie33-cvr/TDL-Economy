@@ -53,7 +53,7 @@
 .tdlm-type{font-family:var(--font2);font-style:italic;font-weight:600;color:var(--dark)}
 .tdlm-avatar{width:27px;height:27px;overflow:hidden;border-radius:50%;background:var(--dark);color:var(--clair1);font-family:var(--txt3);font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .tdlm-avatar img{width:100%;object-fit:cover;display:block;border-radius:inherit}
-.tdlm-todo{color:var(--dark2);font-style:italic}
+.tdlm-todo{color:var(--dark2);font-style:italic;display:block;}
 
 /* ---- maître-détail ---- */
 .tdlm-dossier{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);border-top:1px solid var(--cntr);overflow:hidden;background:var(--clair1);flex:1;min-height:0;height:100%}
