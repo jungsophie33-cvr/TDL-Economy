@@ -164,7 +164,6 @@
       +   '<div class="qb-pcgrid">'
       +     '<div>'+ui.fld("Durée d\u2019absence *", sel("duree", DUREES))+'</div>'
       +     '<div>'+ui.fld("Destination", sel("destination", DESTINS))+'</div>'
-      +   '</div>'
       +   ui.fld("Motif du départ *", sel("motif", MOTIFS))
       +   '<div id="qbf-motif-dette">'
       +     ui.fld("Dette que vous fuyez *", dettes.length
@@ -176,8 +175,9 @@
                   ? selVide("enquete_id", enqs, "\u2014 Choisir \u2014")
                   : '<div class="qb-helper">Aucune affaire ouverte au panneau des enquêtes.</div>')
       +   '</div>'
+      +   '</div>'
       +   '<div class="qb-pcgrid">'
-      +     '<div>'+ui.fld("Qui reste derrière *", selVide("restent", pjs, "\u2014 Choisir un personnage \u2014"))+'</div>'
+      +     '<div>'+ui.fld("Personne importante laissée derrière *", selVide("restent", pjs, "\u2014 Choisir un personnage \u2014"))+'</div>'
       +     '<div>'+ui.fld("Autres proches concernés", ui.inp("restent_pnj","PNJ : famille, associés, voisins…"))+'</div>'
       +   '</div>'
       +   ui.fld("Contexte du départ", ui.ta("contexte","Ce qui pousse votre personnage à partir, ce qu\u2019il laisse en plan…"))
