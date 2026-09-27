@@ -69,13 +69,16 @@ function estConnecte(){try{return typeof _userdata!=="undefined"&&parseInt(_user
 function myPseudo(){try{if(typeof _userdata!=="undefined"&&_userdata.username)return String(_userdata.username).trim();}catch(e){}return null;}
 
 /* ===================== DONNÉES ===================== */
-var TYPES = [];     /* descripteurs enregistrés */
+var TYPES = [];     /* descripteurs de type d'entrée */
+var VUES  = [];     /* vues annexes : une puce de filtre + une scène pleine largeur */
 var L = [];         /* LA liste, tous types confondus, triée par date */
 var CARNET = {};    /* flottille/carnet/{pseudo} */
 var MEMBRES = {};
 var AVATARS = {};
 
 function typeDe(k){for(var i=0;i<TYPES.length;i++)if(TYPES[i].k===k)return TYPES[i];return null;}
+function vueDe(k){for(var i=0;i<VUES.length;i++)if(VUES[i].k===k)return VUES[i];return null;}
+function vueActive(){var v=vueDe(S.statut);return (v&&(!v.visible||v.visible()))?v:null;}
 
 function hll(pseudo){var m=pseudo&&MEMBRES[pseudo];return (m&&m.hors_la_loi)||null;}
 function estFlottille(pseudo){var h=hll(pseudo);return !!(h&&h.bande==="flottille");}
@@ -170,6 +173,11 @@ function renderStatutFilters(){
   if(peutVoirCarnet()){
     html+='<button class="tdlm-stf tdlm-req-chip" data-st="carnet" aria-pressed="'+(S.statut==="carnet")+'">Le carnet <b>'+carnetListe().length+'</b></button>';
   }
+  VUES.forEach(function(v){
+    if(v.visible&&!v.visible())return;
+    var n=v.compte?v.compte():null;   /* null = puce sans compteur (action) */
+    html+='<button class="tdlm-stf tdlm-req-chip" data-st="'+esc(v.k)+'" aria-pressed="'+(S.statut===v.k)+'">'+esc(v.label)+(n==null?'':' <b>'+n+'</b>')+'</button>';
+  });
   el.innerHTML=html;
   el.querySelectorAll("[data-st]").forEach(function(b){
     b.onclick=function(){S.statut=b.getAttribute("data-st");S.drawer=null;S.inline=null;fixSel();renderStage();renderStatutFilters();};
@@ -182,7 +190,8 @@ function renderStage(){
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=(S.statut==="carnet"&&peutVoirCarnet())?viewCarnet():viewDossier();
+  var vue=vueActive();
+  el.innerHTML=vue?vue.render():((S.statut==="carnet"&&peutVoirCarnet())?viewCarnet():viewDossier());
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -254,6 +263,8 @@ function brancher(){
     el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};
   });
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
+  var vue=vueActive();
+  if(vue){ if(vue.brancher)vue.brancher(stage); return; }
   var m=parId(S.sel), t=m&&m._t;
   stage.querySelectorAll("[data-act]").forEach(function(el){
     el.onclick=function(){if(t&&t.act)t.act(el.getAttribute("data-act"),m);};
@@ -364,6 +375,8 @@ window.TDLFlot = {
     TYPES.push(def);
     if(mounted&&window.EcoCore&&window.EcoCore.safeReadBin)loadData();
   },
+  /* vue annexe : { k, label, visible(), compte(), render(), brancher(stage) } */
+  vue: function(def){ VUES.push(def); if(mounted)renderAll(); },
   esc:esc, escAttr:escAttr, vt:vt, money:money, ilya:ilya, nbJours:nbJours,
   newId:newId, av:av, stamp:stamp, toast:toast, $:$,
   patch:patch, supprimer:supprimerEntree, parId:parId,
