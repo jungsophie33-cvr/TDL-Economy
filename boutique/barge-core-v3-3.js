@@ -37,7 +37,7 @@
     if (b.heroPrice) return b.heroPrice(item);
     if (typeof item.pi==="number") return { l:"Prix indicatif", v:money(item.pi) };
     if (typeof item.p==="number")  return { l:"Prix", v:money(item.p) };
-    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande", faveur:"Sans tarif ⟡ contre le silence", don_reseau:"Don en nature" };
+    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande", faveur:"Sans tarif ⟡ contre le silence", don_reseau:"Don en nature", disparition:"500 $ minimum", operation:"1 000 $ minimum" };
     return { l:"Modalité", v: mod[item.flow] || "À négocier" };
   }
   function hero(b, sur, titre, desc, prix, api){
@@ -74,6 +74,8 @@
     if (a.flow==="pret")     return "prêt";
     if (a.flow==="don")      return "don";
     if (a.flow==="mission")  return "mission";
+    if (a.flow==="disparition") return "500 $ min.";
+    if (a.flow==="operation")   return "1 000 $ min.";
     if (a.flow==="offrande") return "offrande";
     if (a.flow==="faveur")     return "faveur";
     if (a.flow==="don_reseau") return "don";
@@ -81,7 +83,7 @@
   }
 
   /* ---------- FORMULAIRE STAFF ---------- */
-  var FLOWS = ["nego","prix","don","mission","offrande","faveur","don_reseau"];
+  var FLOWS = ["nego","prix","don","mission","offrande","faveur","don_reseau","disparition","operation"];
   function vtc(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
   function inp(champ, v){ return '<input data-champ="'+champ+'" value="'+esc(v!=null?v:"")+'">'; }
   function form(item, api, id){
