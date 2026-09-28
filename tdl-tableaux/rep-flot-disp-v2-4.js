@@ -64,7 +64,8 @@ var T={
   CONSULT:"Registre consultable : seuls les capitaines prennent les départs.",
   CONNECT:"Connectez-vous pour interagir.",
   ATTENTE:"En attente d\u2019un capitaine.",
-  DEN_MANQUE:"Tranche d\u2019abord le dénouement : la dette doit aller quelque part."
+  DEN_MANQUE:"Tranche d\u2019abord le dénouement : la dette doit aller quelque part.",
+  SOI_MEME:"Vous ne pouvez pas assurer votre propre départ : un capitaine qui s\u2019exfiltre lui-même retire son bateau du réseau, et le hangar s\u2019en aperçoit avant la fin de la semaine."
 };
 
 /* ===================== NORMALISATION ===================== */
@@ -176,7 +177,7 @@ function panel(m){
   var retourV=(r==null)?'<span class="tdlm-todo">pas encore parti</span>'
     :(r>0?("dans "+r+" j"):'<span class="tdlm-todo">échu depuis '+(-r)+' j</span>');
 
-  var prendreBtn=(F.estCapitaine(me)&&!m.capitaine&&m.statut==="en_attente")
+  var prendreBtn=(F.estCapitaine(me)&&me!==m.demandeur&&!m.capitaine&&m.statut==="en_attente")
     ? '<button class="tdlm-abtn prim" data-act="prendre">Je prends ce départ</button>' : '';
     var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
     +(m.capitaine
@@ -237,7 +238,7 @@ function actionbar(m){
   if(!btns){
     if(dem){roles.push("Passager");btns='<span class="tdlm-idle">'+T.ATTENTE+'</span>';}
     else if(!F.estConnecte()){roles.push("Invité");btns='<span class="tdlm-idle">'+T.CONNECT+'</span>';}
-    else if(F.estCapitaine(me)){roles.push("Capitaine");btns='<span class="tdlm-idle">Utilisez « Je prends ce départ » ci-dessus.</span>';}
+    else if(F.estCapitaine(me)&&me!==m.demandeur){roles.push("Capitaine");btns='<span class="tdlm-idle">Utilisez « Je prends ce départ » ci-dessus.</span>';}
     else {roles.push("Visiteur");btns='<span class="tdlm-idle">'+T.CONSULT+'</span>';}
   }
   if(!roles.length)roles.push("Visiteur");
@@ -310,6 +311,7 @@ function act(k,m){
 
   if(k==="prendre"){
     if(!F.estCapitaine(me)){toast(T.NON_CAP);return;}
+    if(me===m.demandeur){toast(T.SOI_MEME);return;}
     if(m.capitaine||m.statut!=="en_attente"){toast(T.FERME);return;}
     var iso=new Date().toISOString();
     m.capitaine=me;m.statut="en_cours";m.depart=iso;
