@@ -110,14 +110,16 @@
   function bouton(id, label){
     return '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay" id="'+id+'" style="flex:none">'+esc(label)+'</button></div>';
   }
-  /* liste des dettes actives du membre : [valeur, libellé] */
+   /* dettes ET prêts : [valeur, libellé], valeur = "dettes:clé" ou "prets:clé" */
   function listeDettes(api){
     var out = [];
-    if (!api || !api.dettes) return out;
-    api.dettes().forEach(function(x){
+    if (!api || !api.dus) return out;
+    api.dus().forEach(function(x){
       var d = x.d || {};
-      if (d.statut && d.statut !== "active") return;
-      var lib = (d.motif || "Dette") + (d.creancier ? " \u2014 " + d.creancier : "");
+      if (x.source === "dettes" && d.statut && d.statut !== "active") return;
+      var titre = d.motif || d.nom || d.objet || (x.source === "prets" ? "Prêt" : "Dette");
+      var lib = (x.source === "prets" ? "Prêt de " + (+d.montant||0) + " $ \u2014 " + titre : titre)
+              + (d.creancier ? " \u27e1 " + d.creancier : "");
       out.push([x.key, lib]);
     });
     return out;
