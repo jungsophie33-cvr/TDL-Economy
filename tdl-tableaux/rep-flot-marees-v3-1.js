@@ -18,6 +18,11 @@
    les présents sont payés par la Flottille, ce n'est pas une marée, c'est un
    RP entre capitaines. Deux postes minimum, cinq maximum.
 
+   LE CAPITAINE — celui qui monte la sortie, s'il est de la Flottille, reçoit
+   d'office un poste « à bord » en tête : pas de scellé ni de rapport, mais son
+   dé, sa part de bord et la prime de chef. Un créateur hors Flottille (staff
+   au nom du hangar) reste à terre et touche la part de créateur.
+
    CYCLE   en_attente (postes à pourvoir, le créateur fait partir quand il
            veut) → en_cours → en_validation → clos.
    ARGENT  fonds du hangar : à bord 100 $, les autres postes 75 $, créateur
@@ -45,6 +50,7 @@ var MIN_POSTES=2, MAX_POSTES=5, MAX_ACCROCHES=3;
 
 var T={
   ADMISSION:"Une marée est une mission d'équipage que vous pouvez monter sur mesure. Une véritable expédition de Flottille où vous devez non seulement proposer un objectif clair à votre équipe, mais aussi prévoir les difficultés auxquelles vous pourriez faire face, en intégrant un rôle d'antagoniste. Une marée doit ouvrir au moins un poste qui ne soit pas « à bord ». Les indices et informations scellées que vous concoctez, ainsi que le déroulement irp de la marée, sont là pour le sel de l'imprévu. N'est-ce pas plus excitant de prendre la mer quand l'horizon se noie dans la brume ?",
+  CAPITAINE:"Vous menez cette sortie : un poste « à bord » vous est réservé d\u2019office, avec sa part et la prime de chef. Vous n\u2019avez ni scellé ni rapport à rendre, et vous tirez le dé comme les autres.",
   CONNECT:"Connectez-vous pour prendre un poste.",
   OUVERT:"Marée affichée. Les postes se remplissent un par un."
 };
@@ -262,6 +268,11 @@ function doo(k,m){
     var champs={resume:m.resume,consequences:m.consequences};
     if(k==="bilanok"&&m.statut!=="en_validation"){
       if(!m.resume){toast("Écris au moins un résumé.");return;}
+      /* prévenir avant d'envoyer : un poste muet sera réglé comme non transmis */
+      var muets=vt(m.postes).filter(function(p){return p.etat==="pris"&&P.rapporte(p)&&!p.branche;});
+      if(muets.length&&!window.confirm(muets.length+" poste(s) n\u2019ont pas encore rendu compte : "
+        +muets.map(function(p){return p.qui;}).join(", ")
+        +".\nIls seront réglés comme non transmis s\u2019ils ne le font pas avant la clôture.\n\nDemander la clôture quand même ?"))return;
       m.statut="en_validation";m.demandeValidation=true;
       champs.statut="en_validation";champs.demandeValidation=true;
       try{if(window.EcoNotif)EcoNotif.staff(103,{pseudo:F.myPseudo(),nom:m.titre});}catch(e){}
@@ -310,11 +321,10 @@ function clore(m){
   if(m.primeVersee){toast("Marée déjà réglée.");return;}
   var postes=vt(m.postes), aNoter=0;
   postes.forEach(function(p){
-    if(p.etat!=="pris"||!P.POSTES[p.type].rapporte)return;   /* diversion et écueil : part due, pas de note */
+    if(p.etat!=="pris"||!P.rapporte(p))return;   /* chef, diversion, écueil : part due, pas de note */
     if(!p.note){p.note="non_transmise";aNoter++;}
   });
-  if(!window.confirm("Clore la marée et régler les postes ?"
-      +(aNoter?"\n"+aNoter+" poste(s) sans note seront réglés comme non transmis.":"")))return;
+  if(!window.confirm("Clore la marée et régler les postes ?"+(aNoter?"\n"+aNoter+" poste(s) sans note seront réglés comme non transmis.":"")))return;
   m.postes=postes;
   P.payerMaree(m).then(function(total){
     m.primeVersee=true;m.statut="close";m.demandeValidation=false;
@@ -346,7 +356,7 @@ function champPoste(i){
     +'<input type="text" id="tdlh-nc'+i+'" placeholder="Ce qu\u2019on demande, sans dire pourquoi…">'
     /* le scellé est hors grille : un simple "" suffit à le réafficher */
     +'<div id="tdlh-nsw'+i+'" style="display:none">'
-    +'<label class="tdlm-fl">Scellé \u2014 action qui se produit sous ses yeux</label>'
+    +'<label class="tdlm-fl">Scellé : action importante perçue</label>'
     +'<textarea id="tdlh-ns'+i+'" placeholder="Un pick-up remonte le chemin sans phares à 2h40…"></textarea>'
     +'<div class="tdlm-prose tdlm-todo">Écrivez un fait, pas une conclusion : ce qui se produit, jamais ce que le personnage en déduit. Il reçoit la perception, il garde l\u2019interprétation.</div>'
     +'</div></div>';
@@ -363,42 +373,30 @@ function memo(titre,map,pied){
     +(pied?'<div class="tdlm-prose tdlm-todo">'+esc(pied)+'</div>':'')+'</div>';
 }
 function memoSorties(){
-  return memo("La nature des sorties",SORTIES,
-    "Toutes doivent amener au moins une personne qui n\u2019est pas payée pour être là. C\u2019est ce qui sépare une marée d\u2019un RP entre capitaines.");
+  return memo("La nature des sorties",SORTIES,"Toutes doivent amener au moins une personne qui n\u2019est pas payée pour être là. C\u2019est ce qui sépare une marée d\u2019un RP entre capitaines.");
 }
-
 function memoPostes(){
-  return memo("Les quatre postes",P.POSTES,
-    "« À bord » est réservé à la Flottille. Les trois autres sont ouverts à tout le monde.");
+  return memo("Les quatre postes",P.POSTES,"« À bord » est réservé à la Flottille. Les trois autres sont ouverts à tout le monde.");
 }
 
 function champAccroche(i){
   return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Accroche '+(i+1)+'</span>'
     +'<span class="tdlm-todo">facultative</span></div>'
-    +'<label class="tdlm-fl">Un indice à découvrir</label>'
-    +'<textarea id="tdlh-af'+i+'" placeholder="La coque a été repeinte, et un nom transparaît sous le bleu-noir…"></textarea>'
+    +'<label class="tdlm-fl">Un indice à découvrir</label><textarea id="tdlh-af'+i+'" placeholder="La coque a été repeinte, et un nom transparaît sous le bleu-noir…"></textarea>'
     +'<label class="tdlm-fl">Que faire pour l\u2019obtenir ?</label>'
-    +'<input type="text" id="tdlh-ac'+i+'" placeholder="Approcher du bateau de face, à quelques mètres, avec une lumière…">'
-    +'</div>';
+    +'<input type="text" id="tdlh-ac'+i+'" placeholder="Approcher du bateau de face, à quelques mètres, avec une lumière…"></div>';
 }
 
 function formOuverture(){
   var me=F.myPseudo();
   var ss=Object.keys(SORTIES).map(function(k){return '<option value="'+k+'">'+esc(SORTIES[k].label)+'</option>';}).join("");
-  var accs="";
-  for(var j=0;j<MAX_ACCROCHES;j+=2){
-    accs+='<div class="tdlm-duo">'+champAccroche(j)
-      +(j+1<MAX_ACCROCHES?champAccroche(j+1):'<div></div>')+'</div>';
-  }
-  var cartes="";
-  for(var i=0;i<MAX_POSTES;i+=2){
-    cartes+='<div class="tdlm-duo">'+champPoste(i)
-      +(i+1<MAX_POSTES?champPoste(i+1):'<div></div>')+'</div>';
-  }
+  function duos(n,f){var o="";for(var i=0;i<n;i+=2)o+='<div class="tdlm-duo">'+f(i)+(i+1<n?f(i+1):'<div></div>')+'</div>';return o;}
+  var accs=duos(MAX_ACCROCHES,champAccroche), cartes=duos(MAX_POSTES,champPoste);
   return '<div class="tdlm-dpanel">'
     +'<button class="tdlm-dret" data-neuf="cancel">← Retour au registre</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Ouvrir une marée</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-drawer on" style="border-top:none">'
+      +'<div class="tdlm-prose">'+esc(T.ADMISSION)+'</div>'
       +memoSorties()
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlh-ntitre" placeholder="Ex. : Relever quelqu\u2019un au ponton Dumas">'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Nature de la sortie</label><select id="tdlh-nsortie">'+ss+'</select></div>'
@@ -406,9 +404,10 @@ function formOuverture(){
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Où</label><input type="text" id="tdlh-nlieu" placeholder="Chenal, ponton, bras de bayou…"></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Quand</label><input type="text" id="tdlh-nquand" placeholder="Une nuit de mars, à la marée basse…"></div></div>'
       +'<label class="tdlm-fl">Le contexte et informations connues (visible de tous)</label><textarea id="tdlh-nctx"></textarea>'
+      +(F.estFlottille(me)?'<div class="tdlm-prose tdlm-todo">'+esc(T.CAPITAINE)+'</div>':'')
       +memoPostes()
       +cartes
-      +'<div class="tdlm-prose">Les accroches ne sont attachées à aucun poste. Elles sont invisibles de tous sauf de vous et du staff, et vous les ouvrez en cours de RP quand quelqu\u2019un remplit la condition de découverte, dans le sujet rp.</div>'
+      +'<div class="tdlm-prose">Les accroches ne sont attachées à aucun poste. Elles sont invisibles de tous sauf de vous et du staff, et vous les ouvrez au fil de la mission quand quelqu\u2019un remplit la condition de découverte, dans le sujet rp.</div>'
       +accs
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-neuf="ok">Afficher la marée</button>'
       +'<button class="tdlm-abtn" data-neuf="cancel">Annuler</button></div>'
@@ -427,17 +426,17 @@ function creer(){
       consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},i));
   }
   if(postes.length<MIN_POSTES){toast("Il faut au moins "+MIN_POSTES+" postes.");return;}
-  /* le capitaine qui monte la sortie embarque, sinon il ouvre une marée à
-     laquelle il ne peut pas participer. Le staff, lui, reste dehors. */
-  var moi=$("#tdlh-nmoi"), me2=F.myPseudo();
-  if(moi&&moi.checked&&F.estFlottille(me2)){
-    for(var b=0;b<postes.length;b++){
-      if(postes[b].type!=="bord")continue;
-      postes[b].qui=me2; postes[b].etat="pris"; postes[b].de=1+Math.floor(Math.random()*4);
-      postes[b].pris=new Date().toISOString(); break;
-    }
-  }
   if(!postes.some(function(p){return p.type!=="bord";})){toast(T.ADMISSION);return;}
+
+  /* le capitaine qui monte la sortie embarque : son poste est ajouté en tête,
+     sans scellé ni rapport. Un créateur hors Flottille (staff au nom du
+     hangar) reste à terre et touche la part de créateur. */
+  var me2=F.myPseudo();
+  if(F.estFlottille(me2)){
+    postes.unshift(P.normPoste({ k:"chef"+Date.now().toString(36).slice(-4), type:"bord", chef:true,
+      titre:"Le capitaine", heure:g("#tdlh-nhr0"), consigne:"Mener la sortie qu\u2019il a montée.",
+      qui:me2, etat:"pris", de:P.tirerDe(), pris:new Date().toISOString() },0));
+  }
 
   var accroches=[];
   for(var j=0;j<MAX_ACCROCHES;j++){
