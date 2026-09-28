@@ -159,8 +159,8 @@ function panel(m){
   var denBox="", iss=issueDe(m);
   if(iss){
     var d=m.denouement, suite="";
-    if(d.lavee_par)suite=" La dette a changé de mains : "+esc(d.lavee_par)+" a payé, et attend son dû.";
-    else if(d.lavee_pnj)suite=" "+esc(d.lavee_pnj)+" a réglé l\u2019ardoise. Le grand livre est propre.";
+    if(d.lavee_par)suite=" La dette a changé de débiteur : "+esc(d.lavee_par)+" répond désormais devant la Main.";
+    else if(d.lavee_pnj)suite=" "+esc(d.lavee_pnj)+" a réglé l\u2019ardoise. Le livre des dettes est propre.";
     denBox='<div class="tdlm-sec"><p class="tdlm-hsec">Dénouement</p><div class="tdlm-prose"><b>'
       +esc(iss.label)+'</b> \u2014 '+esc(iss.desc)+suite+'</div></div>';
   }
@@ -422,28 +422,31 @@ function denouer(m){
   }
 
   var den={issue:issue, lavee_par:lPar||"", lavee_pnj:lPnj||"", date:new Date().toISOString(), par:F.myPseudo()};
-  var chemin=(m.motif==="dette"&&m.demandeur&&m.dette_key)
+  var ancien=(m.motif==="dette"&&m.demandeur&&m.dette_key)
     ? "membres/"+m.demandeur+"/dettes/"+m.dette_key : null;
 
-  var ecrire={};
-  if(chemin&&issue==="introuvable"){
+  /* La Main ne vend pas ses créances : elle change de débiteur. La dette
+     quitte le compte du disparu et s'inscrit au nom du proche, créancier
+     inchangé. Si c'est l'entourage PNJ qui a payé, elle sort du grand livre
+     et le staff joue les conséquences. */
+  var suite=Promise.resolve();
+  if(ancien&&issue==="introuvable"){
     if(lPar){
-      /* la dette change de créancier : elle reste au compte du disparu, mais
-         c'est un PJ qui la détient désormais. */
-      ecrire[chemin+"/creancier"]=lPar;
-      ecrire[chemin+"/motif"]="Dette rachetée pendant sa disparition";
-      ecrire[chemin+"/date"]=den.date;
+      var src=(F.membres()[m.demandeur]||{}).dettes||{}, d0=src[m.dette_key]||{}, copie={};
+      for(var kk in d0)if(d0.hasOwnProperty(kk))copie[kk]=d0[kk];
+      copie.motif=(d0.motif||m.dette_libelle||"Dette")+" \u2014 reportée pendant la disparition de "+m.demandeur;
+      copie.date=den.date; copie.statut="active";
+      suite=Promise.resolve(window.EcoCore.firebasePush("membres/"+encodeURIComponent(lPar)+"/dettes",copie))
+        .then(function(){ var up={}; up[ancien]=null; return window.EcoCore.firebaseUpdate(up); });
     } else {
-      /* l'entourage a payé : la dette sort du grand livre. */
-      ecrire[chemin]=null;
+      var up2={}; up2[ancien]=null;
+      suite=Promise.resolve(window.EcoCore.firebaseUpdate(up2));
     }
   }
-
-  var suite=Object.keys(ecrire).length?window.EcoCore.firebaseUpdate(ecrire):Promise.resolve();
-  Promise.resolve(suite).then(function(){
+    Promise.resolve(suite).then(function(){
     m.denouement=den;patch(m,{denouement:den});
     S.drawer=null;
-    toast(lPar?("Créance transférée à "+lPar+"."):(lPnj?"Dette effacée du grand livre.":"Dénouement enregistré."));
+    toast(lPar?("Dette reportée sur "+lPar+"."):(lPnj?"Dette réglée hors jeu.":"Dénouement enregistré."));
     F.renderAll();
   }).catch(function(){toast("Écriture de la dette impossible \u2014 dénouement non enregistré.");});
 }
