@@ -22,16 +22,16 @@ var S=F.S, patch=F.patch, toast=F.toast;
 /* ===================== CONFIG ===================== */
 var SOUS="operations";
 var STATUTS=F.STATUTS;   /* statuts communs à tous les types du hangar */
-var VERROUS={distance:"La distance", incompatibilite:"L\u2019incompatibilité entre les parties", invisibilite:"L\u2019invisibilité nécessaire"};
+var VERROUS={distance:"La distance", incompatibilite:"L\u2019opposition des les parties", invisibilite:"L\u2019invisibilité nécessaire"};
 var MANDANT={joueur:"", entreprise:"entreprise", famille:"famille", pnj:"PNJ", anonyme:"anonyme"};
 
 var T={
   NON_FLOT:"Inscription réservée aux membres de la Flottille.",
   FERMEE:"Opération fermée à l\u2019inscription.",
-  DEJA:"Déjà inscrit\u00b7e.",
-  CHEF:"Inscrit\u00b7e \u2014 vous menez l\u2019opération.",
-  PART:"Inscrit\u00b7e à l\u2019opération.",
-  CONSULT:"Registre consultable \u2014 inscription réservée à la Flottille.",
+  DEJA:"Déjà inscrit\u27e1e.",
+  CHEF:"Inscrit\u27e1e : vous menez l\u2019opération.",
+  PART:"Inscrit\u27e1e à l\u2019opération.",
+  CONSULT:"Registre consultable : inscription réservée à la Flottille.",
   CONNECT:"Connectez-vous pour interagir.",
   ATTENTE:"En attente d\u2019un capitaine."
 };
@@ -64,7 +64,7 @@ function normaliser(o){
 
 /* ===================== RANGÉE (le socle compose le reste) ===================== */
 function sub(m){
-  return { sub:m.mandataire+" \u00b7 "+money(m.prime), qui:m.chef, quand:"ouverte "+ilya(m.cree) };
+  return { sub:m.mandataire+" \u27e1 "+money(m.prime), qui:m.chef, quand:"ouverte "+ilya(m.cree) };
 }
 function tags(m){
   return [ m.nego?"\u2691 prime proposée":"" ];
@@ -96,10 +96,8 @@ function panel(m){
     var chk=editVal?'<label class="tdlm-chk"><input type="checkbox" data-val="'+escAttr(p)+'" '+(m.valides.indexOf(p)>=0?'checked':'')+'> validé</label>':'';
     var chefLbl=(p===m.chef)?'<span class="tdlm-r">mène l\u2019opération</span>':'';
     var nav=F.navireDe(p);
-        return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)
-      +'<span class="tdlm-pname">'+esc(p)+'</span>'
-      +(nav?'<span class="tdlm-r">'+esc(nav)+'</span>':'')
-      +chefLbl+chk+'</div>';
+    return '<div class="tdlm-person'+(p===m.chef?' chef':'')+'">'+av(p)+'<span class="tdlm-pname">'+esc(p)
+      +(nav?' <span class="tdlm-todo">\u27e1 '+esc(nav)+'</span>':'')+'</span>'+chefLbl+chk+'</div>';
   }).join(""):'<p class="tdlm-todo" style="margin:0">Personne de la Flottille ne s\u2019en est encore emparé.</p>';
 
   var peutRejoindre=(F.estFlottille(me)&&m.participants.indexOf(me)<0&&(m.statut==="en_attente"||m.statut==="en_cours"));
@@ -172,7 +170,7 @@ function actionbar(m){
     else {roles.push("Visiteur");btns='<span class="tdlm-idle">'+T.CONSULT+'</span>';}
   }
   if(!roles.length)roles.push("Visiteur");
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u00b7 ")+'</span>'+btns+'</div>';
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u27e1 ")+'</span>'+btns+'</div>';
 }
 
 /* ---- drawers ---- */
