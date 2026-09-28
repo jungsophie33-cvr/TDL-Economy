@@ -178,10 +178,12 @@ function panel(m){
 
   var prendreBtn=(F.estCapitaine(me)&&!m.capitaine&&m.statut==="en_attente")
     ? '<button class="tdlm-abtn prim" data-act="prendre">Je prends ce départ</button>' : '';
-  var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
+    var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
     +(m.capitaine
-      ? '<div class="tdlm-person chef">'+av(m.capitaine)+'<span class="tdlm-pname">'+esc(m.capitaine)
-        +(F.navireDe(m.capitaine)?' <span class="tdlm-todo">\u27e1 '+esc(F.navireDe(m.capitaine))+'</span>':'')+'</span></div>'
+      ? '<div class="tdlm-person chef">'+av(m.capitaine)
+        +'<span class="tdlm-pname">'+esc(m.capitaine)+'</span>'
+        +(F.navireDe(m.capitaine)?'<span class="tdlm-r">'+esc(F.navireDe(m.capitaine))+'</span>':'')
+        +'</div>'
       : '<p class="tdlm-todo" style="margin:0">Aucun capitaine n\u2019a encore pris ce départ.</p>')+'</div>';
 
   return ''
