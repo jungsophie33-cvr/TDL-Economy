@@ -241,8 +241,8 @@ function viewCarnet(){
     return '<div class="tdlm-person">'+av(x.pseudo)
       +'<span class="tdlm-pname">'+esc(x.pseudo)+'</span>'
       +(nav?'<span class="tdlm-r">'+esc(nav)+'</span>':'')
-      +'<span class="tdlm-stamp" style="--sc:'+x.etat.c+'">'+esc(x.etat.label)+'</span>'
-      +'<span class="tdlh-meta">'+esc(meta)+'</span></div>';
+      +'<span class="tdlh-meta">'+esc(meta)+'</span>'
+      +'<span class="tdlm-stamp" style="--sc:'+x.etat.c+'">'+esc(x.etat.label)+'</span></div>';
   }).join(""):'<div class="tdlm-empty">Personne n\u2019a encore tenu de poste.</div>';
   return '<div class="tdlm-dpanel">'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Le carnet</span></div>'
