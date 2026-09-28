@@ -89,7 +89,7 @@ function parHeure(m){
   });
 }
 function sub(m){
-  return { sub:SORTIES[m.sortie].label+(m.lieu?" \u27e1 "+m.lieu:""), qui:m.createur, quand:"ouverte "+ilya(m.cree) };
+  return { sub:SORTIES[m.sortie].label, qui:m.createur, quand:"ouverte "+ilya(m.cree) };
 }
 function tags(m){
   var libres=vt(m.postes).filter(function(p){return p.etat==="libre";}).length;
