@@ -80,18 +80,21 @@ var PEREMPTION=3*86400000;
 
 /* ===================== HELPERS ===================== */
 function tirerDe(){return 1+Math.floor(Math.random()*4);}
+/* le chef ne rapporte rien : il ne se fait pas de rapport à lui-même */
+function rapporte(p){return !!POSTES[p.type].rapporte && !p.chef;}
 function normPoste(p,i){
   p=p||{};
   p.k=p.k||("p"+i);
+  p.chef=!!p.chef;                       /* le capitaine qui a monté la sortie */
   p.type=POSTES[p.type]?p.type:"sec";
   p.titre=p.titre||POSTES[p.type].label;
   p.consigne=p.consigne||"";
   p.heure=p.heure||"";
-  p.scelle=(POSTES[p.type].scelle&&p.scelle)||"";   /* la diversion n'en a pas */
+  p.scelle=(POSTES[p.type].scelle&&!p.chef&&p.scelle)||"";  /* ni la diversion ni le chef */
   p.qui=p.qui||"";
   p.de=parseInt(p.de,10)||0;
   p.etat=/^(libre|pris|abandonne|clos)$/.test(p.etat)?p.etat:(p.qui?"pris":"libre");
-  var rap=POSTES[p.type].rapporte;
+  var rap=rapporte(p);
   p.branche=(rap&&BRANCHES[p.branche])?p.branche:"";
   p.transmis=rap?(p.transmis||""):"";
   p.note=(rap&&NOTES[p.note])?p.note:"";
@@ -112,7 +115,7 @@ function offreVive(v){
 /* ===================== RENDU D'UN POSTE ===================== */
 /* vu = {createur, staff, me} ; idx sert aux data-* */
 function carte(m,p,idx,vu){
-  var mien=(vu.me&&p.qui===vu.me);
+  var mien=(vu.me&&p.qui===vu.me), rap=rapporte(p);
   var confid=(mien||vu.createur||vu.staff);
   var def=POSTES[p.type];
 
@@ -125,19 +128,22 @@ function carte(m,p,idx,vu){
 
   if(p.qui){
     corps+='<div class="tdlm-person">'+av(p.qui)+'<span class="tdlm-pname">'+esc(p.qui)+'</span>'
+      +(p.chef?'<span class="tdlm-r">mène la sortie</span>':'')
       +(p.etat==="abandonne"?'<span class="tdlm-r">a laissé tomber</span>':'')
       +(p.note?'<span class="tdlm-r">'+esc(NOTES[p.note].label)+'</span>':'')+'</div>';
   } else {
     corps+='<p class="tdlm-todo" style="margin:4px 0 0">Poste libre.</p>';
   }
-  if(!def.rapporte&&p.qui&&p.etat==="pris")
-    corps+='<div class="tdlm-prose tdlm-todo">La part de ce poste est due pour avoir tenu sa place.</div>';
+  if(!rap&&p.qui&&p.etat==="pris")
+    corps+='<div class="tdlm-prose tdlm-todo">'+(p.chef
+      ?"Le capitaine mène la sortie qu\u2019il a montée : part de bord et prime de chef, sans rapport à rendre."
+      :"Ce poste ne rapporte rien au hangar : la part est due pour avoir tenu sa place.")+'</div>';
 
   /* le scellé et le dé : titulaire, créateur, staff */
   if(confid&&p.qui){
-    if(p.de)corps+='<div class="tdlm-prose"><b>Difficulté rencontrée :</b> '+esc(COUTS[p.de].label)+' \u2014 '+esc(COUTS[p.de].desc)+'</div>';
-    if(p.scelle)corps+='<div class="tdlm-prose"><b>Evénement à observer ou découvrir :</b> '+esc(p.scelle)+'</div>';
-    if(p.transmis)corps+='<div class="tdlm-prose"><b>Information transmise :</b> '+esc(p.transmis)+'</div>';
+    if(p.de)corps+='<div class="tdlm-prose"><b>Ce que ça vous a coûté :</b> '+esc(COUTS[p.de].label)+' \u2014 '+esc(COUTS[p.de].desc)+'</div>';
+    if(p.scelle)corps+='<div class="tdlm-prose"><b>Ce qu\u2019il y avait à voir :</b> '+esc(p.scelle)+'</div>';
+    if(p.transmis)corps+='<div class="tdlm-prose"><b>Ce qui a été transmis :</b> '+esc(p.transmis)+'</div>';
   }
   /* la revente ne se montre qu'au staff et au vendeur */
   if(p.vente&&(vu.staff||mien)){
@@ -146,18 +152,22 @@ function carte(m,p,idx,vu){
   }
 
   var btns="";
-  var ferme=(def.flottille&&!F.estFlottille(vu.me));
-  if(p.etat==="libre"&&def.flottille)
+  var ferme=(def.flottille&&!F.estFlottille(vu.me))||p.chef;
+  if(p.etat==="libre"&&def.flottille&&!p.chef)
     corps+='<div class="tdlm-prose tdlm-todo">Poste réservé aux membres de la Flottille.</div>';
   if(p.etat==="libre"&&!ferme&&m.statut!=="close"&&m.statut!=="refusee"&&F.estConnecte()&&peutTenir(m,vu.me))
     btns+='<button class="tdlm-abtn prim" data-poste="prendre:'+idx+'">Je prends ce poste</button>';
-  if(mien&&p.etat==="pris"&&(m.statut==="en_cours"||m.statut==="en_attente")){
-    if(def.rapporte)btns+='<button class="tdlm-abtn" data-poste="cloturer:'+idx+'">'+(p.branche?"Modifier ma réponse":"Rendre compte")+'</button>';
+  /* le rapport reste ouvert jusqu'à la clôture effective, validation comprise */
+  if(mien&&p.etat==="pris"&&m.statut!=="close"&&m.statut!=="refusee"){
+    if(rap)btns+='<button class="tdlm-abtn'+(p.branche?'':' prim')+'" data-poste="cloturer:'+idx+'">'
+      +(p.branche?"Modifier mon rapport":"Rendre compte ou vendre")+'</button>';
     else if(p.scelle)btns+='<button class="tdlm-abtn" data-poste="cloturer:'+idx+'">'+(p.vente?"Modifier mon offre":"Vendre ce que j\u2019ai appris")+'</button>';
   }
+  if(mien&&rap&&p.etat==="pris"&&!p.branche&&m.statut!=="close"&&m.statut!=="refusee")
+    corps+='<div class="tdlm-prose tdlm-todo">Vous n\u2019avez pas encore rendu compte. Sans rapport, le poste sera réglé comme non transmis.</div>';
   if((vu.createur||vu.staff)&&p.etat==="pris")
     btns+='<button class="tdlm-abtn warn" data-poste="abandon:'+idx+'">Marquer abandonné</button>';
-  if((vu.createur||vu.staff)&&p.etat==="pris"&&def.rapporte&&p.branche&&m.statut==="en_validation"){
+  if((vu.createur||vu.staff)&&p.etat==="pris"&&rap&&p.branche&&m.statut==="en_validation"){
     btns+='<select class="tdlm-sel" data-note="'+idx+'"><option value="">— noter —</option>'
       +Object.keys(NOTES).map(function(k){return '<option value="'+k+'"'+(k===p.note?' selected':'')+'>'+esc(NOTES[k].label)+'</option>';}).join("")
       +'</select>';
@@ -168,19 +178,19 @@ function carte(m,p,idx,vu){
 
 /* ===================== TIROIRS ===================== */
 function tiroirCloture(m,p,idx){
-  var def=POSTES[p.type];
+  var def=POSTES[p.type], rap=rapporte(p);
   var pjs=Object.keys(F.membres()).sort(function(a,b){return a.localeCompare(b,"fr");})
     .filter(function(x){return x!==p.qui;})
     .map(function(x){return '<option value="'+escAttr(x)+'"'+(p.vente&&x===p.vente.acheteur?' selected':'')+'>'+esc(x)+'</option>';}).join("");
   var vente='<div class="tdlm-row"><div style="flex:2"><label class="tdlm-fl">Vendre à</label>'
     +'<select id="tdlh-vacheteur"><option value="">— personne —</option>'+pjs+'</select></div>'
     +'<div style="flex:1"><label class="tdlm-fl">Prix ($)</label><input type="text" id="tdlh-vprix" value="'+escAttr(p.vente?p.vente.prix:"")+'"></div></div>'
-    +'<label class="tdlm-fl">L\u2019annonce (accroche de ce que vous vendez, pas son contenu)</label>'
+    +'<label class="tdlm-fl">L\u2019annonce (ce que vous vendez, sans le dire)</label>'
     +'<input type="text" id="tdlh-vannonce" value="'+escAttr(p.vente?p.vente.annonce:"")+'" placeholder="Ce que j\u2019ai vu passer dans le chenal de Dulac mardi soir…">';
-  var scelle=p.scelle?'<div class="tdlm-prose"><b>Information croustillante :</b> '+esc(p.scelle)+'</div>':'';
+  var scelle=p.scelle?'<div class="tdlm-prose"><b>Ce qu\u2019il y avait à voir :</b> '+esc(p.scelle)+'</div>':'';
 
   /* poste qui ne rapporte pas : rien à transmettre, seulement à vendre */
-  if(!def.rapporte){
+  if(!rap){
     return '<div class="tdlm-drawer on"><h4>Ce que vous en faites \u2014 '+esc(def.label)+'</h4>'+scelle
       +'<div class="tdlm-prose tdlm-todo">Votre part est due quoi qu\u2019il arrive : personne ne vous a payé pour rapporter quelque chose. Ce que vous savez ne regarde que vous, et vous pouvez le monnayer sans rien perdre.</div>'
       +vente
@@ -232,12 +242,12 @@ function abandonner(m,idx){
 function cloturerPoste(m,idx){
   var postes=vt(m.postes), p=postes[idx];
   if(!p)return;
-  var def=POSTES[p.type];
+  var rap=rapporte(p);
   var a=$("#tdlh-vacheteur"), px=$("#tdlh-vprix"), an=$("#tdlh-vannonce");
   var acheteur=a?a.value:"", prix=px?parseInt(String(px.value).replace(/[^\d]/g,""),10):0, annonce=an?String(an.value||"").trim():"";
   var vend=!!acheteur;
 
-  if(def.rapporte){
+  if(rap){
     var b=$("#tdlh-branche"), t=$("#tdlh-transmis");
     var branche=b?b.value:"", transmis=t?String(t.value||"").trim():"";
     if(!BRANCHES[branche]){toast("Dis ce que tu fais de ce que tu sais.");return;}
@@ -268,14 +278,15 @@ function noterPoste(m,idx,note){
 
 /* ===================== CARNET ===================== */
 /* transaction sur le nœud entier : deux clôtures simultanées ne s'écrasent pas */
-/* note facultative : un poste qui ne rapporte rien compte au registre sans
-   peser sur le ratio de fiabilité. */
+/* le carnet ne recense QUE les postes notés : il mesure la fiabilité des
+   signalements, pas la présence. Un écueil, une diversion, le chef n'y
+   entrent pas. */
 function noterCarnet(pseudo,note){
-  if(!pseudo)return Promise.resolve();
+  if(!pseudo||!note)return Promise.resolve();
   var path=F.CFG.RACINE+"/"+F.CFG.SOUS_CARNET+"/"+encodeURIComponent(pseudo);
   try{
     return Promise.resolve(window.EcoCore.firebaseTransaction(path,function(cur){
-      var e=cur||{}; var notes=vt(e.notes); if(note)notes.push(note);
+      var e=cur||{}; var notes=vt(e.notes); notes.push(note);
       return {postes:(+e.postes||0)+1, notes:notes.slice(-10), dernier:new Date().toISOString()};
     })).catch(function(){});
   }catch(e){return Promise.resolve();}
@@ -287,13 +298,13 @@ function payerMaree(m){
   var postes=vt(m.postes), suite=Promise.resolve(), total=0;
   postes.forEach(function(p){
     if(p.paye||p.etat!=="pris")return;
-    var def=POSTES[p.type], gain, carnet=null;
-    if(def.rapporte){
+    var gain, carnet=null;
+    if(rapporte(p)){
       if(!p.note)return;                       /* non noté : réglé plus tard */
       gain=Math.round(montantDe(p)*NOTES[p.note].coef);
       carnet=NOTES[p.note].carnet;
     } else {
-      gain=montantDe(p);                       /* part de participation, pleine */
+      gain=montantDe(p)+(p.chef?F.CHEF_BONUS:0);  /* part pleine, + prime de chef */
     }
     var qui=p.qui;
     suite=suite.then(function(){
@@ -301,12 +312,16 @@ function payerMaree(m){
       return (gain>0?F.crediter(qui,gain):Promise.resolve()).then(function(){return noterCarnet(qui,carnet);});
     });
   });
-  if(m.createur&&!m.createurPaye){
+  /* le créateur qui embarque touche sa part de bord et sa prime de chef ;
+     celui qui reste à terre (staff) touche la part de créateur. */
+  var embarque=postes.some(function(p){return p.chef&&p.qui===m.createur;});
+  if(m.createur&&!m.createurPaye&&!embarque){
     suite=suite.then(function(){
       m.createurPaye=true; total+=PART_CREATEUR;
       return F.crediter(m.createur,PART_CREATEUR);
     });
   }
+  if(embarque&&!m.createurPaye)m.createurPaye=true;
   return suite.then(function(){ ecrirePostes(m,postes); return total; });
 }
 
@@ -354,7 +369,7 @@ function vueOffres(){
       +'<span class="tdlm-hsec" style="margin:0">'+esc(v.annonce)+'</span>'
       +'<span class="tdlm-r">'+money(v.prix)+'</span></div>'
       +'<div class="tdlm-prose tdlm-todo">Proposée par '+esc(x.p.qui)+' \u27e1 '+esc(ilya(v.date))+'</div>';
-    if(pris)bloc+='<div class="tdlm-prose"><b>Information achetée :</b> '+esc(x.p.scelle||"—")+'</div>';
+    if(pris)bloc+='<div class="tdlm-prose"><b>Ce que vous avez acheté :</b> '+esc(x.p.scelle||"—")+'</div>';
     else if(vive)bloc+='<div class="tdlm-row"><button class="tdlm-abtn prim" data-offre="oui:'+x.m.id+':'+x.i+'">Payer et lire</button>'
       +'<button class="tdlm-abtn warn" data-offre="non:'+x.m.id+':'+x.i+'">Refuser</button></div>';
     else bloc+='<div class="tdlm-prose tdlm-todo">Offre expirée.</div>';
@@ -363,7 +378,7 @@ function vueOffres(){
   return '<div class="tdlm-dpanel">'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Offres reçues</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on vous propose</p>'
-    +'<div class="tdlm-prose">Vous voyez ce qui est à vendre, pas l\u2019information complète. Le contenu n\u2019apparaît qu\u2019une fois payé. Une offre expire au bout de trois jours.</div></div>'
+    +'<div class="tdlm-prose">Vous voyez ce qui est à vendre, pas ce que c\u2019est. Le contenu n\u2019apparaît qu\u2019une fois payé. Une offre tombe au bout de trois jours.</div></div>'
     +corps+'</div></div>';
 }
 
@@ -388,7 +403,7 @@ F.vue({
 /* ===================== EXPORT ===================== */
 window.TDLPostes = {
   POSTES:POSTES, COUTS:COUTS, NOTES:NOTES, BRANCHES:BRANCHES, PART_CREATEUR:PART_CREATEUR,
-  normPoste:normPoste, montantDe:montantDe, peutTenir:peutTenir,
+  normPoste:normPoste, montantDe:montantDe, peutTenir:peutTenir, rapporte:rapporte, tirerDe:tirerDe,
   carte:carte, tiroirCloture:tiroirCloture,
   prendre:prendre, abandonner:abandonner, cloturerPoste:cloturerPoste, noterPoste:noterPoste,
   noterCarnet:noterCarnet, payerMaree:payerMaree
