@@ -44,12 +44,14 @@ var U = {
   DETTES:   "/t92-le-tableau-des-dettes",
   MISSIONS: "/t90-le-tableau-des-missions",
   TACHES:   "/t91-le-tableau-des-taches",
-  STAFF:    "/t73-gestion-systeme-de-jeu#466"
+  STAFF:    "/t73-gestion-systeme-de-jeu#466",
+  HANGAR:   "/t96-le-tableau-du-hangar" 
 };
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
-          FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier" };
+          FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier",
+          FLOT:"tdl_flottille" };
 
 /* ===================== REGISTRE =====================
    n  = classe CSS de module · ic = icône Flaticon (préfixe fi-sr- ajouté au
@@ -117,6 +119,29 @@ var NOTIFS = {
   164:{n:C.MAIN, ic:"badge-check",     url:U.DETTES, txt:function(d){return "Votre dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est clos.";}},
   165:{n:C.MAIN, ic:"sack-dollar",     url:U.DETTES, txt:function(d){return "Dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; clos : "+(+d.montant||0)+" $ vous ont été versés.";}},
   166:{n:C.MAIN, ic:"user-add",        url:U.DETTES, txt:function(d){return esc(d.pseudo)+" rejoint le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
+
+     /* --- Le tableau du hangar (La Flottille) ---
+     Même règle que la Main : la notification annonce, elle ne raconte pas.
+     Rien de ce qui est scellé ne passe par là. */
+  170:{n:C.FLOT, ic:"anchor",         url:U.HANGAR, txt:function(d){return "Nouvelle opération au hangar : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
+  171:{n:C.FLOT, ic:"user-check",     url:U.HANGAR, txt:function(d){return esc(d.chef)+" prend la tête de votre opération &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  172:{n:C.FLOT, ic:"comment-dollar", url:U.HANGAR, txt:function(d){return "On demande davantage sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; : "+(+d.montant||0)+" $.";}},
+  173:{n:C.FLOT, ic:"handshake",      url:U.HANGAR, txt:function(d){return "Votre demande sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+(d.ok?"acceptée":"refusée")+".";}},
+  174:{n:C.FLOT, ic:"inbox-in",       url:U.HANGAR, txt:function(d){return "Le hangar demande votre validation : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  175:{n:C.FLOT, ic:"sack-dollar",    url:U.HANGAR, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close : "+(+d.montant||0)+" $ vous ont été versés.";}},
+  176:{n:C.FLOT, ic:"rotate-left",    url:U.HANGAR, txt:function(d){return "Faute de preneur, &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close. Votre prime vous est rendue.";}},
+
+  177:{n:C.FLOT, ic:"ship",           url:U.HANGAR, txt:function(){return "Un capitaine se charge de votre départ. Tenez-vous prêt·e.";}},
+  178:{n:C.FLOT, ic:"scale-balanced", url:U.HANGAR, txt:function(){return "Le staff a tranché ce qu'il est advenu de vous pendant votre absence.";}},
+  179:{n:C.FLOT, ic:"file-signature", url:U.DETTES, txt:function(d){return "La Main a reporté sur vous une dette qu'elle ne pouvait plus recouvrer ailleurs. Consultez le tableau des dettes.";}},
+   
+  180:{n:C.FLOT, ic:"water",          url:U.HANGAR, txt:function(d){return "Une marée se prépare : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. Des postes sont ouverts à qui veut.";}},
+  181:{n:C.FLOT, ic:"user-add",       url:U.HANGAR, txt:function(d){return esc(d.pseudo)+" prend un poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  182:{n:C.FLOT, ic:"comment-info",   url:U.HANGAR, txt:function(d){return esc(d.pseudo)+" a rendu compte sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  183:{n:C.FLOT, ic:"lightbulb-on",   url:U.HANGAR, txt:function(d){return "Vous avez trouvé quelque chose pendant &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. C'est au registre.";}},
+  184:{n:C.FLOT, ic:"envelope-dot",   url:U.HANGAR, txt:function(){return "On vous propose une information à vendre. Elle tombe dans trois jours.";}},
+  185:{n:C.FLOT, ic:"coins",          url:U.HANGAR, txt:function(d){return "Votre information a trouvé preneur : "+(+d.montant||0)+" $.";}},
+  186:{n:C.FLOT, ic:"user-slash",     url:U.HANGAR, txt:function(d){return "Votre poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été marqué abandonné.";}},
 };
 
 /* préfixes de titre → type de notification */
