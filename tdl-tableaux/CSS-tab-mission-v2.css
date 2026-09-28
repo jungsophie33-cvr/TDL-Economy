@@ -142,6 +142,7 @@
 .tdlm-fgrid .full{grid-column:1/-1}
 .tdlm-chkline{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0}
 .tdlm-chkline input{width:16px;height:16px;accent-color:var(--gr6-color);flex:none}
+.tdlh-meta{float:right;font-family:var(--txt2);font-size:15px;font-style:normal;text-transform:none;letter-spacing:0;color:var(--txt)}
 
 @container(min-width:900px) {
    .tdlm-fgrid {grid-template-columns:repeat(auto-fit,minmax(350px,1fr))!important;}
