@@ -118,7 +118,7 @@ var NOTIFS = {
   163:{n:C.MAIN, ic:"balance-scale-left", url:U.DETTES, txt:function(d){return "Négociation close sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;"+(d.issue?" ("+esc(d.issue)+")":"")+" : "+(+d.montant||0)+" $ prélevés.";}},
   164:{n:C.MAIN, ic:"badge-check",     url:U.DETTES, txt:function(d){return "Votre dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est clos.";}},
   165:{n:C.MAIN, ic:"sack-dollar",     url:U.DETTES, txt:function(d){return "Dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; clos : "+(+d.montant||0)+" $ vous ont été versés.";}},
-  166:{n:C.MAIN, ic:"user-add",        url:U.DETTES, txt:function(d){return esc(d.pseudo)+" rejoint le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
+  166:{n:C.MAIN, ic:"user-add",        url:U.DETTES, txt:function(d){return esc(d.pseudo)+" rejoint le dossier &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
 
      /* --- Le tableau du hangar (La Flottille) ---
      Même règle que la Main : la notification annonce, elle ne raconte pas.
@@ -141,7 +141,7 @@ var NOTIFS = {
   183:{n:C.FLOT, ic:"lightbulb-on",   url:U.HANGAR, txt:function(d){return "Vous avez trouvé quelque chose pendant &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. C'est au registre.";}},
   184:{n:C.FLOT, ic:"envelope-dot",   url:U.HANGAR, txt:function(){return "On vous propose une information à vendre. Elle tombe dans trois jours.";}},
   185:{n:C.FLOT, ic:"coins",          url:U.HANGAR, txt:function(d){return "Votre information a trouvé preneur : "+(+d.montant||0)+" $.";}},
-  186:{n:C.FLOT, ic:"user-slash",     url:U.HANGAR, txt:function(d){return "Votre poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été marqué abandonné.";}},
+  186:{n:C.FLOT, ic:"user-slash",     url:U.HANGAR, txt:function(d){return "Votre poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été marqué abandonné.";}}
 };
 
 /* préfixes de titre → type de notification */
