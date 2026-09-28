@@ -422,21 +422,21 @@ function denouer(m){
   }
 
   var den={issue:issue, lavee_par:lPar||"", lavee_pnj:lPnj||"", date:new Date().toISOString(), par:F.myPseudo()};
-  var ancien=(m.motif==="dette"&&m.demandeur&&m.dette_key)
-    ? "membres/"+m.demandeur+"/dettes/"+m.dette_key : null;
+    /* la clé porte son nœud : "dettes:abc" ou "prets:abc" */
+  var bout=String(m.dette_key||"").split(":");
+  var coin=(bout.length>1?bout[0]:"dettes"), cle=(bout.length>1?bout.slice(1).join(":"):bout[0]);
+  var ancien=(m.motif==="dette"&&m.demandeur&&cle)
+    ? "membres/"+m.demandeur+"/"+coin+"/"+cle : null;
 
-  /* La Main ne vend pas ses créances : elle change de débiteur. La dette
-     quitte le compte du disparu et s'inscrit au nom du proche, créancier
-     inchangé. Si c'est l'entourage PNJ qui a payé, elle sort du grand livre
-     et le staff joue les conséquences. */
   var suite=Promise.resolve();
   if(ancien&&issue==="introuvable"){
     if(lPar){
-      var src=(F.membres()[m.demandeur]||{}).dettes||{}, d0=src[m.dette_key]||{}, copie={};
+      var src=(F.membres()[m.demandeur]||{})[coin]||{}, d0=src[cle]||{}, copie={};
       for(var kk in d0)if(d0.hasOwnProperty(kk))copie[kk]=d0[kk];
-      copie.motif=(d0.motif||m.dette_libelle||"Dette")+" \u2014 reportée pendant la disparition de "+m.demandeur;
+      copie.motif=(d0.motif||d0.nom||m.dette_libelle||"Dette")
+        +" \u2014 reportée pendant la disparition de "+m.demandeur;
       copie.date=den.date; copie.statut="active";
-      suite=Promise.resolve(window.EcoCore.firebasePush("membres/"+encodeURIComponent(lPar)+"/dettes",copie))
+      suite=Promise.resolve(window.EcoCore.firebasePush("membres/"+encodeURIComponent(lPar)+"/"+coin,copie))
         .then(function(){ var up={}; up[ancien]=null; return window.EcoCore.firebaseUpdate(up); });
     } else {
       var up2={}; up2[ancien]=null;
