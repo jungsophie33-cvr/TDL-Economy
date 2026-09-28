@@ -60,8 +60,8 @@ function issueDe(m){ var i=issuesDe(m); return (m.denouement&&i[m.denouement.iss
 var T={
   NON_CAP:"Prendre un départ exige un navire : réservé aux capitaines de la Flottille.",
   FERME:"Ce départ n\u2019est plus disponible.",
-  PRIS:"Départ pris \u2014 le passager quitte la Louisiane.",
-  CONSULT:"Registre consultable \u2014 seuls les capitaines prennent les départs.",
+  PRIS:"Départ pris : le passager quitte la Louisiane.",
+  CONSULT:"Registre consultable : seuls les capitaines prennent les départs.",
   CONNECT:"Connectez-vous pour interagir.",
   ATTENTE:"En attente d\u2019un capitaine.",
   DEN_MANQUE:"Tranche d\u2019abord le dénouement : la dette doit aller quelque part."
@@ -99,7 +99,7 @@ function normaliser(o){
 function sub(m){
   var bouts=[m.duree+" mois"];
   if(m.destination)bouts.push(m.destination);
-  return { sub:bouts.join(" \u00b7 "), qui:m.capitaine, quand:"déposée "+ilya(m.cree) };
+  return { sub:bouts.join(" \u27e1 "), qui:m.capitaine, quand:"déposée "+ilya(m.cree) };
 }
 function tags(m){
   var out=[];
@@ -141,8 +141,8 @@ function panel(m){
   /* motif : la dette et l'affaire ne s'affichent qu'à ceux que ça regarde */
   var confid=(staff||cap||(me&&me===m.demandeur));
   var motifV=esc(MOTIFS[m.motif]);
-  if(m.motif==="dette"&&m.dette_libelle)motifV+=confid?' <span class="tdlm-todo">\u00b7 '+esc(m.dette_libelle)+'</span>':'';
-  if(m.motif==="enquete"&&m.enquete_titre)motifV+=' <span class="tdlm-todo">\u00b7 '+esc(m.enquete_titre)+'</span>';
+  if(m.motif==="dette"&&m.dette_libelle)motifV+=confid?'<div class="tdlm-todo">'+esc(m.dette_libelle)+'</div>':'';
+  if(m.motif==="enquete"&&m.enquete_titre)motifV+='<div class="tdlm-todo">'+esc(m.enquete_titre)+'</div>';
 
   /* pression de la Main : capitaine + staff uniquement */
   var pressionBox="";
@@ -178,12 +178,10 @@ function panel(m){
 
   var prendreBtn=(F.estCapitaine(me)&&!m.capitaine&&m.statut==="en_attente")
     ? '<button class="tdlm-abtn prim" data-act="prendre">Je prends ce départ</button>' : '';
-    var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
+  var capBloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Le capitaine</span>'+prendreBtn+'</div>'
     +(m.capitaine
-      ? '<div class="tdlm-person chef">'+av(m.capitaine)
-        +'<span class="tdlm-pname">'+esc(m.capitaine)+'</span>'
-        +(F.navireDe(m.capitaine)?'<span class="tdlm-r">'+esc(F.navireDe(m.capitaine))+'</span>':'')
-        +'</div>'
+      ? '<div class="tdlm-person chef">'+av(m.capitaine)+'<span class="tdlm-pname">'+esc(m.capitaine)
+        +(F.navireDe(m.capitaine)?' <span class="tdlm-todo">\u27e1 '+esc(F.navireDe(m.capitaine))+'</span>':'')+'</span></div>'
       : '<p class="tdlm-todo" style="margin:0">Aucun capitaine n\u2019a encore pris ce départ.</p>')+'</div>';
 
   return ''
@@ -202,7 +200,7 @@ function panel(m){
       +'<div class="tdlm-duo">'
         +'<div class="tdlm-sec"><p class="tdlm-hsec">Reste derrière</p><div class="tdlm-prose">'
           +(m.restent?esc(m.restent):'<span class="tdlm-todo">—</span>')
-          +(m.restent_pnj?'<br><span class="tdlm-todo">'+esc(m.restent_pnj)+'</span>':'')+'</div></div>'
+          +(m.restent_pnj?'<div class="tdlm-todo">'+esc(m.restent_pnj)+'</div>':'')+'</div></div>'
         +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div></div>'
       +'</div>'
       +negoBox+capBloc+pressionBox+denBox+bilan+drawer(m)
@@ -241,7 +239,7 @@ function actionbar(m){
     else {roles.push("Visiteur");btns='<span class="tdlm-idle">'+T.CONSULT+'</span>';}
   }
   if(!roles.length)roles.push("Visiteur");
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u00b7 ")+'</span>'+btns+'</div>';
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u27e1 ")+'</span>'+btns+'</div>';
 }
 
 /* ---- drawers ---- */
@@ -297,7 +295,7 @@ function drawer(m){
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="sujetok">Enregistrer</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.inline==="nego"){
-    return '<div class="tdlm-drawer on"><h4>Demander une prime plus haute</h4>'
+    return '<div class="tdlm-drawer on"><h4>Demander une prime plus élevée</h4>'
       +'<input type="text" id="tdlh-negom" placeholder="Montant en $" value="'+escAttr(m.nego?m.nego.montant:"")+'">'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="negook">Proposer au passager</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
