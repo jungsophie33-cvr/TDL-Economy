@@ -62,6 +62,8 @@
     OK_FAVEUR:        "Petite faveur enregistrée. Dette légère notée par le staff, rappelée au moment opportun."
   };
 
+  var DUS = [];     /* dettes + prêts du membre courant, clé préfixée */
+
   /* ===================== UTILS ===================== */
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function versTableau(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
@@ -317,6 +319,27 @@
     out.sort(function(x,y){ return String(x.titre).localeCompare(String(y.titre),"fr"); });
     return out;
   }
+
+    function moiPseudo(){
+    try{ if(etatMembre&&etatMembre.pseudo)return etatMembre.pseudo; }catch(e){}
+    try{ if(typeof _userdata!=="undefined"&&_userdata.username)return String(_userdata.username).trim(); }catch(e){}
+    return null;
+  }
+  /* Tout ce qu'on peut devoir : dettes narratives ET prêts en cours. Un
+     recouvrement de la Main porte indifféremment sur les uns ou les autres.
+     Lu à la racine plutôt que dans etatMembre, qui ne garde pas les prêts.
+     La clé porte son nœud d'origine : "dettes:abc" ou "prets:abc". */
+  function lireDus(root){
+    var p=moiPseudo(); if(!p)return [];
+    var m=(root&&root[CFG.NODE_MEMBRES]&&root[CFG.NODE_MEMBRES][p])||{}, out=[];
+    function pousser(src,coin){
+      if(!src)return;
+      if(Array.isArray(src))src.forEach(function(x,i){ if(x)out.push({key:coin+":"+i, source:coin, d:x}); });
+      else Object.keys(src).forEach(function(k){ if(src[k])out.push({key:coin+":"+k, source:coin, d:src[k]}); });
+    }
+    pousser(m.dettes,"dettes"); pousser(m.prets,"prets");
+    return out;
+  }
   
   function dispo(){ return Math.max(0, (etatMembre.solde|0) - GELE); }
 
@@ -409,6 +432,7 @@
       else if (src) Object.keys(src).forEach(function(k){ if (src[k]) out.push({ key:k, d:src[k] }); });
       return out;
     },
+    dus: function(){ return DUS; },
     enquetes: function(){ return ENQUETES; },
     bandeInfo: function(key){ return BANDES_INFO[key] || null; },
     staff: function(){ return st.staff; },
@@ -589,8 +613,9 @@
       PSEUDOS = Object.keys((root && root[CFG.NODE_MEMBRES]) || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
       BANDES_INFO = (root && root[CFG.NODE_BANDES]) || {};
       ENQUETES = lireEnquetes(root);
+      DUS = lireDus(root);
       GELE = calculerGel(root);
-    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; GELE = 0; }
+    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; DUS = []; GELE = 0; }
   }
   async function refresh(){
     E().invalidateCache();
