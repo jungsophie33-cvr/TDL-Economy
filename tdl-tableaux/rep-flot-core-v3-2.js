@@ -143,6 +143,19 @@ function carnetListe(){
   }).sort(function(a,b){return (b.dernier||"").localeCompare(a.dernier||"");});
 }
 function peutVoirCarnet(){return isStaff()||estFlottille(myPseudo());}
+/* remise à zéro d'une fiche du carnet — staff seulement, utile en phase de
+   test et quand une notation a été portée à tort. */
+function razCarnet(pseudo){
+  if(!isStaff()||!pseudo)return;
+  if(!window.confirm("Effacer la fiche de "+pseudo+" du carnet ?\nPostes comptés, notes et ratio disparaissent. Irréversible."))return;
+  _lastWrite=Date.now();
+  var up={}; up[CFG.RACINE+"/"+CFG.SOUS_CARNET+"/"+pseudo]=null;
+  try{
+    Promise.resolve(window.EcoCore.firebaseUpdate(up)).then(function(){
+      delete CARNET[pseudo]; toast("Fiche effacée."); renderAll();
+    }).catch(function(){toast("Effacement échoué.");});
+  }catch(e){toast("Effacement échoué.");}
+}
 
 /* ===================== ÉTAT ===================== */
 var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null};
@@ -242,12 +255,14 @@ function viewCarnet(){
       +'<span class="tdlm-pname">'+esc(x.pseudo)+'</span>'
       +(nav?'<span class="tdlm-r">'+esc(nav)+'</span>':'')
       +'<span class="tdlh-meta">'+esc(meta)+'</span>'
-      +'<span class="tdlm-stamp" style="--sc:'+x.etat.c+'">'+esc(x.etat.label)+'</span></div>';
+      +'<span class="tdlm-stamp" style="--sc:'+x.etat.c+'">'+esc(x.etat.label)+'</span>'
+      +(isStaff()?'<button class="tdlm-abtn warn" data-raz="'+escAttr(x.pseudo)+'">Réinitialiser</button>':'')
+      +'</div>';
   }).join(""):'<div class="tdlm-empty">Personne n\u2019a encore tenu de poste.</div>';
   return '<div class="tdlm-dpanel">'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Le carnet</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Ceux qui ont travaillé pour le hangar</p>'
-    +'<div class="tdlm-prose">Sur les dix derniers signalements. Personne n\u2019est exclu pour un mauvais ratio : on le paie moins, et on vérifie derrière lui.</div></div>'
+    +'<div class="tdlm-prose">Sur les dix derniers signalements. Personne n\u2019est exclu pour un mauvais ratio. On le paie moins et on vérifie derrière lui, voilà tout.</div></div>'
     +'<div class="tdlm-cadre">'+corps+'</div></div></div>';
 }
 
@@ -264,6 +279,12 @@ function brancher(){
     el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};
   });
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
+  if(S.statut==="carnet"){
+    stage.querySelectorAll("[data-raz]").forEach(function(el){
+      el.onclick=function(){razCarnet(el.getAttribute("data-raz"));};
+    });
+    return;
+  }
   var vue=vueActive();
   if(vue){ if(vue.brancher)vue.brancher(stage); return; }
   var m=parId(S.sel), t=m&&m._t;
