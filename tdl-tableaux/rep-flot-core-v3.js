@@ -207,7 +207,7 @@ function ligne(m){
   var chips=tags.filter(Boolean).map(function(x){return '<span class="tdlm-req">'+x+'</span>';}).join("");
   if(isStaff()&&m.demandeValidation)chips+='<span class="tdlm-req">⚑ validation</span>';
   var st=STATUTS[m.statut]||{c:"var(--cntr)"};
-  var sub=esc(t.label)+(o.sub?' \u00b7 '+esc(o.sub):'');
+  var sub=esc(t.label)+(o.sub?' \u27e1 '+esc(o.sub):'');
   return '<div class="tdlm-drow" data-sel="'+m.id+'" aria-current="'+(m.id===S.sel)+'">'
     +'<span class="tdlm-ddot" style="--sc:'+st.c+'"></span>'
     +'<div style="min-width:0">'
@@ -234,14 +234,15 @@ function viewCarnet(){
   var g=carnetListe();
   var corps=g.length?g.map(function(x){
     var nav=navireDe(x.pseudo);
-    var ratio=(x.etat.ratio==null)?"—":Math.round(x.etat.ratio*100)+" % fiables";
+    var ratio=(x.etat.ratio==null)?"":(Math.round(x.etat.ratio*100)+" % fiables");
+    var meta=x.postes+" poste"+(x.postes>1?"s":"")
+      +(x.dernier?", dernier "+ilya(x.dernier):"")
+      +(ratio?" \u27e1 "+ratio:"");
     return '<div class="tdlm-person">'+av(x.pseudo)
-      +'<span class="tdlm-pname">'+esc(x.pseudo)
-      +(nav?' <span class="tdlm-todo">\u00b7 '+esc(nav)+'</span>':'')
-      +' <span class="tdlm-todo">\u00b7 '+x.postes+' poste'+(x.postes>1?'s':'')
-      +(x.dernier?', dernier '+esc(ilya(x.dernier)):'')+'</span></span>'
+      +'<span class="tdlm-pname">'+esc(x.pseudo)+'</span>'
+      +(nav?'<span class="tdlm-r">'+esc(nav)+'</span>':'')
       +'<span class="tdlm-stamp" style="--sc:'+x.etat.c+'">'+esc(x.etat.label)+'</span>'
-      +'<span class="tdlm-todo">'+esc(ratio)+'</span></div>';
+      +'<span class="tdlh-meta">'+esc(meta)+'</span></div>';
   }).join(""):'<div class="tdlm-empty">Personne n\u2019a encore tenu de poste.</div>';
   return '<div class="tdlm-dpanel">'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Le carnet</span></div>'
