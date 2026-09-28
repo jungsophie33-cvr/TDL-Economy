@@ -9,11 +9,10 @@
    les postes à la clôture.
 
    LES ACCROCHES — deux ou trois faits attachés à la MARÉE, pas à un poste,
-   chacun avec la condition qui l'ouvre. Invisibles de tous sauf du créateur et
-   du staff. Quand un joueur remplit la condition DANS LE SUJET, l'un des deux
-   ouvre l'accroche : elle devient publique, au nom de celui qui l'a obtenue.
-   C'est ce qui force le jeu commun — on n'atteint rien sans l'écrire là où les
-   autres le lisent, et ce qui s'ouvre change ce qu'ils peuvent écrire ensuite.
+   chacun avec sa condition. Invisibles sauf du créateur et du staff. Quand un
+   joueur remplit la condition DANS LE SUJET, l'un des deux ouvre l'accroche :
+   elle devient publique, au nom de celui qui l'a obtenue. On n'atteint rien
+   sans l'écrire là où les autres le lisent.
 
    RÈGLE D'ADMISSION — au moins un poste qui ne soit pas « à bord ». Si tous
    les présents sont payés par la Flottille, ce n'est pas une marée, c'est un
@@ -36,17 +35,16 @@ var S=F.S, patch=F.patch, toast=F.toast, STATUTS=F.STATUTS;
 /* ===================== CONFIG ===================== */
 var SOUS="marees";
 var SORTIES={
-  extraction:  {label:"Extraction",          desc:"Sortir quelqu\u2019un de là où on le tient."},
-  depose:      {label:"Dépose en zone fermée",desc:"Amener quelqu\u2019un là où on ne l\u2019attend pas."},
-  remise:      {label:"Remise en main propre",desc:"Un échange sur un terrain qui n\u2019est à personne."},
-  recuperation:{label:"Récupération",         desc:"Aller chercher ce qui a coulé, été jeté ou oublié."},
-  recherche:   {label:"Recherche sur l\u2019eau",desc:"Trouver quelqu\u2019un qui ne veut pas forcément l\u2019être."}
+  extraction:  {label:"Extraction", desc:"Sortir quelqu\u2019un de l'endroit où on le retient, vite et sans laisser de trace. Ceux qui le cherchent entrent aussi dans la partie."},
+  depose:      {label:"Dépose en zone fermée", desc:"Amener quelqu\u2019un là où on ne l\u2019attend pas : un campement, un village qui ne reçoit pas d\u2019étrangers. La communauté d\u2019accueil n\u2019a pas été prévenue, et elle a son mot à dire."},
+  remise:      {label:"Remise en main propre", desc:"Un échange sur un terrain qui n\u2019est à personne, entre deux parties qui ne vont jamais chez l\u2019autre. L\u2019autre partie, ses gens, le propriétaire du lieu : tout le monde est là."},
+  recuperation:{label:"Récupération", desc:"Aller chercher ce qui a coulé, été jeté ou oublié. Celui à qui ça appartenait n\u2019a pas forcément renoncé, et celui qui l\u2019a mis là avait ses raisons."},
+  recherche:   {label:"Recherche sur l\u2019eau", desc:"Trouver quelqu\u2019un qui ne veut pas forcément l\u2019être. Ceux qui préfèrent qu\u2019on ne le trouve pas sont sur l\u2019eau aussi."}
 };
 var MIN_POSTES=2, MAX_POSTES=5, MAX_ACCROCHES=3;
 
 var T={
-  NON_NAV:"Ouvrir une marée demande un navire : réservé à la Flottille.",
-  ADMISSION:"Une marée doit ouvrir au moins un poste qui ne soit pas « à bord ». Sinon tout le monde à bord est payé pour être là, et il ne se passe rien.",
+  ADMISSION:"Une marée est une mission d'équipage que vous pouvez monter sur mesure. Une véritable expédition de Flottille où vous devez non seulement proposer un objectif clair à votre équipe, mais aussi prévoir les difficultés auxquelles vous pourriez faire face, en intégrant un rôle d'antagoniste. Une marée doit ouvrir au moins un poste qui ne soit pas « à bord ». Les indices et informations scellées que vous concoctez, ainsi que le déroulement irp de la marée, sont là pour le sel de l'imprévu. N'est-ce pas plus excitant de prendre la mer quand l'horizon se noie dans la brume ?",
   CONNECT:"Connectez-vous pour prendre un poste.",
   OUVERT:"Marée affichée. Les postes se remplissent un par un."
 };
@@ -85,7 +83,7 @@ function parHeure(m){
   });
 }
 function sub(m){
-  return { sub:SORTIES[m.sortie].label+(m.lieu?" \u00b7 "+m.lieu:""), qui:m.createur, quand:"ouverte "+ilya(m.cree) };
+  return { sub:SORTIES[m.sortie].label+(m.lieu?" \u27e1 "+m.lieu:""), qui:m.createur, quand:"ouverte "+ilya(m.cree) };
 }
 function tags(m){
   var libres=vt(m.postes).filter(function(p){return p.etat==="libre";}).length;
@@ -126,7 +124,7 @@ function panel(m){
         +'<div class="tdlm-m"><span class="tdlm-k">Postes</span><span class="tdlm-v">'+pourvus(m)+' / '+vt(m.postes).length+'</span></div>'
         +sujetLine
       +'</div>'+banner+'</div>'
-      +'<div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on sait</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div>'
+      +'<div class="tdlm-sec"><p class="tdlm-hsec">Le contexte</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div>'
       +'<div class="tdlm-prose tdlm-todo">'+esc(SORTIES[m.sortie].desc)+'</div></div>'
       +accroches
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Les postes</p></div>'
@@ -159,9 +157,9 @@ function blocAccroches(m,vu){
       +'<div class="tdlm-prose tdlm-todo"><b>Condition :</b> '+esc(a.condition||"—")+'</div></div>';
   }).join("");
 
-  var titre=maitre?"Ce qu\u2019on peut découvrir":"Ce qui a été découvert";
+  var titre=maitre?"Les indices à découvrir":"Les indices obtenus";
   var note=maitre
-    ? "Ouvrez une accroche quand un joueur remplit sa condition dans le sujet. Elle devient publique, à son nom."
+    ? "Faites apparaitre une accroche quand un joueur remplit sa condition dans le rp. Elle devient publique, à son nom."
     : "Ce que quelqu\u2019un a trouvé pendant la sortie. Tout le monde peut s\u2019en servir désormais.";
   return '<div class="tdlm-sec"><p class="tdlm-hsec">'+esc(titre)+'</p>'
     +'<div class="tdlm-prose tdlm-todo">'+esc(note)+'</div></div>'+corps;
@@ -190,7 +188,7 @@ function actionbar(m){
     else {roles.push("Visiteur");btns='<span class="tdlm-idle">Prenez un poste ci-dessus : c\u2019est ouvert à tout le monde.</span>';}
   }
   if(!roles.length)roles.push("Visiteur");
-  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u00b7 ")+'</span>'+btns+'</div>';
+  return '<div class="tdlm-actionbar"><span class="tdlm-ab-role">Vous : '+roles.join(" \u27e1 ")+'</span>'+btns+'</div>';
 }
 
 /* ---- tiroirs ---- */
@@ -348,30 +346,38 @@ function champPoste(i){
     +'<input type="text" id="tdlh-nc'+i+'" placeholder="Ce qu\u2019on demande, sans dire pourquoi…">'
     /* le scellé est hors grille : un simple "" suffit à le réafficher */
     +'<div id="tdlh-nsw'+i+'" style="display:none">'
-    +'<label class="tdlm-fl">Scellé \u2014 ce qui se produit sous ses yeux</label>'
+    +'<label class="tdlm-fl">Scellé \u2014 action qui se produit sous ses yeux</label>'
     +'<textarea id="tdlh-ns'+i+'" placeholder="Un pick-up remonte le chemin sans phares à 2h40…"></textarea>'
     +'<div class="tdlm-prose tdlm-todo">Écrivez un fait, pas une conclusion : ce qui se produit, jamais ce que le personnage en déduit. Il reçoit la perception, il garde l\u2019interprétation.</div>'
     +'</div></div>';
 }
 
-/* mémo des postes, pour qu\u2019on sache ce qu\u2019on ouvre */
-function memoPostes(){
-  return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Les quatre postes</span></div>'
-    + Object.keys(P.POSTES).map(function(k){
-        var d=P.POSTES[k];
-        return '<div class="tdlm-sec" style="margin:0 0 10px"><p class="tdlm-hsec" style="margin:0">'+esc(d.label)
-          +' <span class="tdlm-r">'+d.montant+' $</span> <span class="tdlm-todo">'+esc(d.legal)+'</span></p>'
+/* mémos du formulaire : natures de sortie, puis postes */
+function memo(titre,map,pied){
+  return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">'+esc(titre)+'</span></div>'
+    + Object.keys(map).map(function(k){
+        var d=map[k], suf=(d.montant!=null)?(' <span class="tdlm-r">'+d.montant+' $</span> <span class="tdlm-todo">'+esc(d.legal)+'</span>'):'';
+        return '<div class="tdlm-sec" style="margin:0 0 10px"><p class="tdlm-hsec" style="margin:0">'+esc(d.label)+suf+'</p>'
           +'<div class="tdlm-prose">'+esc(d.desc)+'</div></div>';
       }).join("")
-    +'</div>';
+    +(pied?'<div class="tdlm-prose tdlm-todo">'+esc(pied)+'</div>':'')+'</div>';
+}
+function memoSorties(){
+  return memo("La nature des sorties",SORTIES,
+    "Toutes doivent amener au moins une personne qui n\u2019est pas payée pour être là. C\u2019est ce qui sépare une marée d\u2019un RP entre capitaines.");
+}
+
+function memoPostes(){
+  return memo("Les quatre postes",P.POSTES,
+    "« À bord » est réservé à la Flottille. Les trois autres sont ouverts à tout le monde.");
 }
 
 function champAccroche(i){
   return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">Accroche '+(i+1)+'</span>'
     +'<span class="tdlm-todo">facultative</span></div>'
-    +'<label class="tdlm-fl">Le fait</label>'
+    +'<label class="tdlm-fl">Un indice à découvrir</label>'
     +'<textarea id="tdlh-af'+i+'" placeholder="La coque a été repeinte, et un nom transparaît sous le bleu-noir…"></textarea>'
-    +'<label class="tdlm-fl">Ce qu\u2019il faut faire pour l\u2019obtenir</label>'
+    +'<label class="tdlm-fl">Que faire pour l\u2019obtenir ?</label>'
     +'<input type="text" id="tdlh-ac'+i+'" placeholder="Approcher du bateau de face, à quelques mètres, avec une lumière…">'
     +'</div>';
 }
@@ -392,17 +398,17 @@ function formOuverture(){
   return '<div class="tdlm-dpanel">'
     +'<button class="tdlm-dret" data-neuf="cancel">← Retour au registre</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Ouvrir une marée</span></div>'
-    +'<div class="tdlm-dp-body"><div class="tdlm-drawer on">'
-      +'<div class="tdlm-prose">'+esc(T.ADMISSION)+'</div>'
+    +'<div class="tdlm-dp-body"><div class="tdlm-drawer on" style="border-top:none">'
+      +memoSorties()
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlh-ntitre" placeholder="Ex. : Relever quelqu\u2019un au ponton Dumas">'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Nature de la sortie</label><select id="tdlh-nsortie">'+ss+'</select></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Au nom de</label><input type="text" id="tdlh-nnavire" value="'+escAttr(F.navireDe(me)||"Le hangar")+'"></div></div>'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Où</label><input type="text" id="tdlh-nlieu" placeholder="Chenal, ponton, bras de bayou…"></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Quand</label><input type="text" id="tdlh-nquand" placeholder="Une nuit de mars, à la marée basse…"></div></div>'
-      +'<label class="tdlm-fl">Ce qu\u2019on sait \u2014 visible de tous</label><textarea id="tdlh-nctx"></textarea>'
+      +'<label class="tdlm-fl">Le contexte et informations connues (visible de tous)</label><textarea id="tdlh-nctx"></textarea>'
       +memoPostes()
       +cartes
-      +'<div class="tdlm-prose">Les accroches ne sont attachées à aucun poste. Elles sont invisibles de tous sauf de vous et du staff, et vous les ouvrez en cours de RP quand quelqu\u2019un remplit la condition dans le sujet. C\u2019est ce qui empêche chacun de jouer dans son coin.</div>'
+      +'<div class="tdlm-prose">Les accroches ne sont attachées à aucun poste. Elles sont invisibles de tous sauf de vous et du staff, et vous les ouvrez en cours de RP quand quelqu\u2019un remplit la condition de découverte, dans le sujet rp.</div>'
       +accs
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-neuf="ok">Afficher la marée</button>'
       +'<button class="tdlm-abtn" data-neuf="cancel">Annuler</button></div>'
@@ -421,6 +427,16 @@ function creer(){
       consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},i));
   }
   if(postes.length<MIN_POSTES){toast("Il faut au moins "+MIN_POSTES+" postes.");return;}
+  /* le capitaine qui monte la sortie embarque, sinon il ouvre une marée à
+     laquelle il ne peut pas participer. Le staff, lui, reste dehors. */
+  var moi=$("#tdlh-nmoi"), me2=F.myPseudo();
+  if(moi&&moi.checked&&F.estFlottille(me2)){
+    for(var b=0;b<postes.length;b++){
+      if(postes[b].type!=="bord")continue;
+      postes[b].qui=me2; postes[b].etat="pris"; postes[b].de=1+Math.floor(Math.random()*4);
+      postes[b].pris=new Date().toISOString(); break;
+    }
+  }
   if(!postes.some(function(p){return p.type!=="bord";})){toast(T.ADMISSION);return;}
 
   var accroches=[];
@@ -467,7 +483,7 @@ F.vue({
       sel.onchange=function(){
         var d=P.POSTES[sel.value];
         if(wrap)wrap.style.display=(d&&d.scelle)?"":"none";
-        if(aide)aide.textContent=d?(d.montant+" $ \u00b7 "+d.legal):"facultatif";
+        if(aide)aide.textContent=d?(d.montant+" $ \u27e1 "+d.legal):"facultatif";
       };
       sel.onchange();
     })(i);
