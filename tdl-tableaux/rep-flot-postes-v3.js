@@ -14,6 +14,10 @@
    garde un scellé — ce qu'il découvre s'il regarde de trop près — mais il ne
    le doit à personne, et il peut le vendre sans rien perdre.
 
+   « À bord » est le seul poste réservé : on ne monte pas sur un bateau de la
+   Flottille sans en être. Les trois autres sont ouverts à tout le monde, et
+   c'est ce qui fait du tableau une porte d'entrée.
+
    LE SCELLÉ dit ce qui SE PRODUIT, jamais ce que le personnage en conclut.
    « Un pick-up remonte le chemin sans phares à 2h40 » est un scellé ; « vous
    reconnaissez le comptable » n'en est pas un, c'est une déduction, et elle
@@ -38,23 +42,23 @@ var S=F.S, toast=F.toast;
 
 /* ===================== CATALOGUE DES POSTES ===================== */
 var POSTES={
-  bord:     {label:"À bord",      montant:100, legal:"illégal selon la cargaison", scelle:true, rapporte:true,
-             desc:"Vous partez avec le bateau. Vous portez, vous manœuvrez, vous tenez la barre pendant que quelqu\u2019un d\u2019autre fait ce pour quoi on est venu. Vous verrez ce qui se passe, et on saura que vous l\u2019avez vu."},
+  bord:     {label:"À bord",      montant:100, legal:"illégal selon la cargaison", scelle:true, rapporte:true, flottille:true,
+             desc:"Vous partez avec le bateau comme matelot. Le travail ne manque pas à bord et vous manoeuvrez pendant qu'un autre arrange ce pourquoi vous vous retrouvez là. Témoin direct de toute l'aventure, vous pouvez être fiable... ou trop bavard."},
   sec:      {label:"Au sec",      montant:75,  legal:"légal", scelle:true, rapporte:true,
-             desc:"Vous restez à terre. Un point à tenir, un moteur à réparer, une pièce à prêter pour la nuit, un œil sur ce qui passe. Le travail est légal ; ce qui le rend utile ne l\u2019est pas toujours."},
+             desc:"Vous restez à terre et vous vous rendez utile au bon endroit. Votre capacité à observer est la raison pour laquelle on vous paie. Le travail est parfaitement légal ; la raison qui l'a créé... pas toujours."},
   diversion:{label:"La diversion",montant:75,  legal:"ambigu", scelle:false, rapporte:false,
-             desc:"On vous demande de provoquer quelque chose, quelque part, à une heure précise. On ne vous dit pas pourquoi et vous n\u2019êtes pas censé le demander. Ce que vous provoquez, vous, ne vous expose à rien."},
+             desc:"On vous demande de provoquer un peu de chaos, quelque part, à une heure précise. On ne vous dit pas pourquoi et si vous tenez à votre récompense, alors ne demandez pas. Ce que vous provoquez ne devrait pas vous exposer à de gros ennuis."},
   ecueil:   {label:"L\u2019écueil",montant:75, legal:"selon qui vous jouez", scelle:false, rapporte:false,
-             desc:"Vous n\u2019êtes pas du voyage. Vous êtes ce que le voyage n\u2019avait pas prévu : quelqu\u2019un qui surveille ses terres, qui cherche la même chose, qui se trouve là. Vous n\u2019avez aucune raison de laisser faire."}
+             desc:"Vous n\u2019êtes pas de l\u2019équipage. En fait, vous êtes le facteur imprévu, le caillou dans la chaussure mais qui avait toutes les raisons de se trouver là au moment où la Flottille arrive... et nulle raison de laisser faire ce qui se trame."}
 };
 var PART_CREATEUR=100;
 
 /* d4 du coût, tiré à l'inscription */
 var COUTS={
-  1:{label:"Rien",     desc:"Sorti propre. Personne n\u2019a rien remarqué."},
-  2:{label:"Repéré",   desc:"Quelqu\u2019un vous a vu. À vous de dire si vous savez qui."},
-  3:{label:"Un mensonge", desc:"Vous avez dû mentir à quelqu\u2019un qui compte."},
-  4:{label:"Du retard",desc:"Vous rapportez, mais trop tard pour que ça serve."}
+  1:{label:"Rien",     desc:"Sortie propre. Personne n\u2019a rien remarqué."},
+  2:{label:"Repéré",   desc:"Quelqu\u2019un vous a vu. À vous de déterminer si vous savez qui."},
+  3:{label:"Un mensonge", desc:"Vous avez dû mentir à quelqu\u2019un d'important."},
+  4:{label:"Du retard",desc:"Vous prenez plus de temps que le timing nécessaire et mettez potentiellement la marée en danger."}
 };
 
 /* notation par le créateur : ce que ça paie, ce que ça écrit au carnet */
@@ -112,7 +116,7 @@ function carte(m,p,idx,vu){
   var confid=(mien||vu.createur||vu.staff);
   var def=POSTES[p.type];
 
-  var tete='<div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">'+esc(def.label)+' \u00b7 '+esc(p.titre)+'</span>'
+  var tete='<div class="tdlm-cadre-hd"><span class="tdlm-hsec" style="margin:0">'+esc(def.label)+' \u27e1 '+esc(p.titre)+'</span>'
     +(p.heure?'<span class="tdlm-r">'+esc(p.heure)+'</span>':'')
     +'<span class="tdlm-r">'+money(montantDe(p))+'</span>'
     +'<span class="tdlm-todo">'+esc(def.legal)+'</span></div>';
@@ -127,22 +131,25 @@ function carte(m,p,idx,vu){
     corps+='<p class="tdlm-todo" style="margin:4px 0 0">Poste libre.</p>';
   }
   if(!def.rapporte&&p.qui&&p.etat==="pris")
-    corps+='<div class="tdlm-prose tdlm-todo">Ce poste ne rapporte rien au hangar : la part est due pour avoir tenu sa place.</div>';
+    corps+='<div class="tdlm-prose tdlm-todo">La part de ce poste est due pour avoir tenu sa place.</div>';
 
   /* le scellé et le dé : titulaire, créateur, staff */
   if(confid&&p.qui){
-    if(p.de)corps+='<div class="tdlm-prose"><b>Ce que ça vous a coûté :</b> '+esc(COUTS[p.de].label)+' \u2014 '+esc(COUTS[p.de].desc)+'</div>';
-    if(p.scelle)corps+='<div class="tdlm-prose"><b>Ce qu\u2019il y avait à voir :</b> '+esc(p.scelle)+'</div>';
-    if(p.transmis)corps+='<div class="tdlm-prose"><b>Ce qui a été transmis :</b> '+esc(p.transmis)+'</div>';
+    if(p.de)corps+='<div class="tdlm-prose"><b>Difficulté rencontrée :</b> '+esc(COUTS[p.de].label)+' \u2014 '+esc(COUTS[p.de].desc)+'</div>';
+    if(p.scelle)corps+='<div class="tdlm-prose"><b>Evénement à observer ou découvrir :</b> '+esc(p.scelle)+'</div>';
+    if(p.transmis)corps+='<div class="tdlm-prose"><b>Information transmise :</b> '+esc(p.transmis)+'</div>';
   }
   /* la revente ne se montre qu'au staff et au vendeur */
   if(p.vente&&(vu.staff||mien)){
     corps+='<div class="tdlm-prose tdlm-todo">Information vendue à '+esc(p.vente.acheteur)
-      +' \u00b7 '+money(p.vente.prix)+' \u00b7 '+esc(p.vente.statut==="acceptee"?"payée":(offreVive(p.vente)?"en attente":"périmée"))+'</div>';
+      +' \u27e1 '+money(p.vente.prix)+' \u27e1 '+esc(p.vente.statut==="acceptee"?"payée":(offreVive(p.vente)?"en attente":"périmée"))+'</div>';
   }
 
   var btns="";
-  if(p.etat==="libre"&&m.statut!=="close"&&m.statut!=="refusee"&&F.estConnecte()&&peutTenir(m,vu.me))
+  var ferme=(def.flottille&&!F.estFlottille(vu.me));
+  if(p.etat==="libre"&&def.flottille)
+    corps+='<div class="tdlm-prose tdlm-todo">Poste réservé aux membres de la Flottille.</div>';
+  if(p.etat==="libre"&&!ferme&&m.statut!=="close"&&m.statut!=="refusee"&&F.estConnecte()&&peutTenir(m,vu.me))
     btns+='<button class="tdlm-abtn prim" data-poste="prendre:'+idx+'">Je prends ce poste</button>';
   if(mien&&p.etat==="pris"&&(m.statut==="en_cours"||m.statut==="en_attente")){
     if(def.rapporte)btns+='<button class="tdlm-abtn" data-poste="cloturer:'+idx+'">'+(p.branche?"Modifier ma réponse":"Rendre compte")+'</button>';
@@ -168,9 +175,9 @@ function tiroirCloture(m,p,idx){
   var vente='<div class="tdlm-row"><div style="flex:2"><label class="tdlm-fl">Vendre à</label>'
     +'<select id="tdlh-vacheteur"><option value="">— personne —</option>'+pjs+'</select></div>'
     +'<div style="flex:1"><label class="tdlm-fl">Prix ($)</label><input type="text" id="tdlh-vprix" value="'+escAttr(p.vente?p.vente.prix:"")+'"></div></div>'
-    +'<label class="tdlm-fl">L\u2019annonce (ce que vous vendez, sans le dire)</label>'
+    +'<label class="tdlm-fl">L\u2019annonce (accroche de ce que vous vendez, pas son contenu)</label>'
     +'<input type="text" id="tdlh-vannonce" value="'+escAttr(p.vente?p.vente.annonce:"")+'" placeholder="Ce que j\u2019ai vu passer dans le chenal de Dulac mardi soir…">';
-  var scelle=p.scelle?'<div class="tdlm-prose"><b>Ce qu\u2019il y avait à voir :</b> '+esc(p.scelle)+'</div>':'';
+  var scelle=p.scelle?'<div class="tdlm-prose"><b>Information croustillante :</b> '+esc(p.scelle)+'</div>':'';
 
   /* poste qui ne rapporte pas : rien à transmettre, seulement à vendre */
   if(!def.rapporte){
@@ -199,6 +206,7 @@ function prendre(m,idx){
   if(!me){toast("Connectez-vous pour prendre un poste.");return;}
   var postes=vt(m.postes), p=postes[idx];
   if(!p||p.etat!=="libre"){toast("Ce poste n\u2019est plus libre.");return;}
+  if(POSTES[p.type].flottille&&!F.estFlottille(me)){toast("On ne monte pas sur un bateau de la Flottille sans en \u00eatre.");return;}
   if(!peutTenir(m,me)){toast("Vous tenez déjà un poste sur cette marée.");return;}
   if(!window.confirm("S\u2019inscrire à un poste, c\u2019est s\u2019engager. On ne se retire pas d\u2019une marée.\n\nPrendre « "+POSTES[p.type].label+" » ?"))return;
   p.qui=me; p.etat="pris"; p.de=tirerDe(); p.pris=new Date().toISOString();
@@ -345,8 +353,8 @@ function vueOffres(){
     var bloc='<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
       +'<span class="tdlm-hsec" style="margin:0">'+esc(v.annonce)+'</span>'
       +'<span class="tdlm-r">'+money(v.prix)+'</span></div>'
-      +'<div class="tdlm-prose tdlm-todo">Proposée par '+esc(x.p.qui)+' \u00b7 '+esc(ilya(v.date))+'</div>';
-    if(pris)bloc+='<div class="tdlm-prose"><b>Ce que vous avez acheté :</b> '+esc(x.p.scelle||"—")+'</div>';
+      +'<div class="tdlm-prose tdlm-todo">Proposée par '+esc(x.p.qui)+' \u27e1 '+esc(ilya(v.date))+'</div>';
+    if(pris)bloc+='<div class="tdlm-prose"><b>Information achetée :</b> '+esc(x.p.scelle||"—")+'</div>';
     else if(vive)bloc+='<div class="tdlm-row"><button class="tdlm-abtn prim" data-offre="oui:'+x.m.id+':'+x.i+'">Payer et lire</button>'
       +'<button class="tdlm-abtn warn" data-offre="non:'+x.m.id+':'+x.i+'">Refuser</button></div>';
     else bloc+='<div class="tdlm-prose tdlm-todo">Offre expirée.</div>';
@@ -355,7 +363,7 @@ function vueOffres(){
   return '<div class="tdlm-dpanel">'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">Offres reçues</span></div>'
     +'<div class="tdlm-dp-body"><div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on vous propose</p>'
-    +'<div class="tdlm-prose">Vous voyez ce qui est à vendre, pas ce que c\u2019est. Le contenu n\u2019apparaît qu\u2019une fois payé. Une offre tombe au bout de trois jours.</div></div>'
+    +'<div class="tdlm-prose">Vous voyez ce qui est à vendre, pas l\u2019information complète. Le contenu n\u2019apparaît qu\u2019une fois payé. Une offre expire au bout de trois jours.</div></div>'
     +corps+'</div></div>';
 }
 
