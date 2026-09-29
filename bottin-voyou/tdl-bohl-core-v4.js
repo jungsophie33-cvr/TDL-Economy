@@ -247,8 +247,32 @@ window.BHL = window.BHL || {};
     });
   }
 
+     /* ===================== MONTAGE (sortie du contexte FA) ===================== */
+  /* Sur un sujet, l'overlay naît dans .postbody : un ancêtre en transform/filter
+     piège le position:fixed, un ancêtre en overflow le rogne, et le post crée un
+     contexte d'empilement qui enterre le z-index. On le reparente sur body.
+     Même traitement que bm-rep (bottin des lieux) et tdlh-bg (tableau Flottille). */
+  function monter(){
+    var rep = document.querySelector(".tdlb-rep");
+    if(rep && rep.parentNode !== document.body) document.body.appendChild(rep);
+
+    if(!BHL.$("tdlb-fa-fix")){
+      var st = document.createElement("style");
+      st.id = "tdlb-fa-fix";
+      st.textContent = "html#min-width,body,#wrap,#main-content,#sj-main{min-width:0!important}"
+                     + "html,body{overflow-x:hidden!important}";
+      document.head.appendChild(st);
+    }
+    if(!document.querySelector("meta[name=viewport]")){
+      var mv = document.createElement("meta");
+      mv.name = "viewport"; mv.content = "width=device-width, initial-scale=1";
+      document.head.appendChild(mv);
+    }
+  }
+
   /* ===================== INIT ===================== */
-  function init(){
+   function init(){
+    monter();                                        // ← AJOUT
     var home=BHL.$(BHL.CFG.SEL.home); if(home) home.setAttribute("href", BHL.CFG.HREF_ACCUEIL);
     BHL.monPseudo = window.EcoCore && window.EcoCore.getPseudo && window.EcoCore.getPseudo() || null;
     BHL.S.admin = BHL.estStaff();
