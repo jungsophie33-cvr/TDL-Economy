@@ -54,7 +54,7 @@ const SEL = {zones:'tdlr-zones', cats:'tdlr-cats', facs:'tdlr-facs', liste:'tdlr
 const FAC_VISIBLES = 5;
 const HREF_ACCUEIL = '/';          /* [MAJ] accueil du forum */
 const EDIT_URL = 'https://thedrownedlands.forumactif.com/post?p=453&mode=editpost'; /* [MAJ] lien d'édition du sujet portant ce panneau */
-const URL_BOTTIN = 'https://thedrownedlands.forumactif.com/t000-bottin-des-metiers'; /* [MAJ] sujet du bottin des métiers */
+const URL_BOTTIN = 'https://thedrownedlands.forumactif.com/t98-02-le-repertoire-des-metiers'; /* [MAJ] sujet du bottin des métiers */
 const FORCER_ADMIN = false;        /* [MAJ] true UNIQUEMENT pour un aperçu admin en local (jamais en prod) */
 /* [MAJ] false pour ne JAMAIS réécrire les lieux canoniques ci-dessous si la
    base est vidée. Laisser true garde un filet de sécurité au premier démarrage. */
