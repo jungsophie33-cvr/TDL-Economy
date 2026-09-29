@@ -12,7 +12,7 @@
  * (best-effort) les réservations expirées (purge paresseuse, en lecture fraîche).
  * CE QU'IL NE FAIT PAS : aucune écriture de réservation, aucun formulaire, aucune
  * suppression admin — ces actions restent câblées aux hooks remplis par
- * bottin-fc-form.js et bottin-fc-admin.js, inchangés.
+ * bottin-fc-form.js et bottin-fc-admin.js.
  *
  * PRÉREQUIS : eco-core.js chargé AVANT (expose window.EcoCore + gère l'auth).
  * CSS : CSS-botfc-v1.css (remplace l'ancienne feuille .bfc-barre/.bfc-grille).
@@ -33,6 +33,7 @@
  *   BottinFC.ouvrirReservation()      → formulaire membre (bottin-fc-form)
  *   BottinFC.supprimerCarte(cle)      → suppression staff (bottin-fc-admin)
  *   BottinFC.renouvelerCarte(cle)     → renouvellement pré-lien (bottin-fc-form)
+ *   BottinFC.ouvrirGestion()          → panneau de création staff (bottin-fc-admin)
  *
  * CARTE DES BLOCS : CONFIG · TEXTES · ÉTAT · UTILS · CHROME · RENDER
  *                   PURGE · EVENTS · INIT
@@ -57,6 +58,7 @@ window.BottinFC = window.BottinFC || {};
   var ICONES = {
     accueil: "fi fi-rr-home",
     edit:    "fi fi-rr-edit",
+    gestion: "fi fi-rr-settings-sliders",
     profil:  "fi fi-rr-id-badge",
     prelien: "fi fi-rr-link",
     horloge: "fi fi-rr-clock",
@@ -70,6 +72,7 @@ window.BottinFC = window.BottinFC || {};
     ACCUEIL:      "Accueil",
     EDIT_TITRE:   "Panneau de gestion staff",
     BTN_RESERVER: "Réserver un faceclaim",
+    BTN_GESTION:  "Gestion staff",
     UNITE_UN:     "faceclaim",
     UNITE_N:      "faceclaims",
     LEG_PRIS:     "pris",
@@ -191,13 +194,15 @@ window.BottinFC = window.BottinFC || {};
       /* --- onglets de statut --- */
       +   '<div class="bfc-zonebar"><div class="bfc-tabs" id="bfc-tabs" role="tablist"></div></div>'
 
-      /* --- compteur · action · légende --- */
+      /* --- compteur · actions --- */
       +   '<div class="bfc-statusrow">'
       +     '<div class="bfc-left">'
       +       '<span class="bfc-count"><b id="bfc-compteur">0</b><span id="bfc-unite">'
       +         TEXTES.UNITE_N + '</span></span>'
       +       '<button class="bfc-bouton" id="bfc-reserver" type="button">+ '
       +         TEXTES.BTN_RESERVER + '</button>'
+      +       '<button class="bfc-bouton bfc-bouton--staff" id="bfc-gestion" type="button">'
+      +         '<i class="' + ICONES.gestion + '"></i>' + TEXTES.BTN_GESTION + '</button>'
       +     '</div>'
       +   '</div>'
 
@@ -394,6 +399,14 @@ window.BottinFC = window.BottinFC || {};
       if (ev.target.closest("#bfc-reserver")) {
         if (typeof NS.ouvrirReservation === "function") NS.ouvrirReservation();
         else if (window.console) console.warn("[BottinFC] ouvrirReservation pas branché (bottin-fc-form absent ?).");
+        return;
+      }
+
+      // bouton « Gestion staff » — masqué en CSS hors staff, mais bottin-fc-admin
+      // revérifie estAdmin() de son côté : un display:none ne protège rien.
+      if (ev.target.closest("#bfc-gestion")) {
+        if (typeof NS.ouvrirGestion === "function") NS.ouvrirGestion();
+        else if (window.console) console.warn("[BottinFC] ouvrirGestion pas branché (bottin-fc-admin absent ?).");
         return;
       }
 
