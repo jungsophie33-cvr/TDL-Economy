@@ -7,6 +7,7 @@
 const DockBottins = {
 
     items: [
+        { id:"faceclaim",  title:"Bottin des Faceclaims",    icon:"theater-masks",  url:"https://thedrownedlands.forumactif.com/t101-01-le-bottin-des-faceclaims" },
         { id:"registre",  title:"Registre paroissial",       icon:"address-book",  url:"https://thedrownedlands.forumactif.com/t100-05-le-registre-paroissial" },
         { id:"metiers",   title:"Répertoire des métiers",    icon:"briefcase",     url:"https://thedrownedlands.forumactif.com/t98-02-le-repertoire-des-metiers" },
         { id:"cadastre",  title:"Cadastre de Terrebonne",    icon:"house-chimney", url:"https://thedrownedlands.forumactif.com/t99-04-la-cadastre-de-terrebonne" },
