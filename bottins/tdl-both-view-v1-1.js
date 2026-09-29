@@ -346,9 +346,32 @@
     document.querySelectorAll(".tdlh-ov").forEach(ov=>ov.addEventListener("click",e=>{ if(e.target===ov) ov.classList.remove("on"); }));
   }
 
+     /* ===================== MONTAGE (sortie du contexte FA) ===================== */
+  /* En topic, .tdlh-rep naît dans .postbody : un ancêtre en transform/filter piège
+     le position:fixed, un ancêtre en overflow le rogne, le post crée un contexte
+     d'empilement qui enterre le z-index. Même traitement que .bm-rep (lieux). */
+  function monter(){
+    const rep = document.querySelector(".tdlh-rep");
+    if(rep && rep.parentElement !== document.body) document.body.appendChild(rep);
+
+    if(!document.getElementById("tdlh-fa-fix")){
+      const st = document.createElement("style");
+      st.id = "tdlh-fa-fix";
+      st.textContent = "html#min-width,body,#wrap,#main-content,#sj-main{min-width:0!important}"
+                     + "html,body{overflow-x:hidden!important}";
+      document.head.appendChild(st);
+    }
+    if(!document.querySelector("meta[name=viewport]")){
+      const mv = document.createElement("meta");
+      mv.name = "viewport"; mv.content = "width=device-width, initial-scale=1";
+      document.head.appendChild(mv);
+    }
+  }
+
   /* ===================== INIT ===================== */
   async function init(){
     const home=$(SEL.home); if(home) home.setAttribute("href",BH.CFG.HREF_ACCUEIL);
+    monter();                                                   // ← AJOUT
     document.querySelectorAll(".tdlh-ov").forEach(ov=>{ if(ov.parentElement!==document.body) document.body.appendChild(ov); });
     BH.monPseudo = window.EcoCore?.getPseudo?.() || null;
     BH.construireCOMMU();
