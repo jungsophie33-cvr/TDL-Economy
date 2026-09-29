@@ -52,6 +52,7 @@ window.BottinFC = window.BottinFC || {};
     ATTENTE_MAX:  60,                   // tentatives d'attente EcoCore (× ATTENTE_PAS)
     ATTENTE_PAS:  250,                  // ms entre deux tentatives
     PURGE_ACTIVE: true,                 // nettoyage paresseux des cartes expirées
+    SEL_DOCK: "#dock-bottin",   // [MAJ] dock de navigation inter-bottins, posé dans le post
   };
 
   // [MAJ] Classes d'icônes (familles uicons chargées sur le forum)
@@ -179,7 +180,6 @@ window.BottinFC = window.BottinFC || {};
     var lienEdit = lienSur(CFG.EDIT_URL);
     return ''
       + '<div class="bfc-app">'
-      + '<div id="dock-bottin" data-page="faceclaim"></div>'
 
       /* --- en-tête --- */
       +   '<div class="bfc-topbar">'
@@ -444,15 +444,22 @@ window.BottinFC = window.BottinFC || {};
     }
     setTimeout(function () { quandPret(cb, n + 1); }, CFG.ATTENTE_PAS);
   }
+    /* Le dock de navigation (sos-dock-bottins) est construit au chargement, sur la
+     div posée dans le post. */
+  function adopterDock(rep) {
+    var dock = document.querySelector(CFG.SEL_DOCK);
+    if (dock && dock.parentNode !== rep) rep.appendChild(dock);
+  }
 
   // L'overlay est créé une seule fois ; les appels suivants le réutilisent.
-  function monterOverlay() {
+    function monterOverlay() {
     if (S.rep && S.rep.isConnected) return S.rep;
     var rep = document.createElement("div");
     rep.className = "bfc-rep";
     rep.innerHTML = construireChrome();
-    document.body.appendChild(rep);          // cf. en-tête : échappe aux ancêtres du post
+    document.body.appendChild(rep);          
     S.rep = rep;
+    adopterDock(rep);
     brancherEvenements();
     return rep;
   }
