@@ -199,11 +199,6 @@ window.BottinFC = window.BottinFC || {};
       +       '<button class="bfc-bouton" id="bfc-reserver" type="button">+ '
       +         TEXTES.BTN_RESERVER + '</button>'
       +     '</div>'
-      +     '<div class="bfc-legende">'
-      +       '<span><span class="bfc-dot bfc-dot--pris"></span>' + TEXTES.LEG_PRIS + '</span>'
-      +       '<span><span class="bfc-dot bfc-dot--reserve"></span>' + TEXTES.LEG_RESERVE + '</span>'
-      +       '<span><span class="bfc-dot bfc-dot--libre"></span>' + TEXTES.LEG_LIBRE + '</span>'
-      +     '</div>'
       +   '</div>'
 
       /* --- scène --- */
@@ -301,10 +296,9 @@ window.BottinFC = window.BottinFC || {};
          +   '<button class="bfc-suppr" type="button" data-cle="' + esc(cle) + '" title="'
          +     TEXTES.SUPPR_TITRE + '"><i class="' + ICONES.suppr + '"></i></button>'
          +   '<div class="bfc-carte-top"><span class="bfc-cote">' + cote + '</span>' + tampon + '</div>'
-         +   '<div class="bfc-photo">' + photo + '</div>'
          +   '<p class="bfc-nom">' + nomActeur + '</p>'
-         +   '<div class="bfc-foot"><span class="bfc-dot bfc-dot--' + statut + '"></span>'
-         +     '<span class="bfc-meta">' + meta + '</span></div>'
+         +   '<div class="bfc-photo">' + photo + '</div>'
+         +   '<div class="bfc-foot"><span class="bfc-meta">' + meta + '</span></div>'
          + '</article>';
   }
 
