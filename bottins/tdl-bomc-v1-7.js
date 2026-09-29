@@ -325,13 +325,12 @@ window.BMC = window.BMC || {};
     });
   }
 
-     /* ===================== MONTAGE (sortie du contexte FA) ===================== */
+  /* ===================== MONTAGE (sortie du contexte FA) ===================== */
   /* En topic, .tdlm-rep naît dans .postbody : un ancêtre en transform/filter piège
      le position:fixed, un ancêtre en overflow le rogne, le post crée un contexte
      d'empilement qui enterre le z-index. Même traitement que .tdlr-rep (lieux). */
-  function init(){
-    monter();                                          // ← AJOUT
-    var home = $(CFG.SEL.home); if(home) home.setAttribute("href", CFG.HREF_ACCUEIL);
+  function monter(){
+    var rep = document.querySelector(".tdlm-rep");
     if(rep && rep.parentNode !== document.body) document.body.appendChild(rep);
 
     if(!$("tdlm-fa-fix")){
@@ -350,6 +349,7 @@ window.BMC = window.BMC || {};
 
   /* ===================== INIT ===================== */
   function init(){
+    monter();                                          // ← AJOUT
     var home = $(CFG.SEL.home); if(home) home.setAttribute("href", CFG.HREF_ACCUEIL);
     construireCOMMU();
     if(estStaff()){
