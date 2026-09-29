@@ -83,7 +83,7 @@ BM.CFG = {
   NODE_EMPLOIS: 'emplois',      /* [MAJ] nœud Firebase de l'extension métier   */
   HREF_ACCUEIL: '/',            /* [MAJ] accueil du forum */
   /* [MAJ] lien d'édition du sujet portant ce panneau */
-  EDIT_URL: 'https://thedrownedlands.forumactif.com/post?p=000&mode=editpost',
+  EDIT_URL: 'https://thedrownedlands.forumactif.com/post?p=477&mode=editpost',
   FORCER_ADMIN: false,          /* [MAJ] true UNIQUEMENT pour un aperçu local */
   MAX_ROLES: 4, MAX_POSTES: 4,  /* éléments affichés avant « voir plus » */
   ICONES: ['fi-tr-truck-side','fi-tr-government-flag','fi-ts-badge-sheriff','fi-ts-marker-hospital',
