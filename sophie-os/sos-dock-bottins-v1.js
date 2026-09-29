@@ -7,11 +7,11 @@
 const DockBottins = {
 
     items: [
-        { id:"registre",  title:"Registre paroissial",       icon:"address-book",  url:"https://thedrownedlands.forumactif.com/h8-registre-paroissial" },
-        { id:"metiers",   title:"Répertoire des métiers",    icon:"briefcase",     url:"https://thedrownedlands.forumactif.com/h5-bottins-des-metiers" },
-        { id:"cadastre",  title:"Cadastre de Terrebonne",    icon:"house-chimney", url:"https://thedrownedlands.forumactif.com/h7-bottin-des-habitationse" },
+        { id:"registre",  title:"Registre paroissial",       icon:"address-book",  url:"https://thedrownedlands.forumactif.com/t100-05-le-registre-paroissial" },
+        { id:"metiers",   title:"Répertoire des métiers",    icon:"briefcase",     url:"https://thedrownedlands.forumactif.com/t98-02-le-repertoire-des-metiers" },
+        { id:"cadastre",  title:"Cadastre de Terrebonne",    icon:"house-chimney", url:"https://thedrownedlands.forumactif.com/t99-04-la-cadastre-de-terrebonne" },
         { id:"lieux",     title:"Répertoire des lieux",      icon:"marker",        url:"https://thedrownedlands.forumactif.com/t87-03-le-repertoire-des-lieux" },
-        { id:"horslaloi", title:"Annuaire des hors-la-loi",  icon:"mask-carnival", url:"https://thedrownedlands.forumactif.com/h9-annuaire-des-hors-la-loi" }
+        { id:"horslaloi", title:"Annuaire des hors-la-loi",  icon:"mask-carnival", url:"https://thedrownedlands.forumactif.com/t97-06-l-annuaire-des-hors-la-loi" }
     ],
 
     options:{
