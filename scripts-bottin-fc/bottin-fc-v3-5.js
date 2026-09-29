@@ -57,14 +57,14 @@ window.BottinFC = window.BottinFC || {};
 
   // [MAJ] Classes d'icônes (familles uicons chargées sur le forum)
   var ICONES = {
-    accueil: "fi fi-rr-home",
-    edit:    "fi fi-rr-edit",
-    gestion: "fi fi-rr-settings-sliders",
-    profil:  "fi fi-rr-id-badge",
-    prelien: "fi fi-rr-link",
-    horloge: "fi fi-rr-clock",
-    suppr:   "fi fi-rr-trash",
-    avatar:  "fi fi-rr-user",
+    accueil: "fi fi-tr-house-flood",
+    edit:    "fi fi-tr-edit",
+    gestion: "fi fi-tr-settings-sliders",
+    profil:  "fi fi-tr-id-badge",
+    prelien: "fi fi-tr-link",
+    horloge: "fi fi-tr-clock",
+    suppr:   "fi fi-tr-trash",
+    avatar:  "fi fi-tr-user",
   };
 
   /* === TEXTES === */
