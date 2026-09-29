@@ -1,22 +1,31 @@
 /*
- * bottin-fc-admin.js — Outil admin du bottin des faceclaims · The Drowned Lands
+ * bottin-fc-admin-v2.js — Outil admin du bottin des faceclaims · The Drowned Lands
+ *
+ * REMPLACE bottin-fc-admin-v1.js. Seul le mode d'ouverture change : le panneau
+ * n'est plus injecté dans une div .bfc-admin-panel posée dans un sujet staff,
+ * il devient le contenu d'une modale ouverte par le bouton « Gestion staff »
+ * de la barre du bottin (bottin-fc-v3.js, hook BottinFC.ouvrirGestion).
+ * → La div .bfc-admin-panel n'est plus lue ; elle peut être retirée du sujet.
  *
  * CE QUE CE FICHIER FAIT :
  *   - définit BottinFC.supprimerCarte(cle) (anime les corbeilles du bottin) ;
- *   - si la div .bfc-admin-panel existe ET que l'utilisateur est admin, injecte
- *     un panneau de création des cinq types de cartes (pris / réservé 7j /
- *     multicompte / pré-lien libre / staff) ;
+ *   - définit BottinFC.ouvrirGestion() : modale de création des cinq types de
+ *     cartes (pris / réservé 7j / multicompte / pré-lien libre / staff) ;
  *   - création par firebaseTransaction sur faceclaims/{acteur} (refus propre si
  *     occupé) + mise à jour de l'index inverse faceclaims_uid ;
  *   - pour les cartes « pris », récupère automatiquement l'URL d'avatar depuis
  *     le profil FA via l'UID.
  *
- * PRÉREQUIS : eco-core-v1-1.js puis bottin-fc.js chargés AVANT.
- * SÉCURITÉ : toutes les actions sont gardées par EcoCore.ADMIN_USERS.
+ * PRÉREQUIS : eco-core-v1-1.js puis bottin-fc-v3.js chargés AVANT.
+ * SÉCURITÉ : toutes les actions sont gardées par EcoCore.ADMIN_USERS. Le bouton
+ *   du bottin n'est masqué qu'en CSS aux non-staff — estAdmin() est donc
+ *   revérifié ici, à l'ouverture comme à la soumission.
  * CSS : réutilise les classes existantes .fi-label / .fi-input / .fi-select /
- *       .fi-btn-ouvrir (aucun style nouveau à charger).
+ *       .fi-btn-ouvrir pour les champs, et le chrome de modale .bfc-form-*
+ *       (déjà chargé pour la modale de réservation). Aucun style nouveau.
  *
- * CARTE DES BLOCS : CONFIG · TEXTES · UTILS · DONNÉES · AVATAR · UI · EVENTS · INIT
+ * CARTE DES BLOCS : CONFIG · TEXTES · UTILS · AVATAR · DONNÉES · UI
+ *                   MODALE · EVENTS · HOOK
  */
 
 window.BottinFC = window.BottinFC || {};
@@ -25,14 +34,14 @@ window.BottinFC = window.BottinFC || {};
 
   /* === CONFIG === */
   var CFG = {
-    SEL_PANEL:  ".bfc-admin-panel",     // [MAJ] ancre du panneau (à placer dans un sujet staff)
     PROFIL_URL: "/u",                   // [MAJ] préfixe profil FA
-    ATTENTE_MAX: 60,
-    ATTENTE_PAS: 250,
     JOUR_MS: 86400000,
     // [MAJ] avatar sur la page de profil FA (/u{uid}) — id unique du thème TDL.
     SEL_AVATAR: ["#avatar_membre > img"],
   };
+
+  // [MAJ] icône de fermeture de la modale (même que bottin-fc-form)
+  var IC = { croix: "fi fi-rr-cross-small" };
 
   /* === TEXTES === */
   var T = {
@@ -48,6 +57,7 @@ window.BottinFC = window.BottinFC || {};
     OPT_VIDE: "— choisir —",
     BTN: "Créer la carte",
     EN_COURS: "Création en cours…",
+    CHARGEMENT: "Chargement…",
     OK: function (a) { return "✅ Carte « " + a + " » créée."; },
     ERR_ACTEUR: "⚠️ Le nom du faceclaim est requis.",
     ERR_MEMBRE: "⚠️ Sélectionne le membre associé.",
@@ -55,6 +65,7 @@ window.BottinFC = window.BottinFC || {};
     ERR_PRELIEN: "⚠️ Le nom du pré-lien est requis.",
     ERR_OCCUPE: function (a) { return "⛔ Le faceclaim « " + a + " » est déjà pris ou réservé."; },
     ERR_GEN: "❌ Erreur lors de la création. Réessaie.",
+    ERR_LECTURE: "❌ Lecture impossible. Ferme et réessaie.",
     CONFIRM_SUPPR: function (a) { return "Supprimer la carte « " + a + " » ?"; },
     NON_ADMIN: "Action réservée au staff.",
   };
@@ -161,7 +172,9 @@ window.BottinFC = window.BottinFC || {};
 
   NS.supprimerCarte = supprimerCarte;   // hook utilisé par les corbeilles du bottin
 
-  /* === UI (panneau de création) === */
+  /* === UI (formulaire de création) ===
+     Rendu dans .bfc-form-contenu : la modale fournit déjà la boîte, le titre
+     reprend donc la classe de titre du formulaire de réservation. */
   function html(rec) {
     var opts = membresTries(rec).map(function (p) {
       return '<option value="' + p.replace(/"/g, "&quot;") + '">' + p + '</option>';
@@ -171,8 +184,8 @@ window.BottinFC = window.BottinFC || {};
     }).join("");
 
     return ''
-      + '<div class="dc-boite bfc-adm">'
-      +   '<p class="fi-label" style="font-size:1.2em">' + T.TITRE + '</p>'
+      + '<div class="bfc-adm">'
+      +   '<p class="bfc-form-titre">' + T.TITRE + '</p>'
       +   '<label class="fi-label">' + T.L_ACTEUR + '</label>'
       +   '<input id="bfc-adm-acteur" class="fi-input" type="text" placeholder="Jeffrey Dean Morgan">'
       +   '<label class="fi-label">' + T.L_TYPE + '</label>'
@@ -181,7 +194,7 @@ window.BottinFC = window.BottinFC || {};
       +     '<label class="fi-label">' + T.L_MEMBRE + '</label>'
       +     '<select id="bfc-adm-membre" class="fi-select"><option value="">' + T.OPT_VIDE + '</option>' + opts + '</select>'
       +   '</div>'
-     +   '<div id="bfc-adm-r-prenom" class="fi-conditionnel" style="display:none">'
+      +   '<div id="bfc-adm-r-prenom" class="fi-conditionnel" style="display:none">'
       +     '<label class="fi-label">' + T.L_PRELIEN_NOM + '</label>'
       +     '<input id="bfc-adm-prenom" class="fi-input" type="text">'
       +     '<label class="fi-label">' + T.L_PRELIEN_LIEN + '</label>'
@@ -219,6 +232,8 @@ window.BottinFC = window.BottinFC || {};
   }
 
   function soumettre(panel, rec) {
+    if (!estAdmin()) { afficherResultat(panel, T.NON_ADMIN); return; }
+
     var typeKey = panel.querySelector("#bfc-adm-type").value;
     var t = TYPES[typeKey];
     var acteur = panel.querySelector("#bfc-adm-acteur").value.trim();
@@ -248,7 +263,7 @@ window.BottinFC = window.BottinFC || {};
       var imagePrelien = panel.querySelector("#bfc-adm-image").value.trim();
       if (imagePrelien && !/^https?:\/\//i.test(imagePrelien)) { afficherResultat(panel, T.ERR_IMAGE); return; }
       if (imagePrelien) carte.image = imagePrelien;
-    } 
+    }
     else { carte.statut = "reserve"; carte.type = typeKey; }
 
     if (uid != null) { carte.uid = uid; if (pseudo) carte.pseudo = pseudo; }
@@ -270,6 +285,8 @@ window.BottinFC = window.BottinFC || {};
         afficherResultat(panel, T.OK(acteur), true);
         panel.querySelector("#bfc-adm-acteur").value = "";
         if (EcoCore.invalidateCache) EcoCore.invalidateCache();
+        // Rafraîchit le bottin DERRIÈRE la modale : celle-ci reste ouverte pour
+        // enchaîner plusieurs créations sans avoir à la rouvrir à chaque carte.
         NS.rafraichir && NS.rafraichir();
       })
       .catch(function (err) {
@@ -279,33 +296,72 @@ window.BottinFC = window.BottinFC || {};
       .then(function () { btn.disabled = false; btn.textContent = T.BTN; });
   }
 
-  function initPanel(panel) {
-    EcoCore.safeReadBin().then(function (rec) {
-      rec = rec || {};
-      panel.innerHTML = html(rec);
-      majChamps(panel);
-      panel.querySelector("#bfc-adm-type").addEventListener("change", function () { majChamps(panel); });
-      panel.querySelector("#bfc-adm-creer").addEventListener("click", function () { soumettre(panel, rec); });
-    });
+  /* === MODALE ===
+     Même chrome que la modale de réservation (.bfc-form-overlay / -modal /
+     -close / -contenu), reconstruit ici plutôt qu'importé de bottin-fc-form :
+     les deux modules sont indépendants et l'un peut être chargé sans l'autre.
+     Une trentaine de lignes dupliquées valent mieux qu'un ordre de chargement
+     implicite entre deux fichiers qui ne se connaissent pas. */
+  var overlayActif = null;
+
+  function onEsc(e) { if (e.key === "Escape" && overlayActif) fermerModale(); }
+
+  function ouvrirModale() {
+    var ov = document.createElement("div");
+    ov.className = "bfc-form-overlay";
+    ov.innerHTML = '<div class="bfc-form-modal">'
+      + '<button class="bfc-form-close" type="button" aria-label="Fermer"><i class="' + IC.croix + '"></i></button>'
+      + '<div class="bfc-form-contenu"></div></div>';
+    ov.addEventListener("click", function (e) { if (e.target === ov) fermerModale(); });
+    ov.querySelector(".bfc-form-close").addEventListener("click", fermerModale);
+    document.body.appendChild(ov);
+    document.documentElement.style.overflow = "hidden";   // verrou sur <html> (iOS)
+    document.addEventListener("keydown", onEsc);
+    overlayActif = ov;
+    return ov;
   }
 
-  /* === INIT === */
-  function quandPret(cb, n) {
-    n = n || 0;
-    var coeurPret = window.EcoCore && typeof EcoCore.firebaseTransaction === "function";
-    if (coeurPret) { cb(); return; }
-    if (n > CFG.ATTENTE_MAX) { if (window.console) console.warn("[BottinFC-admin] EcoCore introuvable."); return; }
-    setTimeout(function () { quandPret(cb, n + 1); }, CFG.ATTENTE_PAS);
+  function fermerModale() {
+    if (!overlayActif) return;
+    document.documentElement.style.overflow = "";
+    document.removeEventListener("keydown", onEsc);
+    overlayActif.remove();
+    overlayActif = null;
   }
 
-  function demarrer() {
-    quandPret(function () {
-      var panel = document.querySelector(CFG.SEL_PANEL);
-      if (panel && estAdmin()) initPanel(panel);   // le hook supprimerCarte est déjà posé
-    });
+  function remplir(zone, rec) {
+    zone.innerHTML = html(rec);
+    majChamps(zone);
+    zone.querySelector("#bfc-adm-type").addEventListener("change", function () { majChamps(zone); });
+    zone.querySelector("#bfc-adm-creer").addEventListener("click", function () { soumettre(zone, rec); });
   }
 
-  if (document.readyState === "complete") demarrer();
-  else window.addEventListener("load", demarrer);
+  /* === HOOK PUBLIC === */
+  // Appelé par le bouton « Gestion staff » du bottin (bottin-fc-v3.js).
+  // rec est relu à chaque ouverture : la liste des membres reste figée le temps
+  // d'une session de modale, ce qui est sans risque — la création passe par
+  // firebaseTransaction, qui refuse proprement un acteur déjà occupé.
+  NS.ouvrirGestion = function () {
+    if (!estAdmin()) return;
+    if (overlayActif) return;                       // pas de double ouverture
+    if (!window.EcoCore || typeof EcoCore.firebaseTransaction !== "function") {
+      if (window.console) console.warn("[BottinFC-admin] EcoCore indisponible.");
+      return;
+    }
+
+    var ov = ouvrirModale();
+    var zone = ov.querySelector(".bfc-form-contenu");
+    zone.innerHTML = '<p class="bfc-form-msg">' + T.CHARGEMENT + '</p>';
+
+    EcoCore.safeReadBin()
+      .then(function (rec) {
+        if (!overlayActif) return;                  // fermée pendant la lecture
+        remplir(zone, rec || {});
+      })
+      .catch(function (err) {
+        if (overlayActif) zone.innerHTML = '<p class="bfc-form-msg err">' + T.ERR_LECTURE + '</p>';
+        if (window.console) console.error("[BottinFC-admin] lecture", err);
+      });
+  };
 
 })(window.BottinFC);
