@@ -309,14 +309,43 @@ window.BMC = window.BMC || {};
   }
 
   /* ===================== EVENTS (un seul accordéon ouvert) ===================== */
-  function bindEvents(){
+    function bindEvents(){
     $(CFG.SEL.main).addEventListener("click", function(e){
+      var a = e.target.closest("a.tdlm-cprofile, a.tdlm-cpres");
+      if(a && a.getAttribute("href") && a.getAttribute("href")!=="#"){
+        e.preventDefault(); e.stopPropagation();
+        window.open(a.getAttribute("href"), "_blank", "noopener");
+        return;                                        // ne pas replier/déplier l'accordéon
+      }
       var h = e.target.closest(".tdlm-phead"); if(!h) return;
       var p = h.parentElement, ouvert = p.classList.contains("open");
       var mainEl = $(CFG.SEL.main);
       mainEl.querySelectorAll(".tdlm-player.open").forEach(function(x){ x.classList.remove("open"); });
       if(!ouvert) p.classList.add("open");
     });
+  }
+
+     /* ===================== MONTAGE (sortie du contexte FA) ===================== */
+  /* En topic, .tdlm-rep naît dans .postbody : un ancêtre en transform/filter piège
+     le position:fixed, un ancêtre en overflow le rogne, le post crée un contexte
+     d'empilement qui enterre le z-index. Même traitement que .tdlr-rep (lieux). */
+  function init(){
+    monter();                                          // ← AJOUT
+    var home = $(CFG.SEL.home); if(home) home.setAttribute("href", CFG.HREF_ACCUEIL);
+    if(rep && rep.parentNode !== document.body) document.body.appendChild(rep);
+
+    if(!$("tdlm-fa-fix")){
+      var st = document.createElement("style");
+      st.id = "tdlm-fa-fix";
+      st.textContent = "html#min-width,body,#wrap,#main-content,#sj-main{min-width:0!important}"
+                     + "html,body{overflow-x:hidden!important}";
+      document.head.appendChild(st);
+    }
+    if(!document.querySelector("meta[name=viewport]")){
+      var mv = document.createElement("meta");
+      mv.name = "viewport"; mv.content = "width=device-width, initial-scale=1";
+      document.head.appendChild(mv);
+    }
   }
 
   /* ===================== INIT ===================== */
