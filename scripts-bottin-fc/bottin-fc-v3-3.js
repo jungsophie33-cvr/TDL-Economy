@@ -179,6 +179,7 @@ window.BottinFC = window.BottinFC || {};
     var lienEdit = lienSur(CFG.EDIT_URL);
     return ''
       + '<div class="bfc-app">'
+      + '<div id="dock-bottin" data-page="faceclaim"></div>'
 
       /* --- en-tête --- */
       +   '<div class="bfc-topbar">'
