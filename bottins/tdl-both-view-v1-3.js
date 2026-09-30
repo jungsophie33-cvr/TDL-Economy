@@ -24,10 +24,30 @@
   }
 
   /* ===================== RENDU : onglets / compteur / bascule ===================== */
-  function renderOnglets(){
-    let h = `<button class="all" data-tab="all" aria-selected="${BH.S.tab==='all'}">${T.tous}</button>`;
-    BH.ORDRE.forEach(k=>{ h += `<button data-tab="${k}" aria-selected="${BH.S.tab===k}">${escH(BH.QUARTIERS[k].nom)}</button>`; });
-    $(SEL.tabs).innerHTML = h;
+    function renderOnglets(){
+    const box = $(SEL.tabs);
+    const cles = ["all"].concat(BH.ORDRE);
+
+    /* Reconstruction UNIQUEMENT si la liste des quartiers a changé
+       (création / annulation de création). Sinon les boutons persistent,
+       condition pour que la transition CSS du trait s'exécute. */
+    const actuelles = Array.prototype.map.call(box.children, b => b.dataset.tab).join("|");
+    if(actuelles !== cles.join("|")){
+      box.innerHTML = cles.map(k => k === "all"
+        ? `<button class="all" data-tab="all" aria-selected="false">${T.tous}</button>`
+        : `<button data-tab="${k}" aria-selected="false">${escH(BH.QUARTIERS[k].nom)}</button>`
+      ).join("");
+    }
+
+    /* Synchronisation : nom (annulation d'édition) + sélection. */
+    Array.prototype.forEach.call(box.children, b => {
+      const k = b.dataset.tab;
+      if(k !== "all"){
+        const nom = (BH.QUARTIERS[k] || {}).nom || "";
+        if(b.textContent !== nom) b.textContent = nom;
+      }
+      b.setAttribute("aria-selected", String(k === BH.S.tab));
+    });
   }
   function renderSousbarre(){
     const vue = $(SEL.vue), cnt = $(SEL.count);
