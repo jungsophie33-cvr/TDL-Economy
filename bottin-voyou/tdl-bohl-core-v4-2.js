@@ -37,7 +37,7 @@ window.BHL = window.BHL || {};
   };
 
   /* ===================== ÉTAT ===================== */
-  BHL.S = { tab:CFG.ordre[0], admin:false, heroEdit:null };
+  BHL.S = { tab:CFG.ordre[0], admin:false, heroEdit:null, anim:true };
   BHL.rec = null; BHL.avatars = {}; BHL.monPseudo = null;
   BHL.TABS = {};                                   // { bande: { render, renderActions? } }
   var heroMC = [];                                 // copie de travail des mots-clés en édition
@@ -239,6 +239,8 @@ window.BHL = window.BHL || {};
   }
   BHL.rendreOnglet = function (){
     var host=BHL.$(BHL.CFG.SEL.tab), api=BHL.TABS[BHL.S.tab]; if(!host) return;
+    host.classList.toggle("anim", !!BHL.S.anim);   /* armé au seul changement d'onglet */
+    BHL.S.anim = false;
     if(!api || !api.render){
       host.innerHTML = BHL.heroHTML(BHL.S.tab, {emblem:"fi-tr-skull"})
         + '<div class="tdlb-body"><div class="tdlb-empty">Onglet « '+BHL.escH(CFG.bandes[BHL.S.tab].nom)+' » à venir.</div></div>';
@@ -254,7 +256,7 @@ window.BHL = window.BHL || {};
   function bindEvents(){
     BHL.$(BHL.CFG.SEL.tabs).addEventListener("click", function(e){
       var b=e.target.closest("button"); if(!b) return;
-      if(BHL.S.tab!==b.dataset.tab){ BHL.S.heroEdit=null; BHL.S.tab=b.dataset.tab; render(); }
+      if(BHL.S.tab!==b.dataset.tab){ BHL.S.heroEdit=null; BHL.S.tab=b.dataset.tab; BHL.S.anim=true; render(); }
     });
   }
 
