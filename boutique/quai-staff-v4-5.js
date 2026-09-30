@@ -172,13 +172,14 @@
   }
 
   function creerTache(d){
+    var now = new Date().toISOString();
     return E().firebasePush(CFG.NODE_TACHES, {
       origine:"faveur", demandeId:d.id||"", demandeur:d.pseudo||"",
       titre:d.nom||"Faveur demandée", categorie:"faveur",
       demande:d.demande||"", contexte:d.contexte||"", don:d.don||"",
       versRp: d.rp_mission==="oui",
       statut:"en_vote", votes:{}, participants:[], sujet:"",
-      date:new Date().toISOString()
+      cree:now, ouverte:now
     }).then(function(r){
       try{ if(window.EcoNotif) EcoNotif.bande("faiseuses",130,{titre:d.nom||"Faveur demandée"},"fav"+(d.id||"")); }catch(e){}
       return r;
