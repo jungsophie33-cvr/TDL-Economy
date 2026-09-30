@@ -153,12 +153,21 @@
     bar.innerHTML = h;
   }
 
-  function render(){
+    function render(){
     renderOnglets(); renderSousbarre(); renderActionbar();
     const mur = BH.S.tab==="all" || BH.S.mode==="mur";
     $(SEL.panneau).classList.toggle("tdlh-hidden", mur);
     $(SEL.mur).classList.toggle("tdlh-hidden", !mur);
     if(mur) renderMur(); else renderPanneau();
+
+    /* Animation d'entrée : réarmement par reflow (même idiome que renderTypePane). */
+    const cible = mur ? $(SEL.mur) : $(SEL.panneau);
+    cible.classList.remove("anim-in","anim-fade");
+    if(BH.S.anim || BH.S.fade){
+      void cible.offsetWidth;                       // force le recalcul → réarme
+      cible.classList.add(BH.S.anim ? "anim-in" : "anim-fade");
+    }
+    BH.S.anim = false; BH.S.fade = false;           // consommés : un rendu = une animation
   }
   BH.render = render;
 
@@ -293,10 +302,15 @@
   function bindEvents(){
     $(SEL.tabs).addEventListener("click",e=>{
       const b=e.target.closest("button"); if(!b) return;
-      BH.S.tab=b.dataset.tab; BH.S.type=null; if(BH.S.tab==="all") BH.S.mode="mur"; render();
+      if(BH.S.tab===b.dataset.tab) return;                       // évite de rejouer sur l'onglet courant
+      BH.S.tab=b.dataset.tab; BH.S.type=null; BH.S.anim=true;
+      if(BH.S.tab==="all") BH.S.mode="mur";
+      render();
     });
     $(SEL.vue).addEventListener("click",e=>{
-      const b=e.target.closest("button"); if(!b) return; BH.S.mode=b.dataset.mode; render();
+      const b=e.target.closest("button"); if(!b) return;
+      if(BH.S.mode===b.dataset.mode) return;
+      BH.S.mode=b.dataset.mode; BH.S.fade=true; render();
     });
     $(SEL.panneau).addEventListener("click",e=>{
       const tagx=e.target.closest(".tdlh-tagx");
@@ -323,7 +337,7 @@
     $(SEL.mur).addEventListener("click",e=>{
       const fc=e.target.closest(".tdlh-fc"); if(!fc) return;
       const m=BH.HABITANTS.find(x=>x.pseudo===fc.dataset.pseudo); if(!m) return;
-      BH.S.tab=m.quartier; BH.S.mode="panneau"; BH.S.type=m.type; render();
+      BH.S.tab=m.quartier; BH.S.mode="panneau"; BH.S.type=m.type; BH.S.anim=true; render();
       setTimeout(()=>{ const s=$("tdlh-typestrip"); if(s) s.scrollIntoView({behavior:"smooth",block:"center"}); },40);
     });
     $(SEL.actionbar).addEventListener("click",e=>{
@@ -386,6 +400,7 @@
     bindEvents();
     render();                                   // rendu immédiat (seed) le temps du chargement
     try{ await BH.DONNEES.chargerTout(); }catch(e){ if(window.console) console.error(e); }
+    BH.S.anim = true;
     render();
   }
 
