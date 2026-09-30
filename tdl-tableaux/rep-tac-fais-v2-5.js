@@ -102,8 +102,8 @@ function normaliser(o){
   o.contactPropose=(o.contactPropose&&o.contactPropose.pseudo)?o.contactPropose:null;
   o.contactInscrit=!!o.contactInscrit;
   o.demandeValidation=!!o.demandeValidation;
-  o.cree=o.cree||new Date().toISOString();
-  o.ouverte=o.ouverte||o.cree;
+  o.cree = o.cree || o.date || o.ouverte || new Date().toISOString();
+  o.ouverte = o.ouverte || o.cree;
   o.expire=!!o.expire;
   return o;
 }
