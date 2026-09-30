@@ -219,12 +219,23 @@ window.BHL = window.BHL || {};
   };
 
   /* ===================== RENDU ===================== */
-  function renderOnglets(){
-    var h="";
-    CFG.ordre.forEach(function(cle){
-      h += '<button data-tab="'+cle+'" aria-selected="'+(BHL.S.tab===cle)+'">'+BHL.escH(CFG.bandes[cle].nom)+'</button>';
+    function renderOnglets(){
+    var box = BHL.$(BHL.CFG.SEL.tabs); if(!box) return;
+
+    /* Construction UNE seule fois : les boutons doivent persister d'un
+       render à l'autre, sinon la transition CSS du trait ne joue jamais. */
+    if(box.children.length !== CFG.ordre.length){
+      var h="";
+      CFG.ordre.forEach(function(cle){
+        h += '<button data-tab="'+cle+'" aria-selected="false">'+BHL.escH(CFG.bandes[cle].nom)+'</button>';
+      });
+      box.innerHTML = h;
+    }
+
+    /* Synchronisation seule : bascule d'attribut sur des noeuds existants. */
+    Array.prototype.forEach.call(box.querySelectorAll("button"), function(b){
+      b.setAttribute("aria-selected", String(b.dataset.tab === BHL.S.tab));
     });
-    BHL.$(BHL.CFG.SEL.tabs).innerHTML = h;
   }
   BHL.rendreOnglet = function (){
     var host=BHL.$(BHL.CFG.SEL.tab), api=BHL.TABS[BHL.S.tab]; if(!host) return;
