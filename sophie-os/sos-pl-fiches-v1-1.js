@@ -414,7 +414,7 @@
     var h = '<div class="h3"><h3><span class="tdlplf-num">' + num + '.</span>' + NOM_RUB[this.rub] + '</h3></div>';
     if (this.rub === 'liens') {
       h += '<div class="tdlplf-liens">' + f.rub.liens.map(function (x) {
-        return '<div class="tdlplf-lien-c"><span>' + echappe(x.titre) + '</span>' +
+        return '<div class="tdlplf-lien-c"><f4>' + echappe(x.titre) + '</f4>' +
           echappe(x.texte) + '</div>';
       }).join('') + '</div>';
     } else {
