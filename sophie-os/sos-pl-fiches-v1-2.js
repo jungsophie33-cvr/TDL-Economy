@@ -249,7 +249,7 @@
   };
 
   Composant.prototype.squelette = function () {
-    var m = this.modele, h = '<div class="tdlplf">';
+    var m = this.modele, h = '<div class="tdlplf annexe">';
 
     h += '<div class="tdlplf-hero"><div class="tdlplf-hero-in">';
     h += '<h1 class="tdlplf-fam">' + echappe(m.famille) + '</h1>';
