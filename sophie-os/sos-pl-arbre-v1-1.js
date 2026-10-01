@@ -25,7 +25,8 @@
     anneeRef: null,
     // Statut appliqué à une personne absente du bottin et sans statut écrit.
     statutDefaut: 'pnj',
-    cheminFB: 'faceclaims'
+    cheminFB: 'faceclaims',
+    aIgnorer: '.post-wordcount'
   };
 
   var ANNEE = CFG.anneeRef || new Date().getFullYear();
@@ -52,18 +53,25 @@
 
   function alerte(msg) { if (window.console) console.warn('[TDLPL arbre] ' + msg); }
 
-  /* Convertit le HTML d'un message FA en texte brut exploitable.
-     FA injecte des <br>, encapsule dans des <div>, et encode les entités :
-     les trois pièges sont traités ici. */
-  function texteBrut(el) {
-    var h = el.innerHTML
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
-      .replace(/<[^>]+>/g, '');
-    var ta = document.createElement('textarea');
-    ta.innerHTML = h;
-    return ta.value.replace(/\u00a0/g, ' ');
+  // À ajouter dans CFG :
+//   aIgnorer: '.post-wordcount'
+// (liste extensible si d'autres scripts injectent du contenu dans les messages)
+
+function texteBrut(el) {
+  var copie = el.cloneNode(true);
+  if (CFG.aIgnorer) {
+    Array.prototype.forEach.call(copie.querySelectorAll(CFG.aIgnorer), function (n) {
+      n.parentNode.removeChild(n);
+    });
   }
+  var h = copie.innerHTML
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  var ta = document.createElement('textarea');
+  ta.innerHTML = h;
+  return ta.value.replace(/\u00a0/g, ' ');
+}
 
   /* Renvoie { an, age, mort } à partir d'un champ de date. */
   function calculeAge(brut) {
