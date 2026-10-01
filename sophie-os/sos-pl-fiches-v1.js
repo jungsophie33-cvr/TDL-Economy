@@ -360,11 +360,11 @@
 
     // Métadonnées
     var dl = '';
-    if (f.fc) dl += '<dt>Faceclaim proposé</dt><dd>' + echappe(f.fc) + '</dd>';
-    if (f.naissance) dl += '<dt>Naissance</dt><dd>' + texteDates(f.naissance) + '</dd>';
-    if (f.metier) dl += '<dt>Métier</dt><dd>' + echappe(f.metier) + '</dd>';
+    if (f.fc) dl += '<dt><f4>Faceclaim proposé</f4></dt><dd>' + echappe(f.fc) + '</dd>';
+    if (f.naissance) dl += '<dt><f4>Naissance</f4></dt><dd>' + texteDates(f.naissance) + '</dd>';
+    if (f.metier) dl += '<dt><f4>Métier</f4></dt><dd>' + echappe(f.metier) + '</dd>';
     if (f.caractere.length) {
-      dl += '<dt>Caractère</dt><dd>' + f.caractere.map(function (t) {
+      dl += '<dt><f4>Caractère</f4></dt><dd>' + f.caractere.map(function (t) {
         return '<span class="tdlplf-trait">' + echappe(t) + '</span>';
       }).join('') + '</dd>';
     }
@@ -411,7 +411,7 @@
     // Panneau
     if (!dispo.length) { this.$corps.innerHTML = ''; return; }
     var num = ('0' + (dispo.indexOf(this.rub) + 1)).slice(-2);
-    var h = '<h2><span class="tdlplf-num">' + num + '.</span>' + NOM_RUB[this.rub] + '</h2>';
+    var h = '<div class="h3"><h3><span class="tdlplf-num">' + num + '.</span>' + NOM_RUB[this.rub] + '</h3></div>';
     if (this.rub === 'liens') {
       h += '<div class="tdlplf-liens">' + f.rub.liens.map(function (x) {
         return '<div class="tdlplf-lien-c"><span>' + echappe(x.titre) + '</span>' +
