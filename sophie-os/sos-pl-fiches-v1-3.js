@@ -22,7 +22,8 @@
     selecteurPost: '.sj-post-msg > div',   // [MAJ] corps d'un message TDL
     anneeRef: null,                        // null = année réelle
     statutDefaut: 'pnj',
-    cheminFB: 'faceclaims'
+    cheminFB: 'faceclaims',
+    aIgnorer: '.post-wordcount'
   };
 
   var ANNEE = CFG.anneeRef || new Date().getFullYear();
@@ -50,15 +51,25 @@
   }
   function alerte(m) { if (window.console) console.warn('[TDLPL fiches] ' + m); }
 
-  function texteBrut(el) {
-    var h = el.innerHTML
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
-      .replace(/<[^>]+>/g, '');
-    var ta = document.createElement('textarea');
-    ta.innerHTML = h;
-    return ta.value.replace(/\u00a0/g, ' ');
+  // À ajouter dans CFG :
+//   aIgnorer: '.post-wordcount'
+// (liste extensible si d'autres scripts injectent du contenu dans les messages)
+
+function texteBrut(el) {
+  var copie = el.cloneNode(true);
+  if (CFG.aIgnorer) {
+    Array.prototype.forEach.call(copie.querySelectorAll(CFG.aIgnorer), function (n) {
+      n.parentNode.removeChild(n);
+    });
   }
+  var h = copie.innerHTML
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '');
+  var ta = document.createElement('textarea');
+  ta.innerHTML = h;
+  return ta.value.replace(/\u00a0/g, ' ');
+}
 
   function calculeAge(brut) {
     var v = String(brut || '').trim(), m;
