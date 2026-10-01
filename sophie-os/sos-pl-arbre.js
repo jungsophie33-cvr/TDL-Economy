@@ -20,7 +20,7 @@
 
   var CFG = {
     // Où chercher le bloc de texte dans la page.
-    selecteurPost: '.postbody, .post-entry, .entry-content, .post_body, .content',
+    selecteurPost: '.sj-post-msg > div',
     // null = année réelle. Mettre 2025 (par ex.) pour figer le calendrier RP.
     anneeRef: null,
     // Statut appliqué à une personne absente du bottin et sans statut écrit.
