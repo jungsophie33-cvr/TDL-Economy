@@ -378,7 +378,7 @@
   }
 
   function rendu(modele) {
-    var base = modele.fiches, h = '<div class="tdlpl">';
+    var base = modele.fiches, h = '<div class="tdlpl annexe">';
 
     h += '<div class="tdlpl-hero"><div class="tdlpl-hero-in">';
     h += '<h1 class="tdlpl-fam">' + echappe(modele.famille) + '</h1>';
@@ -400,8 +400,8 @@
       h += '<div class="tdlpl-branche">';
       if (b.titre) {
         var bouts = b.titre.split(/\s*[—–-]\s*/);
-        h += '<div class="tdlpl-branche-nom">' + echappe(bouts[0]) +
-          (bouts[1] ? '<span>' + echappe(bouts.slice(1).join(' — ')) + '</span>' : '') + '</div>';
+        h += '<div class="h3"><h3>' + echappe(bouts[0]) +
+          (bouts[1] ? '<span>' + echappe(bouts.slice(1).join(' — ')) + '</span>' : '') + '</h3></div>';
       }
       if (b.souche.length) {
         h += '<div class="tdlpl-souche">' + b.souche.map(function (p) {
