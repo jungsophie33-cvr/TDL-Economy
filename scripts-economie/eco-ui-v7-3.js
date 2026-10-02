@@ -316,7 +316,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
     // --- Boutons barre membre (non-admin) ---
     try{
       document.getElementById("eco-btn-cag")?.addEventListener("click", async()=>{
-        const rec = await readBin();
+        const rec = await window.EcoCore.safeReadBin();
         alert("Cagnottes:\n" + JSON.stringify(rec.cagnottes, null, 2));
       });
       document.getElementById("eco-btn-shop")?.addEventListener("click", ()=>{
@@ -328,7 +328,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
         const montant = parseInt(prompt("Montant du don :", "0"));
         if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
 
-        const rec = await readBin();
+        const rec = await window.EcoCore.safeReadBin();
         const membre = rec?.membres?.[pseudo];
         const grp = membre?.group;
         if (!grp) return alert("Ton groupe est inconnu.");
@@ -380,7 +380,7 @@ console.log("[EcoV2] >>> eco-ui chargé");
       if(mUid){
         const profilField = document.querySelector(".sj-profil .field-dollars > dd > .field_uneditable");
         if(profilField){
-          const rec    = await window.EcoCore.readBin();
+          const rec    = await window.EcoCore.safeReadBin();
           const idx    = (rec && rec.uid_index) ? rec.uid_index : {};
           const p      = idx[mUid[1]];
           const membre = (p && rec.membres) ? rec.membres[p] : null;
