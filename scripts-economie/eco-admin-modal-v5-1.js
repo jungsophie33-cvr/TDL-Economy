@@ -262,70 +262,97 @@
       alert("Toutes les cagnottes remises à 0.");
     });
 
+      /* Transfert atomique entre deux chemins numériques, puis journal.
+     [MAJ] Remplace le motif readBin → mutation → writeBin, qui relisait et
+     réécrivait la racine pour ajouter une ligne, et qui est devenu impossible
+     depuis que les journaux mêlent clés numériques et clés push.
+     Débit d'abord (contrôle de fonds refait côté serveur), crédit ensuite ;
+     si le crédit échoue, le débit est repris — l'argent ne disparaît jamais. */
+  async function transferer(o) {
+    var core = c(); if (!core) throw new Error("ECOCORE");
+    var m = o.montant | 0;
+    await core.firebaseTransaction(o.cheminDe, function (cur) {
+      var s = cur || 0; if (s < m) throw new Error("FONDS"); return s - m;
+    });
+    try {
+      await core.firebaseTransaction(o.cheminVers, function (cur) { return (cur || 0) + m; });
+    } catch (e) {
+      await core.firebaseTransaction(o.cheminDe, function (cur) { return (cur || 0) + m; }).catch(function () {});
+      throw new Error("CREDIT");
+    }
+    core.firebasePush(o.journal, {
+      date: new Date().toISOString(), type: "transfert",
+      de: o.de, vers: o.vers, montant: m, motif: "",
+      "effectué_par": core.getPseudo()
+    }).catch(function () {});   // le journal ne doit jamais faire échouer le transfert
+  }
+
+  function messageErreur(e, source) {
+    if (e && e.message === "FONDS")  return "Fonds insuffisants dans " + source + ".";
+    if (e && e.message === "CREDIT") return "Crédit impossible — transfert annulé, rien n'a bougé.";
+    return "Transfert impossible.";
+  }
+
+  function majCagnotteAffichee(nom) {
+    var core = c(); if (!core || !core.lireFrais) return;
+    core.lireFrais("cagnottes/" + encodeURIComponent(nom)).then(function (v) {
+      var el = document.getElementById("eco-cag-" + nom.replace(/\s/g, "_"));
+      if (el) el.textContent = v || 0;
+    }).catch(function () {});
+  }
+    
     document.getElementById("eco-transfer-btn")?.addEventListener("click", async function () {
-      var from    = document.getElementById("eco-transfer-from")?.value;
-      var to      = document.getElementById("eco-transfer-to")?.value;
+      var from = document.getElementById("eco-transfer-from")?.value;
+      var to   = document.getElementById("eco-transfer-to")?.value;
       var montant = parseInt(document.getElementById("eco-transfer-amount")?.value, 10);
       if (!from || !to || from === to) return alert("Sélection invalide (groupes identiques ?)");
       if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-      var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      if ((rec.cagnottes[from] || 0) < montant) return alert("Fonds insuffisants dans " + from + ".");
       if (!confirm("Transférer " + montant + " de " + from + " → " + to + " ?")) return;
-      rec.cagnottes[from] -= montant;
-      rec.cagnottes[to] = (rec.cagnottes[to] || 0) + montant;
-      if (!rec.transactions_cagnottes) rec.transactions_cagnottes = [];
-      rec.transactions_cagnottes.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
-      await core.writeBin(rec);
-        core.invalidateCache();
+      try {
+        await transferer({
+          cheminDe:   "cagnottes/" + encodeURIComponent(from),
+          cheminVers: "cagnottes/" + encodeURIComponent(to),
+          montant: montant, de: from, vers: to, journal: "transactions_cagnottes"
+        });
+      } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
       alert("✅ " + montant + " transférés de " + from + " vers " + to + ".");
-      var elF = document.getElementById("eco-cag-" + from.replace(/\s/g, "_"));
-      var elT = document.getElementById("eco-cag-" + to.replace(/\s/g, "_"));
-      if (elF) elF.textContent = rec.cagnottes[from];
-      if (elT) elT.textContent = rec.cagnottes[to];
+      majCagnotteAffichee(from); majCagnotteAffichee(to);
     });
 
     document.getElementById("eco-transfer-btn-member")?.addEventListener("click", async function () {
-      var from    = document.getElementById("eco-transfer-from-member")?.value;
-      var to      = document.getElementById("eco-transfer-to-member")?.value;
+      var from = document.getElementById("eco-transfer-from-member")?.value;
+      var to   = document.getElementById("eco-transfer-to-member")?.value;
       var montant = parseInt(document.getElementById("eco-transfer-amount-member")?.value, 10);
       if (!from || !to || from === to) return alert("Sélection invalide (mêmes membres ?)");
       if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-      var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      if (!rec.membres[from] || !rec.membres[to]) return alert("Membre inconnu.");
-      if ((rec.membres[from].dollars || 0) < montant) return alert(from + " n'a pas assez de fonds.");
       if (!confirm("Transférer " + montant + " de " + from + " → " + to + " ?")) return;
-      rec.membres[from].dollars -= montant;
-      rec.membres[to].dollars = (rec.membres[to].dollars || 0) + montant;
-      if (!rec.transactions_membres) rec.transactions_membres = [];
-      rec.transactions_membres.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
-      await core.writeBin(rec);
-        core.invalidateCache();
+      try {
+        await transferer({
+          cheminDe:   "membres/" + encodeURIComponent(from) + "/dollars",
+          cheminVers: "membres/" + encodeURIComponent(to)   + "/dollars",
+          montant: montant, de: from, vers: to, journal: "transactions_membres"
+        });
+      } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
       alert("✅ " + montant + " transférés de " + from + " à " + to + ".");
       if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
     });
 
     document.getElementById("eco-transfer-cag-to-member-btn")?.addEventListener("click", async function () {
-      var from    = document.getElementById("eco-transfer-cag-to-member-from")?.value;
-      var to      = document.getElementById("eco-transfer-cag-to-member-to")?.value;
+      var from = document.getElementById("eco-transfer-cag-to-member-from")?.value;
+      var to   = document.getElementById("eco-transfer-cag-to-member-to")?.value;
       var montant = parseInt(document.getElementById("eco-transfer-cag-to-member-amount")?.value, 10);
       if (!from || !to) return alert("Sélection invalide.");
       if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-      var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      if ((rec.cagnottes[from] || 0) < montant) return alert("Fonds insuffisants dans la cagnotte " + from + ".");
-      if (!rec.membres[to]) return alert("Membre inconnu.");
-      if (!confirm("Transférer " + montant + " de " + from + " vers " + to + " ?")) return;
-      rec.cagnottes[from] -= montant;
-      rec.membres[to].dollars = (rec.membres[to].dollars || 0) + montant;
-      if (!rec.transactions_cagnotte_membre) rec.transactions_cagnotte_membre = [];
-      rec.transactions_cagnotte_membre.push({ date: new Date().toISOString(), de: from, vers: to, montant: montant, effectué_par: core.getPseudo() });
-      await core.writeBin(rec);
-        core.invalidateCache();
-      alert("✅ " + montant + " transférés de " + from + " à " + to + ".");
-      var elF = document.getElementById("eco-cag-" + from.replace(/\s/g, "_"));
-      if (elF) elF.textContent = rec.cagnottes[from];
+      if (!confirm("Transférer " + montant + " de la cagnotte " + from + " → " + to + " ?")) return;
+      try {
+        await transferer({
+          cheminDe:   "cagnottes/" + encodeURIComponent(from),
+          cheminVers: "membres/"   + encodeURIComponent(to) + "/dollars",
+          montant: montant, de: from, vers: to, journal: "transactions_cagnotte_membre"
+        });
+      } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
+      alert("✅ " + montant + " transférés de la cagnotte " + from + " à " + to + ".");
+      majCagnotteAffichee(from);
       if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
     });
 
