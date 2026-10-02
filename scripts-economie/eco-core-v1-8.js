@@ -364,6 +364,14 @@ function firebaseGet(path) {
     }
   }
 
+    // Lecture ciblée, toujours fraîche : court-circuite le cache racine pour une
+  // feuille dont l'exactitude compte à l'affichage (le solde). 
+  async function lireFrais(chemin) {
+    const v = await firebaseGet(chemin);
+    appliquerAuCache({ [chemin]: v });
+    return v;
+  }
+
   // [MAJ] transactDollars a été SUPPRIMÉE : fonction morte (aucun appelant) qui
   // pointait encore vers le chemin obsolète `eco/membres/...` (préfixe abandonné
   // depuis le passage des collections à la racine). Les débits/crédits passent
@@ -404,7 +412,7 @@ function firebaseGet(path) {
     // API données (même noms qu'avant)
     readBin, safeReadBin, writeBin,
      // Nouvelles API Firebase
-    writeField, invalidateCache,
+    writeField, lireFrais, invalidateCache,
     firebaseGet, firebaseTransaction, firebasePush, firebaseUpdate,
     // Extractors & helpers
     getPseudo, getUserId, getMessagesCount,
