@@ -6,106 +6,37 @@
    en parcours à trois niveaux : frise des générations, onglets de personnages,
    rubriques de la fiche.
 
-   Enrichissement Firebase identique à l'arbre : portrait et statut viennent
-   du nœud « faceclaims », le texte du post primant toujours.
-
    Ciblage : un lien « ?fiche=slug » venant de l'arbre ouvre directement la
    bonne fiche. Si elle est déjà dans la page, aucun rechargement.
+
+   Dépendances : eco-core-v1-5.js, puis tdlpl-core.js. Dans cet ordre.
    ========================================================================== */
 
 (function () {
   "use strict";
 
-  /* ------------------------------------------------------------------ CONFIG */
+  var T = window.TDLPL;
+  if (!T) {
+    if (window.console) console.error('[TDLPL fiches] tdlpl-core.js doit être chargé avant ce script.');
+    return;
+  }
 
-  var CFG = {
-    selecteurPost: '.sj-post-msg > div',   // [MAJ] corps d'un message TDL
-    anneeRef: null,                        // null = année réelle
-    statutDefaut: 'pnj',
-    cheminFB: 'faceclaims',
-    aIgnorer: '.post-wordcount'
-  };
+  var CFG = T.CFG;
+  var alerte = T.journal('fiches');
+  var slug = T.slug, echappe = T.echappe, texteDates = T.texteDates;
 
-  var ANNEE = CFG.anneeRef || new Date().getFullYear();
-
-  var LIB_STATUT = {
-    libre: 'libre', pris: 'pris', reserve: 'réservée', pnj: 'pnj', dcd: 'décédé'
-  };
   var LIB_GEN = [
     'Les fondateurs', 'Leurs enfants', 'Leurs petits-enfants', 'Leurs arrière-petits-enfants'
   ];
   var NOM_RUB = { histoire: 'Histoire', liens: 'Liens', informations: 'Informations' };
   var ORDRE_RUB = ['histoire', 'liens', 'informations'];
 
-  /* ------------------------------------------------------------- UTILITAIRES */
-
-  function slug(s) {
-    return String(s || '').toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  }
-  function echappe(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-  function alerte(m) { if (window.console) console.warn('[TDLPL fiches] ' + m); }
-
-  // À ajouter dans CFG :
-//   aIgnorer: '.post-wordcount'
-// (liste extensible si d'autres scripts injectent du contenu dans les messages)
-
-function texteBrut(el) {
-  var copie = el.cloneNode(true);
-  if (CFG.aIgnorer) {
-    Array.prototype.forEach.call(copie.querySelectorAll(CFG.aIgnorer), function (n) {
-      n.parentNode.removeChild(n);
-    });
-  }
-  var h = copie.innerHTML
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
-    .replace(/<[^>]+>/g, '');
-  var ta = document.createElement('textarea');
-  ta.innerHTML = h;
-  return ta.value.replace(/\u00a0/g, ' ');
-}
-
-  function calculeAge(brut) {
-    var v = String(brut || '').trim(), m;
-    m = v.match(/^(\d{4})\s*[-–—]\s*(\d{4})$/);
-    if (m) { var d = +m[2] - +m[1]; return { an: +m[1], mort: +m[2], age: d > 0 ? d : null }; }
-    m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) {
-      var n = new Date(), a = n.getFullYear() - +m[3];
-      if (n.getMonth() + 1 < +m[2] || (n.getMonth() + 1 === +m[2] && n.getDate() < +m[1])) a--;
-      return { an: +m[3], age: a, mort: null };
-    }
-    m = v.match(/^(\d{4})$/);
-    if (m) return { an: +m[1], age: ANNEE - +m[1], mort: null };
-    return null;
-  }
-  function texteDates(d) {
-    if (!d) return '';
-    if (d.mort) return d.an + ' — ' + d.mort + (d.age ? ' · ' + d.age + ' ans' : '');
-    return d.an + ' · ' + d.age + ' ans';
-  }
-
-  function litStatut(t) {
-    var v = slug(t);
-    if (v === 'libre') return 'libre';
-    if (v === 'pris' || v === 'prise') return 'pris';
-    if (v === 'reserve' || v === 'reservee') return 'reserve';
-    if (v === 'pnj') return 'pnj';
-    if (v === 'dcd' || v === 'decede' || v === 'decedee') return 'dcd';
-    return null;
-  }
-
   /* --------------------------------------------------------------- ANALYSEUR */
 
   var CLES = {
     GEN: 'gen', FC: 'fc', NAISSANCE: 'naissance', METIER: 'metier',
-    CARACTERE: 'caractere', IMAGE: 'image', BANNIERE: 'banniere', STATUT: 'statut'
+    CARACTERE: 'caractere', IMAGE: 'image', BANNIERE: 'banniere',
+    STATUT: 'statut', SEXE: 'sexe'
   };
 
   function analyse(txt) {
@@ -124,7 +55,7 @@ function texteBrut(el) {
       if ((m = t.match(/^---\s*FICHE\s*:?\s*(.*?)\s*---\s*$/i))) {
         f = {
           nom: m[1].trim(), slug: slug(m[1]), gen: null, fc: '', naissance: null,
-          metier: '', caractere: [], image: '', banniere: '', statut: '',
+          metier: '', caractere: [], image: '', banniere: '', statut: '', sexe: '',
           statutForce: false, uid: null, rub: {}
         };
         modele.fiches.push(f); rub = null; return;
@@ -148,20 +79,25 @@ function texteBrut(el) {
         var cle = CLES[m[1].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')];
         var val = m[2].trim();
         if (cle === 'gen') { f.gen = parseInt(val, 10); return; }
-        if (cle === 'naissance') { f.naissance = calculeAge(val); return; }
+        if (cle === 'naissance') { f.naissance = T.calculeAge(val); return; }
+        if (cle === 'sexe') { f.sexe = val.charAt(0).toUpperCase(); return; }
         if (cle === 'caractere') {
           f.caractere = val.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
           return;
         }
         if (cle === 'statut') {
-          var s = litStatut(val);
-          if (s) { f.statut = s; f.statutForce = true; } else alerte('statut inconnu « ' + val + ' » sur ' + f.nom);
+          var s = T.litStatut(val);
+          if (s) { f.statut = s; f.statutForce = true; }
+          else alerte('statut inconnu « ' + val + ' » sur ' + f.nom);
           return;
         }
         if (cle) { f[cle] = val; return; }
       }
 
-      if (rub === null) { if (t) alerte('ligne hors rubrique ignorée sur ' + f.nom + ' : « ' + t + ' »'); return; }
+      if (rub === null) {
+        if (t) alerte('ligne hors rubrique ignorée sur ' + f.nom + ' : « ' + t + ' »');
+        return;
+      }
 
       // Contenu d'une rubrique.
       if (rub === 'liens') {
@@ -179,6 +115,7 @@ function texteBrut(el) {
     modele.fiches.forEach(function (x) {
       if (x.gen === null || isNaN(x.gen)) { alerte('fiche sans GEN : ' + x.nom + ' (placée en 0)'); x.gen = 0; }
       if (!Object.keys(x.rub).length) alerte('aucune rubrique trouvée sur ' + x.nom);
+      if (!x.statut) x.statut = CFG.statutDefaut;
     });
 
     return modele.famille && modele.fiches.length ? modele : null;
@@ -191,31 +128,11 @@ function texteBrut(el) {
       .join('');
   }
 
-  /* --------------------------------------------------------------- FIREBASE */
-
-  function indexeFaceclaims(fc) {
-    var idx = { cles: {}, noms: {}, acteurs: {} };
-    Object.keys(fc || {}).forEach(function (k) {
-      var e = fc[k];
-      if (!e || typeof e !== 'object') return;
-      idx.cles[k] = e;
-      if (e.acteur) idx.acteurs[slug(e.acteur)] = e;
-      var nom = String(e.statut || '').toLowerCase() === 'pris' ? e.pseudo : e.nom_prelien;
-      if (nom) idx.noms[slug(nom)] = e;
-    });
-    return idx;
-  }
-
   function enrichit(modele, idx) {
     modele.fiches.forEach(function (f) {
-      var e = null;
-      if (f.fc) { var s = slug(f.fc); e = idx.cles[s] || idx.acteurs[s] || null; }
-      if (!e) e = idx.noms[f.slug] || null;
+      var e = T.trouve(idx, f.fc, f.nom);
       if (!e) {
-        if (!f.statutForce) {
-          f.statut = CFG.statutDefaut;
-          alerte('introuvable dans le bottin : ' + f.nom + ' (préciser FC:)');
-        }
+        if (!f.statutForce) alerte('introuvable dans le bottin : ' + f.nom + ' (préciser FC:)');
         return;
       }
       if (!f.image && e.image) f.image = e.image;
@@ -225,15 +142,6 @@ function texteBrut(el) {
         if (!f.statutForce) f.statut = 'pris';
       } else if (!f.statutForce) f.statut = 'libre';
     });
-  }
-
-  function litFirebase(cb) {
-    if (!window.firebase || !firebase.apps || !firebase.apps.length) { cb(null); return; }
-    try {
-      firebase.database().ref(CFG.cheminFB).once('value')
-        .then(function (s) { cb(s.val() || {}); })
-        .catch(function (e) { alerte('lecture Firebase impossible : ' + e.message); cb(null); });
-    } catch (e) { alerte('Firebase indisponible'); cb(null); }
   }
 
   /* ------------------------------------------------------------- COMPOSANT */
@@ -390,7 +298,7 @@ function texteBrut(el) {
       '<div class="tdlplf-band-txt"><h2 class="tdlplf-band-nom">' + echappe(f.nom) + '</h2></div>' +
       lienProfil +
       '<span class="tdlplf-tampon tdlplf-' + f.statut + '">' +
-      (LIB_STATUT[f.statut] || f.statut) + '</span>';
+      T.libelle(f.statut, f.sexe) + '</span>';
 
     if (changementPerso) {
       [this.$bandeau, this.$aside].forEach(function (n) {
@@ -422,7 +330,8 @@ function texteBrut(el) {
     // Panneau
     if (!dispo.length) { this.$corps.innerHTML = ''; return; }
     var num = ('0' + (dispo.indexOf(this.rub) + 1)).slice(-2);
-    var h = '<div class="h3"><h3><span class="tdlplf-num">' + num + '.</span>' + NOM_RUB[this.rub] + '</h3></div>';
+    var h = '<div class="h3"><h3><span class="tdlplf-num">' + num + '.</span>' +
+      NOM_RUB[this.rub] + '</h3></div>';
     if (this.rub === 'liens') {
       h += '<div class="tdlplf-liens">' + f.rub.liens.map(function (x) {
         return '<div class="tdlplf-lien-c"><f4>' + echappe(x.titre) + '</f4>' +
@@ -467,22 +376,17 @@ function texteBrut(el) {
   }
 
   function demarre() {
-    var cibles = document.querySelectorAll(CFG.selecteurPost), vus = [];
-    Array.prototype.forEach.call(cibles, function (el) {
-      if (el.querySelector('.tdlplf')) return;
-      if (el.textContent.indexOf('=== PRELIENS:') < 0) return;
-      vus.push(el);
-    });
-    if (!vus.length) return;
+    var cibles = T.postsAvec('=== PRELIENS:', '.tdlplf');
+    if (!cibles.length) return;
 
-    vus.forEach(function (el) {
-      var modele = analyse(texteBrut(el));
+    cibles.forEach(function (el) {
+      var modele = analyse(T.texteBrut(el));
       if (!modele) return;
-      var c = new Composant(el, modele);                 // 1. rendu immédiat
+      var c = new Composant(el, modele);            // 1. rendu immédiat
       instances.push(c);
-      litFirebase(function (fc) {                        // 2. enrichissement
-        if (!fc) return;
-        enrichit(modele, indexeFaceclaims(fc));
+      T.litIndex(function (idx) {                   // 2. enrichissement
+        if (!idx) return;
+        enrichit(modele, idx);
         c.rendFiche(false);
       });
     });
@@ -494,8 +398,7 @@ function texteBrut(el) {
     }
   }
 
-  if (document.readyState === 'complete') demarre();
-  else window.addEventListener('load', demarre);
+  T.pret(demarre);
 
-  window.TDLPL_FICHES = { config: CFG, relancer: demarre, instances: instances };
+  window.TDLPL_FICHES = { relancer: demarre, instances: instances, analyse: analyse };
 })();
