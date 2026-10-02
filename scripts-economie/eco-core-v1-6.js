@@ -9,7 +9,6 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
     apiKey: "AIzaSyBVCTA5amCjMoa0EzWZ6SC6jmoyTW8oNxA",
     databaseURL: "https://thedrownedlands-b35b4-default-rtdb.europe-west1.firebasedatabase.app"
   };
-  const DB_PATH = "https://thedrownedlands-b35b4.firebaseio.com"; // même que databaseURL
 
   // ---------- CONFIG FORUM ----------
   const ADMIN_USERS       = ["Mami Wata", "Jason Blackford", "Alyssa Desrosiers"];
@@ -135,13 +134,24 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   // la même structure fetch() qu'avant → compatibilité totale
   const BASE_URL = FIREBASE_CONFIG.databaseURL;
 
-async function firebaseGet(path) {
-  await _authPromise;
-  const authParam = _authToken ? `?auth=${_authToken}` : "";
-  const url = `${BASE_URL}/${path}.json${authParam}`; // donne BASE_URL/.json ✓
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
-  return await r.json();
+// ---------- LECTURE (avec déduplication des appels concurrents) ----------
+// Deux modules qui demandent le même chemin en même temps partagent un seul
+// aller-retour réseau. La promesse est retirée dès qu'elle est résolue : seuls
+// les appels SIMULTANÉS sont mutualisés, jamais deux lectures espacées.
+const _enVol = Object.create(null);
+
+function firebaseGet(path) {
+  const cle = String(path);
+  if (_enVol[cle]) return _enVol[cle];
+  const p = (async () => {
+    await _authPromise;
+    const authParam = _authToken ? `?auth=${_authToken}` : "";
+    const r = await fetch(`${BASE_URL}/${cle}.json${authParam}`);
+    if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
+    return await r.json();
+  })().finally(() => { delete _enVol[cle]; });
+  _enVol[cle] = p;
+  return p;
 }
 
   async function firebasePut(path, data) {
@@ -161,8 +171,6 @@ async function firebaseGet(path) {
   async function firebaseTransaction(path, updateFn) {
     await _authPromise;
     if (!_authToken) throw new Error("Pas de token");
-    // Firebase REST ne supporte pas les vraies transactions,
-    // mais on utilise les ETags pour optimistic locking
     const url = `${BASE_URL}/${path}.json`;
     for (let i = 0; i < 5; i++) {
       const getR = await fetch(`${url}?auth=${_authToken}&_=${Date.now()}`, {
@@ -173,15 +181,11 @@ async function firebaseGet(path) {
       const next = updateFn(current);
       const putR = await fetch(`${url}?auth=${_authToken}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "if-match": etag
-        },
+        headers: { "Content-Type": "application/json", "if-match": etag },
         body: JSON.stringify(next)
       });
-      if (putR.ok) return await putR.json();
+      if (putR.ok) { invalidateCache(); return await putR.json(); }
       if (putR.status === 412) {
-        // Conflit — une autre écriture a eu lieu, on réessaie
         warn(`Transaction conflit sur ${path}, retry ${i+1}/5`);
         await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
         continue;
@@ -190,11 +194,11 @@ async function firebaseGet(path) {
     }
     throw new Error("Transaction échouée après 5 tentatives");
   }
-  // POST : ajoute un enfant à clé unique générée par le serveur (append concurrent-safe)
+
+  // POST : ajoute un enfant à clé unique générée par le serveur
   async function firebasePush(path, data) {
     await _authPromise;
     if (!_authToken) throw new Error("Pas de token Firebase — push refusé");
-    invalidateCache();
     const url = `${BASE_URL}/${path}.json?auth=${_authToken}`;
     const r = await fetch(url, {
       method: "POST",
@@ -202,14 +206,15 @@ async function firebaseGet(path) {
       body: JSON.stringify(data)
     });
     if (!r.ok) throw new Error(`Firebase POST ${r.status}`);
-    return await r.json(); // { name: "-N..." }
+    const res = await r.json();                       // { name: "-N..." }
+    if (res && res.name) appliquerAuCache({ [path + "/" + res.name]: data });
+    return res;
   }
-  // PATCH multi-chemins à la racine : applique plusieurs écritures (set/suppression)
-  // de façon atomique, sans toucher aux nœuds frères. null supprime le chemin.
+
+  // PATCH multi-chemins à la racine. null supprime le chemin.
   async function firebaseUpdate(updates) {
     await _authPromise;
     if (!_authToken) throw new Error("Pas de token Firebase — update refusé");
-    invalidateCache();
     const url = `${BASE_URL}/.json?auth=${_authToken}`;
     const r = await fetch(url, {
       method: "PATCH",
@@ -217,11 +222,24 @@ async function firebaseGet(path) {
       body: JSON.stringify(updates)
     });
     if (!r.ok) throw new Error(`Firebase PATCH ${r.status}`);
+    appliquerAuCache(updates);                        // au lieu de jeter le cache
     return await r.json();
   }
 
   // ---------- CACHE SESSION ----------
-  const CACHE_TTL = 60000; // 60 secondes
+  const CACHE_TTL    = 60000;   // 60 secondes
+  const BRANCHES_MAX = 6;       // garde-fou writeBin (voir plus bas)
+
+  // Socle : empreinte par branche de premier niveau du dernier état LU.
+  // Sert de base de comparaison à writeBin. Volatile — remis à zéro à chaque page.
+  let _socle = null;
+
+  function memoriserSocle(record) {
+    try {
+      _socle = {};
+      Object.keys(record || {}).forEach(k => { _socle[k] = JSON.stringify(record[k]); });
+    } catch(e) { _socle = null; }
+  }
 
   function getCached() {
     try {
@@ -244,50 +262,102 @@ async function firebaseGet(path) {
     sessionStorage.removeItem("eco_cache_time");
   }
 
-  // ---------- API PUBLIQUE (compatible avec eco-ui.js et eco-gain.js) ----------
-  // readBin → lit tout le record
-async function readBin() {
-  try {
-    const record = await firebaseGet(""); // ← racine, pas "eco"
-    return record || {};
-  } catch(e) {
-    err("readBin Firebase", e);
-    return null;
+  // Pose une valeur à un chemin "a/b/c" dans un objet. null supprime la feuille.
+  // Les segments sont décodés : les chemins partent encodés (pseudo avec espace).
+  function poserChemin(obj, chemin, valeur) {
+    const seg = String(chemin).split("/").filter(Boolean).map(s => {
+      try { return decodeURIComponent(s); } catch(e) { return s; }
+    });
+    if (!seg.length) return;
+    let n = obj;
+    for (let i = 0; i < seg.length - 1; i++) {
+      if (n[seg[i]] == null || typeof n[seg[i]] !== "object") n[seg[i]] = {};
+      n = n[seg[i]];
+    }
+    if (valeur === null) delete n[seg[seg.length - 1]];
+    else n[seg[seg.length - 1]] = valeur;
   }
-}
+
+  // Répercute sur le cache les écritures qui viennent de partir, au lieu de le
+  // jeter : sans ça, chaque écriture force la relecture des 116 ko de la racine.
+  function appliquerAuCache(updates) {
+    const rec = getCached();
+    if (!rec) return;
+    try {
+      Object.keys(updates).forEach(c => poserChemin(rec, c, updates[c]));
+      setCached(rec);
+    } catch(e) { invalidateCache(); }   // au moindre doute, on jette
+  }
+
+  // ---------- API PUBLIQUE ----------
+  // readBin → lit tout le record (racine)
+  async function readBin() {
+    try {
+      const brut = await firebaseGet("");
+      // Copie : la déduplication fait partager une même promesse à plusieurs
+      // appelants, qui ne doivent pas muter le même objet.
+      const record = brut ? JSON.parse(JSON.stringify(brut)) : {};
+      memoriserSocle(record);
+      return record;
+    } catch(e) {
+      err("readBin Firebase", e);
+      return null;
+    }
+  }
 
   // safeReadBin → avec cache 60s
   async function safeReadBin() {
     const cached = getCached();
-    if (cached) return cached;
+    if (cached) { memoriserSocle(cached); return cached; }
     const record = await readBin();
     if (record) setCached(record);
     return record;
   }
 
-  // writeBin → écrit tout le record (compatible API existante)
-async function writeBin(record) {
-  try {
-    invalidateCache();
-    await firebasePut("", record); // ← racine
-    setCached(record);
-    log("writeBin Firebase OK");
-  } catch(e) {
-    err("writeBin Firebase", e);
-    throw e;
-  }
-}
+  // writeBin → n'écrit QUE les branches de premier niveau réellement modifiées.
+  //
+  // [MAJ] L'ancienne version faisait un PUT sur la racine : elle remplaçait la
+  // base entière, effaçait toute écriture concurrente et supprimait toute
+  // branche absente du record. D'où les contraintes d'ordonnancement
+  // « avant / après le writeBin » dans fiche-staff, fiche-membre et
+  // fiche-metier — devenues inutiles.
+  //
+  // Une branche absente du record n'est plus jamais supprimée : la suppression
+  // d'un nœud entier passe par firebaseUpdate({chemin: null}), explicitement.
+  async function writeBin(record) {
+    if (!record || typeof record !== "object" || Array.isArray(record)) {
+      throw new Error("writeBin : record invalide");
+    }
+    const updates = {};
+    Object.keys(record).forEach(k => {
+      const apres = JSON.stringify(record[k]);
+      if (!_socle || _socle[k] !== apres) updates[k] = record[k];
+    });
+    const branches = Object.keys(updates);
 
-  // writeField → écriture atomique d'un seul champ (pour les dépenses boutique)
-async function writeField(path, data) {
-  try {
-    invalidateCache();
-    await firebasePut(path, data); // ← déjà correct, pas de "eco/" à enlever
-  } catch(e) {
-    err(`writeField ${path}`, e);
-    throw e;
+    if (!branches.length) { log("writeBin : aucune modification"); return; }
+    // Les appels légitimes touchent 1 à 4 branches. Au-delà, c'est un record
+    // reconstruit de travers ou un appel hostile : on refuse.
+    if (branches.length > BRANCHES_MAX) {
+      throw new Error(`writeBin refusé : ${branches.length} branches modifiées (max ${BRANCHES_MAX}) — ${branches.join(", ")}`);
+    }
+
+    log("writeBin →", branches.join(", "));
+    await firebaseUpdate(updates);
+    setCached(record);
+    memoriserSocle(record);
   }
-}
+
+  // writeField → écriture ciblée d'un seul champ
+  async function writeField(path, data) {
+    try {
+      await firebasePut(path, data);
+      appliquerAuCache({ [path]: data });
+    } catch(e) {
+      err(`writeField ${path}`, e);
+      throw e;
+    }
+  }
 
   // [MAJ] transactDollars a été SUPPRIMÉE : fonction morte (aucun appelant) qui
   // pointait encore vers le chemin obsolète `eco/membres/...` (préfixe abandonné
@@ -300,12 +370,6 @@ async function writeField(path, data) {
   function getMessagesCount(){ try{ return parseInt(_userdata?.user_posts)||0; }catch(e){ return 0; } }
 
   // [MAJ] fetchUserGroupFromProfile a été RETIRÉE.
-  // FA n'écrit pas le nom du groupe en texte sur le profil : l'ancienne fonction
-  // ne pouvait rien lire de fiable et son fallback regex /Les .../ ramassait un
-  // nom de groupe au hasard dans le DOM, polluant la base (groupes fantômes).
-  // Le groupe est désormais : (1) posé à la validation de fiche par fiche-staff.js
-  // (affecterGroupe → nom court), et (2) maintenu par la détection de la classe
-  // group-N de FA dans eco-ui (detecterGroupeFA, via GROUPES_FA).
 
   // ---------- DOM helpers ----------
   function insertAfter(t,e){ if(!t||!t.parentNode) return false; t.parentNode.insertBefore(e,t.nextSibling); return true; }
