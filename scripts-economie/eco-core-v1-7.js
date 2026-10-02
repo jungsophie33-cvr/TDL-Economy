@@ -184,7 +184,12 @@ function firebaseGet(path) {
         headers: { "Content-Type": "application/json", "if-match": etag },
         body: JSON.stringify(next)
       });
-      if (putR.ok) { invalidateCache(); return await putR.json(); }
+            // La valeur écrite est connue : on la pose dans le cache plutôt que de le
+      // jeter. Sans ça, chaque transaction force la relecture des 117 ko racine.
+      if (putR.ok) {
+        appliquerAuCache({ [path]: next });
+        return await putR.json();
+      }
       if (putR.status === 412) {
         warn(`Transaction conflit sur ${path}, retry ${i+1}/5`);
         await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
