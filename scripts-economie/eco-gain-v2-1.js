@@ -61,24 +61,19 @@ console.log("[EcoV2] >>> eco-gain chargé");
   ];
   window.EcoCore.RP_ZONES = RP_ZONES;
 
-  function countWordsFromElement(el) {
-  if (!el) return 0;
+   /* [MAJ] Le décompte fait autorité est celui affiché dans le message */
+  function motsDuPost(post) {
+    if (!post) return 0;
+    var attr = parseInt(post.getAttribute("data-mots"), 10);
+    if (!isNaN(attr)) return attr;
 
-  // Clone pour nettoyer sans toucher au DOM
-  const clone = el.cloneNode(true);
-
-  // Supprimer citations et éléments non pertinents
-  clone.querySelectorAll("blockquote, cite, .quote, .codebox, .spoiler").forEach(node => node.remove());
-
-  const text = (clone.textContent || "")
-    .replace(/\[.*?\]/g, " ")
-    .replace(/<.*?>/g, " ")
-    .replace(/[\x00-\x40\x5b-\x60\x7b-\x7e]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-return (text.match(/\p{L}[\p{L}\p{N}]*/gu) || []).length;
-}
+    var cible = post.querySelector(":scope > div") || post;
+    var clone = cible.cloneNode(true);
+    clone.querySelectorAll("blockquote, cite, .quote, .codebox, .spoiler, .post-wordcount")
+         .forEach(function (n) { n.remove(); });
+    var texte = (clone.textContent || "").replace(/\s+/g, " ").trim();
+    return (texte.match(/\p{L}[\p{L}\p{N}'’-]*/gu) || []).length;
+  }
 
 function getWordCountBonus(words) {
   if (words > 3000) return 20;
@@ -86,6 +81,37 @@ function getWordCountBonus(words) {
   if (words > 1000) return 10;
   return 0;
 }
+
+  /* [MAJ] Après publication, FA redirige vers …/tNN-slug#<id_du_post> :
+     l'ancre désigne le message qu'on vient d'écrire. « Le dernier message de
+     la page » est une approximation qui se trompe dès que la pagination ou
+     l'ordre d'affichage ne coopèrent pas — et on crédite alors un membre sur
+     le texte d'un autre. Repli sur le dernier message si l'ancre manque.
+     Renvoie l'INDICE, pour que le bonus de réactivité puisse viser le
+     message précédent du même fil. */
+  function corpsDesPosts() {
+    return Array.prototype.slice.call(document.querySelectorAll(".sj-post-msg"));
+  }
+
+  function indexPostCourant(corps) {
+    if (!corps.length) return -1;
+    var h = (location.hash || "").slice(1);
+    var ancre = h ? (document.getElementById(h) || document.querySelector('a[name="' + h + '"]')) : null;
+    if (ancre) {
+      for (var i = 0; i < corps.length; i++) {
+        var pos = ancre.compareDocumentPosition(corps[i]);
+        if ((pos & Node.DOCUMENT_POSITION_FOLLOWING) || (pos & Node.DOCUMENT_POSITION_CONTAINED_BY)) return i;
+      }
+    }
+    return corps.length - 1;
+  }
+
+  /* Le texte vit dans le premier div enfant quand il y en a un ; sinon
+     l'élément lui-même. Évite d'attraper la signature ou un bloc de tags. */
+  function corpsTexte(el) {
+    if (!el) return null;
+    return el.querySelector(":scope > div") || el;
+  }
 
   // --- DÉTECTION DES POSTS (nouveau + correctif newtopic direct) ---
   function ecoAttachPostListeners() {
@@ -286,9 +312,10 @@ function getWordCountBonus(words) {
 
       // ---- BONUS TAGS ----
       try {
-        const posts = Array.from(document.querySelectorAll(".sj-postmsg, .sj-post-msg"));
-        if (posts.length > 0) {
-          const clone = posts[posts.length - 1].cloneNode(true);
+        const corps = corpsDesPosts();
+        const i = indexPostCourant(corps);
+        if (i >= 0) {
+          const clone = corpsTexte(corps[i]).cloneNode(true);
           clone.querySelectorAll("blockquote, cite").forEach(el => el.remove());
           const text = clone.textContent.toLowerCase();
           let tagBonus = 0;
@@ -356,15 +383,15 @@ function getWordCountBonus(words) {
           await new Promise(resolve => {
             let tries = 0;
             const iv = setInterval(() => {
-              const p = document.querySelectorAll(".sj-postmsg, .sj-post-msg, .postbody, .content-message");
-              if (p.length > 0 || tries++ > 20) { clearInterval(iv); resolve(); }
+              if (corpsDesPosts().length > 0 || tries++ > 20) { clearInterval(iv); resolve(); }
             }, 200);
           });
-          const postBodies = Array.from(document.querySelectorAll(".sj-postmsg, .sj-post-msg, .postbody, .content-message"));
-          if (postBodies.length > 0) {
-            const wordCount = countWordsFromElement(postBodies[postBodies.length - 1]);
-                        const lengthBonus = getWordCountBonus(wordCount);
-            console.log(`[EcoV2][BONUS LONGUEUR] ${wordCount} mots`);
+          const corps = corpsDesPosts();
+          const i = indexPostCourant(corps);
+          if (i >= 0) {
+            const wordCount = countWordsFromElement(corpsTexte(corps[i]));
+            const lengthBonus = getWordCountBonus(wordCount);
+            console.log(`[EcoV2][BONUS LONGUEUR] ${wordCount} mots (post ${i + 1}/${corps.length})`);
             // [MAJ] Journal conditionné au gain : la ligne était hors du if,
             // ce qui enregistrait tous les posts RP, y compris à 0 $.
             if (lengthBonus > 0) {
