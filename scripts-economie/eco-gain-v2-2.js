@@ -389,7 +389,7 @@ function getWordCountBonus(words) {
           const corps = corpsDesPosts();
           const i = indexPostCourant(corps);
           if (i >= 0) {
-            const wordCount = countWordsFromElement(corpsTexte(corps[i]));
+            const wordCount = motsDuPost(corps[i]);
             const lengthBonus = getWordCountBonus(wordCount);
             console.log(`[EcoV2][BONUS LONGUEUR] ${wordCount} mots (post ${i + 1}/${corps.length})`);
             // [MAJ] Journal conditionné au gain : la ligne était hors du if,
