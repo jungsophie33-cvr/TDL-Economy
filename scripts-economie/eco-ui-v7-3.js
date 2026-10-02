@@ -277,10 +277,23 @@ console.log("[EcoV2] >>> eco-ui chargé");
       await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/group", "Providence").catch(()=>{});
     }
 
-    // --- Affichage solde courant ---
+        // --- Affichage solde courant ---
+    // [MAJ] Lecture ciblée hors cache 
     try{
       const sj = document.querySelector("#sj-dollars");
-      if(sj) sj.textContent = record.membres[pseudo].dollars;
+      if(sj){
+        let solde = record.membres[pseudo].dollars ?? 0;
+        try{
+          const frais = await window.EcoCore.lireFrais(
+            "membres/" + encodeURIComponent(pseudo) + "/dollars"
+          );
+          if(frais != null){
+            solde = frais;
+            record.membres[pseudo].dollars = frais;   // aligne le record en mémoire
+          }
+        }catch(e){ warn("solde frais indisponible — valeur en cache", e); }
+        sj.textContent = solde;
+      }
     }catch(e){ err("sync sj-dollars", e); }
 
     // --- Affichage cagnottes ---
