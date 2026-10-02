@@ -618,7 +618,6 @@
     } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; DUS = []; GELE = 0; }
   }
   async function refresh(){
-    E().invalidateCache();
     etatMembre = await membre.lire();
     render();
   }
