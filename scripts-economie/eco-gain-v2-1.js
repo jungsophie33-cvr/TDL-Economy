@@ -296,7 +296,12 @@ function getWordCountBonus(words) {
             if (text.includes(tag)) {
               tagBonus += bonus;
               console.log(`[EcoV2][TAG BONUS] ${tag} détecté → +${bonus}`);
-              journaux.push(["tags_usage", { date: new Date().toISOString(), membre: pseudo, tag, montant: bonus, url: location.href }]);
+              // [MAJ] Journal réservé aux gros bonus — #solve (60) et
+              // #sujet-terminé (50). Les +5/+10 suivent le rythme des posts
+              // et n'ont aucune valeur d'audit.
+              if (bonus >= 25) {
+                journaux.push(["tags_usage", { date: new Date().toISOString(), membre: pseudo, tag, montant: bonus, url: location.href }]);
+              }
             }
           }
           if (tagBonus > 0) { gain += tagBonus; console.log(`[EcoV2][TAG BONUS] total +${tagBonus}, gain ${gain}`); }
@@ -382,7 +387,6 @@ function getWordCountBonus(words) {
           deltaDollars += nextReward.reward;
           nouveauPalier = nextReward.threshold;
           console.log(`[EcoV2][PALIER] ${pseudo} → ${nextReward.threshold} msg → +${nextReward.reward}$`);
-          journaux.push(["rewards_messages", { date: new Date().toISOString(), membre: pseudo, palier: nextReward.threshold, montant: nextReward.reward }]);
           showEcoGain(nextReward.reward);
         }
       } catch (e) { console.warn("[EcoV2] erreur paliers", e); }
