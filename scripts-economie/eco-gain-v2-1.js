@@ -363,10 +363,15 @@ function getWordCountBonus(words) {
           const postBodies = Array.from(document.querySelectorAll(".sj-postmsg, .sj-post-msg, .postbody, .content-message"));
           if (postBodies.length > 0) {
             const wordCount = countWordsFromElement(postBodies[postBodies.length - 1]);
-            const lengthBonus = getWordCountBonus(wordCount);
+                        const lengthBonus = getWordCountBonus(wordCount);
             console.log(`[EcoV2][BONUS LONGUEUR] ${wordCount} mots`);
-            if (lengthBonus > 0) { gain += lengthBonus; console.log(`[EcoV2][BONUS LONGUEUR] +${lengthBonus}`); }
-            journaux.push(["rewards_wordcount", { date: new Date().toISOString(), membre: pseudo, mots: wordCount, montant: lengthBonus, url: location.href }]);
+            // [MAJ] Journal conditionné au gain : la ligne était hors du if,
+            // ce qui enregistrait tous les posts RP, y compris à 0 $.
+            if (lengthBonus > 0) {
+              gain += lengthBonus;
+              console.log(`[EcoV2][BONUS LONGUEUR] +${lengthBonus}`);
+              journaux.push(["rewards_wordcount", { date: new Date().toISOString(), membre: pseudo, mots: wordCount, montant: lengthBonus, url: location.href }]);
+            }
           }
         }
       } catch (e) { console.warn("[EcoV2][BONUS LONGUEUR] erreur", e); }
