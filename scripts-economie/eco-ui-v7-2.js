@@ -247,10 +247,11 @@ console.log("[EcoV2] >>> eco-ui chargé");
       await window.EcoCore.firebaseUpdate(updates).catch(e => err("création membre", e));
     } else {
       const m = record.membres[pseudo];
-      // compteur de messages — toujours
-      m.messages = getMessagesCount();
-      await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/messages", m.messages).catch(()=>{});
-      // uid manquant
+      const nb = getMessagesCount();
+      if (m.messages !== nb) {                         // [MAJ] n'écrire que si ça a changé
+        m.messages = nb;
+        await window.EcoCore.writeField("membres/" + encodeURIComponent(pseudo) + "/messages", nb).catch(()=>{});
+      }
       if(!m.uid){
         m.uid = uid; record.uid_index[uid] = pseudo;
         await window.EcoCore.firebaseUpdate({
