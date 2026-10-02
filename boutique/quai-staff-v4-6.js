@@ -354,7 +354,7 @@
         }
       }
     } catch(e){}
-    E().invalidateCache(); await charger(); render();
+    E().invalidateCache(); 
   }
 
   async function regler(source, pseudo, key, idx, montant, cag){
@@ -367,7 +367,7 @@
         var op = {}; op[CFG.NODE_MEMBRES+"/"+pseudo+"/prets/"+key] = null; await E().firebaseUpdate(op);
       } catch(e){ if (e&&e.message==="FONDS"){ alert(pseudo+" n'a pas les fonds pour rembourser ("+money(montant)+")."); return; } if (window.console) console.error("[quais-staff] remboursement", e); alert("Remboursement impossible."); return; }
       dettesList = dettesList.filter(function(x){ return !(x.source==="pret" && x.pseudo===pseudo && x.key===key); });
-      render(); E().invalidateCache(); charger().then(render); return;
+      E().invalidateCache(); 
     }
     if (!confirm("Régler et retirer cette entrée de "+pseudo+" ? (à faire quand elle a été honorée en RP)")) return;
     try {
@@ -382,8 +382,7 @@
       }
     } catch(e){ if (window.console) console.error("[quais-staff] régler", e); alert("Impossible de régler l'entrée."); return; }
     dettesList = dettesList.filter(function(x){ return !(x.pseudo===pseudo && ((source==="dette"&&x.key===key) || (source==="lien"&&String(x.idx)===String(idx)))); });
-    render();
-    E().invalidateCache(); charger().then(render);
+    E().invalidateCache(); 
   }
 
   async function charger(){
