@@ -590,3 +590,34 @@
   .tdlhc-anim-d,.tdlhc-anim-g{animation:none}
   .tdlhc-onglet::after,.tdlhc-volet,.tdlhc-voile,.tdlhc-toast{transition:none}
 }
+
+/* ================================================================
+   THE HOUMA COURIER — ajouts du lot 1, à coller à la fin de CSS-courier.css
+   ================================================================ */
+
+/* emplacements du mastic : Accueil à gauche, boutons des lots 2 et 3 */
+.tdlhc-slot{display:flex;align-items:center;gap:10px}
+.tdlhc-slot:empty{display:none}
+a.tdlhc-btn{text-decoration:none}
+.tdlhc-corps > .tdlhc-chargement{flex:1 1 auto}
+
+.tdlhc-leg{cursor:pointer}
+.tdlhc-lect-corps a{color:var(--dark2)}
+
+/* encart « dossier du shérif » (clé ENQUETE) */
+.tdlhc-enquete{display:flex;align-items:flex-start;gap:12px;margin:26px 0 0;padding:13px 16px;
+               border:1px solid var(--darkopa3);background:var(--cntr1)}
+.tdlhc-enquete i{margin-top:2px;font-size:20px;color:var(--gr3-color)}
+.tdlhc-enquete b{display:block;font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.09em;
+                 text-transform:uppercase;color:var(--dark)}
+.tdlhc-enquete span{display:block;margin-top:3px;font-family:var(--font2);font-size:16px;color:var(--dark)}
+
+/* lettres reçues sous un article (clé REPONSE_A) */
+.tdlhc-reponses{margin:30px 0 0;padding-top:16px;border-top:1px solid var(--darkopa3)}
+.tdlhc-reponses h4{margin:0 0 6px;font-family:var(--title1);font-size:14px;font-weight:600;letter-spacing:.1em;
+                   text-transform:uppercase;color:var(--dark)}
+.tdlhc-reponse{padding:10px 0;cursor:pointer;border-bottom:1px solid var(--darkopa2)}
+.tdlhc-reponse b{display:block;font-family:var(--font2);font-size:16px;font-weight:500;color:var(--dark);transition:color .16s}
+.tdlhc-reponse:hover b{color:var(--dark2)}
+.tdlhc-reponse span{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--darkopa5)}
+.tdlhc-lect-corps p.tdlhc-enreponse{margin:14px 0 0;font-size:14px;color:var(--darkopa5)}
