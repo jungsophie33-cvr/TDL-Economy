@@ -73,8 +73,8 @@
   function corpsHtml(c){
     return (c.corps||[]).map(function(b){
       if (b.t!=="cit") return "<p>" + b.html + "</p>";
-      return '<div class="tdlhc-citation" style="--c:' + coul(c) + '"><blockquote>' + esc(b.texte) + '</blockquote>'
-        + '<cite><b>' + esc(b.auteur) + '</b>' + (b.qualite ? '<span>' + esc(b.qualite) + '</span>' : "") + '</cite></div>';
+        return '<div class="tdlhc-citation" style="--c:' + coul(c) + '"><div class="tdlhc-cit-texte">' + esc(b.texte) + '</div>'
+        + '<div class="tdlhc-cit-source"><b>' + esc(b.auteur) + '</b>' + (b.qualite ? '<span>' + esc(b.qualite) + '</span>' : "") + '</div></div>';
     }).join("");
   }
   function chargement(){ return '<div class="tdlhc-plein"><div class="tdlhc-chargement">' + esc(TXT.CHARGEMENT) + '</div></div>'; }
