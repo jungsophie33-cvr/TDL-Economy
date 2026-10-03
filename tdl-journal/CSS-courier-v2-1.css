@@ -628,3 +628,14 @@ a.tdlhc-btn{text-decoration:none}
 .tdlhc-reponse:hover b{color:var(--dark2)}
 .tdlhc-reponse span{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--darkopa5)}
 .tdlhc-lect-corps p.tdlhc-enreponse{margin:14px 0 0;font-size:14px;color:var(--darkopa5)}
+
+/* ================================================================
+   THE HOUMA COURIER — ajouts du lot 2, à coller à la fin de CSS-courier.css
+   ================================================================ */
+.tdlhc-pied-btns{display:flex;gap:10px}
+.tdlhc-pastille[hidden],.tdlhc-quota[hidden]{display:none}
+.tdlhc-champ textarea.tdlhc-ta-court{min-height:86px}
+.tdlhc-champ textarea.tdlhc-ta-long{min-height:190px}
+.tdlhc-volet .tdlhc-chargement{padding:20px 0}
+.tdlhc-espace{margin-top:18px}
+.tdlhc-pige{margin-top:6px}
