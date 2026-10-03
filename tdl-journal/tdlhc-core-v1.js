@@ -271,13 +271,14 @@
     corps.appendChild(sec); def.section = sec;
   }
   function construire(){
-    root.innerHTML = '<header class="tdlhc-mastic"><div class="tdlhc-mastic-haut">'
-      + '<div class="tdlhc-folio">' + esc(TXT.FOLIO_G) + '</div><div class="tdlhc-titre">' + esc(TXT.TITRE) + '</div>'
-      + '<div class="tdlhc-folio d">' + esc(TXT.FOLIO_D) + ' · ' + esc(dateDuJour()) + '</div></div>'
-      + '<div class="tdlhc-mastic-bas"><span class="tdlhc-slot" id="tdlhc-slot-g">'
-      +   '<a class="tdlhc-btn creux" href="' + CFG.FORUM_HOME + '"><i class="fi fi-tr-house-flood"></i> ' + esc(TXT.ACCUEIL) + '</a></span>'
-      + '<div class="tdlhc-filet"></div><div class="tdlhc-devise">' + esc(TXT.DEVISE) + '</div><div class="tdlhc-filet"></div>'
-      + '<span class="tdlhc-slot" id="tdlhc-slot-d"></span></div></header>'
+        root.innerHTML = '<header class="tdlhc-mastic"><div class="tdlhc-mastic-haut">'
+      + '<div class="tdlhc-folio"><a class="tdlhc-accueil" href="' + CFG.FORUM_HOME + '" title="' + esc(TXT.ACCUEIL) + '" aria-label="'
+      +   esc(TXT.ACCUEIL) + '"><i class="fi fi-tr-house-flood"></i></a><span class="tdlhc-folio-txt">' + esc(TXT.FOLIO_G) + '</span></div>'
+      + '<div class="tdlhc-titre">' + esc(TXT.TITRE) + '</div>'
+      + '<div class="tdlhc-folio d"><span class="tdlhc-folio-txt">' + esc(TXT.FOLIO_D) + ' · ' + esc(dateDuJour()) + '</span></div></div>'
+      + '<div class="tdlhc-mastic-bas"><div class="tdlhc-mastic-cote"><span class="tdlhc-slot" id="tdlhc-slot-g"></span><div class="tdlhc-filet"></div></div>'
+      + '<div class="tdlhc-devise">' + esc(TXT.DEVISE) + '</div>'
+      + '<div class="tdlhc-mastic-cote"><div class="tdlhc-filet"></div><span class="tdlhc-slot" id="tdlhc-slot-d"></span></div></div></header>'
       + '<div class="tdlhc-corps"><nav class="tdlhc-catcol"></nav><div class="tdlhc-chargement" id="tdlhc-init">' + esc(TXT.CHARGEMENT) + '</div></div>';
     VUES.forEach(ajouterVue);
   }
