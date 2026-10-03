@@ -271,7 +271,7 @@
     corps.appendChild(sec); def.section = sec;
   }
   function construire(){
-        root.innerHTML = '<header class="tdlhc-mastic"><div class="tdlhc-mastic-haut">'
+    root.innerHTML = '<header class="tdlhc-mastic"><div class="tdlhc-mastic-haut">'
       + '<div class="tdlhc-folio"><a class="tdlhc-accueil" href="' + CFG.FORUM_HOME + '" title="' + esc(TXT.ACCUEIL) + '" aria-label="'
       +   esc(TXT.ACCUEIL) + '"><i class="fi fi-tr-house-flood"></i></a><span class="tdlhc-folio-txt">' + esc(TXT.FOLIO_G) + '</span></div>'
       + '<div class="tdlhc-titre">' + esc(TXT.TITRE) + '</div>'
@@ -385,6 +385,7 @@
     toutCharge:function(){ return DATA.tout; },
     parAncre:function(a){ return DATA.parAncre[a] || null; },
     numeroAvis:numeroAvis, fb:fb, journal:journal,
+    fbInvalider:function(){ DATA.fb = null; },
     pseudo:pseudo, isStaff:isStaff,
     slot:function(cote){ return root && root.querySelector("#tdlhc-slot-" + cote); },
     racine:function(){ return root; },
