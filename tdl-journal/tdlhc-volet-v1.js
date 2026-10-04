@@ -50,6 +50,7 @@
     NOTE_CHOIX:"Toute soumission est relue par la rédaction avant parution. Les sommes sont retenues au dépôt et rendues si le texte n'est pas retenu.",
     CHOISIR:"Sélectionnez un type de parution", RETOUR:"Retour", ENVOYER:"Envoyer à la rédaction", RENVOYER:"Renvoyer à la rédaction",
     REPRENDRE:"Reprendre — ", CHARGEMENT:"Un instant…", ENVOI:"Envoi en cours…",
+    ERR_INATTENDUE:"Une erreur inattendue est survenue. Vérifiez dans Mes soumissions : si elle y figure, votre soumission est bien partie.",
     COUT_CORR:"Correspondance — 50 $ versés à la parution", COUT_PIGE:"Pige — 80 $ versés à la parution",
     OPTIONNEL:"optionnel", EN_JEU:"en jeu",
     ENC_CIVIL:["Un avis d'état civil engage une famille",
@@ -333,6 +334,9 @@
       var r = await V.hooks.envoyer(etat.type, collecter());
       if (r && r.ok) { ferme(); A.toast(r.message); if (V.hooks.apres) V.hooks.apres(); }
       else if (r && r.erreurs) alerte(r.erreurs);
+    } catch(e){
+      if (window.console) console.error("[Courier] envoi", e);
+      alerte(TXT.ERR_INATTENDUE);
     } finally { etat.occupe = false; el.envoyer.disabled = false; lib.textContent = avant; }
   }
   function brancher(){
@@ -367,6 +371,7 @@
   }
   function demarrer(){
     var C = window.Courier; A = C.api;
+    if (!A.estPageJournal()) return;                       /* rien à construire hors de la page du sujet */
     V = C.volet = { CFG:CFG, TYPES:TYPES, TXT:TXT, hooks:{},
                     ouvre:ouvre, ferme:ferme, alerte:alerte, etapeLibre:etapeLibre, etapeChoix:etapeChoix,
                     corps:function(){ return el.corps; }, pastille:function(){ return A.slot("d") && A.slot("d").querySelector('[data-zone="pastille"]'); } };
