@@ -639,6 +639,7 @@ a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
 .tdlhc-volet .tdlhc-chargement{padding:20px 0}
 .tdlhc-espace{margin-top:18px}
 .tdlhc-pige{margin-top:6px}
+.tdlhc-statut.retiree{--c:var(--darkopa5)}
 
 /* ligne visée depuis Mes soumissions ou une notification : bref surlignage */
 @keyframes tdlhc-vise{from{background:var(--clair2opa3)}to{background:transparent}}
