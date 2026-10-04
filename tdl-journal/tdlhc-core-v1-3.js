@@ -54,6 +54,7 @@
     ERR_ECO:    "EcoCore introuvable — vérifie l'ordre de chargement (eco-core avant tdlhc-core).",
     ERR_VUES:   "Aucune rubrique chargée — tdlhc-rendu.js est-il bien inclus après tdlhc-core.js ?",
     HIER:       "hier",
+    INTROUVABLE:"Ce contenu n'a pas été trouvé dans le journal.",
     IL_Y_A:     function (n, u) { return "il y a " + n + " " + u; }
   };
 
@@ -329,7 +330,11 @@
   async function ouvrirContenu(a){
     if (!DATA.parAncre[a]) await chargerTout();
     var c = DATA.parAncre[a];
-    montre(c ? VUE_DU_TYPE[c.type] : "une", c ? { ancre:a } : {});
+    if (!c) {
+      if (window.console) console.warn("[Courier] ancre introuvable : " + a + " — ancres lues dans le sujet :", Object.keys(DATA.parAncre).slice(0, 12));
+      toast(TXT.INTROUVABLE); return;
+    }
+    montre(VUE_DU_TYPE[c.type], { ancre:a });
   }
   function marquer(a){
     try { history.replaceState(null, "", location.pathname + location.search + "#hc=art-" + a); } catch(e){}
@@ -383,7 +388,7 @@
   /* ===================== EXPORT ===================== */
   var API = {
     CFG:CFG, esc:esc, desc:desc, texteBrut:texteBrut, versTableau:versTableau, ms:ms,
-    dateLisible:dateLisible, depuis:depuis, anime:anime, montre:montre, toast:toast, marquer:marquer,
+    dateLisible:dateLisible, depuis:depuis, anime:anime, montre:montre, toast:toast, marquer:marquer, ouvrirContenu:ouvrirContenu,
     contenus:contenus, chargerJusqua:chargerJusqua, chargerTout:chargerTout,
     toutCharge:function(){ return DATA.tout; },
     parAncre:function(a){ return DATA.parAncre[a] || null; },
