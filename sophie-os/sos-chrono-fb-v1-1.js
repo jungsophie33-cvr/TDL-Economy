@@ -30,6 +30,7 @@
   /* ===================== CONFIG ===================== */
   var CFG = {
     NODE_AJOUTS:  'chrono',            /* [MAJ] ajouts du staff */
+    NODE_CONFIG:  'chrono_config',     /* périodes et catégories, publiées ici pour le formulaire de demande */
     NODE_JOURNAL: 'chrono_journal',    /* [MAJ] écrit par le bureau du Courier */
     NODE_UID:     'uid_index',         /* uid → pseudo ; un uid absent = membre parti */
     NODE_MEMBRES: 'membres',
@@ -112,6 +113,27 @@
     Object.keys(nj).forEach(function (id) { if (nj[id] && nj[id].titre) { out.push(depuisJournal(id, nj[id])); } });
     Object.keys(na).forEach(function (id) { if (na[id] && na[id].t) { out.push(depuisAjout(id, na[id])); } });
     return out;
+  }
+
+  /* ===================== PUBLICATION DE LA STRUCTURE =====================
+     Le formulaire de demande vit dans un autre sujet et ne lit pas le post de
+     l'annexe. Plutôt que d'y recopier les périodes et les catégories, la
+     chronologie les publie : une seule source, aucune dérive possible.
+     Écrit par le staff seulement, et seulement si quelque chose a changé. */
+  async function publierConfig(api) {
+    if (!staff() || !RACINE) { return; }
+    var d = api.d;
+    var conf = {
+      periodes: d.periodes.map(function (p) { return { id: p.id, t: p.t, d: p.d }; }),
+      cats: d.ordreCats.map(function (k) { return { id: k, l: d.cats[k].l, c: d.cats[k].c }; })
+    };
+    var avant = RACINE[CFG.NODE_CONFIG];
+    if (avant && JSON.stringify(avant.periodes) === JSON.stringify(conf.periodes)
+             && JSON.stringify(avant.cats) === JSON.stringify(conf.cats)) { return; }
+    conf.maj = new Date().toISOString();
+    var m = {}; m[CFG.NODE_CONFIG] = conf;
+    try { await E().firebaseUpdate(m); }
+    catch (e) { if (global.console) { console.warn('[Chrono] publication de la structure', e); } }
   }
 
   /* ===================== CROCHETS DE RENDU ===================== */
@@ -245,7 +267,7 @@
     });
     f.addEventListener('submit', function (ev) { ev.preventDefault(); envoyer(api, f); });
 
-    rafraichir(api);
+    rafraichir(api).then(function () { publierConfig(api); });
   }
 
   function demarrer(n) {
