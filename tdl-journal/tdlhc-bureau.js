@@ -36,7 +36,7 @@
                emploi:"Emploi", logement:"Logement", services:"Services", vendre:"À vendre", perso:"Avis personnels" };
 
   var TXT = {
-    BOUTON:"Bureau de rédaction", TITRE:"Bureau de rédaction", FOLIO:"The Houma Courier · réservé au staff",
+    BOUTON:"Bureau de rédaction", TITRE:"Bureau de rédaction", FOLIO:"The Houma Courier ⟡ réservé au staff",
     RETOUR_JOURNAL:"Retour au journal", RETOUR_LISTE:"À relire", A_RELIRE:"À relire",
     EN_ATTENTE:function(n){ return n + " en attente"; },
     VIDE_LISTE:"Rien à relire. La rédaction peut souffler.", VIDE_FICHE:"Sélectionnez une soumission dans la liste.",
@@ -46,7 +46,7 @@
     CITES:"Joueurs cités", RETENU:"Retenu", SIGNATURE:"Signature", LIEU:"Lieu", REPONSE:"En réponse à", RUBRIQUE:"Rubrique",
     DUREE:"Durée", JOURS:function(n){ return n + " jours"; }, SECTEUR:"Secteur", LIEN:"Lien", NATURE:"Nature",
     FAMILLE:"Famille", PERSONNES:"Personnes", CEREMONIE:"Cérémonie", AFFAIRE:"Affaire", ENQUETE:"Enquête",
-    PSEUDONYME:function(a){ return "pseudonyme — auteur réel : " + a; }, A_LA_PARUTION:function(n){ return n + " $ à la parution"; },
+    PSEUDONYME:function(a){ return "pseudonyme ; auteur réel : " + a; }, A_LA_PARUTION:function(n){ return n + " $ à la parution"; },
     NON_REMUNERE:"non rémunéré (sous le plancher)", NOUVELLE:function(n){ return "nouvelle : " + n; },
     VERIFS:"Vérifications", ECHANGES:"Échanges", AUCUN_ECHANGE:"Première relecture, aucun échange.",
     PLANCHER:"Plancher", PLANCHER_D:function(n, m){ return n + " signes pour " + m + " requis" + (n < m ? " — paraîtra sans rémunération" : "") + "."; },
