@@ -63,6 +63,9 @@
   function versTableau(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
   function texteBrut(html){ return desc(String(html||"").replace(/<[^>]*>/g,"")); }
   function E(){ return window.EcoCore; }
+  /* Seule la page du sujet monte le journal : « Poster une réponse » affiche aussi le premier
+     message dans la revue du sujet, avec son #tdlhc-app. */
+  function estPageJournal(){ return new RegExp("^/t" + CFG.SUJET_ID + "(?:p\\d+)?-").test(location.pathname); }
   function pseudo(){ try { return E().getPseudo(); } catch(e){ return null; } }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
   function ms(v){ return typeof v==="number" ? v : (Date.parse(v||"") || 0); }
@@ -355,7 +358,7 @@
   function quandPret(cb, n){
     n = n||0;
     var mount = document.querySelector(CFG.MONTAGE);
-    if (!mount) return;                                    /* pas la page du journal : on ne fait rien */
+    if (!mount || !estPageJournal()) return;               /* pas la page du journal : on ne fait rien */
     var eco = window.EcoCore && typeof EcoCore.safeReadBin==="function";
     if (eco && VUES.length) { cb(mount); return; }
     if (n > CFG.RETRY_MAX) {
@@ -386,7 +389,7 @@
     parAncre:function(a){ return DATA.parAncre[a] || null; },
     numeroAvis:numeroAvis, fb:fb, journal:journal,
     fbInvalider:function(){ DATA.fb = null; },
-    pseudo:pseudo, isStaff:isStaff,
+    pseudo:pseudo, isStaff:isStaff, estPageJournal:estPageJournal,
     slot:function(cote){ return root && root.querySelector("#tdlhc-slot-" + cote); },
     racine:function(){ return root; },
     soumettre:null                                         /* posé par le volet (lot 2) */
