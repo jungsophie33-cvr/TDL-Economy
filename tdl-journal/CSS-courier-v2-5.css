@@ -639,8 +639,14 @@ a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
 .tdlhc-volet .tdlhc-chargement{padding:20px 0}
 .tdlhc-espace{margin-top:18px}
 .tdlhc-pige{margin-top:6px}
-.tdlhc-statut.retiree{--c:var(--darkopa5)}
 
 /* ligne visée depuis Mes soumissions ou une notification : bref surlignage */
 @keyframes tdlhc-vise{from{background:var(--clair2opa3)}to{background:transparent}}
 .tdlhc-row.vise{animation:tdlhc-vise 2.4s ease-out}
+
+/* contenu retiré par la rédaction, dans Mes soumissions */
+.tdlhc-statut.retiree{--c:var(--darkopa5)}
+
+/* bureau : champs d'entrée dans la chronologie */
+.tdlhc-chrono{margin-top:14px}
+.tdlhc-act .tdlhc-aide{margin-top:4px}
