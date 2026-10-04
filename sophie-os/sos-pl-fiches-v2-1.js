@@ -128,18 +128,19 @@
       .join('');
   }
 
-  function enrichit(modele, idx) {
+    function enrichit(modele, idx) {
     modele.fiches.forEach(function (f) {
       var e = T.trouve(idx, f.fc, f.nom);
       if (!e) {
         if (!f.statutForce) alerte('introuvable dans le bottin : ' + f.nom + ' (préciser FC:)');
         return;
       }
-      if (!f.image && e.image) f.image = e.image;
+      if (e.image) f.image = e.image;
       if (!f.fc && e.acteur) f.fc = e.acteur;
+
       if (String(e.statut || '').toLowerCase() === 'pris') {
         f.uid = e.uid || null;
-        if (!f.statutForce) f.statut = 'pris';
+        if (f.statut !== 'dcd') f.statut = 'pris';
       } else if (!f.statutForce) f.statut = 'libre';
     });
   }
