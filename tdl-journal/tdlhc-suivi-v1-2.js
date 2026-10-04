@@ -21,7 +21,7 @@
   var CFG = { MAX_MES:8, N_ACCORD_REFUSE:197 };
   var VOLET_DU_TYPE = { "annonce":"annonce", "etat-civil":"civil", "rumeur":"rumeur", "lettre":"lettre", "prelien":"prelien", "article":"article" };
   var RUBRIQUE_DU_TYPE = { "annonce":"annonces", "prelien":"annonces", "rumeur":"une" };
-  var STATUT = { relecture:"En relecture", retouche:"Retouche demandée", marbre:"Au marbre", publiee:"Publiée", refusee:"Refusée" };
+  var STATUT = { relecture:"En relecture", retouche:"Retouche demandée", marbre:"Au marbre", publiee:"Publiée", refusee:"Refusée", retiree:"Retirée" };
   var ATTENDU = { relecture:1, retouche:1, marbre:1 };
   var SOUS_ARTICLE = { correspondant:"Correspondance", pigiste:"Pige" };
 
@@ -88,9 +88,9 @@
   }
   function htmlArchive(x){
     var a = x.a, cible = a.ancre ? ' data-ancre="' + esc(a.ancre) + '"' : ' data-rub="' + esc(RUBRIQUE_DU_TYPE[a.type] || "une") + '"';
-    return '<div class="tdlhc-mes-item" data-id="' + esc(x.id) + '">' + tete("publiee", a.publie) + '<h5>' + esc(a.titre || "") + '</h5>'
-      + '<div class="tdlhc-mes-pied"><span>' + esc(typeLabel(a)) + '</span><button class="tdlhc-sup" type="button" data-action="voir"' + cible + '>'
-      + esc(a.ancre ? TXT.LIRE : TXT.VOIR) + '</button></div></div>';
+      return '<div class="tdlhc-mes-item" data-id="' + esc(x.id) + '">' + tete(a.retire ? "retiree" : "publiee", a.retire || a.publie) + '<h5>' + esc(a.titre || "") + '</h5>'
+      + '<div class="tdlhc-mes-pied"><span>' + esc(typeLabel(a)) + '</span>' + (a.retire ? "" : '<button class="tdlhc-sup" type="button" data-action="voir"' + cible + '>'
+      + esc(a.ancre ? TXT.LIRE : TXT.VOIR) + '</button>') + '</div></div>';
   }
   function htmlMeta(x){
     var m = x.m, s = m.statut, e = dernier(m), corps = "", pied = typeLabel(m);
