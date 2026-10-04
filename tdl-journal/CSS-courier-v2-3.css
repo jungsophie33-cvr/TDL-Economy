@@ -605,7 +605,7 @@
 /* emplacements du mastic : Accueil à gauche, boutons des lots 2 et 3 */
 .tdlhc-slot{display:flex;align-items:center;gap:10px}
 .tdlhc-slot:empty{display:none}
-a.tdlhc-btn{text-decoration:none}
+a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
 .tdlhc-corps > .tdlhc-chargement{flex:1 1 auto}
 
 .tdlhc-leg{cursor:pointer}
