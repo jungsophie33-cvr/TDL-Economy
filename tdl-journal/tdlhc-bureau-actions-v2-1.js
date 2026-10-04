@@ -70,8 +70,8 @@
     LIBELLE:function(t, titre){ return t + " · " + titre; },
     CHRONO:"Entrée dans la chronologie",
     CHRONO_AIDE:"Réservé aux piges. Une correspondance ne rejoint jamais la chronologie de la paroisse.",
-    CHRONO_NIV:[["aucun","N'entre pas"],["mineur","Mineur — entre dans la frise"],
-                ["majeur","Majeur — entre dans la frise et prévient le forum"]],
+    CHRONO_NIV:[["aucun","N'entre pas"],["mineur","Mineur : entre dans la timeline"],
+                ["majeur","Majeur : entre dans la timeline et prévient le forum"]],
     CHRONO_CAT:"Catégorie dans la frise",
     OK_CHRONO:" Entré dans la chronologie.",
     TITRE_CIVIL:{ naissance:function(c){ return "Naissance — famille " + c.famille; }, mariage:function(c){ return "Mariage — " + c.personnes; },
@@ -328,7 +328,7 @@
     var C = window.Courier; A = C.api; Bu = C.bureau;
     Bu.panneaux = panneaux; Bu.panneauPost = panneauPost; Bu.genererPost = genererPost; Bu.slug = slug; Bu.enveloppe = enveloppe;
     Bu.corpsPost = corpsPost; Bu.crediter = crediter; Bu.refuser = refuser;
-    Bu.N_CHRONO = CFG.NODE_CHRONO; Bu.PERIODE_CHRONO = CFG.PERIODE_CHRONO; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
+    Bu.N_CHRONO = CFG.NODE_CHRONO; Bu.PERIODE_CHRONO = CFG.PERIODE_CHRONO; Bu.CATS_CHRONO = CFG.CATS_CHRONO; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
     Bu.actions.ouvrir = ouvrirPanneau;
     Bu.actions.annuler = function(){ Array.prototype.forEach.call(fiche().querySelectorAll(".tdlhc-act"), function(p){ p.hidden = true; }); };
     Bu.actions.copier = copier;
