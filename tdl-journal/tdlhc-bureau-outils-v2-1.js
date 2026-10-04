@@ -201,7 +201,7 @@
           return '<label class="tdlhc-coche"><input type="radio" name="tdlhc-chrono" value="' + c[0] + '"' + (i===2 ? " checked" : "") + '><span><b>' + esc(c[1]) + '</b> — ' + esc(c[2]) + '</span></label>';
         }).join("") + '</div>')
       + '<div data-zone="c-cat" hidden>' + champ(TXT.CHRONO_CAT, '<select data-z="chrono_cat">'
-          + A.envoi.CFG.CATS_CHRONO.map(function(x){ return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join("")
+          + (Bu.CATS_CHRONO || []).map(function(x){ return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join("")
           + '</select>') + '</div>'
       + champ(TXT.CHAPO, '<textarea class="tdlhc-ta-court" data-z="chapo"></textarea>') + champ(TXT.IMAGE, '<input type="text" data-z="image" placeholder="https://…">')
       + champ(TXT.TEXTE, '<textarea class="tdlhc-ta-long" data-z="texte"></textarea><p class="tdlhc-aide">' + esc(TXT.TEXTE_AIDE) + '</p>')
