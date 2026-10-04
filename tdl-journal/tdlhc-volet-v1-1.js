@@ -18,7 +18,7 @@
 
   /* ===================== CONFIG ===================== */
   var CFG = {
-    SECTEURS: ["Houma", "Bayou Black", "Dulac", "Montegut", "Chauvin", "Petit Caillou"],
+    SECTEURS: ["Houma", "Bayou Cane", "Bayou Blue", "Bourg", "Ashland", "Montegut", "Chauvin", "Cocodrie"],
     MAX: { titre:70, annonce:400, civil:300, rumeur:200, lettre:1500, prelien:300, chapo:320, citation:180 },
     MAX_CITATIONS: 2
   };
