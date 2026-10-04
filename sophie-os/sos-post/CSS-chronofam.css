@@ -1,0 +1,71 @@
+/* =============================================================
+   SOS — FRISE FAMILIALE (CSS-chronofam.css)
+   -------------------------------------------------------------
+   Styles du bloc « chronofam » et des blocs en ligne. Aucune
+   couleur en dur : tout vient de la charte.
+
+   .tdl-bloc est masqué jusqu'à son rendu, pour qu'un lecteur ne
+   voie jamais le markdown brut. sos-inline.js pose .tdl-bloc-pret,
+   y compris s'il échoue : rien ne peut rester invisible.
+   ============================================================= */
+
+/* ---------- blocs en ligne dans un message ordinaire ---------- */
+.tdl-bloc{display:none}
+.tdl-bloc.tdl-bloc-pret{display:block;margin:18px 0}
+
+/* Ni cadre ni en-tête : le message ForumActif porte déjà les siens.
+   .cf ne sert que de racine au bloc et de portée aux règles. */
+
+/* ---------- la colonne et son fil ----------
+   Deux traits superposés : la gorge, fixe, et le remplissage, dont la
+   hauteur est écrite au défilement. --debut et --fin sont mesurés une
+   fois montés, pour que le fil s'arrête pile sur la dernière pastille. */
+.cf-liste{position:relative}
+.cf-liste::before,.cf-liste::after{content:'';position:absolute;left:5px;width:1px;
+  top:var(--debut,10px)}
+.cf-liste::before{height:calc(var(--fin,100%) - var(--debut,10px));background:var(--darkopa2)}
+/* le remplissage tient la hauteur totale du fil et se dévoile par clip-path :
+   le dégradé garde ainsi ses deux bouts, quel que soit l'avancement */
+.cf-liste::after{height:calc(var(--fin,100%) - var(--debut,10px));
+  background:linear-gradient(180deg,var(--clair2) 0%,var(--dark2) 100%);
+  clip-path:inset(0 0 calc(100% - var(--rempli,0px)) 0);
+  transition:clip-path .18s linear}
+
+.cf-ev{position:relative;padding:0 0 22px 34px}
+.cf-ev:last-child{padding-bottom:0}
+/* la pastille : creuse, puis pleine quand la lecture l'a dépassée.
+   --c est posé par le script : la teinte suit le dégradé du fil. */
+.cf-pt{position:absolute;left:0;top:4px;width:11px;height:11px;border-radius:50%;
+       background:var(--clair1);border:2px solid var(--darkopa3);
+       transition:border-color .3s,background .3s,transform .3s}
+.cf-ev.passe .cf-pt{border-color:var(--c,var(--dark2));background:var(--c,var(--dark2));transform:scale(1.2)}
+
+/* date et titre sur une seule ligne */
+.cf-ligne{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 18px;margin-bottom:4px}
+.cf-date{flex:0 0 auto;padding:2px 9px;border-radius:4px;border:1px solid var(--darkopa2);
+         background:var(--clair1opa8);font-family:var(--txt3);font-size:12px;font-weight:600;
+         letter-spacing:.1em;color:var(--darkopa5);white-space:nowrap;
+         transition:color .3s,border-color .3s}
+.cf-ev.passe .cf-date{color:var(--c,var(--dark2));border-color:var(--c,var(--dark2))}
+.cf-titre{flex:1 1 auto;min-width:0;font-family:var(--font2);font-size:17px;font-weight:500;
+          line-height:1;color:var(--cntr0);background:var(--gradark);background-clip:text;font-style:italic;letter-spacing:-1px;}
+.cf-txt{font-size:15px;line-height:1.7;color:var(--txt)}
+/* SOS rend un paragraphe par ligne : on maîtrise leurs marges */
+.cf-txt p{margin:0 0 8px}
+.cf-txt p:last-child{margin-bottom:0}
+.cf-txt i,.cf-txt em{font-family:var(--font2);font-style:italic}
+.cf-txt b,.cf-txt strong{font-weight:600;color:var(--dark)}
+.cf-txt a{color:var(--dark2);text-decoration:none;border-bottom:1px dotted var(--clair2)}
+
+.cf-note{margin:22px 0 0;padding-top:16px;border-top:1px solid var(--darkopa2);
+         font-family:var(--txt1);font-style:italic;font-size:16px;line-height:1.55;color:var(--darkopa6)}
+
+@media(max-width:720px){
+  .cf-ev{padding-left:28px;padding-bottom:20px}
+  .cf-titre{font-size:17px;flex-basis:100%}
+}
+/* sans animation : le fil est entier, les pastilles toutes pleines */
+@media(prefers-reduced-motion:reduce){
+  .cf-liste::after{transition:none}
+  .cf-pt,.cf-date{transition:none}
+}
