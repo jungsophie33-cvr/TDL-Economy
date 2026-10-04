@@ -49,6 +49,13 @@
       url:       '/t37-02-le-contexte',
       icone:     'fi-sr-quill-pen-story'
     },
+
+     {
+      titre:     'La Chronologie',
+      soustitre: 'Deux siècles de lore, et la timeline du jeu.',
+      url:       '/t000-la-chronologie',          // ← URL réelle du topic
+      icone:     'fi-sr-time-past'
+    },
      
     {
       titre:     'Les Communautés',
