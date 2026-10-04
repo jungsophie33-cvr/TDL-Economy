@@ -26,7 +26,7 @@
     MARBRE_J:     7,
     DUREE_J:      { prelien:30, rumeur:14 },
     BADGE_SEUIL:  5,
-    N:            { RETOUCHE:182, PUBLICATION:183, REFUS:184, MARBRE:185, CITE:188, MAJEUR:189 }
+    N:            { RETOUCHE:192, PUBLICATION:193, REFUS:194, MARBRE:195, CITE:198, MAJEUR:199 }
   };
   var SUJET = { "article":1, "lettre":1, "etat-civil":1 };
   var MOTIFS_RETOUCHE = ["Accord d'un joueur cité manquant", "Plancher de signes non atteint", "Citation entre guillemets hors pige",
@@ -92,7 +92,8 @@
   async function crediter(p, n){
     await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0) + n; });
   }
-  function notifier(code, dest, vars){ A.envoi.notifier(code, dest, vars); }
+  function notifier(code, dest, vars, ref){ A.envoi.notifier(code, dest, vars, ref); }
+  function lienHc(h){ return A.envoi.lien(h); }
   function panneau(fiche, act){ return fiche && fiche.querySelector('.tdlhc-act[data-act="' + act + '"]'); }
   function fiche(){ return Bu.section("relire").querySelector(".tdlhc-fiche"); }
   /* « …t102-the-houma-courier#1234 », « …t102p25-…#1234 », « viewtopic?p=1234#1234 » → p1234 */
@@ -198,8 +199,8 @@
       try { await crediter(m.auteur, paye); msg += TXT.OK_PAYE(paye, m.auteur); }
       catch(e){ var r = {}; r[J() + "caisse/" + id + "-paie/etat"] = "a_verser"; ecrire(r).catch(function(){}); msg = TXT.ERR_PAIE; }
     }
-    notifier(CFG.N.PUBLICATION, m.auteur, { nom:m.titre, ancre:ancre });
-    if (m.cites) Object.keys(m.cites).forEach(function(p){ notifier(CFG.N.CITE, p, { nom:m.titre, ancre:ancre }); });
+    notifier(CFG.N.PUBLICATION, m.auteur, { titre:m.titre, montant:paye && msg!==TXT.ERR_PAIE ? paye : 0, url:lienHc("art-" + ancre) }, "hc-pub-" + id);
+    if (m.cites) Object.keys(m.cites).forEach(function(p){ notifier(CFG.N.CITE, p, { titre:m.titre, url:lienHc("art-" + ancre) }, "hc-cite-" + id + "-" + p); });
     A.toast(msg); Bu.rafraichir({ traitee:true });
   }
   async function publierFb(id){
@@ -215,7 +216,7 @@
     if (m.montant < 0) maj[J() + "caisse/" + id + "-depot/etat"] = "definitif";
     maj[J() + "soum_meta/" + id] = null; maj[J() + "soum_corps/" + id] = null;
     try { await ecrire(maj); } catch(e){ if (window.console) console.error("[Courier] publication", e); A.toast(TXT.ERR); return; }
-    notifier(CFG.N.PUBLICATION, m.auteur, { nom:m.titre });
+    notifier(CFG.N.PUBLICATION, m.auteur, { titre:m.titre, url:lienHc("rub-" + (m.type==="rumeur" ? "une" : "annonces")) }, "hc-pub-" + id);
     A.toast(TXT.OK_PUBLIE); Bu.rafraichir({ traitee:true });
   }
 
@@ -230,7 +231,7 @@
     maj[p + "statut"] = "retouche"; maj[p + "retouches"] = n; maj[p + "maj"] = now; maj[p + "reprise_avant"] = dansJours(CFG.DELAI_REPRISE_J);
     maj[p + "echanges"] = A.versTableau(m.echanges).concat([{ par:A.pseudo(), date:now, motifs:motifs, texte:texte }]);
     try { await ecrire(maj); } catch(e){ A.toast(TXT.ERR); return; }
-    notifier(CFG.N.RETOUCHE, m.auteur, { nom:m.titre, id:id });
+    notifier(CFG.N.RETOUCHE, m.auteur, { titre:m.titre, url:lienHc("soum-" + id) }, "hc-ret-" + id + "-" + n);
     A.toast(TXT.OK_RETOUCHE); Bu.rafraichir({ traitee:true });
   }
   async function marbre(id){
@@ -240,7 +241,7 @@
     maj[p + "statut"] = "marbre"; maj[p + "maj"] = maintenant();
     maj[p + "marbre"] = { jusqu_au:d, note:f.querySelector('[data-zone="m-note"]').value.trim(), par:A.pseudo() };
     try { await ecrire(maj); } catch(e){ A.toast(TXT.ERR); return; }
-    notifier(CFG.N.MARBRE, m.auteur, { nom:m.titre, id:id });
+    notifier(CFG.N.MARBRE, m.auteur, { titre:m.titre, url:lienHc("soum-" + id) }, "hc-marbre-" + id + "-" + d);
     A.toast(TXT.OK_MARBRE); Bu.rafraichir({ traitee:true });
   }
   /* Refus : aussi appelé sans fiche par les échéances (délai de reprise dépassé) */
@@ -256,7 +257,7 @@
       try { await crediter(m.auteur, rend); msg += TXT.OK_REMB(rend); }
       catch(e){ var r = {}; r[J() + "caisse/" + id + "-depot/etat"] = "a_rembourser"; ecrire(r).catch(function(){}); msg = TXT.ERR_REMB; }
     }
-    notifier(CFG.N.REFUS, m.auteur, { nom:m.titre, id:id });
+    notifier(CFG.N.REFUS, m.auteur, { titre:m.titre, rendu:rend && msg!==TXT.ERR_REMB ? rend : 0, url:lienHc("soum-" + id) }, "hc-refus-" + id);
     if (!silencieux) { A.toast(msg); Bu.rafraichir({ traitee:true }); }
     return true;
   }
