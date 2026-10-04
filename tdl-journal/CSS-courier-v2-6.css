@@ -132,7 +132,8 @@
 /* ================================================================
    4. CORPS, COLONNE DES RUBRIQUES, VUES
    ================================================================ */
-.tdlhc-corps{flex:1 1 auto;display:flex;min-height:0}
+.tdlhc-corps{flex:1 1 auto;display:flex;min-height:0;background: linear-gradient(var(--clair1) 20%, var(--clair1opa8) 90%, var(--cntr0)), var(--bgimg) center;
+background-size: cover;}
 
 .tdlhc-catcol{flex:0 0 212px;display:flex;flex-direction:column;overflow-y:auto;
               border-right:1px solid var(--darkopa3);background:var(--cntr1)}
@@ -222,7 +223,7 @@
 .tdlhc-item h5{margin:6px 0;font-family:var(--font2);font-size:17px;font-weight:500;line-height:1.26;color:var(--dark)}
 .tdlhc-item-meta{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--darkopa5)}
 
-.tdlhc-lect{flex:1 1 auto;min-width:0;overflow-y:auto;padding:26px 32px 38px;
+.tdlhc-lect{flex:1 1 auto;min-width:0;overflow-y:auto;padding:26px 32px 38px; -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px);
             display:grid;grid-template-columns:minmax(0,1fr) 248px;gap:34px;align-content:start}
 .tdlhc-lect-corps{min-width:0;max-width:74ch}
 .tdlhc-lect img.hero{display:block;width:100%;aspect-ratio:21/9;object-fit:cover;margin-bottom:18px;
