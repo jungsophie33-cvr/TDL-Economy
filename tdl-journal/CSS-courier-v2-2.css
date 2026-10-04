@@ -336,7 +336,7 @@
    ================================================================ */
 .tdlhc-voile{position:fixed;inset:0;background:var(--darkopa5);opacity:0;pointer-events:none;transition:opacity .25s}
 .tdlhc-voile.on{opacity:1;pointer-events:auto}
-.tdlhc-volet{position:fixed;top:0;right:0;bottom:0;width:50%;display:flex;flex-direction:column;
+.tdlhc-volet{position:fixed;top:0;right:0;bottom:0;width:50%;display:flex;flex-direction:column; text-align:left;
              background:var(--clair1);color:var(--txt);font-family:var(--font0);border-left:1px solid var(--darkopa3);
              transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
 .tdlhc-volet.on{transform:translateX(0)}
@@ -442,7 +442,7 @@
 /* ================================================================
    9. BUREAU DE RÉDACTION (staff)
    ================================================================ */
-.tdlhc-bureau{position:fixed;inset:0;display:flex;flex-direction:column;
+.tdlhc-bureau{position:fixed;inset:0;display:flex;flex-direction:column; text-align:left;
               background:var(--clair1);color:var(--txt);font-family:var(--font0)}
 .tdlhc-bureau[hidden]{display:none}
 .tdlhc-bu-tete{flex:0 0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:18px;
