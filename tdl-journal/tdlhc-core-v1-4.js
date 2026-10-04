@@ -33,7 +33,7 @@
     UNE_ARTICLES:   4,                      /* un dominant + trois secondaires */
     UNE_AVIS:       6,
     RAIL_MAX:       20,
-    CACHE:          "tdlhc:",
+    CACHE:          "tdlhc:v3:",              /* changer la version vide les caches de session */
     RETRY_MS:       250,
     RETRY_MAX:      60
   };
@@ -155,19 +155,53 @@
     return blocs;
   }
 
-  /* L'ancre d'un message : id « p1234 » d'un ancêtre, sinon a[name] ou lien #1234
-     dans le plus grand ancêtre qui ne contient que ce message. [MAJ] selon le gabarit. */
-  function ancreDe(msg){
-    for (var n=msg, i=0; n && n.tagName!=="BODY" && i<12; n=n.parentElement, i++) {
-      if (/^p\d+$/.test(n.id||"")) return n.id;
-      if (n.querySelectorAll(CFG.SEL_MSG_RACINE).length===1) {
-        var a = n.querySelector("a[name]");
-        if (a && /^\d+$/.test(a.getAttribute("name"))) return "p" + a.getAttribute("name");
-        var l = n.querySelector('a[href*="#"]'), m = l && /#(\d+)$/.exec(l.getAttribute("href")||"");
-        if (m) return "p" + m[1];
-      }
-    }
+  /* ===================== ANCRES DES MESSAGES ===================== */
+  /* L'ancre d'un message (p1234), quel que soit le gabarit [MAJ].
+     Une marque est : un id « p1234 » ou « 1234 », une classe « p--1234 », un <a name="1234">, un lien « …#1234 », ou un lien
+     « …p=1234 » (citer, éditer). Les marques écrites DANS le corps d'un message ne comptent pas. */
+  function numeroMarque(el){
+    var m = /^p?(\d+)$/.exec(el.id || ""); if (m) return m[1];                    /* id="p489" ou id="489" */
+    var cl = typeof el.className==="string" ? el.className : "";
+    if ((m = /(?:^|\s)p--(\d+)(?:\s|$)/.exec(cl))) return m[1];                 /* class="… p--489" */
+    if (el.tagName!=="A") return null;
+    var nm = el.getAttribute("name") || "", h = el.getAttribute("href") || "";
+    if (/^\d+$/.test(nm)) return nm;
+    if ((m = /[?&]p=(\d+)/.exec(h)) || (m = /^#(\d+)$/.exec(h))) return m[1];
+    if ((m = new RegExp("/t" + CFG.SUJET_ID + "(?:p\\d+)?-[^#]*#(\\d+)$").exec(h))) return m[1];
     return null;
+  }
+  function premiereMarque(bloc, msg){
+    var l = bloc.querySelectorAll('[id], [class*="p--"], a[name], a[href]');
+    for (var i = 0; i < l.length; i++) if (!msg.contains(l[i])) { var k = numeroMarque(l[i]); if (k) return k; }
+    return null;
+  }
+  /* 1. id « p1234 » d'un ancêtre ; 2. marque dans un ancêtre qui ne contient que ce message ;
+     3. gabarit à plat : marque la plus proche avant le message, sinon la plus proche après. */
+  function ancresDuDoc(doc){
+    var msgs = Array.prototype.slice.call(doc.querySelectorAll(CFG.SEL_MSG_RACINE)), out = new Map(), seq = null;
+    msgs.forEach(function(msg){
+      for (var n = msg, i = 0; n && n.tagName!=="BODY" && i < 14; n = n.parentElement, i++) {
+        var k = numeroMarque(n);
+        if (!k && n!==msg && n.querySelectorAll(CFG.SEL_MSG_RACINE).length===1) k = premiereMarque(n, msg);
+        if (k) { out.set(msg, "p" + k); return; }
+        if (n!==msg && n.querySelectorAll(CFG.SEL_MSG_RACINE).length > 1) break;
+      }
+      if (!seq) seq = sequence(doc, msgs);
+      var j = seq.indexOf(msg), avant = j > 0 && !seq[j-1].nodeType ? seq[j-1].k : null;
+      var apres = j < seq.length-1 && !seq[j+1].nodeType ? seq[j+1].k : null;
+      if (avant || apres) out.set(msg, "p" + (avant || apres));
+    });
+    return out;
+  }
+  /* la page à plat : messages et marques dans l'ordre du document */
+  function sequence(doc, msgs){
+    var s = [], w = doc.createTreeWalker(doc.body || doc.documentElement, NodeFilter.SHOW_ELEMENT), n;
+    while ((n = w.nextNode())) {
+      if (msgs.indexOf(n) >= 0) { s.push(n); continue; }
+      if (n.closest(CFG.SEL_MSG_RACINE)) continue;
+      var k = numeroMarque(n); if (k && !(s.length && !s[s.length-1].nodeType && s[s.length-1].k===k)) s.push({ k:k });
+    }
+    return s;
   }
 
   /* ===================== DONNÉES : pages du sujet ===================== */
@@ -189,11 +223,12 @@
     return new DOMParser().parseFromString(txt, "text/html");
   }
   function lireDoc(doc, n){
-    var out = [];
+    var out = [], ancres = ancresDuDoc(doc);
     boucle(doc.querySelectorAll(CFG.SEL_MSG), function(msg, i){
       var env = msg.querySelector(".tdlhc-data"); if (!env) return;
       var c = parser(env); if (!c) return;
-      c.ancre = ancreDe(msg) || ("x" + n + "-" + i);
+      c.ancre = ancres.get(msg.closest(CFG.SEL_MSG_RACINE)) || ("x" + n + "-" + i);
+      if (c.ancre.charAt(0)==="x" && window.console) console.warn("[Courier] identifiant du message introuvable, ancre de secours " + c.ancre, msg);
       c.page = n; out.push(c);
     });
     return out;
