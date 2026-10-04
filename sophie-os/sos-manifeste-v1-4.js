@@ -53,7 +53,7 @@
      {
       titre:     'La Chronologie',
       soustitre: 'Deux siècles de lore, et la timeline du jeu.',
-      url:       '/t000-la-chronologie',          // ← URL réelle du topic
+      url:       '/t103-03-la-chronologie',          
       icone:     'fi-sr-time-past'
     },
      
