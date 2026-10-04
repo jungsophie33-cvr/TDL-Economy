@@ -41,6 +41,7 @@
   var TXT = {
     RECHERCHE: 'Chercher un nom, un lieu…',
     VIDE:      'Aucun événement ne correspond.',
+    VIDE_PER:  'Rien n\'est encore entré dans la chronologie pour cette période.',
     SANS_BLOC: 'Chronologie vide : aucun événement déclaré dans le bloc.'
   };
   var SOURCES = [];                 /* les instances montées, pour les ajouts du lot suivant */
@@ -235,7 +236,10 @@
   /* ===================== RENDU : LA LISTE ===================== */
   function htmlListe(api) {
     var etat = api.etat, L = api.liste(etat.periode);
-    if (!L.length) { return '<p class="tdlch-vide-liste">' + esc(TXT.VIDE) + '</p>'; }
+    if (!L.length) {                                       /* période encore vide ≠ filtre sans résultat */
+      var sec = (api.actifs().length || etat.q) ? TXT.VIDE : TXT.VIDE_PER;
+      return '<p class="tdlch-vide-liste">' + esc(sec) + '</p>';
+    }
     var per = api.periode(etat.periode), coupe = null, out = '';
     L.forEach(function (e, i) {
       if (etat.periode === '*') {
