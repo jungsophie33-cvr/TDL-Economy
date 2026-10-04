@@ -171,7 +171,7 @@
     var m = document.createElement("div");
     m.id = "tdlch-modal-valid";
     m.className = "dc-overlay actif";
-    m.innerHTML = '<div class="dc-boite" style="max-width:720px">'
+    m.innerHTML = '<div class="dc-boite fi-boite" style="max-width:720px">'
       + '<button class="dc-btn-fermer" data-act="fermer">✕</button>'
       + '<div class="dc-titre">' + esc(T.M_TITRE(d.pseudo)) + '</div>'
       + '<p class="mc-sub">' + esc(T.M_INTRO) + '</p>'
