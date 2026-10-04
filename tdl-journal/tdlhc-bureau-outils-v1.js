@@ -25,7 +25,7 @@
     PREVENIR_J:   3,
     RENOUVELLEMENT_J: 30,
     MAX_MOUVEMENTS: 60,
-    N_ECHEANCE:   190
+    N_ECHEANCE:   200
   };
   var RUBRIQUES = [["environnement","Environnement"],["securite","Sécurité"],["economie","Économie"],["paroisse","Paroisse"],
                    ["culture","Culture"],["nouvelles-des-bayous","Nouvelles des bayous"]];
@@ -111,7 +111,8 @@
     }
     bientot(db).forEach(function(b){
       if (b.x.notif3j) return;
-      Bu.notifier(CFG.N_ECHEANCE, b.x.auteur, { nom:b.x.titre, jours:b.j });
+      Bu.notifier(CFG.N_ECHEANCE, b.x.auteur, { titre:b.x.titre, jours:b.j, quoi:b.n==="prelien" ? "pré-lien" : "annonce",
+                                                url:A.envoi.lien("rub-annonces") }, "hc-ech-" + b.id);
       purge[base() + b.n + "/" + b.id + "/notif3j"] = true;
     });
     if (Object.keys(purge).length) { try { await Bu.ecrire(purge); } catch(e){} }
@@ -241,8 +242,11 @@
     if (c.affaire) { var maj = {}; maj[base() + "affaires/" + c.affaire.slug] = { nom:c.affaire.nom, statut:"ouverte", cree:new Date().toISOString() };
                      try { await Bu.ecrire(maj); } catch(e){ A.toast(TXT.ERR); return; } }
     var msg = TXT.OK_COMPOSE;
-    if (c.chrono==="majeur" && A.envoi.CFG.NOTIFS && window.EcoNotif && EcoNotif.tous) {
-      try { EcoNotif.tous(Bu.N.MAJEUR, { nom:c.titre, ancre:ancre }); msg += TXT.OK_MAJEUR; } catch(e){}
+    if (c.chrono==="majeur" && A.envoi.CFG.NOTIFS && window.EcoNotif && EcoNotif.uneFois) {
+      /* un seul envoi au forum, même si la parution est confirmée deux fois */
+      try { EcoNotif.uneFois("hc-majeur-" + ancre, function(){
+              return EcoNotif.tous(Bu.N.MAJEUR, { titre:c.titre, url:A.envoi.lien("art-" + ancre) }, "hc-majeur-" + ancre); });
+            msg += TXT.OK_MAJEUR; } catch(e){}
     }
     c.form.closest(".tdlhc-vue").removeAttribute("data-pret"); Bu.compose = null;
     A.toast(msg); await Bu.rafraichir();
