@@ -26,6 +26,13 @@
     MARBRE_J:     7,
     DUREE_J:      { prelien:30, rumeur:14 },
     BADGE_SEUIL:  5,
+    NODE_CHRONO:  "chrono_journal",     /* [MAJ] lu par l'annexe Chronologie */
+    PERIODE_CHRONO: "jeu",              /* période « En jeu » de la frise */
+    CATS_CHRONO:  [["histo","Histoire"],["fam","Familles"],["comm","Communautés"],
+                   ["eco","Économie"],["mys","Mystères"],["cata","Catastrophes"]],
+    /* catégorie proposée d'après la rubrique — le staff peut la changer */
+    RUB_VERS_CAT: { environnement:"cata", securite:"comm", economie:"eco",
+                    paroisse:"histo", culture:"comm", "nouvelles-des-bayous":"comm" },
     N:            { RETOUCHE:192, PUBLICATION:193, REFUS:194, MARBRE:195, CITE:198, MAJEUR:199 }
   };
   var SUJET = { "article":1, "lettre":1, "etat-civil":1 };
@@ -61,6 +68,12 @@
     OK_RETOUCHE:"Retouche demandée. L'auteur est prévenu.", OK_MARBRE:"Mis au marbre.", OK_REFUS:"Soumission refusée.",
     OK_REMB:function(n){ return " " + n + " $ rendus."; }, OK_RESSORTI:"Ressorti : de retour dans À relire.",
     LIBELLE:function(t, titre){ return t + " · " + titre; },
+    CHRONO:"Entrée dans la chronologie",
+    CHRONO_AIDE:"Réservé aux piges. Une correspondance ne rejoint jamais la chronologie de la paroisse.",
+    CHRONO_NIV:[["aucun","N'entre pas"],["mineur","Mineur — entre dans la frise"],
+                ["majeur","Majeur — entre dans la frise et prévient le forum"]],
+    CHRONO_CAT:"Catégorie dans la frise",
+    OK_CHRONO:" Entré dans la chronologie.",
     TITRE_CIVIL:{ naissance:function(c){ return "Naissance — famille " + c.famille; }, mariage:function(c){ return "Mariage — " + c.personnes; },
                   deces:function(c){ return c.personnes; } }
   };
@@ -121,11 +134,12 @@
     return '<div class="tdlhc-data">\n' + champs.map(function(c){ return cle(c[0], c[1]); }).join("") + "CORPS:\n" + corps + "\n</div>";
   }
   function dossierDe(c){ return c.affaire==="new" ? slug(c.affaire_nom) : (c.affaire || ""); }
-  function genererPost(id){
+  function genererPost(id, chrono){
     var m = Bu.meta(id), c = Bu.corps(id), cites = m.cites ? Object.keys(m.cites).join(", ") : "";
     if (m.type==="article") return enveloppe([["TYPE","article"],["DATE",c.date],["RUBRIQUE",c.rubrique],["STATUT",m.sous_type],
       ["SIGNATURE",m.auteur],["TITRE",c.titre],["CHAPO",c.chapo],["IMAGE",c.image],["DOSSIER",dossierDe(c)],["RP",c.rp],
-      ["ENQUETE",c.enquete],["CITES",cites],["SOUMISSION",id]], corpsPost(c.texte, c.citations));
+      ["ENQUETE",c.enquete],["CITES",cites],["CHRONO",chrono==="aucun" ? "" : (chrono || "")],
+      ["SOUMISSION",id]], corpsPost(c.texte, c.citations));
     if (m.type==="lettre") return enveloppe([["TYPE","lettre"],["DATE",jour(Date.now())],["SIGNATURE",c.signature],["LIEU",c.lieu],
       ["REPONSE_A",c.reponse_a],["TITRE",c.titre],["SOUMISSION",id]], corpsPost(c.texte));
     var titre = (TXT.TITRE_CIVIL[c.nature] || TXT.TITRE_CIVIL.deces)(c);
@@ -147,8 +161,21 @@
       + '<div class="tdlhc-champ"><input type="text" data-zone="lien" placeholder="' + esc(TXT.LIEN_PH) + '"></div>'
       + '<button class="tdlhc-btn" type="button" data-b="confirmer" data-ctx="' + esc(ctx) + '" disabled>' + esc(TXT.CONFIRMER) + '</button></div></div>';
   }
+  /* Deux champs n'apparaissent que pour une pige : le niveau d'entrée dans la
+     chronologie et sa catégorie. Changer le niveau régénère le post. */
+  function champsChrono(m, c){
+    if (m.type!=="article" || m.sous_type!=="pigiste") return "";
+    var defaut = CFG.RUB_VERS_CAT[c.rubrique] || "histo";
+    return '<div class="tdlhc-duo tdlhc-chrono"><div class="tdlhc-champ"><label>' + esc(TXT.CHRONO) + '</label>'
+      + '<select data-zone="chrono">' + TXT.CHRONO_NIV.map(function(x){
+          return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join("") + '</select></div>'
+      + '<div class="tdlhc-champ" data-zone="chrono-cat-champ" hidden><label>' + esc(TXT.CHRONO_CAT) + '</label>'
+      + '<select data-zone="chrono-cat">' + CFG.CATS_CHRONO.map(function(x){
+          return '<option value="' + x[0] + '"' + (x[0]===defaut ? " selected" : "") + '>' + esc(x[1]) + '</option>'; }).join("")
+      + '</select></div></div><p class="tdlhc-aide">' + esc(TXT.CHRONO_AIDE) + '</p>';
+  }
   function panneaux(id, m, c){
-    var pub = SUJET[m.type] ? panneauPost(genererPost(id), id)
+    var pub = SUJET[m.type] ? champsChrono(m, c) + panneauPost(genererPost(id, "aucun"), id)
       : '<p class="tdlhc-act-txt">' + esc(TXT.FB_TEXTE(TXT.FB_OU[m.type], m.type==="annonce" ? (c.duree||14) : CFG.DUREE_J[m.type])) + '</p>'
         + '<button class="tdlhc-btn" type="button" data-b="publierFb"><i class="fi fi-tr-check"></i> ' + esc(TXT.PUBLIER_FB) + '</button>';
     return '<div class="tdlhc-act" data-act="publier" hidden>' + tete(TXT.PUBLIER) + pub + '</div>'
@@ -193,6 +220,12 @@
       var arch = Bu.J().archive || {}, n = 1 + Object.keys(arch).filter(function(k){ var a = arch[k]; return a && a.auteur===m.auteur && a.type==="article" && a.sous_type==="correspondant"; }).length;
       if (n >= CFG.BADGE_SEUIL && !(Bu.J().badges || {})[m.auteur]) { maj[J() + "badges/" + m.auteur] = { a_attribuer:now, attribue:false }; msg += TXT.OK_BADGE(m.auteur); }
     }
+    var niv = zone.querySelector('[data-zone="chrono"]'), chrono = niv ? niv.value : "aucun";
+    if (chrono!=="aucun") {
+      maj[CFG.NODE_CHRONO + "/" + id] = ligneChrono(id, chrono, zone.querySelector('[data-zone="chrono-cat"]').value,
+                                                    c, m.titre, ancre);
+      msg += TXT.OK_CHRONO;
+    }
     try { await ecrire(maj); }
     catch(e){ if (window.console) console.error("[Courier] parution", e); A.toast(TXT.ERR); bouton.disabled = false; return; }
     if (paye) {
@@ -200,8 +233,19 @@
       catch(e){ var r = {}; r[J() + "caisse/" + id + "-paie/etat"] = "a_verser"; ecrire(r).catch(function(){}); msg = TXT.ERR_PAIE; }
     }
     notifier(CFG.N.PUBLICATION, m.auteur, { titre:m.titre, montant:paye && msg!==TXT.ERR_PAIE ? paye : 0, url:lienHc("art-" + ancre) }, "hc-pub-" + id);
+    if (chrono==="majeur" && A.envoi.CFG.NOTIFS && window.EcoNotif && EcoNotif.uneFois) {
+      try { EcoNotif.uneFois("hc-majeur-" + ancre, function(){
+              return EcoNotif.tous(CFG.N.MAJEUR, { titre:m.titre, url:lienHc("art-" + ancre) }, "hc-majeur-" + ancre); }); } catch(e){}
+    }
     if (m.cites) Object.keys(m.cites).forEach(function(p){ notifier(CFG.N.CITE, p, { titre:m.titre, url:lienHc("art-" + ancre) }, "hc-cite-" + id + "-" + p); });
     A.toast(msg); Bu.rafraichir({ traitee:true });
+  }
+  /* Ce que l'annexe Chronologie lit : un résumé, jamais le texte complet.
+     La date est celle EN JEU, pas celle du message. */
+  function ligneChrono(id, niveau, cat, c, titre, ancre){
+    var texte = (c.chapo || "").trim() || Bu.paras(c.texte || "")[0] || "";
+    return { periode:CFG.PERIODE_CHRONO, cat:cat, iso:c.date || "", d:A.dateLisible(c.date) || "",
+             titre:titre, texte:texte, ancre:ancre || null, chrono:niveau, soum:id, publie:maintenant() };
   }
   async function publierFb(id){
     if (!window.confirm(TXT.CONFIRM_FB)) return;
@@ -283,7 +327,8 @@
   function demarrer(){
     var C = window.Courier; A = C.api; Bu = C.bureau;
     Bu.panneaux = panneaux; Bu.panneauPost = panneauPost; Bu.genererPost = genererPost; Bu.slug = slug; Bu.enveloppe = enveloppe;
-    Bu.corpsPost = corpsPost; Bu.crediter = crediter; Bu.refuser = refuser; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
+    Bu.corpsPost = corpsPost; Bu.crediter = crediter; Bu.refuser = refuser;
+    Bu.N_CHRONO = CFG.NODE_CHRONO; Bu.PERIODE_CHRONO = CFG.PERIODE_CHRONO; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
     Bu.actions.ouvrir = ouvrirPanneau;
     Bu.actions.annuler = function(){ Array.prototype.forEach.call(fiche().querySelectorAll(".tdlhc-act"), function(p){ p.hidden = true; }); };
     Bu.actions.copier = copier;
@@ -292,6 +337,14 @@
     Bu.actions.retouche = retouche; Bu.actions.marbre = marbre;
     Bu.actions.refus = function(id){ var f = fiche(); refuser(id, f.querySelector('[data-zone="f-motif"]').value, f.querySelector('[data-zone="f-texte"]').value.trim()); };
     Bu.actions.ressortir = function(id, x){ ressortir(x.getAttribute("data-id")); };
+    document.addEventListener("change", function(e){
+      var sel = e.target;
+      if (!sel.getAttribute || sel.getAttribute("data-zone")!=="chrono" || !sel.closest(".tdlhc-bureau")) return;
+      var acte = sel.closest(".tdlhc-act"), cat = acte.querySelector('[data-zone="chrono-cat-champ"]');
+      if (cat) cat.hidden = sel.value==="aucun";
+      var ta = acte.querySelector('[data-zone="post"]');                 /* le post reflète le choix */
+      if (ta) ta.value = genererPost(Bu.etat.sel, sel.value);
+    });
     document.addEventListener("input", function(e){
       if (e.target.getAttribute && e.target.getAttribute("data-zone")==="lien" && e.target.closest(".tdlhc-bureau")) {
         var b = e.target.closest(".tdlhc-act, .tdlhc-form").querySelector('[data-b="confirmer"]');
