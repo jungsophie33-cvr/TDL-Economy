@@ -33,7 +33,7 @@
     ARIANE:"The Houma Courier", LEGAUX_ARIANE:"Avis légaux de la paroisse de Terrebonne",
     LEGAUX_NOTE:"Publiés par la rédaction",
     TOUS:"Tous", TOUTES:"Toutes", PRELIENS:"Pré-liens",
-    PUBLIER:"Publier une annonce — 30 $", DEPOSER:"Déposer un avis — gratuit",
+    PUBLIER:"Publier une annonce : 30 $", DEPOSER:"Déposer un avis : gratuit",
     ON_RECHERCHE:"On recherche", EPINGLE:"— annonces épinglées un mois",
     PRELIEN:"Pré-lien", VOIR:"Voir le pré-lien",
     ENCORE:function(j){ return j > 1 ? "encore " + j + " jours" : "dernier jour"; },
@@ -75,7 +75,10 @@
   function viser(sec, ancre){
     if (!ancre) return;
     var el = sec.querySelector('[data-ancre="' + ancre + '"]');
-    if (el) el.scrollIntoView({ block:"center" });
+    if (!el) return;
+    if (el.hidden) { var tous = sec.querySelector('.tdlhc-onglet[data-f="*"]'); if (tous) tous.click(); }   /* un filtre la masquait */
+    el.scrollIntoView({ block:"center" });
+    el.classList.remove("vise"); void el.offsetWidth; el.classList.add("vise");
   }
 
   /* ===================== RENDER : PETITES ANNONCES ET PRÉ-LIENS ===================== */
