@@ -283,7 +283,7 @@
   function demarrer(){
     var C = window.Courier; A = C.api; Bu = C.bureau;
     Bu.panneaux = panneaux; Bu.panneauPost = panneauPost; Bu.genererPost = genererPost; Bu.slug = slug; Bu.enveloppe = enveloppe;
-    Bu.corpsPost = corpsPost; Bu.refuser = refuser; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
+    Bu.corpsPost = corpsPost; Bu.crediter = crediter; Bu.refuser = refuser; Bu.ressortir = ressortir; Bu.ecrire = ecrire; Bu.notifier = notifier; Bu.N = CFG.N;
     Bu.actions.ouvrir = ouvrirPanneau;
     Bu.actions.annuler = function(){ Array.prototype.forEach.call(fiche().querySelectorAll(".tdlhc-act"), function(p){ p.hidden = true; }); };
     Bu.actions.copier = copier;
