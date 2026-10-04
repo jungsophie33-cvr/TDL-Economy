@@ -257,7 +257,7 @@ function tab(a){
     var addBtn2=editable?'<button class="tdle-mini" data-act="addchr">+</button>':"";
     var form2=S.inline==="chrono"?'<div class="tdle-iform"><input class="dt" id="tdle-chdate" placeholder="Date RP (ex. 14 avril 2025)"><input class="txt" id="tdle-chtxt" placeholder="Progression de l\'enquête…"><button class="go" data-do="chok">Ajouter</button><button class="no" data-do="cancel">Annuler</button></div>':"";
     return '<p class="tdle-tabhint">La progression de l\'enquête, datée selon le RP.</p><p class="tdle-hsec">Journal de l\'affaire '+addBtn2+'</p>'+form2
-      +'<ul class="tdle-timeline"><li><div class="tdle-tl-when">'+esc(formatFR(a.dateISO))+'</div><div class="tdle-tl-txt">Ouverture de l\'affaire</div></li>'+a.chrono.map(function(e){return '<li><div class="tdle-tl-when">'+esc(e[1])+SEP+'<small>par '+esc(e[0])+'</small></div><div class="tdle-tl-txt">'+esc(e[2])+'</div></li>';}).join("")+'</ul>';
+      +'<ul class="tdle-timeline"><li><div class="tdle-tl-when">'+esc(formatFR(a.dateISO))+'</div><div class="tdle-tl-txt">Ouverture de l\'affaire</div></li>'+a.chrono.map(function(e){return '<li><div class="tdle-tl-when">'+esc(e[1])+SEP+'<small>par '+esc(nomAffiche(e[0]))+'</small></div><div class="tdle-tl-txt">'+esc(e[2])+'</div></li>';}).join("")+'</ul>';
   }
   if(S.onglet==="personnes"){
     var list=participants(a), canCheck=editable;
@@ -370,6 +370,14 @@ function ajouterLien(a,targetId,note){
   if(b&&!b.liens.some(function(l){return l.id===a.id;})){b.liens.push({id:a.id,note:note||""});patch(b,{liens:b.liens});}
 }
 function staffNom(){return myPseudo()||"Staff";}
+
+/* [MAJ] Comptes de service : le pseudo FA réel reste écrit en base
+   (traçabilité), seul l'affichage est remplacé par l'entité incarnée. */
+var ALIAS_AUTEUR = {"mami wata":"le TPSO"};
+function nomAffiche(n){
+  var k=String(n||"").trim().toLowerCase().replace(/\s+/g," ");
+  return ALIAS_AUTEUR[k]||n;
+}
 
 function brancher(){
   var stage=$("#tdle-stage"); if(!stage)return;
