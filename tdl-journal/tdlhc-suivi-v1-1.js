@@ -18,7 +18,7 @@
   "use strict";
 
   /* ===================== CONFIG ===================== */
-  var CFG = { MAX_MES:8, N_ACCORD_REFUSE:187 };
+  var CFG = { MAX_MES:8, N_ACCORD_REFUSE:197 };
   var VOLET_DU_TYPE = { "annonce":"annonce", "etat-civil":"civil", "rumeur":"rumeur", "lettre":"lettre", "prelien":"prelien", "article":"article" };
   var RUBRIQUE_DU_TYPE = { "annonce":"annonces", "prelien":"annonces", "rumeur":"une" };
   var STATUT = { relecture:"En relecture", retouche:"Retouche demandée", marbre:"Au marbre", publiee:"Publiée", refusee:"Refusée" };
@@ -47,7 +47,7 @@
   };
 
   /* ===================== UTILS ===================== */
-  var A = null, V = null;
+  var A = null, V = null, accordTitre = "";
   function esc(s){ return A.esc(s); }
   function E(){ return window.EcoCore; }
   function J(root){ return A.journal(root); }
@@ -128,6 +128,7 @@
     var p = A.pseudo(), root = await A.envoi.lireFrais() || {}, j = J(root), m = j.soum_meta && j.soum_meta[id];
     if (!p || !m || !ATTENDU[m.statut] || !m.cites || !m.cites[p] || m.cites[p].choix!=="attente") { A.toast(TXT.PLUS_ATTENTE); V.etapeChoix(); return; }
     var c = (j.soum_corps && j.soum_corps[id]) || {};
+    accordTitre = m.titre;
     var resume = m.type==="article" ? (c.chapo || "") : (c.texte || "");          /* jamais le texte d'un article */
     var rp = /^https?:\/\//i.test(c.rp||"") ? c.rp : "";
     V.etapeLibre(TXT.ACCORD_TITRE,
@@ -150,7 +151,7 @@
                                                                       raison:(!oui && z && z.value.trim()) || null };
     try { await E().firebaseUpdate(maj); }
     catch(e){ if (window.console) console.error("[Courier] accord", e); A.toast(TXT.ERR); return; }
-    if (!oui) A.envoi.notifier(CFG.N_ACCORD_REFUSE, null, { pseudo:p, id:id });
+    if (!oui) A.envoi.notifier(CFG.N_ACCORD_REFUSE, "staff", { pseudo:p, titre:accordTitre, url:A.envoi.lien("bureau-" + id) }, "hc-refus-accord-" + id + "-" + p);
     A.fbInvalider(); V.ferme(); A.toast(oui ? TXT.OK_OUI : TXT.OK_NON); majPastille();
   }
 
