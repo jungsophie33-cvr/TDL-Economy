@@ -143,7 +143,7 @@
     });
   }
 
-  function enrichit(modele, idx) {
+    function enrichit(modele, idx) {
     parcours(modele, function (p) {
       var e = T.trouve(idx, p.fc, p.nomComplet);
       if (!e) {
@@ -152,16 +152,21 @@
         }
         return;
       }
-      if (!p.img && e.image) p.img = e.image;
+      // L'image du bottin fait foi dès que l'entrée existe : img: n'est qu'un
+      // repli pour les personnes absentes du bottin (ancêtres, défunts, décor).
+      if (e.image) p.img = e.image;
+
       if (String(e.statut || '').toLowerCase() === 'pris') {
         p.uid = e.uid || null;
-        if (!p.statutForce) p.statut = 'pris';
+        // Un fait l'emporte sur une prévision écrite à la main — sauf la mort,
+        // qu'aucune validation de fiche ne doit pouvoir annuler.
+        if (p.statut !== 'dcd') p.statut = 'pris';
       } else if (!p.statutForce) {
         p.statut = 'libre';
       }
     });
   }
-
+   
   /* ----------------------------------------------------------------- RENDU */
 
   function urlFiche(p, base) {
