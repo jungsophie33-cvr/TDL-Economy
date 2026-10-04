@@ -12,6 +12,7 @@
 .notification.tdl_main       { --c: var(--gr6-color); --c20: var(--gr6-20); }
 .notification.tdl_autre      { --c: var(--cntr);      --c20: var(--cntr2); }
 .notification.tdl_flottille { --c: var(--gr5-color); --c20: var(--gr5-20); }
+.notification.tdl_courier    { --c: var(--gr4-color); --c20: var(--gr4-20); }
 
 /* ---------- le cadre ----------
    Aucune surcharge de background : le liseré suffit à distinguer. */
