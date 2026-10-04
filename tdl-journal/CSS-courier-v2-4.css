@@ -546,7 +546,7 @@
   /* mastic */
   .tdlhc-mastic{padding:12px 16px 10px}
   .tdlhc-mastic-haut{gap:10px}
-  .tdlhc-mastic-bas{margin-top:0}
+  .tdlhc-mastic-bas{margin-top:0; display:flex; justify-content:space-between;}
   .tdlhc-titre{font-size:22px}
   .tdlhc-folio-txt,.tdlhc-mastic-bas .tdlhc-filet,.tdlhc-devise{display:none}
 
