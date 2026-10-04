@@ -639,3 +639,7 @@ a.tdlhc-btn{text-decoration:none}
 .tdlhc-volet .tdlhc-chargement{padding:20px 0}
 .tdlhc-espace{margin-top:18px}
 .tdlhc-pige{margin-top:6px}
+
+/* ligne visée depuis Mes soumissions ou une notification : bref surlignage */
+@keyframes tdlhc-vise{from{background:var(--clair2opa3)}to{background:transparent}}
+.tdlhc-row.vise{animation:tdlhc-vise 2.4s ease-out}
