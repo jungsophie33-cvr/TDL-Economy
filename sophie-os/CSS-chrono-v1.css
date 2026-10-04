@@ -55,11 +55,11 @@
            /* trois rangées : seul le titre s'étire, donc toutes les bulles restent sur le fil */
            display:grid;grid-template-rows:1fr auto auto;justify-items:center;gap:var(--fil-gap)}
 .tdlch-per-titre{display:flex;align-items:start;justify-content:center;
-                 font-family:var(--font2);font-style:italic;font-size:14px;line-height:1.25;text-align:center;
+                 font-family:var(--txt2);font-style:italic;font-size:17px;line-height:0.9;text-align:center;
                  color:var(--darkopa5);transition:color .25s}
 .tdlch-pastille{width:11px;height:11px;border-radius:50%;background:var(--clair1);
                 border:1px solid var(--darkopa3);transition:background .3s,border-color .3s,transform .3s}
-.tdlch-per-date{font-family:var(--txt3);font-size:12px;line-height:var(--fil-date);letter-spacing:.06em;
+.tdlch-per-date{font-family:var(--txt3);font-size:12px;font-weight:600;line-height:var(--fil-date);letter-spacing:.06em;
                 color:var(--darkopa3);white-space:nowrap;transition:color .25s}
 .tdlch-per-date b{font-weight:600;color:var(--commu)}
 .tdlch-per:hover .tdlch-per-titre,.tdlch-per:hover .tdlch-per-date{color:var(--dark)}
@@ -85,16 +85,16 @@
 .tdlch-periode::after{content:'';flex:1 1 auto;height:1px;background:var(--darkopa2)}
 
 .tdlch-ev{margin-bottom:5px;border-radius:7px;border-left:3px solid var(--c);overflow:hidden;
-          background:var(--clair1opa5);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);transition:background .25s}
-.tdlch-ev.ouvert{background:linear-gradient(var(--c20),var(--c20)),var(--clair1opa5)}
+          background:var(--clair1opa6);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);transition:background .25s}
+.tdlch-ev.ouvert{background:linear-gradient(var(--c20),var(--c20)),var(--clair1opa6)}
 .tdlch-ev-tete{display:grid;grid-template-columns:132px minmax(0,1fr) 24px;align-items:start;gap:14px;
                width:100%;padding:11px 16px;cursor:pointer;background:none;border:0;text-align:left;font-family:inherit}
-.tdlch-ev-date{align-self:center;font-family:var(--font2);font-size:15px;font-weight:600;letter-spacing:.02em;color:var(--c)}
+.tdlch-ev-date{align-self:center;font-family:var(--font2);font-size:18px;font-weight:600;letter-spacing:.02em;color:var(--c)}
 .tdlch-ev-txt{min-width:0}
 .tdlch-ev-txt h3{margin:0 0 3px;font-family:var(--txt3);font-size:13px;font-weight:600;letter-spacing:.04em;
                  text-transform:uppercase;color:var(--c);line-height:1.3}
 /* replié : une seule ligne, coupée par le CSS donc toujours juste */
-.tdlch-ev-txt p{margin:0;max-height:1.5em;font-family:var(--font0);font-size:14px;line-height:1.5;color:var(--darkopa5);
+.tdlch-ev-txt p{margin:0;max-height:1.5em;font-family:var(--font0);font-size:14px;line-height:1.5;color:var(--darkopa7);
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
                 transition:max-height .35s cubic-bezier(.22,.61,.36,1),opacity .2s}
 .tdlch-ev.ouvert .tdlch-ev-txt p{max-height:0;opacity:0}
