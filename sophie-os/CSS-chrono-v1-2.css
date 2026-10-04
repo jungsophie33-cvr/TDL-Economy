@@ -123,7 +123,7 @@
 .tdlch-lire{display:inline-flex;align-items:center;gap:8px;margin-top:11px;padding:6px 13px;border-radius:5px;
             border:1px solid var(--darkopa3);color:var(--dark);text-decoration:none;background:var(--clair1);
             font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase}
-.tdlch-lire:hover{background:var(--cntr2)}
+.tdlch-lire:hover{background:var(--cntr2);color:var(--clair1)}
 
 .tdlch-vide-liste{padding:46px 10px;text-align:center;font-family:var(--txt1);font-style:italic;
                   font-size:19px;color:var(--darkopa5)}
