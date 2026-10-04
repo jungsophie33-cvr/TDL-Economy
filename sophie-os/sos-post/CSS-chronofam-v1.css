@@ -11,7 +11,7 @@
 
 /* ---------- blocs en ligne dans un message ordinaire ---------- */
 .tdl-bloc{display:none}
-.tdl-bloc.tdl-bloc-pret{display:block;margin:18px 0}
+.tdl-bloc.tdl-bloc-pret{display:block;padding:0 5px;}
 
 /* Ni cadre ni en-tête : le message ForumActif porte déjà les siens.
    .cf ne sert que de racine au bloc et de portée aux règles. */
@@ -31,7 +31,7 @@
   clip-path:inset(0 0 calc(100% - var(--rempli,0px)) 0);
   transition:clip-path .18s linear}
 
-.cf-ev{position:relative;padding:0 0 22px 34px}
+.cf-ev{position:relative;padding:0 0 15px 30px}
 .cf-ev:last-child{padding-bottom:0}
 /* la pastille : creuse, puis pleine quand la lecture l'a dépassée.
    --c est posé par le script : la teinte suit le dégradé du fil. */
@@ -47,8 +47,8 @@
          letter-spacing:.1em;color:var(--darkopa5);white-space:nowrap;
          transition:color .3s,border-color .3s}
 .cf-ev.passe .cf-date{color:var(--c,var(--dark2));border-color:var(--c,var(--dark2))}
-.cf-titre{flex:1 1 auto;min-width:0;font-family:var(--font2);font-size:17px;font-weight:500;
-          line-height:1;color:var(--cntr0);background:var(--gradark);background-clip:text;font-style:italic;letter-spacing:-1px;}
+.cf-titre{width:fit-content;min-width:0;font-family:var(--title5);font-size:17px;font-weight:600;
+          line-height:1.3em;color:var(--cntr0);background:var(--gradark);background-clip:text;letter-spacing:-0.5px; padding-right:10px;}
 .cf-txt{font-size:15px;line-height:1.7;color:var(--txt)}
 /* SOS rend un paragraphe par ligne : on maîtrise leurs marges */
 .cf-txt p{margin:0 0 8px}
