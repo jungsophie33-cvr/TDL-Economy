@@ -132,7 +132,7 @@
 /* ================================================================
    4. CORPS, COLONNE DES RUBRIQUES, VUES
    ================================================================ */
-.tdlhc-corps{flex:1 1 auto;display:flex;min-height:0;background: linear-gradient(var(--clair1) 20%, var(--clair1opa8) 90%, var(--cntr0)), var(--bgimg) center;
+.tdlhc-corps{flex:1 1 auto;display:flex;min-height:0;background: linear-gradient(var(--clair1) 20%, var(--clair1opa8) 80%, var(--clair1opa5)), var(--bgimg) center;
 background-size: cover;}
 
 .tdlhc-catcol{flex:0 0 212px;display:flex;flex-direction:column;overflow-y:auto;
