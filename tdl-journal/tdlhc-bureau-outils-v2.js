@@ -39,7 +39,7 @@
     COMPOSER:"Composer", COMPOSER_SOUS:"Publications signées par la rédaction", T_ARTICLE:"Article de la rédaction", T_AVIS:"Avis légal",
     TITRE:"Titre", SIGNATURE:"Signature", RUBRIQUE:"Rubrique", DATE:"Date de parution", EN_JEU:"en jeu", AFFAIRE:"Affaire",
     AUCUNE:"Aucune", NOUVELLE:"Ouvrir une nouvelle affaire…", NOM_AFFAIRE:"Nom de la nouvelle affaire",
-    CHRONO:"Chronologie de la paroisse",
+    CHRONO:"Chronologie de la paroisse", CHRONO_CAT:"Catégorie dans la frise",
     CHRONOS:[["majeur","Majeur","entre dans la chronologie et notifie tout le forum."],["mineur","Mineur","entre dans la chronologie, sans notification."],
              ["aucun","Aucun","article courant."]],
     CHAPO:"Chapô", IMAGE:"Image", TEXTE:"Texte",
@@ -200,6 +200,9 @@
       + champ(TXT.CHRONO, '<div class="tdlhc-radios">' + TXT.CHRONOS.map(function(c, i){
           return '<label class="tdlhc-coche"><input type="radio" name="tdlhc-chrono" value="' + c[0] + '"' + (i===2 ? " checked" : "") + '><span><b>' + esc(c[1]) + '</b> — ' + esc(c[2]) + '</span></label>';
         }).join("") + '</div>')
+      + '<div data-zone="c-cat" hidden>' + champ(TXT.CHRONO_CAT, '<select data-z="chrono_cat">'
+          + A.envoi.CFG.CATS_CHRONO.map(function(x){ return '<option value="' + x[0] + '">' + esc(x[1]) + '</option>'; }).join("")
+          + '</select>') + '</div>'
       + champ(TXT.CHAPO, '<textarea class="tdlhc-ta-court" data-z="chapo"></textarea>') + champ(TXT.IMAGE, '<input type="text" data-z="image" placeholder="https://…">')
       + champ(TXT.TEXTE, '<textarea class="tdlhc-ta-long" data-z="texte"></textarea><p class="tdlhc-aide">' + esc(TXT.TEXTE_AIDE) + '</p>')
       + bouton("generer", TXT.GENERER, ' data-quoi="article"', "") + '<div data-zone="sortie"></div></div></div>'
@@ -233,7 +236,8 @@
       ["TITRE",v.titre],["CHAPO",v.chapo],["IMAGE",v.image],["DOSSIER",nouvelle ? nouvelle.slug : (v.affaire==="new" ? "" : v.affaire)],
       ["CHRONO",v.chrono==="aucun" ? "" : v.chrono]], Bu.corpsPost(v.texte));
     else post = Bu.enveloppe([["TYPE","avis-legal"],["DATE",v.date],["NATURE",v.nature],["REF","al-" + Date.now().toString(36)],["TITRE",v.titre]], Bu.corpsPost(v.texte));
-    Bu.compose = { titre:v.titre, chrono:v.chrono, affaire:nouvelle, form:f };
+    Bu.compose = { titre:v.titre, chrono:v.chrono, cat:v.chrono_cat, date:v.date,
+                   texte:(v.chapo || "").trim() || Bu.paras(v.texte)[0] || "", affaire:nouvelle, form:f };
     f.querySelector('[data-zone="sortie"]').innerHTML = '<div class="tdlhc-act">' + Bu.panneauPost(post, "_compose") + '</div>';
     f.querySelector('[data-zone="sortie"] .tdlhc-act').scrollIntoView({ behavior:"smooth", block:"start" });
   }
@@ -242,6 +246,12 @@
     if (c.affaire) { var maj = {}; maj[base() + "affaires/" + c.affaire.slug] = { nom:c.affaire.nom, statut:"ouverte", cree:new Date().toISOString() };
                      try { await Bu.ecrire(maj); } catch(e){ A.toast(TXT.ERR); return; } }
     var msg = TXT.OK_COMPOSE;
+    if (c.chrono!=="aucun") {                               /* la rédaction entre dans la frise */
+      var mc = {}; mc[Bu.N_CHRONO + "/j" + ancre] = { periode:Bu.PERIODE_CHRONO, cat:c.cat, iso:c.date,
+        d:A.dateLisible(c.date), titre:c.titre, texte:c.texte, ancre:ancre, chrono:c.chrono, soum:null,
+        publie:new Date().toISOString() };
+      try { await Bu.ecrire(mc); } catch(e){ if (window.console) console.error("[Courier] chrono", e); }
+    }
     if (c.chrono==="majeur" && A.envoi.CFG.NOTIFS && window.EcoNotif && EcoNotif.uneFois) {
       /* un seul envoi au forum, même si la parution est confirmée deux fois */
       try { EcoNotif.uneFois("hc-majeur-" + ancre, function(){
@@ -288,6 +298,10 @@
     document.addEventListener("change", function(e){
       var f = e.target.closest && e.target.closest('.tdlhc-bureau [data-form="avis"]');
       if (f && e.target.getAttribute("data-z")==="date") numeroAvis(f.closest(".tdlhc-vue"));
+      if (e.target.name==="tdlhc-chrono") {                 /* la catégorie ne sert qu'aux entrées réelles */
+        var z = e.target.closest(".tdlhc-form").querySelector('[data-zone="c-cat"]');
+        if (z) z.hidden = e.target.value==="aucun";
+      }
     });
   }
   (function attendre(n){
