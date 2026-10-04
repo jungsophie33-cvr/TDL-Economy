@@ -24,7 +24,8 @@
     { nom:"composer",  label:"Composer",   ic:"edit",          c:"--gr2-color" },
     { nom:"affaires",  label:"Affaires",   ic:"book-bookmark", c:"--gr4-color" },
     { nom:"echeances", label:"Échéances",  ic:"calendar-clock",c:"--gr1-color" },
-    { nom:"caisse",    label:"Caisse",     ic:"coins",         c:"--gr5-color" }
+    { nom:"caisse",    label:"Caisse",     ic:"coins",         c:"--gr5-color" },
+    { nom:"enligne",   label:"En ligne",   ic:"bullhorn",      c:"--dark2" },
   ];
   var FILTRES = [["*","Tout"],["article","Articles"],["annonce","Annonces"],["rumeur","Rumeurs"],["autre","Autres"]];
   var TYPE = {
