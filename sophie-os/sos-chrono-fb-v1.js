@@ -63,6 +63,16 @@
     catch (e) { return false; }
   }
   function vivant(uid) { return uid == null || uid === '' || MEMBRES.hasOwnProperty(String(uid)); }
+  /* uid_index peut contenir des lignes sans pseudo : elles ne sont pas des membres,
+     et une entrée vide polluerait la liste du formulaire. */
+  function nomme(n) {
+    var out = {};
+    Object.keys(n || {}).forEach(function (u) {
+      var v = n[u];
+      if (typeof v === 'string' && v.trim()) { out[u] = v.trim(); }
+    });
+    return out;
+  }
   function orphelin(e) { return !!(e.source === 'ajout' && e.uid && !vivant(e.uid)); }
   function h(tag, cls, html) {
     var n = document.createElement(tag);
@@ -92,10 +102,10 @@
     try { if (E().invalidateCache) { E().invalidateCache(); } root = (await E().safeReadBin()) || {}; }
     catch (e) { if (global.console) { console.warn('[Chrono] lecture Firebase', e); } return []; }
     RACINE = root;
-    MEMBRES = root[CFG.NODE_UID] || {};
+    MEMBRES = nomme(root[CFG.NODE_UID] || {});
     if (!Object.keys(MEMBRES).length) {                 /* repli : l'annuaire des pseudos */
       var m = root[CFG.NODE_MEMBRES] || {}, inv = {};
-      Object.keys(m).forEach(function (p) { if (m[p] && m[p].uid != null) { inv[m[p].uid] = p; } });
+      Object.keys(m).forEach(function (p) { if (m[p] && m[p].uid != null && String(p).trim()) { inv[m[p].uid] = String(p).trim(); } });
       MEMBRES = inv;
     }
     var out = [], nj = root[CFG.NODE_JOURNAL] || {}, na = root[CFG.NODE_AJOUTS] || {};
