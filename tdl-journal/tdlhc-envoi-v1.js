@@ -88,6 +88,14 @@
     for (var k in m) if (m.hasOwnProperty(k) && k.toLowerCase()===bas) return k;
     return null;
   }
+  /* Firebase refuse toute écriture qui contient undefined : on les retire partout */
+  function sansUndefined(o){
+    if (Array.isArray(o)) return o.filter(function(x){ return x!==undefined; }).map(sansUndefined);
+    if (o && typeof o==="object") {
+      var r = {}; Object.keys(o).forEach(function(k){ if (o[k]!==undefined) r[k] = sansUndefined(o[k]); }); return r;
+    }
+    return o;
+  }
   function quotaCle(type, v){ return type==="article" ? (v.statut==="pigiste" ? null : "correspondant") : (CFG.QUOTAS[type] ? type : null); }
 
   /* ===================== CONTRÔLES MÉTIER ===================== */
@@ -155,7 +163,10 @@
     var meta = { type:CFG.TYPE_FB[type], sous_type:st, statut:"relecture", auteur:p,
                  titre:v.titre || String(v.texte||"").slice(0, 60), maj:now, montant:montant,
                  tid:tid(v.rp) || null, cites:Object.keys(cites).length ? cites : null };
-    if (!ancien) { meta.cree = now; meta.retouches = 0; try { meta.uid = E().getUserId(); } catch(e){} }
+    if (!ancien) {
+      meta.cree = now; meta.retouches = 0;
+      try { var uid = E().getUserId(); if (uid!=null && uid!=="") meta.uid = uid; } catch(e){}
+    }
     if (type==="article") meta.remunere = String(v.texte).length >= CFG.PLANCHER[v.statut];
     var corps = {}; Object.keys(v).forEach(function(k){ if (k!=="reprise" && k.charAt(0)!=="_") corps[k] = v[k]; });
     if (type!=="article" || v.statut!=="pigiste") delete corps.citations;
@@ -206,6 +217,7 @@
     maj[base + "soum_corps/" + id] = b.corps;
     if (prix) maj[base + "caisse/" + id + "-depot"] = { date:b.meta.maj, pseudo:p, libelle:TXT.LIBELLE(V.TYPES[type].t, b.meta.titre),
                                                          montant:-prix, etat:"retenu", soum:id };
+    Object.keys(maj).forEach(function(k){ if (maj[k]===undefined) delete maj[k]; else maj[k] = sansUndefined(maj[k]); });
     try { await E().firebaseUpdate(maj); }
     catch(e){ if (prix) await recrediter(p, prix); if (window.console) console.error("[Courier] envoi", e); return { erreurs:[TXT.ERR_ECRITURE] }; }
 
