@@ -37,7 +37,10 @@
     { titre: 'Midnight Covennant', url: 'https://www.aht.li/3984403/01_Midnight_covennant.m4a' },
     { titre: "Bayou's Lament",     url: 'https://www.aht.li/3984291/01_Bayous_Lament.m4a' },
     { titre: 'Bottle Tree',        url: 'https://www.aht.li/3984401/01_Bottle_Tree.m4a' },
-    { titre: 'The Guardian',       url: 'https://www.aht.li/3984402/01_The_Guardian.m4a' }
+    { titre: 'The Guardian',       url: 'https://www.aht.li/3984402/01_The_Guardian.m4a' },
+    { titre: 'Summer in the Swamp',       url: 'https://www.aht.li/3991592/03_Summer_in_the_Swamp.m4a' },
+    { titre: 'Baritone Cowboy',       url: 'https://www.aht.li/3991595/02_Baritone_Cowboy.m4a' },
+    { titre: 'Spirit of the West',       url: 'https://www.aht.li/3991594/01_The_Spirit_of_the_West.m4a' }
   ];
 
   var VOLUME = 0.18;   // volume bas fixe (subliminal)
