@@ -45,13 +45,14 @@ var U = {
   MISSIONS: "/t90-le-tableau-des-missions",
   TACHES:   "/t91-le-tableau-des-taches",
   STAFF:    "/t73-gestion-systeme-de-jeu#466",
-  HANGAR:   "/t96-le-tableau-du-hangar" 
+  HANGAR:   "/t96-le-tableau-du-hangar",
+  COURIER:  "/t102-the-houma-courier"
 };
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
           FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier",
-          FLOT:"tdl_flottille" };
+          FLOT:"tdl_flottille", COUR:"tdl_courier" };
 
 /* ===================== REGISTRE =====================
    n  = classe CSS de module · ic = icône Flaticon (préfixe fi-sr- ajouté au
@@ -141,7 +142,20 @@ var NOTIFS = {
   183:{n:C.FLOT, ic:"lightbulb-on",   url:U.HANGAR, txt:function(d){return "Vous avez trouvé quelque chose pendant &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. C'est au registre.";}},
   184:{n:C.FLOT, ic:"envelope-dot",   url:U.HANGAR, txt:function(){return "On vous propose une information à vendre. Elle tombe dans trois jours.";}},
   185:{n:C.FLOT, ic:"coins",          url:U.HANGAR, txt:function(d){return "Votre information a trouvé preneur : "+(+d.montant||0)+" $.";}},
-  186:{n:C.FLOT, ic:"user-slash",     url:U.HANGAR, txt:function(d){return "Votre poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été marqué abandonné.";}}
+  186:{n:C.FLOT, ic:"user-slash",     url:U.HANGAR, txt:function(d){return "Votre poste sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été marqué abandonné.";}},
+
+   /* --- The Houma Courier --- */
+  190:{n:C.COUR, ic:"inbox-in",      url:U.COURIER, txt:function(d){return "Nouvelle soumission au Courier : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, de "+esc(d.pseudo)+".";}},
+  191:{n:C.COUR, ic:"envelope-dot",  url:U.COURIER, txt:function(d){return esc(d.pseudo)+" a repris &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; après retouche.";}},
+  192:{n:C.COUR, ic:"comment-info",  url:U.COURIER, txt:function(d){return "La rédaction du Courier demande une retouche sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. Vous avez quatorze jours.";}},
+  193:{n:C.COUR, ic:"newspaper",     url:U.COURIER, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; paraît dans The Houma Courier."+(+d.montant?" "+(+d.montant)+" $ vous ont été versés.":"");}},
+  194:{n:C.COUR, ic:"cross-circle",  url:U.COURIER, txt:function(d){return "La rédaction du Courier n'a pas retenu &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;."+(+d.rendu?" "+(+d.rendu)+" $ vous ont été rendus.":"");}},
+  195:{n:C.COUR, ic:"hourglass-end", url:U.COURIER, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est mis au marbre : il paraîtra plus tard.";}},
+  196:{n:C.COUR, ic:"comment-check", url:U.COURIER, txt:function(d){return "Un texte à paraître dans le Courier cite votre personnage : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. Votre accord est demandé.";}},
+  197:{n:C.COUR, ic:"user-slash",    url:U.COURIER, txt:function(d){return esc(d.pseudo)+" refuse d'être cité·e dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  198:{n:C.COUR, ic:"newspaper",     url:U.COURIER, txt:function(d){return "Votre personnage est cité dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, qui vient de paraître.";}},
+  199:{n:C.COUR, ic:"megaphone",     url:U.COURIER, txt:function(d){return "À la une du Houma Courier : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  200:{n:C.COUR, ic:"hourglass-end", url:U.COURIER, txt:function(d){return "Votre "+esc(d.quoi||"annonce")+" &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; expire dans "+(+d.jours||0)+" jour"+((+d.jours||0)>1?"s":"")+".";}}
 };
 
 /* préfixes de titre → type de notification */
