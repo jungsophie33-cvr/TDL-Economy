@@ -87,9 +87,10 @@
     }).join("");
   }
   function htmlArchive(x){
-    var a = x.a, lien = a.ancre ? "#hc=art-" + a.ancre : "#hc=rub-" + (RUBRIQUE_DU_TYPE[a.type] || "une");
+    var a = x.a, cible = a.ancre ? ' data-ancre="' + esc(a.ancre) + '"' : ' data-rub="' + esc(RUBRIQUE_DU_TYPE[a.type] || "une") + '"';
     return '<div class="tdlhc-mes-item" data-id="' + esc(x.id) + '">' + tete("publiee", a.publie) + '<h5>' + esc(a.titre || "") + '</h5>'
-      + '<div class="tdlhc-mes-pied"><span>' + esc(typeLabel(a)) + '</span><a href="' + esc(lien) + '">' + esc(a.ancre ? TXT.LIRE : TXT.VOIR) + '</a></div></div>';
+      + '<div class="tdlhc-mes-pied"><span>' + esc(typeLabel(a)) + '</span><button class="tdlhc-sup" type="button" data-action="voir"' + cible + '>'
+      + esc(a.ancre ? TXT.LIRE : TXT.VOIR) + '</button></div></div>';
   }
   function htmlMeta(x){
     var m = x.m, s = m.statut, e = dernier(m), corps = "", pied = typeLabel(m);
@@ -182,6 +183,10 @@
     else if (a==="accord-non") repondre(id, false);
     else if (a==="reprendre") reprendre(id);
     else if (a==="lien") window.open(x.getAttribute("data-url"), "_blank");
+    else if (a==="voir") {                                       /* FA intercepte les liens : on ouvre nous-mêmes */
+      V.ferme();
+      if (x.getAttribute("data-ancre")) A.ouvrirContenu(x.getAttribute("data-ancre")); else A.montre(x.getAttribute("data-rub"));
+    }
   }
   async function viserSoumission(id){
     V.ouvre(null);
