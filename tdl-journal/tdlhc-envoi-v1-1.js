@@ -29,8 +29,8 @@
     PLANCHER:      { correspondant:2500, pigiste:4000 },
     QUOTAS:        { annonce:{ n:2, p:"mois" }, rumeur:{ n:1, p:"semaine" }, lettre:{ n:1, p:"mois" }, correspondant:{ n:2, p:"mois" } },
     TYPE_FB:       { annonce:"annonce", civil:"etat-civil", rumeur:"rumeur", lettre:"lettre", prelien:"prelien", article:"article" },
-    NOTIFS:        false,               /* lot 4 : passe à true une fois les codes 180–190 inscrits dans eco-notif */
-    N_SOUMISSION:  180, N_REPRISE:181, N_ACCORD:186
+    NOTIFS:        true,                /* codes 190 à 200 inscrits dans sos-emi-notif */
+    N_SOUMISSION:  190, N_REPRISE:191, N_ACCORD:196
   };
   var GEL_STATUTS = { ouvert:1, saisi:1, en_validation:1 };
 
@@ -180,10 +180,17 @@
   async function recrediter(p, prix){
     await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0) + prix; }).catch(function(){});
   }
-  function notifier(code, dest, vars){
+  /* dest : pseudo(s), « staff » (ou null), « tous » ; ref : clé anti-doublon de l'émetteur */
+  function notifier(code, dest, vars, ref){
     if (!CFG.NOTIFS || !window.EcoNotif) return;
-    try { if (dest) EcoNotif.a(dest, code, vars); else EcoNotif.staff(code, vars); } catch(e){}
+    try {
+      if (dest==="tous") EcoNotif.tous(code, vars, ref);
+      else if (!dest || dest==="staff") EcoNotif.staff(code, vars, ref);
+      else EcoNotif.a(dest, code, vars, ref);
+    } catch(e){}
   }
+  /* lien direct vers un objet du journal, ouvert par Notiffi */
+  function lien(h){ return "/t" + A.CFG.SUJET_ID + "-" + A.CFG.SUJET_SLUG + "#hc=" + h; }
 
   /* ===================== HOOKS DU VOLET ===================== */
   async function envoyer(type, v){
@@ -222,8 +229,9 @@
     catch(e){ if (prix) await recrediter(p, prix); if (window.console) console.error("[Courier] envoi", e); return { erreurs:[TXT.ERR_ECRITURE] }; }
 
     A.fbInvalider();
-    notifier(reprise ? CFG.N_REPRISE : CFG.N_SOUMISSION, null, { pseudo:p, nom:b.meta.titre, id:id });
-    b.citesNeufs.forEach(function(c){ notifier(CFG.N_ACCORD, c, { pseudo:p, nom:b.meta.titre, id:id }); });
+    notifier(reprise ? CFG.N_REPRISE : CFG.N_SOUMISSION, "staff", { pseudo:p, titre:b.meta.titre, url:lien("bureau-" + id) },
+             "hc-soum-" + id + "-" + (reprise ? Date.now() : 0));
+    b.citesNeufs.forEach(function(c){ notifier(CFG.N_ACCORD, c, { titre:b.meta.titre, url:lien("accord-" + id) }, "hc-accord-" + id + "-" + c); });
     return { ok:true, message: reprise ? TXT.OK_REPRISE : (prix ? TXT.OK_RETENU(prix) : TXT.OK) };
   }
 
@@ -258,7 +266,7 @@
   function demarrer(){
     var C = window.Courier; A = C.api; V = C.volet;
     V.hooks.envoyer = envoyer; V.hooks.contexte = contexte; V.hooks.preparer = preparer;
-    C.envoi = { CFG:CFG, gel:gel, solde:solde, estPigiste:estPigiste, compter:compter, notifier:notifier, lireFrais:lireFrais };
+    C.envoi = { CFG:CFG, gel:gel, solde:solde, estPigiste:estPigiste, compter:compter, notifier:notifier, lien:lien, lireFrais:lireFrais };
   }
   (function attendre(n){
     if (window.Courier && window.Courier.volet) { demarrer(); return; }
