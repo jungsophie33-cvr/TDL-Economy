@@ -160,36 +160,51 @@
     return api;
   }
 
-  /* ===================== RENDU : FRISE ET OUTILS ===================== */
-  function htmlRail(api) {
-    var d = api.d, etat = api.etat, filtre = api.actifs().length || etat.q;
+  /* ===================== RENDU : FRISE ET OUTILS =====================
+     Le haut est bâti UNE SEULE FOIS. Les rendus suivants ne font que changer
+     des classes et une variable : sans quoi les éléments seraient recréés à
+     chaque clic et aucune transition CSS n'aurait de point de départ. */
+  function batirHaut(api) {
+    var d = api.d;
     var etapes = d.periodes.concat(d.toutes ? [d.toutes] : []);
-    var iP = 0;
-    etapes.forEach(function (p, i) { if (p.id === etat.periode) { iP = i; } });
-    var pas = etapes.length > 1 ? 90 / (etapes.length - 1) : 0;
-
-    return '<div class="tdlch-rail-wrap"><div class="tdlch-rail" style="--avance:'
-      + (etat.periode === '*' ? 90 : iP * pas) + '%;min-width:' + (etapes.length * 132) + 'px">'
-      + etapes.map(function (p, i) {
-          var n = filtre ? api.liste(p.id).length : 0;
-          return '<button class="tdlch-per' + (p.id === etat.periode ? ' on' : '') + (i < iP ? ' fait' : '')
-            + (filtre && !n ? ' vide' : '') + '" type="button" data-p="' + esc(p.id) + '">'
-            + '<span class="tdlch-per-titre">' + esc(p.t) + '</span><span class="tdlch-pastille"></span>'
-            + '<span class="tdlch-per-date">' + esc(p.d) + (filtre ? ' · <b>' + n + '</b>' : '')
-            + '</span></button>';
-        }).join('') + '</div></div>';
-  }
-  function htmlOutils(api) {
-    var d = api.d, etat = api.etat;
-    return '<div class="tdlch-outils"><div class="tdlch-cats' + (api.actifs().length ? ' filtre' : '') + '">'
+    api.etapes = etapes;
+    return '<div class="tdlch-outils"><div class="tdlch-cats">'
       + d.ordreCats.map(function (k) {
-          return '<button class="tdlch-cat' + (etat.cats[k] ? ' on' : '') + '" type="button" data-c="' + esc(k)
+          return '<button class="tdlch-cat" type="button" data-c="' + esc(k)
             + '" style="--c:var(' + esc(d.cats[k].c) + ');--c20:color-mix(in srgb,var(' + esc(d.cats[k].c)
             + ') 13%,transparent)">' + esc(d.cats[k].l) + '</button>';
         }).join('')
       + '</div><div class="tdlch-staff"><div class="tdlch-recherche"><i class="fi fi-tr-search"></i>'
-      + '<input type="search" placeholder="' + esc(TXT.RECHERCHE) + '" value="' + esc(etat.q) + '"></div>'
-      + '<span class="tdlch-staff-slot"></span></div></div>';
+      + '<input type="search" placeholder="' + esc(TXT.RECHERCHE) + '"></div>'
+      + '<span class="tdlch-staff-slot"></span></div></div>'
+      + '<div class="tdlch-rail-wrap"><div class="tdlch-rail" style="min-width:' + (etapes.length * 132) + 'px">'
+      + etapes.map(function (p) {
+          return '<button class="tdlch-per" type="button" data-p="' + esc(p.id) + '">'
+            + '<span class="tdlch-per-titre">' + esc(p.t) + '</span><span class="tdlch-pastille"></span>'
+            + '<span class="tdlch-per-date">' + esc(p.d) + '<b hidden></b></span></button>';
+        }).join('') + '</div></div>';
+  }
+  function majHaut(api) {
+    var etat = api.etat, r = api.racine, filtre = api.actifs().length || etat.q;
+    var etapes = api.etapes, iP = 0;
+    etapes.forEach(function (p, i) { if (p.id === etat.periode) { iP = i; } });
+    var pas = etapes.length > 1 ? 90 / (etapes.length - 1) : 0;
+
+    r.querySelector('.tdlch-cats').classList.toggle('filtre', !!api.actifs().length);
+    Array.prototype.forEach.call(r.querySelectorAll('.tdlch-cat'), function (b) {
+      b.classList.toggle('on', !!etat.cats[b.getAttribute('data-c')]);
+    });
+    r.querySelector('.tdlch-rail').style.setProperty('--avance',
+      (etat.periode === '*' ? 90 : iP * pas) + '%');
+    Array.prototype.forEach.call(r.querySelectorAll('.tdlch-per'), function (b, i) {
+      var id = b.getAttribute('data-p'), n = filtre ? api.liste(id).length : 0;
+      b.classList.toggle('on', id === etat.periode);
+      b.classList.toggle('fait', i < iP);
+      b.classList.toggle('vide', !!(filtre && !n));
+      var cpt = b.querySelector('.tdlch-per-date b');
+      cpt.hidden = !filtre;
+      if (filtre) { cpt.textContent = ' · ' + n; }
+    });
   }
 
   /* ===================== RENDU : UN ÉVÉNEMENT ===================== */
@@ -258,8 +273,9 @@
   }
 
   function peindre(api, opts) {
-    var r = api.racine;
-    r.querySelector('.tdlch-haut').innerHTML = htmlOutils(api) + htmlRail(api);
+    var r = api.racine, haut = r.querySelector('.tdlch-haut');
+    if (!haut.firstChild) { haut.innerHTML = batirHaut(api); }
+    majHaut(api);
     var liste = r.querySelector('.tdlch-liste');
     liste.innerHTML = htmlListe(api);
     liste.scrollTop = 0;
@@ -299,10 +315,7 @@
     r.addEventListener('input', function (ev) {
       if (ev.target.type !== 'search') { return; }
       etat.q = ev.target.value.trim();
-      var pos = ev.target.selectionStart;
-      peindre(api);
-      var n = r.querySelector('input[type="search"]');
-      if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+      peindre(api);                                        /* le champ n'est plus recréé : rien à restaurer */
     });
 
     /* La coquille change de panneau à la molette : tant que la liste peut
