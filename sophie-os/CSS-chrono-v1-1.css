@@ -111,7 +111,7 @@
 .tdlch-ev-corps p{margin:0 0 10px;font-family:var(--font0);font-size:15px;line-height:1.7}
 .tdlch-ev-corps p:last-child{margin-bottom:0}
 .tdlch-aparte{margin-top:11px;padding-left:13px;border-left:2px solid var(--c);
-              font-family:var(--txt1);font-style:italic;font-size:16px;line-height:1.55;color:var(--darkopa6)}
+              font-family:var(--txt2)!important;font-style:italic;font-size:18px!important;line-height:1;color:var(--darkopa8)}
 .tdlch-ev-fig{margin:0}
 .tdlch-ev-img{width:100%;display:block;border-radius:6px;filter:saturate(.8) contrast(1.04)}
 .tdlch-ev-fig figcaption{margin-top:6px;font-family:var(--txt3);font-size:12px;letter-spacing:.05em;color:var(--darkopa5)}
