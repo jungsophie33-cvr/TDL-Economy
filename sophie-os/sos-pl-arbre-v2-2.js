@@ -265,13 +265,13 @@
     var bouts = ['<em>' + c.libre + (c.libre > 1 ? ' rôles libres' : ' rôle libre') + '</em>'];
     if (c.reserve) bouts.push(c.reserve + (c.reserve > 1 ? ' réservés' : ' réservé'));
     bouts.push(c.total + ' personnages');
-    return '<span class="tdlpl-compte">' + bouts.join(' · ') + '</span>';
+    return '<div class="tdlpl-compte">' + bouts.join(' · ') + '</div>';
   }
 
   function rendu(modele) {
     var base = modele.fiches, h = '<div class="tdlpl annexe">';
 
-    h += '<div class="tdlpl-hero"><div class="tdlpl-hero-in">';
+       h += '<div class="tdlpl-hero"><div class="tdlpl-hero-in">';
     h += '<h1 class="tdlpl-fam">' + echappe(modele.famille) + '</h1>';
     if (modele.tronc.length) {
       h += '<p class="tdlpl-tronc">Issus de ' + modele.tronc.map(function (p) {
@@ -279,13 +279,8 @@
         return '<b>' + echappe(p.nomComplet) + '</b>' + d;
       }).join(' &amp; ') + '</p>';
     }
+    h += htmlCompteur(modele);
     h += '</div></div>';
-
-    h += '<div class="tdlpl-legende">';
-    T.STATUTS.forEach(function (s) {
-      h += '<span class="tdlpl-pastille tdlpl-' + s + '">' + T.libelle(s) + '</span>';
-    });
-    h += htmlCompteur(modele) + '</div>';
 
     modele.branches.forEach(function (b) {
       h += '<div class="tdlpl-branche">';
