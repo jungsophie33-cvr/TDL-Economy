@@ -8,13 +8,29 @@
  *             une mission est écrite directement dans  missions/{id}  en_attente,
  *             puis gérée par le Tableau des missions (chef, négociation, refus
  *             auto à 7 j, versement). AUCUN boutique_demandes, aucun gate staff.
- * DÉPEND DE : window.Quais (rendu) + window.EcoCore (débit + écriture mission).
- * À CHARGER avant barge-core.js.
+ *
+ * [MAJ v2] La mission est écrite par TDLBase.ecrireEntree, avec une clé générée
+ *   en local et la sentinelle missions_rev/{id} bumpée dans le MÊME PATCH : elle
+ *   apparaît au Tableau des missions sans rechargement. Elle naît en schema 2,
+ *   donc sans conversion à refaire. participants et valides sont OMIS : en
+ *   schéma 2 ce sont des nœuds à clés, et une branche vide ne s'écrit pas.
+ *
+ * [MAJ v2] L'écriture passe {sansFile:true}. C'est une écriture COMPENSÉE : on
+ *   débite d'abord, on écrit ensuite, on recrédite si l'écriture rate. Sans
+ *   cette option, l'échec partirait dans la file de réessai globale du socle et
+ *   un « Réessayer » déclenché plus tard depuis un autre tableau recréerait la
+ *   mission APRÈS le recrédit — mission gratuite, prime rendue.
+ *
+ * DÉPEND DE : window.Quais (rendu), window.EcoCore (débit) et window.TDLBase
+ *   (clé locale + écriture sentinellée).
+ * À CHARGER avant barge-core.js, et après eco-core + tdl-base.
  */
 (function () {
   "use strict";
   if (!window.Quais) { if (window.console) console.warn("[barge-maringouins] quais-core absent."); return; }
   var Q = window.Quais, ui = Q.ui, esc = ui.esc;
+
+  var SCHEMA_MISSION = 2;    /* doit suivre rep-mis-marin */
 
   var TYPES = [["recuperation","Récupération"],["contrebande","Contrebande"],["transport","Transport"],["sabotage","Sabotage"],["intimidation","Intimidation"]];
   var MANDS = [["joueur","En mon nom (joueur)"],["entreprise","Une entreprise"],["famille","Une famille"],["pnj","Un PNJ"],["anonyme","Anonyme"]];
@@ -62,26 +78,32 @@
   }
 
   /* ---------- OUVERTURE DE MISSION (débit + écriture) ---------- */
-  function ouvrirMission(det){
-    var E = window.EcoCore;
-    if (!E || !E.firebaseTransaction || !E.writeField) { alert("Base indisponible — mission non ouverte."); return; }
+  function ouvrirMission(det, btn){
+    var E = window.EcoCore, B = window.TDLBase;
+    if (!E || !E.firebaseTransaction) { alert("Base indisponible — mission non ouverte."); return; }
+    if (!B || !B.ecrireEntree) { alert("Socle tdl-base absent — mission non ouverte."); return; }
     var p = (E.getPseudo && E.getPseudo()) || (window._userdata && window._userdata.username);
     p = p ? String(p).trim() : "";
     if (!p) { alert("Connecte-toi pour ouvrir une mission."); return; }
 
-    var g = function(c){ var el = det.querySelector('[data-champ="'+c+'"]'); return el ? String(el.value||"").trim() : ""; };
-    var titre = g("mtitre"), type = g("mtype")||"recuperation",
-        mandType = g("mandtype")||"joueur", mandLbl = g("mand"),
-        objectif = g("mobj"), contexte = g("mctx"),
-        contraintes = g("mcontr").split("\n").map(function(x){ return x.trim(); }).filter(Boolean),
-        prime = parseInt(g("mprime").replace(/[^\d]/g,""), 10);
+    /* [MAJ v2] champ() ne s'appelait pas champ() mais g(), et une variable g
+       était RÉASSIGNÉE plus bas dans le même scope de fonction (var hoisté).
+       Aucun effet aujourd'hui — tous les appels précédaient la réassignation —
+       mais le premier g() ajouté après cette ligne aurait levé « g is not a
+       function ». Les deux sont désormais nommées distinctement. */
+    var champ = function(c){ var el = det.querySelector('[data-champ="'+c+'"]'); return el ? String(el.value||"").trim() : ""; };
+    var titre = champ("mtitre"), type = champ("mtype")||"recuperation",
+        mandType = champ("mandtype")||"joueur", mandLbl = champ("mand"),
+        objectif = champ("mobj"), contexte = champ("mctx"),
+        contraintes = champ("mcontr").split("\n").map(function(x){ return x.trim(); }).filter(Boolean),
+        prime = parseInt(champ("mprime").replace(/[^\d]/g,""), 10);
 
     if (!titre) { alert("Donne un titre à la mission."); return; }
     if (!prime || prime <= 0) { alert("Indique une prime valide (en dollars)."); return; }
     try {
-      var g = (Q.gele && Q.gele()) || 0;
-      if (g > 0 && Q.dispo() < prime) {
-        alert("Fonds insuffisants : " + Q.money(g) + " de votre solde sont retenus par la Main.");
+      var gel = (Q.gele && Q.gele()) || 0;
+      if (gel > 0 && Q.dispo() < prime) {
+        alert("Fonds insuffisants : " + Q.money(gel) + " de votre solde sont retenus par la Main.");
         return;
       }
     } catch(e){}
@@ -89,32 +111,44 @@
 
     if (!window.confirm("Ouvrir la mission « "+titre+" » ?\nLa prime de "+prime+" $ sera retenue immédiatement (recréditée si aucune cellule ne s\u2019en empare sous 7 jours).")) return;
 
+    if (btn) { btn.disabled = true; btn.textContent = "Ouverture…"; }
+    var fini = function(){ if (btn) { btn.disabled = false; btn.textContent = "Ouvrir la mission"; } };
+
     var P = encodeURIComponent(p);
     /* 1. débit provisoire atomique */
     E.firebaseTransaction("membres/"+P+"/dollars", function(cur){
       var s = cur||0; if (s < prime) throw new Error("FONDS"); return s - prime;
     }).then(function(){
-      /* 2. écriture de la mission */
-      var id = "m" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+      /* 2. écriture de la mission — clé locale, sentinelle dans le même PATCH */
+      var id = B.nouvelleCle();
       var mission = {
+        schema:SCHEMA_MISSION,
         titre:titre, type:type, mandataire:mand, mandataireType:mandType,
         payeur:p, prime:prime, primeInitiale:prime,
         objectif:objectif, contraintes:contraintes, contexte:contexte,
-        statut:"en_attente", chef:null, participants:[], valides:[], nego:null,
+        statut:"en_attente", chef:null, nego:null,
         topic:"", resume:"", consequences:"", demandeValidation:false,
         cree:new Date().toISOString(), rembourse:false, primeVersee:false
       };
-      return E.writeField("missions/"+id, mission).then(function(){
-        try { if (window.EcoNotif) EcoNotif.bande("maringouins", 110, { titre:titre, prime:prime }, "mis"+id); } catch(e){}
-      }).catch(function(e){
-        /* écriture échouée → recrédit pour ne pas retenir sans trace */
-        E.firebaseTransaction("membres/"+P+"/dollars", function(cur){ return (cur||0)+prime; }).catch(function(){});
-        throw e;
-      });
+      /* sansFile : en cas d'échec, RIEN ne part en file de réessai — on
+         recrédite ici même, et un réessai différé recréerait la mission
+         après coup. */
+      return B.ecrireEntree("missions", id, mission, "ouverture de mission", {sansFile:true})
+        .then(function(ok){
+          if (!ok) throw new Error("ECRITURE");
+          try { if (window.EcoNotif) EcoNotif.bande("maringouins", 110, { titre:titre, prime:prime }, "mis"+id); } catch(e){}
+        })
+        .catch(function(e){
+          /* écriture échouée → recrédit pour ne pas retenir sans trace */
+          E.firebaseTransaction("membres/"+P+"/dollars", function(cur){ return (cur||0)+prime; }).catch(function(){});
+          throw e;
+        });
     }).then(function(){
+      fini();
       alert("Mission ouverte ! La prime de "+prime+" $ est retenue jusqu\u2019à l\u2019issue. Suivez-la dans le Tableau des missions des Maringouins.");
       try { if (Q.refresh) Q.refresh(); } catch(e){}
     }).catch(function(e){
+      fini();
       if (e && e.message==="FONDS") { alert("Fonds insuffisants — prime non retenue."); return; }
       if (window.console) console.error("[barge-maringouins] ouverture mission", e);
       alert("Ouverture de la mission échouée — aucun montant n\u2019a été retenu.");
@@ -126,7 +160,7 @@
   function wireDetail(det, api, it){
     if (!it || it.flow!=="mission") return;
     var btn = det.querySelector("#qbm-go");
-    if (btn) btn.onclick = function(){ ouvrirMission(det); };
+    if (btn) btn.onclick = function(){ ouvrirMission(det, btn); };
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
