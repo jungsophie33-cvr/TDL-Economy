@@ -1,5 +1,20 @@
 // === ECONOMIE V2 – CORE (Firebase) ===
 // Auteur : Claude x THE DROWNED LANDS
+//
+// [MAJ v1-9] RENOUVELLEMENT DU TOKEN.
+//   L'ancienne version capturait _authToken une seule fois via
+//   onAuthStateChanged, qui ne se déclenche QU'À la connexion/déconnexion et
+//   jamais au renouvellement. Un ID token Firebase expirant au bout d'1 h,
+//   toute page laissée ouverte plus longtemps voyait ses écritures refusées
+//   en 401 ("Sauvegarde échouée"), et ses lectures échouer en silence.
+//   Trois changements :
+//     - onIdTokenChanged remplace onAuthStateChanged, et l'objet user est
+//       mémorisé dans _authUser ;
+//     - jeton() redemande le token au SDK avant chaque appel réseau : il rend
+//       celui en cache et le renouvelle tout seul s'il expire dans moins de
+//       5 min. Coût nul 59 minutes sur 60 ;
+//     - chaque appel rejoue UNE fois sur 401, token forcé, pour le cas où il
+//       expire pendant la requête elle-même.
 console.log("[EcoV2] >>> eco-core chargé (Firebase)");
 
 (function(){
@@ -57,6 +72,7 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   // ---------- AUTH FIREBASE (token anonyme) ----------
   // On charge le SDK Firebase via le CDN compat (v9 compat = même API que v8)
   let _authToken = null;
+  let _authUser  = null;        // [MAJ] l'objet user, pour pouvoir redemander un token
   let _authReady = false;
   let _authResolve = null;
   const _authPromise = new Promise(r => { _authResolve = r; });
@@ -85,9 +101,11 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
       firebase.initializeApp(FIREBASE_CONFIG);
     }
     const auth = firebase.auth();
-    // Si déjà connecté (session persistée), on récupère le token directement
-    auth.onAuthStateChanged(async user => {
+    // [MAJ] onIdTokenChanged, et NON onAuthStateChanged : ce dernier ignore les
+    // renouvellements de token et laissait _authToken périmer au bout d'1 h.
+    auth.onIdTokenChanged(async user => {
       if (user) {
+        _authUser  = user;
         _authToken = await user.getIdToken();
         _authReady = true;
         _authResolve();
@@ -96,6 +114,7 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
         // Première visite ou session expirée → token anonyme
         try {
           const cred = await auth.signInAnonymously();
+          _authUser  = cred.user;
           _authToken = await cred.user.getIdToken();
           _authReady = true;
           _authResolve();
@@ -129,10 +148,38 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   }
   maybeInitAuth();
 
+  // [MAJ] Renvoie toujours un token utilisable. getIdToken() rend celui qui est
+  // en cache dans le SDK et le renouvelle de lui-même s'il est expiré ou sur le
+  // point de l'être — on peut donc l'appeler avant chaque requête sans coût.
+  // force = true impose un renouvellement (rattrapage d'un 401 en vol).
+  // Pour un invité (pas d'_authUser), renvoie null : lecture sans token.
+  async function jeton(force) {
+    await _authPromise;
+    if (_authUser) {
+      try { _authToken = await _authUser.getIdToken(!!force); }
+      catch(e) { err("getIdToken", e); }
+    }
+    return _authToken;
+  }
+
   // ---------- HELPERS FIREBASE REST ----------
   // On utilise l'API REST Firebase plutôt que le SDK pour garder
   // la même structure fetch() qu'avant → compatibilité totale
   const BASE_URL = FIREBASE_CONFIG.databaseURL;
+
+  // [MAJ] Exécute une requête authentifiée et la rejoue UNE fois sur 401, avec
+  // un token forcé : couvre le cas où le token expire pendant la requête.
+  // `construire(token)` doit rendre la promesse fetch.
+  async function requeteAuth(construire, libelle) {
+    let tk = await jeton();
+    let r = await construire(tk);
+    if (r.status === 401) {
+      warn(`${libelle} : token expiré en vol, renouvellement et nouvel essai`);
+      tk = await jeton(true);
+      r = await construire(tk);
+    }
+    return r;
+  }
 
 // ---------- LECTURE (avec déduplication des appels concurrents) ----------
 // Deux modules qui demandent le même chemin en même temps partagent un seul
@@ -144,9 +191,10 @@ function firebaseGet(path) {
   const cle = String(path);
   if (_enVol[cle]) return _enVol[cle];
   const p = (async () => {
-    await _authPromise;
-    const authParam = _authToken ? `?auth=${_authToken}` : "";
-    const r = await fetch(`${BASE_URL}/${cle}.json${authParam}`);
+    const r = await requeteAuth(
+      tk => fetch(`${BASE_URL}/${cle}.json${tk ? `?auth=${tk}` : ""}`),
+      `GET ${cle}`
+    );
     if (!r.ok) throw new Error(`Firebase GET ${r.status}`);
     return await r.json();
   })().finally(() => { delete _enVol[cle]; });
@@ -155,31 +203,35 @@ function firebaseGet(path) {
 }
 
   async function firebasePut(path, data) {
-    await _authPromise;
-    if (!_authToken) throw new Error("Pas de token Firebase — écriture refusée");
-    const url = `${BASE_URL}/${path}.json?auth=${_authToken}`;
-    const r = await fetch(url, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    if (!(await jeton())) throw new Error("Pas de token Firebase — écriture refusée");
+    const r = await requeteAuth(
+      tk => fetch(`${BASE_URL}/${path}.json?auth=${tk}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      }),
+      `PUT ${path}`
+    );
     if (!r.ok) throw new Error(`Firebase PUT ${r.status}`);
     return await r.json();
   }
 
   // Transaction atomique sur un chemin numérique (évite les collisions)
   async function firebaseTransaction(path, updateFn) {
-    await _authPromise;
-    if (!_authToken) throw new Error("Pas de token");
+    if (!(await jeton())) throw new Error("Pas de token");
     const url = `${BASE_URL}/${path}.json`;
     for (let i = 0; i < 5; i++) {
-      const getR = await fetch(`${url}?auth=${_authToken}&_=${Date.now()}`, {
+      // [MAJ] token redemandé à chaque tour : une transaction peut s'étaler sur
+      // plusieurs secondes, et les 5 tentatives servent aussi au rattrapage 401.
+      const tk = await jeton();
+      const getR = await fetch(`${url}?auth=${tk}&_=${Date.now()}`, {
         headers: { "X-Firebase-ETag": "true" }
       });
+      if (getR.status === 401) { warn(`Transaction ${path} : token expiré (lecture)`); await jeton(true); continue; }
       const etag = getR.headers.get("ETag");
       const current = await getR.json();
       const next = updateFn(current);
-      const putR = await fetch(`${url}?auth=${_authToken}`, {
+      const putR = await fetch(`${url}?auth=${tk}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "if-match": etag },
         body: JSON.stringify(next)
@@ -189,6 +241,11 @@ function firebaseGet(path) {
       if (putR.ok) {
         appliquerAuCache({ [path]: next });
         return await putR.json();
+      }
+      if (putR.status === 401) {
+        warn(`Transaction ${path} : token expiré (écriture)`);
+        await jeton(true);
+        continue;
       }
       if (putR.status === 412) {
         warn(`Transaction conflit sur ${path}, retry ${i+1}/5`);
@@ -202,14 +259,15 @@ function firebaseGet(path) {
 
   // POST : ajoute un enfant à clé unique générée par le serveur
   async function firebasePush(path, data) {
-    await _authPromise;
-    if (!_authToken) throw new Error("Pas de token Firebase — push refusé");
-    const url = `${BASE_URL}/${path}.json?auth=${_authToken}`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
+    if (!(await jeton())) throw new Error("Pas de token Firebase — push refusé");
+    const r = await requeteAuth(
+      tk => fetch(`${BASE_URL}/${path}.json?auth=${tk}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      }),
+      `POST ${path}`
+    );
     if (!r.ok) throw new Error(`Firebase POST ${r.status}`);
     const res = await r.json();                       // { name: "-N..." }
     if (res && res.name) appliquerAuCache({ [path + "/" + res.name]: data });
@@ -218,14 +276,15 @@ function firebaseGet(path) {
 
   // PATCH multi-chemins à la racine. null supprime le chemin.
   async function firebaseUpdate(updates) {
-    await _authPromise;
-    if (!_authToken) throw new Error("Pas de token Firebase — update refusé");
-    const url = `${BASE_URL}/.json?auth=${_authToken}`;
-    const r = await fetch(url, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates)
-    });
+    if (!(await jeton())) throw new Error("Pas de token Firebase — update refusé");
+    const r = await requeteAuth(
+      tk => fetch(`${BASE_URL}/.json?auth=${tk}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      }),
+      "PATCH racine"
+    );
     if (!r.ok) throw new Error(`Firebase PATCH ${r.status}`);
     appliquerAuCache(updates);                        // au lieu de jeter le cache
     return await r.json();
