@@ -246,8 +246,15 @@ function cat(a){return TYPE_CAT[a.type];}
 var POV = "visiteur"; /* utilisé uniquement en mode DEV_POV */
 var S = {vue:"dossiers", type:"tous", statut:"tous", rpOnly:false, sel:null, onglet:"resume", mob:"liste", drawer:null, inline:null};
 function $(s,ctx){return (ctx||document).querySelector(s);}
-function av(n){return '<span class="tdle-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';}
-
+/* [MAJ] avatar réel si le pseudo porte un faceclaim ; initiales sinon.
+   L'index vient du socle, partagé avec les autres tableaux. Il peut n'être pas
+   encore chargé au premier rendu : on retombe alors sur les initiales, et
+   l'abonnement ci-dessous redessine dès qu'il arrive. */
+function av(n){
+  var c=window.TDLBase.avatar(n);
+  if(c&&c.image)return '<span class="tdle-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
+  return '<span class="tdle-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
+}
 function statut(a){if(a.cloturee)return"classee";if(a.coldcase)return"non_elucidee";return a.referent?"en_cours":"attente";}
 function role(a){
   if(CFG.DEV_POV){if(POV==="staff")return"staff";if(POV==="referent"&&!a.intrigue&&a.referent&&a.referent===myPseudo())return"referent";return"visiteur";}
@@ -838,6 +845,7 @@ function initApp(){
   /* la veille doit exister AVANT le chargement, pour pouvoir se caler dessus */
   whenEco(function(){
     window.TDLBase.surEchec(majBandeau);
+    window.TDLBase.avatars(function(){ if(!S.drawer&&!S.inline)renderAll(); });
     startAutoRefresh();
     loadData();
   });
