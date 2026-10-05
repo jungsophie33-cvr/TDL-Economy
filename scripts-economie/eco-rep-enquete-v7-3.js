@@ -1,14 +1,26 @@
 /* ==================================================================
    THE DROWNED LANDS — PANNEAU DES ENQUÊTES  ·  JS (relié à Firebase)
-   Dépend de window.EcoCore (chargé globalement par le forum) :
-     safeReadBin()                → lit tout le record (cache 60s)
-     writeField(path, data)       → écriture ciblée (PUT) d'un noeud
-     firebaseUpdate({path:v|null})→ PATCH racine multi-chemins (null supprime)
-     firebaseTransaction(path,fn)  → transaction atomique (utilisée ici pour créditer
-                                     "membres/{pseudo}/dollars" à la clôture ; EcoCore
-                                     n'expose plus de transactDollars() dédiée)
+
+   [MAJ v7-3] Les écritures et le rafraîchissement passent par le socle
+   partagé window.TDLBase (tdl-base-v1.js, qui remplace tdl-poll.js) :
+     - plus aucun safeReadBin() : on lit la seule branche "enquetes" ;
+     - chaque écriture bumpe la sentinelle "enquetes_rev/{id}" dans le MÊME
+       PATCH, et la veille ne relit que les affaires dont la révision a bougé ;
+     - onglet masqué ou utilisateur inactif → aucune requête ;
+     - une écriture qui échoue part dans une file de réessai (bandeau
+       .tdle-echec) au lieu d'être perdue.
+   Ordre de chargement : eco-core → tdl-base-v1.js → ce fichier.
+
+   Dépend de window.EcoCore :
+     firebaseGet(path)             → lecture ciblée d'une branche (hors cache)
+     firebaseTransaction(path,fn)  → transaction atomique (crédit des bonus à
+                                     la clôture, sur "membres/{pseudo}/dollars")
+   Dépend de window.TDLBase :
+     ecrire / ecrireEntree / supprimerEntree / suivre / surEchec / reessayer
+
    Données : noeud racine  enquetes/{id}  (id interne stable ; la cote
    « AG-25-01 » est calculée à l'affichage, jamais stockée comme clé).
+   Sentinelle : enquetes_rev/{id} = horodatage de la dernière écriture.
    ================================================================== */
 (function(){
 "use strict";
@@ -22,6 +34,7 @@ var CFG = {
 };
 var BONUS_PARTICIPANT = 60;   /* à chaque participant validé (référent inclus) */
 var BONUS_REFERENT    = 100;  /* bonus supplémentaire, référent seulement       */
+var VEILLE_MS         = 15000;/* cadence de la veille sentinelle                */
 var SEP = " ⟡ ";
 
 var STATUTS = {
@@ -84,19 +97,18 @@ function normaliser(o){
 }
 /* objet à écrire (sans la cote calculée) */
 function serialize(a){var o={};for(var k in a){if(a.hasOwnProperty(k)&&k!=="cote")o[k]=a[k];}return o;}
-var _lastWrite=0;
-/* écrit l'affaire entière (création uniquement) */
+
+/* ---- écritures : tout passe par le socle partagé ----
+   TDLBase construit le PATCH ciblé, y ajoute la sentinelle enquetes_rev/{id}
+   dans le MÊME appel réseau, cale la révision localement (on ne relit jamais
+   sa propre écriture) et met la modification en file de réessai si elle rate.
+   RÈGLE : ne jamais écrire dans "enquetes" par un autre chemin — une écriture
+   qui ne bumpe pas la sentinelle reste invisible aux autres onglets. */
 function persistFull(a){
-  _lastWrite=Date.now();
-  try{var p=window.EcoCore.writeField(CFG.NODE+"/"+a.id, serialize(a)); if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  return window.TDLBase.ecrireEntree(CFG.NODE, a.id, serialize(a), "création de "+(a.cote||a.titre));
 }
-/* écriture ciblée par champ(s) : patch(a,{titre:…, elements:…}) → PATCH enquetes/{id}/titre … */
 function patch(a, champs){
-  _lastWrite=Date.now();
-  var updates={}; for(var k in champs){if(champs.hasOwnProperty(k))updates[CFG.NODE+"/"+a.id+"/"+k]=champs[k];}
-  try{var p=window.EcoCore.firebaseUpdate(updates); if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  return window.TDLBase.ecrire(CFG.NODE, a.id, champs, "modification de "+(a.cote||a.titre));
 }
 
 /* cote calculée : [TYPE]-[AA]-[ORDRE] par date d'ouverture (type+année) */
@@ -364,6 +376,29 @@ function viewBoard(){
 
 /* ===================== ÉVÉNEMENTS ===================== */
 function toast(m){var t=document.createElement("div");t.className="tdle-toast";t.textContent=m;document.body.appendChild(t);setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);}
+
+/* ---- bandeau d'échec d'écriture ----
+   Monté directement sur body : position:fixed se fait piéger par les contextes
+   d'empilement de ForumActif. Tant qu'il est affiché, recharger la page perd
+   définitivement les modifications en attente. */
+function majBandeau(n){
+  var el=document.getElementById("tdle-echec");
+  if(!n){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="tdle-echec"; el.className="tdle-echec"; document.body.appendChild(el); }
+  var s=(n>1)?"s":"";
+  el.innerHTML='<span>⛔ '+n+' modification'+s+' non enregistrée'+s+'. Ne rechargez pas la page.</span>'
+    +'<button class="tdle-abtn prim" data-rejouer>Réessayer</button>';
+  var b=el.querySelector("[data-rejouer]");
+  b.onclick=function(){
+    b.disabled=true; b.textContent="Envoi…";
+    window.TDLBase.reessayer().then(function(){
+      var reste=window.TDLBase.enAttente();
+      majBandeau(reste);
+      toast(reste?"Il reste "+reste+" modification(s) en échec.":"Modifications enregistrées.");
+    });
+  };
+}
+
 function ajouterLien(a,targetId,note){
   if(!a.liens.some(function(l){return l.id===targetId;}))a.liens.push({id:targetId,note:note||""});
   var b=parId(targetId);
@@ -483,15 +518,18 @@ function creerAffaire(){
 }
 function supprimer(a){
   if(!window.confirm("Supprimer définitivement l'affaire "+a.cote+" ("+a.titre+") ?\nCette action est irréversible."))return;
-  var updates={}; updates[CFG.NODE+"/"+a.id]=null;
+  /* [MAJ] Les affaires qui citaient celle-ci sont corrigées une par une : chacune
+     doit bumper SA propre sentinelle, sinon les autres onglets garderaient un
+     lien mort jusqu'au prochain rechargement complet. */
   A.forEach(function(x){ if(x===a)return;
-    var l0=x.liens.length, d0=x.demandesLien.length;
+    var l0=x.liens.length, d0=x.demandesLien.length, ch=null;
     x.liens=x.liens.filter(function(l){return l.id!==a.id;});
     x.demandesLien=x.demandesLien.filter(function(l){return l.id!==a.id;});
-    if(x.liens.length!==l0)updates[CFG.NODE+"/"+x.id+"/liens"]=x.liens;
-    if(x.demandesLien.length!==d0)updates[CFG.NODE+"/"+x.id+"/demandesLien"]=x.demandesLien;
+    if(x.liens.length!==l0){ch=ch||{};ch.liens=x.liens;}
+    if(x.demandesLien.length!==d0){ch=ch||{};ch.demandesLien=x.demandesLien;}
+    if(ch)patch(x,ch);
   });
-  try{var p=window.EcoCore.firebaseUpdate(updates);if(p&&p.catch)p.catch(function(){toast("Suppression Firebase échouée.");});}catch(e){toast("Suppression échouée.");}
+  window.TDLBase.supprimerEntree(CFG.NODE, a.id, "suppression de "+a.cote);
   A=A.filter(function(x){return x!==a;});renumeroter();
   var d=filtre();S.sel=d[0]?d[0].id:(A[0]?A[0].id:null);S.drawer=null;S.inline=null;S.mob="liste";
   toast("Affaire supprimée.");renderAll();
@@ -522,14 +560,17 @@ function renderAll(){renderStatutFilters();renderStage();}
 /* ===================== INIT ===================== */
 function loading(msg){var el=$("#tdle-stage");if(el)el.innerHTML='<div class="tdle-empty">'+esc(msg||"Chargement…")+'</div>';}
 
+/* [MAJ] Lecture de la SEULE branche "enquetes", hors cache racine : le panneau
+   n'a besoin ni de membres/ ni de faceclaims/ (les avatars sont des initiales). */
 function loadData(){
   loading("Chargement des enquêtes…");
   var pr;
-  try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
-  Promise.resolve(pr).then(function(rec){
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
+  try{pr=window.EcoCore.firebaseGet(CFG.NODE);}catch(e){loading("EcoCore indisponible.");return;}
+  Promise.resolve(pr).then(function(raw){
+    raw=raw||{};
     A=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     renumeroter();fixSel();renderAll();
+    if(VEILLE&&VEILLE.caler)VEILLE.caler(raw);   /* cale les révisions connues */
     if(!A.length)loading("Aucune enquête pour l'instant."+(estStaffCourant()?" Utilisez « Nouvelle affaire ».":""));
   }).catch(function(){loading("Impossible de charger les enquêtes.");});
 }
@@ -547,36 +588,54 @@ function initApp(){
   if(rp)rp.onclick=function(){S.rpOnly=!S.rpOnly;rp.setAttribute("aria-pressed",S.rpOnly);fixSel();renderStage();renderStatutFilters();};
   var edit=$("#tdle-edit");
   if(edit){edit.href=CFG.EDIT_URL||"#";if(estStaffCourant())edit.classList.add("on");}
-  whenEco(function(){loadData();startAutoRefresh();});
+  /* la veille doit exister AVANT le chargement, pour pouvoir se caler dessus */
+  whenEco(function(){
+    window.TDLBase.surEchec(majBandeau);
+    startAutoRefresh();
+    loadData();
+  });
 }
 
+/* [MAJ] on exige aussi le socle partagé : ordre eco-core → tdl-base → ce fichier */
+function pret(){return !!(window.EcoCore&&window.EcoCore.firebaseGet&&window.TDLBase&&window.TDLBase.suivre);}
 function whenEco(cb){
-  if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
+  if(pret()){cb();return;}
   loading("Connexion à la base…");
   var n=0,iv=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv);cb();}
-    else if(++n>80){clearInterval(iv);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+    if(pret()){clearInterval(iv);cb();}
+    else if(++n>80){clearInterval(iv);loading("EcoCore ou tdl-base introuvable — vérifiez l'ordre de chargement des scripts.");}
   },125);
 }
 
-/* ---- rafraîchissement périodique (co-édition) ---- */
-var REFRESH_MS=20000;
-function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
-function startAutoRefresh(){setInterval(tickRefresh,REFRESH_MS);}
-function tickRefresh(){
-  if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
-  if(S.drawer||S.inline)return;                                   /* édition/formulaire ouvert */
-  if(Date.now()-_lastWrite<5000)return;                           /* une écriture vient de partir */
-  var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  try{if(window.EcoCore.invalidateCache)window.EcoCore.invalidateCache();}catch(e){}
-  var pr; try{pr=window.EcoCore.safeReadBin();}catch(e){return;}
-  Promise.resolve(pr).then(function(rec){
-    if(S.drawer||S.inline||Date.now()-_lastWrite<5000)return;      /* re-vérif après l'await */
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
-    var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-    if(signature(next)===signature(A))return;                      /* rien de neuf */
-    A=next;renumeroter();fixSel();renderAll();
-  }).catch(function(){});
+/* ---- veille sentinelle (co-édition) ----
+   On ne lit plus le nœud entier : seulement enquetes_rev (quelques ko), puis
+   les affaires dont la révision a bougé. Onglet masqué, utilisateur inactif,
+   champ au focus, écriture en vol ou en échec → aucune requête. */
+var VEILLE=null;
+function startAutoRefresh(){
+  VEILLE=window.TDLBase.suivre({
+    node: CFG.NODE,
+    rev: true,
+    ms: VEILLE_MS,
+    occupe: function(){ return !!(S.drawer||S.inline); },
+    onEntrees: absorber
+  });
+}
+function absorber(majs, supprimes){
+  var change=false, j;
+  majs.forEach(function(m){
+    var o=m.brut||{}; o.id=m.id;
+    var n=normaliser(o), i=-1;
+    for(j=0;j<A.length;j++){ if(A[j].id===m.id){i=j;break;} }
+    if(i<0)A.push(n); else A[i]=n;
+    change=true;
+  });
+  if(supprimes&&supprimes.length){
+    A=A.filter(function(x){return supprimes.indexOf(x.id)<0;});
+    change=true;
+  }
+  if(!change)return;
+  renumeroter();fixSel();renderAll();
 }
 
 /* ===================== MONTAGE FORUM ===================== */
