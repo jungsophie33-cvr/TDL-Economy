@@ -207,6 +207,7 @@
     var now = new Date().toISOString();
     var id = B().nouvelleCle();
     return ecrireEntree(CFG.NODE_TACHES, id, {
+      schema: 2,
       origine:"faveur", demandeId:d.id||"", demandeur:d.pseudo||"",
       titre:d.nom||"Faveur demandée", categorie:"faveur",
       demande:d.demande||"", contexte:d.contexte||"", don:d.don||"",
