@@ -1,11 +1,42 @@
 /* THE DROWNED LANDS — TABLEAU DES MISSIONS (MARINGOUINS) · JS
-   Moulé sur eco-rep-enquete-v7.js. Dépend de window.EcoCore (safeReadBin,
-   firebaseUpdate, firebaseTransaction). Données : missions/{id}. Création
-   par la boutique (« mission de cellule ») ; ce panneau gère le cycle après.
+   Moulé sur eco-rep-enquete. Données : missions/{id}.
+   Sentinelle : missions_rev/{id}. Création par la boutique
+   (« mission de cellule ») ; ce panneau gère le cycle après.
    Appartenance : membres/{pseudo}.hors_la_loi.bande === "maringouins".
    Argent : prime débitée du PAYEUR à la création ; 7 j sans chef → refus auto
    + recrédit ; négociation → ajustement du delta ; validation staff → prime
-   en parts égales aux participants + 50 $ bonus chef (fonds maison). */
+   en parts égales aux participants + 50 $ bonus chef (fonds maison).
+
+   [MAJ v3] VERROUS SUR LES VERSEMENTS — le correctif le plus important ici.
+     valider(), refuserStaff() et retirer() se gardaient d'un double paiement
+     en lisant un booléen (primeVersee, rembourse) dans l'instantané en
+     mémoire, vieux de 15 à 60 s. Deux membres du staff validant la même
+     mission dans cette fenêtre passaient tous DEUX le test : la prime était
+     versée deux fois, sans erreur et sans trace. L'argent n'était prélevé
+     nulle part — il était créé.
+     autoRefus() faisait pourtant déjà la bonne chose : poser le drapeau dans
+     une TRANSACTION, qui ne laisse passer qu'un seul client. Ce motif est
+     désormais extrait dans verrou() et appliqué aux quatre chemins.
+     COMPROMIS ASSUMÉ : le verrou est pris AVANT le versement. Si les crédits
+     échouent ensuite, la mission reste marquée payée sans que personne ait
+     touché son argent. Un double paiement est silencieux et fausse l'économie
+     définitivement ; une mission bloquée est visible et le staff la débloque.
+
+   [MAJ v3] PASSAGE AU SOCLE PARTAGÉ tdl-base.
+     - plus aucun safeReadBin : missions (~2 ko) et la branche membres
+       partagée (~3 ko) au lieu des 126 ko racine ;
+     - tickRefresh à 60 s ET TDLPoll sur le nœud entier remplacés par une seule
+       veille sentinelle à 15 s, plus une réconciliation toutes les 5 min ;
+     - toute écriture passe par TDLBase et bumpe la sentinelle ; en cas d'échec
+       elle part dans une file de réessai au lieu d'être perdue ;
+     - avatars et membres viennent de l'index partagé du socle.
+
+   [MAJ v3] SCHÉMA 2 — participants et valides deviennent des nœuds à clés
+     (clé = pseudo assaini). Deux Maringouins qui cliquent « Je participe » en
+     même temps ne s'écrasent plus. contraintes RESTE un tableau (textarea qui
+     réécrit la liste entière), nego est un objet unique.
+
+   Ordre de chargement : eco-core → tdl-base → ce fichier. */
 (function(){
 "use strict";
 
@@ -15,6 +46,8 @@ var CFG = {
   NODE_MEMBRES: "membres",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=467&mode=editpost" /* [MAJ] édition du sujet porteur */
 };
+var SCHEMA     = 2;                  /* version du schéma des missions      */
+var VEILLE_MS  = 15000;              /* cadence de la veille sentinelle     */
 var CHEF_BONUS = 50;                 /* bonus maison au chef à la validation */
 var DELAI_REFUS = 7 * 86400000;      /* 7 j sans chef → refus auto */
 
@@ -34,6 +67,14 @@ var TYPES = [
 ];
 var MANDANT = {joueur:"", entreprise:"entreprise", famille:"famille", pnj:"PNJ", anonyme:"anonyme"};
 
+/* ---- PLAN DE MIGRATION v1 → v2, lu par TDLBase.migrer() ----
+   Un champ absent du plan est recopié tel quel : contraintes garde sa forme
+   de tableau, nego son objet. */
+var PLAN = {
+  participants: {mode:"pseudo", conv:function(x){return x?String(x):null;}},
+  valides:      {mode:"pseudo", conv:function(x){return x?String(x):null;}}
+};
+
 /* ===================== UTILS ===================== */
 function typeLabel(id){for(var i=0;i<TYPES.length;i++){if(TYPES[i].id===id)return TYPES[i].label;}return id;}
 function typeIcon(id){for(var i=0;i<TYPES.length;i++){if(TYPES[i].id===id)return TYPES[i].ic;}return "fi-tr-briefcase";}
@@ -41,8 +82,16 @@ function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"
 function escAttr(s){return String(s==null?"":s).replace(/"/g,"&quot;");}
 function versTableau(v){return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]);}
 function newId(){return "m"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function cp(p){return window.TDLBase.clePseudo(p);}
+/* pseudos : v1 = tableau de pseudos, v2 = {pseudoAssaini: pseudoRéel} */
+function lstPseudos(v){
+  if(v==null)return [];
+  if(Array.isArray(v))return v.filter(Boolean).map(String);
+  if(typeof v!=="object")return [];
+  return Object.keys(v).map(function(k){return String(v[k]||k);});
+}
 function nbJours(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;return Math.floor((Date.now()-t)/86400000);}
-function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j"+(d>1?"":""));}
+function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j");}
 function money(n){return (+n||0)+" $";}
 
 /* crédite/débite un membre via transaction atomique (chemin racine) */
@@ -51,6 +100,20 @@ function crediterDollars(pseudo, delta){
     function(cur){return Math.max(0,(cur||0)+delta);});
 }
 
+/* [MAJ v3] Verrou de mouvement d'argent. La transaction fait passer le drapeau
+   false → true : un seul client gagne, tous les autres reçoivent DEJA et ne
+   versent rien. À utiliser AVANT tout crédit irréversible. */
+function verrou(m, champ){
+  var path=CFG.NODE+"/"+encodeURIComponent(m.id)+"/"+champ;
+  try{
+    return Promise.resolve(window.EcoCore.firebaseTransaction(path,function(cur){
+      if(cur===true)throw new Error("DEJA");
+      return true;
+    }));
+  }catch(e){ return Promise.reject(e); }
+}
+function estDeja(e){ return !!(e&&e.message==="DEJA"); }
+
 /* identité réelle (forum) */
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
 function estConnecte(){try{return typeof _userdata!=="undefined"&&parseInt(_userdata.user_id,10)>0;}catch(e){return false;}}
@@ -58,7 +121,7 @@ function myPseudo(){try{if(typeof _userdata!=="undefined"&&_userdata.username)re
 
 /* ===================== DONNÉES ===================== */
 var M = [];          /* missions en mémoire */
-var MEMBRES = {};    /* snapshot membres (appartenance + soldes) */
+var MEMBRES = {};    /* snapshot membres, fourni par le socle */
 
 function estMaringouin(pseudo){
   if(!pseudo)return false;
@@ -68,6 +131,7 @@ function estMaringouin(pseudo){
 function solde(pseudo){var m=MEMBRES[pseudo];return (m&&+m.dollars)||0;}
 
 function normaliser(o){
+  o.schema=(o.schema===SCHEMA)?SCHEMA:1;
   o.titre=o.titre||"Mission"; o.type=o.type||"recuperation";
   o.mandataire=o.mandataire||"—"; o.mandataireType=o.mandataireType||"joueur";
   o.payeur=o.payeur||null;
@@ -76,8 +140,8 @@ function normaliser(o){
   o.contraintes=versTableau(o.contraintes);
   o.statut=STATUTS[o.statut]?o.statut:"en_attente";
   o.chef=o.chef||null;
-  o.participants=versTableau(o.participants);
-  o.valides=versTableau(o.valides);
+  o.participants=lstPseudos(o.participants);
+  o.valides=lstPseudos(o.valides);
   o.nego=(o.nego&&o.nego.montant!=null)?o.nego:null;
   o.topic=o.topic||""; o.resume=o.resume||""; o.consequences=o.consequences||"";
   o.demandeValidation=!!o.demandeValidation;
@@ -87,12 +151,18 @@ function normaliser(o){
 }
 function serialize(m){var o={};for(var k in m){if(m.hasOwnProperty(k)&&k!=="id")o[k]=m[k];}return o;}
 
-var _lastWrite=0;
+/* ---- écritures : tout passe par le socle partagé ----
+   PATCH ciblé + bump de missions_rev/{id} dans le MÊME appel réseau.
+   RÈGLE : ne jamais écrire dans missions par un autre chemin. */
 function patch(m, champs){
-  _lastWrite=Date.now();
-  var up={}; for(var k in champs){if(champs.hasOwnProperty(k))up[CFG.NODE+"/"+m.id+"/"+k]=champs[k];}
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  return window.TDLBase.ecrire(CFG.NODE, m.id, champs, "modification de "+m.titre);
+}
+var ecr = patch;    /* mêmes mécanique et libellé, chemins relatifs */
+/* Une mission restée en v1 n'accepte pas d'écriture dans participants/valides. */
+function exigeV2(m){
+  if(m&&m.schema===SCHEMA)return true;
+  toast("Mission au format ancien — lancez d\u2019abord la conversion (bouton staff).");
+  return false;
 }
 function parId(id){for(var i=0;i<M.length;i++){if(M[i].id===id)return M[i];}return null;}
 
@@ -100,19 +170,9 @@ function parId(id){for(var i=0;i<M.length;i++){if(M[i].id===id)return M[i];}retu
 var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null};
 function $(s,ctx){return (ctx||document).querySelector(s);}
 
-var AVATARS = {};
-function indexAvatars(rec){
-  var fc=(rec&&rec.faceclaims)||{}, idx={};
-  function score(c){ return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0); }
-  Object.keys(fc).forEach(function(k){
-    var c=fc[k]; if(!c||!c.pseudo)return;
-    var a=idx[c.pseudo];
-    if(!a||score(c)>score(a))idx[c.pseudo]=c;
-  });
-  return idx;
-}
+/* [MAJ] avatars : index partagé du socle, chargé une fois pour tous les tableaux */
 function av(n){
-  var c=AVATARS[n];
+  var c=window.TDLBase.avatar(n);
   if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
   return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
 }
@@ -141,13 +201,23 @@ function renderStatutFilters(){
 /* ===================== RENDER ===================== */
 function stamp(m){var v=STATUTS[m.statut];return '<span class="tdlm-stamp" style="--sc:'+v.c+'">'+v.label+'</span>';}
 
+/* Bandeau de conversion — staff seulement, tant qu'il reste des missions v1. */
+function nonMigrees(){return M.filter(function(m){return m.schema!==SCHEMA;});}
+function barreMigration(){
+  if(!isStaff())return "";
+  var n=nonMigrees().length; if(!n)return "";
+  return '<div class="tdlm-migbar"><span>⚙ '+n+' mission'+(n>1?'s':'')+' au format ancien. '
+    +'L\u2019inscription et la validation des participants y restent bloquées avant conversion.</span>'
+    +'<button class="tdlm-abtn prim" data-act="migrer">Convertir maintenant</button></div>';
+}
+
 var _lastSel=null;
 function renderStage(){
   var el=$("#tdlm-stage"); if(!el)return;
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=viewDossier();
+  el.innerHTML=barreMigration()+viewDossier();
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -248,7 +318,6 @@ function panel(m){
     +actionbar(m);
 }
 
-/* ---- barre d'action selon rôle ---- */
 /* ---- barre d'action selon rôle ----
    Les rôles se CUMULENT : un chef de mission qui est aussi administrateur doit
    garder ses boutons de chef, sinon celui qui joue un personnage et tient le
@@ -328,26 +397,56 @@ function drawer(m){
 /* ===================== ÉVÉNEMENTS ===================== */
 function toast(msg){var t=document.createElement("div");t.className="tdlm-toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);}
 
+/* ---- bandeau d'échec d'écriture (monté sur body : position:fixed) ---- */
+function majBandeau(n){
+  var el=document.getElementById("tdlm-echec");
+  if(!n){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="tdlm-echec"; el.className="tdlm-echec"; document.body.appendChild(el); }
+  var s=(n>1)?"s":"";
+  el.innerHTML='<span>⛔ '+n+' modification'+s+' non enregistrée'+s+'. Ne rechargez pas la page.</span>'
+    +'<button class="tdlm-abtn prim" data-rejouer>Réessayer</button>';
+  var b=el.querySelector("[data-rejouer]");
+  b.onclick=function(){
+    b.disabled=true; b.textContent="Envoi…";
+    window.TDLBase.reessayer().then(function(){
+      var r=window.TDLBase.enAttente();
+      majBandeau(r);
+      toast(r?"Il reste "+r+" modification(s) en échec.":"Modifications enregistrées.");
+    });
+  };
+}
+
 function brancher(){
   var stage=$("#tdlm-stage"); if(!stage)return;
   stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};});
   var back=stage.querySelector("[data-back]"); if(back)back.onclick=function(){S.mob="liste";renderStage();};
-  stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){var m=parId(S.sel),n=el.getAttribute("data-val");if(el.checked){if(m.valides.indexOf(n)<0)m.valides.push(n);}else{m.valides=m.valides.filter(function(x){return x!==n;});}patch(m,{valides:m.valides});};});
+  /* [MAJ v3] une case cochée n'écrit QUE sa propre clé */
+  stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){
+    var m=parId(S.sel),n=el.getAttribute("data-val");
+    if(!exigeV2(m)){el.checked=!el.checked;return;}
+    if(el.checked){if(m.valides.indexOf(n)<0)m.valides.push(n);}
+    else m.valides=m.valides.filter(function(x){return x!==n;});
+    var ch={}; ch["valides/"+cp(n)]=el.checked?n:null; ecr(m,ch);
+  };});
   stage.querySelectorAll("[data-act]").forEach(function(el){el.onclick=function(){act(el.getAttribute("data-act"));};});
   stage.querySelectorAll("[data-do]").forEach(function(el){el.onclick=function(){doo(el.getAttribute("data-do"));};});
 }
 
 function act(k){
+  if(k==="migrer"){lancerMigration();return;}
   var m=parId(S.sel); if(!m)return;
   var me=myPseudo();
   if(k==="join"){
     if(!estMaringouin(me)){toast("Inscription réservée aux Maringouins.");return;}
     if(m.statut!=="en_attente"&&m.statut!=="acceptee"){toast("Mission fermée à l'inscription.");return;}
     if(m.participants.indexOf(me)>=0){toast("Déjà inscrit·e.");return;}
+    if(!exigeV2(m))return;
     m.participants.push(me);
-    var champs={participants:m.participants};
+    /* [MAJ v3] on n'écrit QUE sa propre clé : deux inscriptions simultanées
+       ne s'écrasent plus. */
+    var champs={}; champs["participants/"+cp(me)]=me;
     if(!m.chef){m.chef=me;m.statut="acceptee";champs.chef=me;champs.statut="acceptee";}
-    patch(m,champs);toast(m.chef===me?"Inscrit·e — vous êtes chef de mission.":"Inscrit·e à la mission.");renderAll();
+    ecr(m,champs);toast(m.chef===me?"Inscrit·e — vous êtes chef de mission.":"Inscrit·e à la mission.");renderAll();
     try{ if(window.EcoNotif && m.payeur && m.chef===me) EcoNotif.a(m.payeur,111,{titre:m.titre,chef:me},"chef"+m.id); }catch(e){}
   }
   else if(k==="topic"){S.inline=S.inline==="topic"?null:"topic";S.drawer=null;renderStage();}
@@ -406,33 +505,63 @@ function doo(k){
 }
 
 /* ===================== ARGENT ===================== */
+/* Un mouvement d'argent rend le snapshot des soldes périmé. */
+function rafraichir(){
+  return window.TDLBase.rafraichirMembres().then(function(mb){ MEMBRES=mb||{}; renderAll(); });
+}
+
+/* La négociation n'a pas de drapeau à verrouiller : on efface donc nego AVANT
+   d'ajuster l'argent. Un second clic ne trouve plus rien à accepter. Si
+   l'ajustement échoue ensuite, la proposition est perdue et le chef doit la
+   refaire — visible, contrairement à un double débit. */
+var _negoEnVol = {};
 function accepterNego(m){
-  if(!m.nego){return;}
+  if(!m.nego||_negoEnVol[m.id]){return;}
   var montant=m.nego.montant, delta=montant-m.prime;
   if(delta>0&&solde(m.payeur)<delta){toast("Fonds insuffisants pour couvrir la hausse de prime ("+money(delta)+" manquants).");return;}
-  var op=Promise.resolve();
-  if(delta!==0)op=crediterDollars(m.payeur,-delta); /* delta>0 → débit ; delta<0 → recrédit */
+  _negoEnVol[m.id]=true;
+  m.nego=null; m.prime=montant;
+  patch(m,{prime:montant,nego:null});
+  var op=(delta!==0)?crediterDollars(m.payeur,-delta):Promise.resolve(); /* delta>0 → débit ; delta<0 → recrédit */
   op.then(function(){
-    m.prime=montant;m.nego=null;
-    patch(m,{prime:montant,nego:null});
     try{ if(window.EcoNotif && m.chef) EcoNotif.a(m.chef,113,{titre:m.titre,ok:true},"negor"+m.id+"_"+montant); }catch(e){}
-    toast("Prime ajustée à "+money(montant)+".");renderAll();
-  }).catch(function(){toast("Ajustement de la prime échoué.");});
+    toast("Prime ajustée à "+money(montant)+".");
+    return rafraichir();
+  }).catch(function(){toast("Ajustement de la prime échoué — la proposition a été annulée, le chef peut la refaire.");renderAll();})
+    .then(function(){ delete _negoEnVol[m.id]; });
 }
 
 function retirer(m){
   if(m.statut!=="en_attente"){toast("Retrait possible seulement tant qu'aucun chef n'est inscrit.");return;}
+  if(m.rembourse){toast("Déjà remboursée.");return;}
   if(!window.confirm("Retirer la mission « "+m.titre+" » ? La prime ("+money(m.prime)+") vous sera recréditée."))return;
-  var op=(m.payeur&&m.prime>0&&!m.rembourse)?crediterDollars(m.payeur,m.prime):Promise.resolve();
-  op.then(function(){m.statut="refusee";m.rembourse=true;patch(m,{statut:"refusee",rembourse:true});toast("Mission retirée, prime recréditée.");renderAll();})
-    .catch(function(){toast("Recrédit échoué.");});
+  rembourser(m,"Mission retirée, prime recréditée.");
 }
 
 function refuserStaff(m){
   if(!window.confirm("Refuser la mission « "+m.titre+" » et rembourser le commanditaire ?"))return;
-  var op=(m.payeur&&m.prime>0&&!m.rembourse)?crediterDollars(m.payeur,m.prime):Promise.resolve();
-  op.then(function(){m.statut="refusee";m.rembourse=true;m.demandeValidation=false;patch(m,{statut:"refusee",rembourse:true,demandeValidation:false});toast("Mission refusée, commanditaire remboursé.");renderAll();})
-    .catch(function(){toast("Remboursement échoué.");});
+  rembourser(m,"Mission refusée, commanditaire remboursé.");
+}
+
+/* [MAJ v3] chemin commun des remboursements, sous verrou. */
+function rembourser(m, msgOk){
+  verrou(m,"rembourse").then(function(){
+    m.rembourse=true;
+    var credit=(m.payeur&&m.prime>0)?crediterDollars(m.payeur,m.prime):Promise.resolve();
+    return Promise.resolve(credit).then(function(){
+      m.statut="refusee";m.demandeValidation=false;
+      patch(m,{statut:"refusee",demandeValidation:false});
+      toast(msgOk);
+      return rafraichir();
+    });
+  }).catch(function(e){
+    if(estDeja(e)){
+      m.rembourse=true;m.statut="refusee";
+      patch(m,{statut:"refusee",demandeValidation:false});
+      toast("Déjà remboursée ailleurs — aucun second recrédit.");renderAll();return;
+    }
+    toast("Remboursement échoué — mission inchangée.");
+  });
 }
 
 function valider(m){
@@ -441,55 +570,89 @@ function valider(m){
   if(!vals.length){toast("Coche au moins un participant.");return;}
   var n=vals.length, part=Math.floor(m.prime/n), reste=m.prime-part*n;
   if(!window.confirm("Valider « "+m.titre+" » ?\n"+n+" participant(s) : "+money(part)+" chacun"+(reste?" (+"+money(reste)+" au chef)":"")+" + "+money(CHEF_BONUS)+" bonus chef. Irréversible."))return;
-  var chain=Promise.resolve();
-  vals.forEach(function(p){chain=chain.then(function(){return crediterDollars(p,part);});});
-  if(m.chef&&vals.indexOf(m.chef)>=0){chain=chain.then(function(){return crediterDollars(m.chef,reste+CHEF_BONUS);});}
-  else if(reste){chain=chain.then(function(){return crediterDollars(vals[0],reste);});}
-  chain.then(function(){
-    m.statut="terminee";m.primeVersee=true;m.demandeValidation=false;
-    patch(m,{statut:"terminee",primeVersee:true,demandeValidation:false});
-    try{ if(window.EcoNotif) vals.forEach(function(p){
-      var g=part+((m.chef&&p===m.chef)?reste+CHEF_BONUS:0);
-      EcoNotif.a(p,115,{titre:m.titre,montant:g},"prime"+m.id+"_"+p);
-    }); }catch(e){}
-    toast("Mission validée. "+n+" × "+money(part)+(m.chef?" + "+money(CHEF_BONUS)+" chef":"")+" versés.");
+  /* [MAJ v3] verrou AVANT tout crédit : deux validations simultanées ne
+     versaient pas l'une après l'autre, elles versaient DEUX FOIS. */
+  verrou(m,"primeVersee").then(function(){
+    m.primeVersee=true;
+    var chain=Promise.resolve();
+    vals.forEach(function(p){chain=chain.then(function(){return crediterDollars(p,part);});});
+    if(m.chef&&vals.indexOf(m.chef)>=0){chain=chain.then(function(){return crediterDollars(m.chef,reste+CHEF_BONUS);});}
+    else if(reste){chain=chain.then(function(){return crediterDollars(vals[0],reste);});}
+    return chain.then(function(){
+      m.statut="terminee";m.demandeValidation=false;
+      patch(m,{statut:"terminee",demandeValidation:false});
+      try{ if(window.EcoNotif) vals.forEach(function(p){
+        var g=part+((m.chef&&p===m.chef)?reste+CHEF_BONUS:0);
+        EcoNotif.a(p,115,{titre:m.titre,montant:g},"prime"+m.id+"_"+p);
+      }); }catch(e){}
+      toast("Mission validée. "+n+" × "+money(part)+(m.chef?" + "+money(CHEF_BONUS)+" chef":"")+" versés.");
+      return rafraichir();
+    });
+  }).catch(function(e){
+    if(estDeja(e)){
+      m.primeVersee=true;
+      toast("Prime déjà versée ailleurs — rien n\u2019a été versé une seconde fois.");renderAll();return;
+    }
+    toast("Versement incomplet — la mission reste marquée payée, vérifiez les soldes avant de reverser.");
     renderAll();
-  }).catch(function(){toast("Versement échoué — validation annulée.");});
+  });
 }
 
 function supprimer(m){
   if(!window.confirm("Supprimer définitivement la mission « "+m.titre+" » ?\nAucun remboursement automatique — utilisez « Refuser & rembourser » si nécessaire."))return;
-  var up={};up[CFG.NODE+"/"+m.id]=null;
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Suppression Firebase échouée.");});}catch(e){toast("Suppression échouée.");}
+  window.TDLBase.supprimerEntree(CFG.NODE, m.id, "suppression de "+m.titre);
   M=M.filter(function(x){return x!==m;});
   var d=filtre();S.sel=d[0]?d[0].id:(M[0]?M[0].id:null);S.drawer=null;S.inline=null;S.mob="liste";
   toast("Mission supprimée.");renderAll();
 }
 
 /* ---- refus auto (7 j sans chef), évaluation paresseuse au chargement ----
-   Le drapeau rembourse est posé dans une TRANSACTION : seul le client qui le
-   fait passer false→true rembourse ; tout autre (le voit déjà true) se contente
-   de refermer la mission localement. Élimine le double-recrédit en cas de
-   chargements simultanés. */
+   Même verrou que les chemins manuels : seul le client qui fait passer
+   rembourse false→true verse ; les autres referment localement. */
 function autoRefus(){
   var now=Date.now();
   M.forEach(function(m){
     if(m.statut!=="en_attente"||m.chef||m.rembourse)return;
     if(now-new Date(m.cree).getTime()<DELAI_REFUS)return;
-    var path=CFG.NODE+"/"+encodeURIComponent(m.id)+"/rembourse";
-    var pr;
-    try{pr=window.EcoCore.firebaseTransaction(path,function(cur){if(cur===true)throw new Error("DEJA");return true;});}
-    catch(e){return;}
-    Promise.resolve(pr).then(function(){
-      /* gagnant du verrou : on rembourse le payeur puis on referme la mission */
+    verrou(m,"rembourse").then(function(){
       m.rembourse=true;m.statut="refusee";
       var credit=(m.payeur&&m.prime>0)?crediterDollars(m.payeur,m.prime):Promise.resolve();
       return Promise.resolve(credit).then(function(){
         try{ if(window.EcoNotif && m.payeur) EcoNotif.a(m.payeur,116,{titre:m.titre},"auto"+m.id); }catch(e){}
-        patch(m,{statut:"refusee"});renderAll();});
+        patch(m,{statut:"refusee"});renderAll();
+      });
     }).catch(function(e){
-      if(e&&e.message==="DEJA"){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});renderAll();}
+      if(estDeja(e)){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});renderAll();}
     });
+  });
+}
+
+/* ===================== CONVERSION v1 → v2 (staff) ===================== */
+function nonMigreesCount(){return nonMigrees().length;}
+function lancerMigration(){
+  if(!isStaff()){toast("Réservé au staff.");return;}
+  var reste=nonMigreesCount();
+  if(!reste){toast("Rien à convertir.");return;}
+  if(!window.confirm("Convertir "+reste+" mission(s) au nouveau format ?\n\n"
+    +"Seules les listes participants et valides changent de forme ; aucun montant n\u2019est touché.\n"
+    +"Chaque mission est traitée séparément et l\u2019opération peut être relancée sans risque.\n"
+    +"Assurez-vous que personne n\u2019a le tableau ouvert sur l\u2019ancienne version du script."))return;
+  var b=document.querySelector('[data-act="migrer"]');
+  if(b){b.disabled=true;b.textContent="Conversion…";}
+  Promise.resolve(window.EcoCore.firebaseGet(CFG.NODE)).then(function(raw){
+    return window.TDLBase.migrer({
+      node:CFG.NODE, schema:SCHEMA, listes:PLAN, entrees:raw||{},
+      surProgres:function(f,t){var x=document.querySelector('[data-act="migrer"]');if(x)x.textContent="Conversion "+f+" / "+t+"…";}
+    });
+  }).then(function(res){
+    toast(res.erreurs.length
+      ? res.faits+" mission(s) converties, "+res.erreurs.length+" en échec — relancez la conversion."
+      : res.faits+" mission(s) converties.");
+    loadData();
+  }).catch(function(e){
+    toast("Conversion impossible — rien n\u2019a été modifié.");
+    try{console.error("[missions] migration",e);}catch(_){}
+    renderStage();
   });
 }
 
@@ -497,68 +660,75 @@ function autoRefus(){
 function renderAll(){renderStatutFilters();renderStage();}
 function loading(msg){var el=$("#tdlm-stage");if(el)el.innerHTML='<div class="tdlm-empty">'+esc(msg||"Chargement…")+'</div>';}
 
+/* [MAJ v3] deux lectures ciblées (missions ~2 ko, membres ~3 ko via le socle)
+   au lieu des 126 ko de la racine. */
 function loadData(){
   loading("Chargement des missions…");
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
-  Promise.resolve(pr).then(function(rec){
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||{};
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
+  var pm, pb;
+  try{ pm=window.EcoCore.firebaseGet(CFG.NODE); pb=window.TDLBase.membres(); }
+  catch(e){ loading("EcoCore indisponible."); return; }
+  Promise.all([Promise.resolve(pm), Promise.resolve(pb)]).then(function(r){
+    var raw=r[0]||{};
+    MEMBRES=r[1]||{};
     M=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     M.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
     autoRefus();fixSel();renderAll();
+    if(VEILLE&&VEILLE.caler)VEILLE.caler(raw);
     if(!M.length)loading("Aucune mission pour l'instant.");
   }).catch(function(){loading("Impossible de charger les missions.");});
 }
 
+function pret(){return !!(window.EcoCore&&window.EcoCore.firebaseGet&&window.TDLBase&&window.TDLBase.suivre);}
 function whenEco(cb){
-  if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
+  if(pret()){cb();return;}
   loading("Connexion à la base…");
-  var n=0,iv=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv);cb();}
-    else if(++n>80){clearInterval(iv);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+  var n=0,iv2=setInterval(function(){
+    if(pret()){clearInterval(iv2);cb();}
+    else if(++n>80){clearInterval(iv2);loading("EcoCore ou tdl-base introuvable — vérifiez l\u2019ordre de chargement des scripts.");}
   },125);
 }
 
-/* ---- rafraîchissement périodique (co-édition) ---- */
-var REFRESH_MS=60000;
-function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
+/* ---- veille sentinelle ----
+   La réconciliation périodique du socle rattrape les missions créées par
+   barge-maringouins tant qu'il écrit sans sentinelle. */
+var VEILLE=null;
 function startAutoRefresh(){
-  setInterval(tickRefresh,REFRESH_MS);
-  if(window.TDLPoll)window.TDLPoll.suivre({
+  VEILLE=window.TDLBase.suivre({
     node: CFG.NODE,
-    occupe: function(){ return !!(S.drawer||S.inline)||Date.now()-_lastWrite<5000; },
-    onDonnees: function(raw){
-      M=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-      M.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-      autoRefus();fixSel();renderAll();
-    }
+    rev: true,
+    ms: VEILLE_MS,
+    occupe: function(){ return !!(S.drawer||S.inline); },
+    onEntrees: absorber
   });
 }
-function tickRefresh(){
-  if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
-  if(S.drawer||S.inline)return;
-  if(Date.now()-_lastWrite<5000)return;
-  var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  try{if(window.EcoCore.invalidateCache)window.EcoCore.invalidateCache();}catch(e){}
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){return;}
-  Promise.resolve(pr).then(function(rec){
-    if(S.drawer||S.inline||Date.now()-_lastWrite<5000)return;
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
-    var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-    next.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-    if(signature(next)===signature(M))return;
-    M=next;fixSel();renderAll();
-  }).catch(function(){});
+function absorber(majs, supprimes){
+  var change=false, j;
+  majs.forEach(function(x){
+    var o=x.brut||{}; o.id=x.id;
+    var n=normaliser(o), i=-1;
+    for(j=0;j<M.length;j++){ if(M[j].id===x.id){i=j;break;} }
+    if(i<0)M.push(n); else M[i]=n;
+    change=true;
+  });
+  if(supprimes&&supprimes.length){
+    M=M.filter(function(x){return supprimes.indexOf(x.id)<0;});
+    change=true;
+  }
+  if(!change)return;
+  M.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+  autoRefus();fixSel();renderAll();
 }
 
 /* ===================== INIT / MONTAGE ===================== */
 function initApp(){
   var edit=$("#tdlm-edit");
   if(edit){edit.href=CFG.EDIT_URL||"#";if(isStaff())edit.classList.add("on");}
-  whenEco(function(){loadData();startAutoRefresh();});
+  whenEco(function(){
+    window.TDLBase.surEchec(majBandeau);
+    window.TDLBase.avatars(function(){ if(!S.drawer&&!S.inline)renderAll(); });
+    startAutoRefresh();
+    loadData();
+  });
 }
 
 var mounted=false;
