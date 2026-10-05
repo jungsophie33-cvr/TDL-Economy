@@ -122,13 +122,19 @@ function enVol() { return _enVol; }
 function reessayer() {
   var f = _enAttente.splice(0);
   notifier();
-  return Promise.all(f.map(function (x) { return pousser(x.node, x.id, x.updates, x.libelle, true); }));
+  return Promise.all(f.map(function (x) { return pousser(x.node, x.id, x.updates, x.libelle, { dejaRev: true }); }));
 }
 
-/* Cœur commun. `dejaRev` évite de re-bumper une révision déjà posée (réessai). */
-function pousser(node, id, updates, libelle, dejaRev) {
+/* Cœur commun.
+   opts.dejaRev  : ne pas re-bumper une révision déjà posée (réessai).
+   opts.sansFile : en cas d'échec, NE PAS mettre en file de réessai — l'appelant
+     gère lui-même. Indispensable pour une écriture COMPENSÉE : quand un appelant
+     débite d'abord, écrit ensuite et recrédite si l'écriture rate, un réessai
+     différé recréerait l'entrée APRÈS le recrédit. */
+function pousser(node, id, updates, libelle, opts) {
+  opts = opts || {};
   var rev = Date.now();
-  if (!dejaRev && updates[node + SUFFIXE_REV + "/" + id] === undefined) {
+  if (!opts.dejaRev && updates[node + SUFFIXE_REV + "/" + id] === undefined) {
     updates[node + SUFFIXE_REV + "/" + id] = rev;
   } else {
     rev = updates[node + SUFFIXE_REV + "/" + id];
@@ -145,25 +151,29 @@ function pousser(node, id, updates, libelle, dejaRev) {
     return true;
   }, function (e) {
     _enVol--;
-    _enAttente.push({ node: node, id: id, updates: updates, libelle: libelle || "modification" });
     journal("écriture refusée —", libelle || node, e);
+    if (opts.sansFile) return false;          /* l'appelant compense lui-même */
+    _enAttente.push({ node: node, id: id, updates: updates, libelle: libelle || "modification" });
     notifier();
     return false;
   });
 }
 
-/* Champs ciblés d'une entrée : ecrire("enquetes", id, {titre:…, statut:…}) */
-function ecrire(node, id, champs, libelle) {
+/* Champs ciblés d'une entrée : ecrire("enquetes", id, {titre:…, statut:…})
+   opts facultatif : voir pousser(). */
+function ecrire(node, id, champs, libelle, opts) {
   var updates = {}, k;
   for (k in champs) { if (champs.hasOwnProperty(k)) updates[node + "/" + id + "/" + k] = champs[k]; }
-  return pousser(node, id, updates, libelle);
+  return pousser(node, id, updates, libelle, opts);
 }
 
-/* Entrée entière — création. Un PATCH, pas un PUT : la sentinelle part avec. */
-function ecrireEntree(node, id, objet, libelle) {
+/* Entrée entière — création. Un PATCH, pas un PUT : la sentinelle part avec.
+   Pour une création COMPENSÉE (débit préalable à recréditer si ça rate),
+   passer {sansFile:true} et traiter le false rendu. */
+function ecrireEntree(node, id, objet, libelle, opts) {
   var updates = {};
   updates[node + "/" + id] = objet;
-  return pousser(node, id, updates, libelle);
+  return pousser(node, id, updates, libelle, opts);
 }
 
 /* Suppression : l'entrée ET sa sentinelle, pour que les autres onglets voient
@@ -172,7 +182,7 @@ function supprimerEntree(node, id, libelle) {
   var updates = {};
   updates[node + "/" + id] = null;
   updates[node + SUFFIXE_REV + "/" + id] = null;
-  return pousser(node, id, updates, libelle, true);
+  return pousser(node, id, updates, libelle, { dejaRev: true });
 }
 
 /* ===================== VEILLE ===================== */
