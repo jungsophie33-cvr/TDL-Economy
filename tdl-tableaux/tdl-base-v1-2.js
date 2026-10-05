@@ -6,8 +6,9 @@
                   d'un nœud à clés sous forme de liste triée.
      - ÉCRITURE : PATCH ciblé + bump de la sentinelle {node}_rev/{id} dans le
                   MÊME appel réseau, file de réessai en cas d'échec.
-     - AVATARS  : index pseudo → faceclaim, chargé une fois et partagé par
-                  tous les tableaux (au lieu d'un full read racine chacun).
+     - AVATARS  : index pseudo → faceclaim, et branche membres : chargés une
+                  fois et partagés par tous les tableaux, au lieu d'un full read
+                  racine chacun.
      - MIGRATION: convertit les listes d'un tableau (tableaux JS écrits en
                   bloc) vers des nœuds à clés, sur descripteur fourni par
                   l'appelant. Idempotente, une entrée par PATCH.
@@ -37,6 +38,7 @@ var INACTIVITE_MS = 600000;     /* 10 min sans action → on cesse de sonder    
 var FENETRE_MS    = 15000;      /* délai après écriture avant de relire       */
 var ABSENCE_MS    = 600000;     /* masqué plus longtemps → relecture complète */
 var SEUIL_LOT     = 20;         /* au-delà, lecture complète du nœud          */
+var RECONCILE_MS  = 300000;     /* 5 min : rattrape les écritures sans sentinelle */
 var SUFFIXE_REV   = "_rev";     /* enquetes → enquetes_rev                    */
 
 function journal() { try { console.warn.apply(console, ["[TDLBase]"].concat([].slice.call(arguments))); } catch (e) {} }
@@ -194,6 +196,7 @@ function caler(node, id, rev) {
      onDonnees : function(brut) — mode hérité, nœud entier
      occupe    : function() → true si l'interface ne doit pas être redessinée
      ms        : cadence (défaut 15 000)
+     reconcile : période de relecture complète du nœud (défaut 300 000, 0 = jamais)
    } */
 function suivre(opts) {
   if (!opts || !opts.node) return null;
@@ -207,7 +210,9 @@ function suivre(opts) {
     derniere: null,
     enCours: false,
     mort: false,
-    iv: null
+    iv: null,
+    reconcile: (opts.reconcile === 0 ? 0 : (opts.reconcile || RECONCILE_MS)),
+    dernierComplet: Date.now()
   };
   _veilles.push(v);
 
@@ -238,14 +243,31 @@ function suivre(opts) {
       var sig = JSON.stringify(brut || {});
       if (sig === v.derniere) return;
       v.derniere = sig;
-      if (modeRev) {
-        var majs = [], r = brut || {};
-        Object.keys(r).forEach(function (id) { v.revs[id] = v.revs[id] || 0; majs.push({ id: id, brut: r[id] }); });
-        opts.onEntrees(majs, []);
-      } else {
-        opts.onDonnees(brut || {});
-      }
+      opts.onDonnees(brut || {});
     }, function (e) { v.enCours = false; journal("lecture", v.node, e); });
+  }
+
+  /* Filet : relecture complète du nœud ET des révisions. Rattrape les entrées
+     écrites par un module qui ne bumpe pas la sentinelle (un firebasePush venu
+     d'ailleurs, par exemple), que le tick sentinelle ne peut pas voir. */
+  function tickReconcile(force) {
+    v.enCours = true;
+    return Promise.all([lire(v.node), lire(v.node + SUFFIXE_REV)]).then(function (res) {
+      var brut = res[0] || {}, rev = res[1] || {};
+      v.enCours = false; v.dernierComplet = Date.now();
+      if (v.mort) return;
+      if (!force && opts.occupe && opts.occupe()) return;
+      var majs = [], supprimes = [];
+      Object.keys(brut).forEach(function (id) {
+        var r = (rev[id] != null) ? rev[id] : 0;
+        if (v.revs[id] !== r) majs.push({ id: id, brut: brut[id] });
+        v.revs[id] = r;
+      });
+      Object.keys(v.revs).forEach(function (id) {
+        if (brut[id] == null) { supprimes.push(id); delete v.revs[id]; }
+      });
+      if (majs.length || supprimes.length) opts.onEntrees(majs, supprimes);
+    }, function (e) { v.enCours = false; v.dernierComplet = Date.now(); journal("réconciliation", v.node, e); });
   }
 
   /* Mode sentinelle : on ne lit que les révisions, puis les entrées bougées. */
@@ -259,9 +281,7 @@ function suivre(opts) {
       if (!neufs.length && !supprimes.length) { v.enCours = false; return; }
       if (neufs.length > SEUIL_LOT) {           /* lot massif → une seule requête */
         v.enCours = false;
-        Object.keys(r).forEach(function (id) { v.revs[id] = r[id]; });
-        supprimes.forEach(function (id) { delete v.revs[id]; });
-        return tickComplet(force);
+        return tickReconcile(force);
       }
       return Promise.all(neufs.map(function (id) {
         return lire(v.node + "/" + id).then(function (o) { return { id: id, brut: o }; });
@@ -279,7 +299,9 @@ function suivre(opts) {
 
   function tick(force) {
     if (bloque(force)) return;
-    if (modeRev) tickRev(force); else tickComplet(force);
+    if (!modeRev) { tickComplet(force); return; }
+    if (v.reconcile && Date.now() - v.dernierComplet > v.reconcile) tickReconcile(force);
+    else tickRev(force);
   }
 
   v.iv = setInterval(function () { tick(false); }, v.ms);
@@ -296,6 +318,7 @@ function suivre(opts) {
         r = r || {};
         Object.keys(r).forEach(function (id) { v.revs[id] = r[id]; });
         Object.keys(brut || {}).forEach(function (id) { if (v.revs[id] === undefined) v.revs[id] = 0; });
+        v.dernierComplet = Date.now();
       }, function () {});
     }
   };
@@ -360,6 +383,33 @@ function avatars(cb) {
 /* Lecture synchrone, pour le rendu : null tant que l'index n'est pas chargé.
    Les tableaux affichent alors leurs initiales et se redessinent au rappel. */
 function avatar(pseudo) { return (_av && _av[pseudo]) || null; }
+
+/* ---- branche membres, partagée elle aussi ----
+   Soldes, dettes, prêts, liens, hors_la_loi : plusieurs tableaux en ont besoin,
+   et chacun relisait la racine entière pour l'obtenir. La branche fait ~3 ko. */
+var MEMBRES_TTL = 120000;
+var _mb = null, _mbT = 0, _mbEnVol = null, _mbAbonnes = [];
+
+function membres(cb, forcer) {
+  if (cb && _mbAbonnes.indexOf(cb) < 0) _mbAbonnes.push(cb);
+  if (!forcer && _mb && Date.now() - _mbT < MEMBRES_TTL) {
+    if (cb) { try { cb(_mb); } catch (e) {} }
+    return Promise.resolve(_mb);
+  }
+  if (_mbEnVol) return _mbEnVol;
+  if (!window.EcoCore || !window.EcoCore.firebaseGet) return Promise.resolve(_mb || {});
+  _mbEnVol = Promise.resolve(window.EcoCore.firebaseGet("membres")).then(function (m) {
+    _mb = m || {}; _mbT = Date.now(); _mbEnVol = null;
+    _mbAbonnes.forEach(function (f) { try { f(_mb); } catch (e) {} });
+    return _mb;
+  }, function (e) {
+    _mbEnVol = null; journal("membres", e);
+    return _mb || {};
+  });
+  return _mbEnVol;
+}
+/* À appeler après un mouvement d'argent : le solde affiché doit suivre. */
+function rafraichirMembres() { return membres(null, true); }
 
 /* ===================== MIGRATION ===================== */
 /* Convertit les listes d'un tableau — tableaux JS écrits en bloc — vers des
@@ -453,6 +503,8 @@ window.TDLBase = {
   suivre: suivre,
   /* avatars */
   avatars: avatars, avatar: avatar,
+  /* membres */
+  membres: membres, rafraichirMembres: rafraichirMembres,
   /* migration */
   migrer: migrer, aMigrer: aMigrer,
   /* réglages, lisibles par les tableaux */
