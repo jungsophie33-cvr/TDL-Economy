@@ -2,6 +2,20 @@
    Moulé sur rep-tac-fais-v1.js, dont il réutilise le CSS (classes tdlm-).
    Données : dossiers_main/{id}. Sentinelle : dossiers_main_rev/{id}.
 
+   [MAJ v5] VERROUS SUR LES MOUVEMENTS D'ARGENT.
+     clore(), cloreNego() et cloreService() se gardaient d'un double
+     prélèvement en lisant un booléen (verse, primeVersee) dans l'instantané
+     en mémoire — et cloreNego ne se gardait de RIEN du tout. Deux membres du
+     staff cliquant « Clore le dossier » dans la même fenêtre de veille
+     prélevaient donc deux fois le débiteur, ou versaient deux fois depuis la
+     cagnotte Providence. Le drapeau est désormais posé par une TRANSACTION
+     (verrou), qui ne laisse passer qu'un seul client — même motif que
+     rep-mis-marin v3, d'où il est repris.
+     COMPROMIS ASSUMÉ : le verrou est pris AVANT le mouvement. Si celui-ci
+     échoue ensuite, le dossier reste marqué réglé sans que l'argent ait bougé.
+     Un double prélèvement est silencieux et fausse l'économie définitivement ;
+     un dossier bloqué est visible et le staff le débloque.
+
    [MAJ v4] PASSAGE AU SOCLE PARTAGÉ tdl-base.
      - plus aucun safeReadBin : on lit la branche dossiers_main (~10 ko) et la
        branche membres (~3 ko, partagée par le socle) au lieu des 126 ko racine ;
@@ -134,6 +148,22 @@ function typeLabel(k){return (TYPES[k]&&TYPES[k].label)||k;}
 function typeIcon(k){return (TYPES[k]&&TYPES[k].ic)||"fi-tr-folder";}
 /* le même champ désigne la menace sur une protection, la cible ailleurs */
 function cibleLbl(m){return m.type==="protection"?"Menace":"Cible";}
+
+/* [MAJ v5] Verrou de mouvement d'argent. La transaction fait passer le drapeau
+   false → true : un seul client gagne, tous les autres reçoivent DEJA et ne
+   prélèvent rien. À utiliser AVANT tout mouvement irréversible.
+   NOTE : firebaseTransaction ne bumpe pas la sentinelle ; le patch de statut
+   qui suit chaque clôture s'en charge, et les autres onglets suivent. */
+function verrou(m, champ){
+  var path=CFG.NODE+"/"+encodeURIComponent(m.id)+"/"+champ;
+  try{
+    return Promise.resolve(window.EcoCore.firebaseTransaction(path,function(cur){
+      if(cur===true)throw new Error("DEJA");
+      return true;
+    }));
+  }catch(e){ return Promise.reject(e); }
+}
+function estDeja(e){ return !!(e&&e.message==="DEJA"); }
 
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
 function estConnecte(){try{return typeof _userdata!=="undefined"&&parseInt(_userdata.user_id,10)>0;}catch(e){return false;}}
@@ -917,18 +947,23 @@ function clore(m){
     if(!p){toast("Dossier monétaire sans débiteur rattaché.");return;}
     if(solde(p)<m.montant){toast("Solde insuffisant ("+money(solde(p))+") — le dossier reste ouvert.");return;}
     if(!window.confirm("Clore « "+m.titre+" » ?\n"+money(m.montant)+" seront prélevés sur le solde de "+p+" et versés à la cagnotte « "+CFG.CAGNOTTE+" ». Irréversible."))return;
-    window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/dollars",function(cur){
-      var c=cur||0; if(c<m.montant)throw new Error("FONDS"); return c-m.montant;
-    }).then(function(){
-      return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+m.montant;});
-    }).then(function(){
-      m.verse=true;patch(m,{verse:true});
-      return acquitter(m);
-    }).then(function(){ finaliser(m); })
-      .catch(function(e){
-        if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant — rien n\u2019a été prélevé.");return;}
-        toast("Prélèvement échoué — dossier non clos.");
-      });
+    /* [MAJ v5] verrou AVANT le prélèvement : deux clôtures simultanées ne
+       prélevaient pas l'une après l'autre, elles prélevaient DEUX FOIS. */
+    verrou(m,"verse").then(function(){
+      m.verse=true;
+      return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/dollars",function(cur){
+        var c=cur||0; if(c<m.montant)throw new Error("FONDS"); return c-m.montant;
+      }).then(function(){
+        return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+m.montant;});
+      }).then(function(){
+        patch(m,{verse:true});
+        return acquitter(m);
+      }).then(function(){ finaliser(m); });
+    }).catch(function(e){
+      if(estDeja(e)){m.verse=true;toast("Prélèvement déjà effectué ailleurs — rien n\u2019a été pris une seconde fois.");renderAll();return;}
+      if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant — rien n\u2019a été prélevé, mais le dossier est marqué réglé : vérifiez le solde avant de le reclore.");renderAll();return;}
+      toast("Prélèvement incomplet — le dossier est marqué réglé, vérifiez la cagnotte avant de le reclore.");renderAll();
+    });
     return;
   }
   if(!window.confirm("Clore « "+m.titre+" » ?"+(m.dette?"\nLa créance rattachée sera acquittée.":"")))return;
@@ -948,13 +983,17 @@ function cloreNego(m){
      +" au profit de la cagnotte « "+CFG.CAGNOTTE+" »."
      +(m.phaseService?"\nLe service à rendre s\u2019ouvrira ensuite.":"")))return;
 
-  var op=px>0
-    ? window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/dollars",function(cur){
-        var c=cur||0; if(c<px)throw new Error("FONDS"); return c-px; })
-      .then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+px;}); })
-    : Promise.resolve();
-
-    op.then(function(){
+  /* [MAJ v5] Cette clôture ne se gardait d'AUCUN drapeau : deux staff cliquant
+     coup sur coup prélevaient deux fois le demandeur. On réutilise verse, qui
+     ne sert à rien d'autre sur un dossier de négociation. */
+  verrou(m,"verse").then(function(){
+    m.verse=true;
+    return px>0
+      ? window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/dollars",function(cur){
+          var c=cur||0; if(c<px)throw new Error("FONDS"); return c-px; })
+        .then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){return (cur||0)+px;}); })
+      : Promise.resolve();
+  }).then(function(){
     var suite=m.phaseService, iss=m.issue;   /* lus avant que la bascule n'écrase m */
     try{ if(window.EcoNotif){
       if(p) EcoNotif.a(p,163,{titre:m.titre,montant:px,issue:ISSUES[iss]?ISSUES[iss].label:""},"neg"+m.id);
@@ -966,13 +1005,15 @@ function cloreNego(m){
     if(m.phaseService){
       /* [MAJ v4] participants et valides sont des branches : on les SUPPRIME
          (null) au lieu d'y écrire un tableau vide. */
-      var ch={phase1:arch, phase:"service", type:"service", prixFinal:px,
+      /* verse repart à false : la phase 2 a son propre drapeau (primeVersee),
+         et le laisser à true empêcherait toute reprise cohérente du dossier. */
+      var ch={phase1:arch, phase:"service", type:"service", prixFinal:px, verse:false,
               responsable:null, participants:null, valides:null,
               sujet:"", resume:"", consequences:"",
               statut:"ouvert", demandeValidation:false, ouverte:new Date().toISOString()};
       patch(m,ch);
       m.phase1=arch; m.phase="service"; m.type="service"; m.prixFinal=px;
-      m.responsable=null; m.participants=[]; m.valides=[];
+      m.responsable=null; m.participants=[]; m.valides=[]; m.verse=false;
       m.sujet=""; m.resume=""; m.consequences="";
       m.statut="ouvert"; m.demandeValidation=false; m.ouverte=ch.ouverte;
       S.phase=2;
@@ -984,8 +1025,9 @@ function cloreNego(m){
     }
     rafraichir();
   }).catch(function(e){
-    if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant \u2014 rien n\u2019a été prélevé.");return;}
-    toast("Prélèvement échoué \u2014 dossier non clos.");
+    if(estDeja(e)){m.verse=true;toast("Négociation déjà close ailleurs \u2014 rien n\u2019a été prélevé une seconde fois.");renderAll();return;}
+    if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant \u2014 rien n\u2019a été prélevé, mais le dossier est marqué réglé : vérifiez avant de le reclore.");renderAll();return;}
+    toast("Prélèvement incomplet \u2014 le dossier est marqué réglé, vérifiez la cagnotte avant de le reclore.");renderAll();
   });
 }
 
@@ -1004,23 +1046,28 @@ function cloreService(m){
      +(pot?"\nPrélevé sur la cagnotte « "+CFG.CAGNOTTE+" ».":"\nAucun prélèvement sur la cagnotte.")
      +"\nIrréversible."))return;
 
-  var op=pot
-    ? window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){
-        var c=cur||0; if(c<pot)throw new Error("CAG"); return c-pot; })
-    : Promise.resolve();
+  /* [MAJ v5] verrou AVANT tout versement : m.primeVersee venait de
+     l'instantané en mémoire, et deux validations simultanées versaient deux
+     fois depuis la cagnotte Providence. */
+  verrou(m,"primeVersee").then(function(){
+    m.primeVersee=true;
+    var op=pot
+      ? window.EcoCore.firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(CFG.CAGNOTTE),function(cur){
+          var c=cur||0; if(c<pot)throw new Error("CAG"); return c-pot; })
+      : Promise.resolve();
 
-  vals.forEach(function(x){
-    op=op.then(function(){
-      var g=part+((m.responsable&&x===m.responsable)?reste+CFG.CHEF_BONUS:0);
-      return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(x)+"/dollars",function(cur){return (cur||0)+g;});
+    vals.forEach(function(x){
+      op=op.then(function(){
+        var g=part+((m.responsable&&x===m.responsable)?reste+CFG.CHEF_BONUS:0);
+        return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(x)+"/dollars",function(cur){return (cur||0)+g;});
+      });
     });
-  });
-  if(m.responsable&&vals.indexOf(m.responsable)<0){
-    op=op.then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(m.responsable)+"/dollars",function(cur){return (cur||0)+reste+CFG.CHEF_BONUS;}); });
-  }
-
-  op.then(function(){
-    m.statut="close";m.primeVersee=true;m.demandeValidation=false;m.clos=new Date().toISOString();
+    if(m.responsable&&vals.indexOf(m.responsable)<0){
+      op=op.then(function(){ return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(m.responsable)+"/dollars",function(cur){return (cur||0)+reste+CFG.CHEF_BONUS;}); });
+    }
+    return op;
+  }).then(function(){
+    m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
     patch(m,{statut:"close",primeVersee:true,demandeValidation:false,clos:m.clos});
          try{ if(window.EcoNotif){
       vals.forEach(function(x){
@@ -1034,8 +1081,9 @@ function cloreService(m){
     toast("Service clos \u2014 "+money(total)+" versés.");
     rafraichir();
   }).catch(function(e){
-    if(e&&e.message==="CAG"){toast("Cagnotte insuffisante ("+money(pot)+" nécessaires) \u2014 rien n\u2019a été versé.");return;}
-    toast("Versement échoué \u2014 dossier non clos.");
+    if(estDeja(e)){m.primeVersee=true;toast("Prime déjà versée ailleurs \u2014 rien n\u2019a été versé une seconde fois.");renderAll();return;}
+    if(e&&e.message==="CAG"){toast("Cagnotte insuffisante ("+money(pot)+" nécessaires) \u2014 rien n\u2019a été versé, mais le dossier est marqué payé : renflouez la cagnotte avant de le reclore.");renderAll();return;}
+    toast("Versement incomplet \u2014 le dossier est marqué payé, vérifiez les soldes avant de reverser.");renderAll();
   });
 }
 
