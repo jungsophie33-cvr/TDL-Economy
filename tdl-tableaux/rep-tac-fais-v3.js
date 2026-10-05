@@ -1,6 +1,35 @@
 /* THE DROWNED LANDS — TABLEAU DES TÂCHES (FAISEUSES D'ANGES) · JS
    Moulé sur rep-mis-marin-v1.js dont il réutilise INTÉGRALEMENT le CSS
-   (classes tdlm-). Dépend de window.EcoCore. Données : taches_faiseuses/{id}.
+   (classes tdlm-). Données : taches_faiseuses/{id}.
+   Sentinelle : taches_faiseuses_rev/{id}.
+
+   [MAJ v3] CORRECTIF DE VOTE — le plus important de cette version.
+     voter() faisait  m.votes[me]=choix ; patch(m,{votes:m.votes})  : la voix
+     était ajoutée à la COPIE LOCALE, puis l'objet votes entier était réécrit.
+     Deux Faiseuses votant à moins de quinze secondes d'écart s'écrasaient donc
+     mutuellement, et sur un quorum de 3 voix cela ne dégradait pas l'affichage
+     mais la DÉCISION : un quorum qui ne se déclenche pas, ou un report qui
+     passe en acceptation. On écrit désormais la seule clé votes/{pseudo}, et
+     le quorum se calcule sur une relecture fraîche de la branche votes.
+     Aucune migration nécessaire : votes était déjà un nœud à clés.
+
+   [MAJ v3] PASSAGE AU SOCLE PARTAGÉ tdl-base.
+     - plus aucun safeReadBin : lecture de taches_faiseuses (~2 ko) et de la
+       branche membres partagée (~3 ko) au lieu des 126 ko racine ;
+     - tickRefresh à 60 s remplacé par la veille sentinelle à 15 s, plus une
+       réconciliation complète toutes les 5 min ;
+     - toute écriture passe par TDLBase et bumpe la sentinelle ; en cas d'échec
+       elle part dans une file de réessai au lieu d'être perdue ;
+     - avatars et membres viennent de l'index partagé du socle.
+
+   [MAJ v3] SCHÉMA 2 — participants devient un nœud à clés (clé = pseudo
+     assaini). contraintes RESTE un tableau (textarea qui réécrit la liste
+     entière), votes est déjà à clés, contactPropose est un objet unique.
+
+   [MAJ v3] alerter() écrit dans dossiers_main, désormais en schéma 2 et sous
+     sentinelle : le signalement part par TDLBase.ecrireEntree, naît en
+     schema 2, et apparaît sans rechargement au tableau de la Main.
+
    Deux origines :
    - "faveur"   : née d'une demande boutique validée par le staff (quai-staff).
                   Naît en_vote ; seules les Faiseuses, le staff et le demandeur
@@ -10,7 +39,9 @@
                   7 j pour les volontaires (ouverts à tous) ; seule une Faiseuse
                   peut prendre la tête. 7 j sans chef → refus automatique.
    Aucun argent. Seul gain possible : un contact ajouté au réseau des Faiseuses
-   à la validation staff (lien reseau_faiseuses, lu par le bottin). */
+   à la validation staff (lien reseau_faiseuses, lu par le bottin).
+
+   Ordre de chargement : eco-core → tdl-base → ce fichier. */
 (function(){
 "use strict";
 
@@ -22,6 +53,9 @@ var CFG = {
   BANDE: "faiseuses",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=468&mode=editpost" /* [MAJ] sujet porteur */
 };
+var SCHEMA          = 2;         /* version du schéma des tâches               */
+var SCHEMA_DOSSIER  = 2;         /* doit suivre rep-det-main                   */
+var VEILLE_MS       = 15000;     /* cadence de la veille sentinelle            */
 var QUORUM = 3;                  /* voix identiques pour trancher un vote */
 var DELAI_REFUS = 7 * 86400000;  /* 7 j sans chef → refus auto (origine faiseuse) */
 
@@ -58,11 +92,26 @@ var ALERTE = {
   fait:"Le dossier part au tableau des dettes de la Main. Vous seule et eux le verrez. Ils vous répondront par ce tableau."
 };
 
+/* ---- PLAN DE MIGRATION v1 → v2, lu par TDLBase.migrer() ----
+   Seul participants y figure. Un champ absent du plan est recopié tel quel :
+   contraintes garde sa forme de tableau, votes son nœud à clés. */
+var PLAN = {
+  participants: {mode:"pseudo", conv:function(x){return x?String(x):null;}}
+};
+
 /* ===================== UTILS ===================== */
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function escAttr(s){return String(s==null?"":s).replace(/"/g,"&quot;");}
 function versTableau(v){return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]);}
 function newId(){return "t"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function cp(p){return window.TDLBase.clePseudo(p);}
+/* pseudos : v1 = tableau de pseudos, v2 = {pseudoAssaini: pseudoRéel} */
+function lstPseudos(v){
+  if(v==null)return [];
+  if(Array.isArray(v))return v.filter(Boolean).map(String);
+  if(typeof v!=="object")return [];
+  return Object.keys(v).map(function(k){return String(v[k]||k);});
+}
 function nbJours(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;return Math.floor((Date.now()-t)/86400000);}
 function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j");}
 function reste(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;return Math.ceil((t+DELAI_REFUS-Date.now())/86400000);}
@@ -75,7 +124,7 @@ function myPseudo(){try{if(typeof _userdata!=="undefined"&&_userdata.username)re
 
 /* ===================== DONNÉES ===================== */
 var T = [];        /* tâches en mémoire */
-var MEMBRES = {};  /* snapshot membres (appartenance de bande) */
+var MEMBRES = {};  /* snapshot membres, fourni par le socle */
 
 function estFaiseuse(pseudo){
   if(!pseudo)return false;
@@ -87,6 +136,7 @@ function nbFaiseuses(){var n=0;Object.keys(MEMBRES).forEach(function(p){if(estFa
 function peutVoter(){var me=myPseudo();return estFaiseuse(me)||(isStaff()&&nbFaiseuses()<QUORUM);}
 
 function normaliser(o){
+  o.schema=(o.schema===SCHEMA)?SCHEMA:1;
   o.titre=o.titre||"Tâche";
   o.origine=(o.origine==="faveur")?"faveur":"faiseuse";
   o.categorie=CATS[o.categorie]?o.categorie:(o.origine==="faveur"?"faveur":"contact");
@@ -95,9 +145,9 @@ function normaliser(o){
   o.demande=o.demande||""; o.don=o.don||""; o.versRp=!!o.versRp;
   o.contexte=o.contexte||""; o.objectif=o.objectif||"";
   o.contraintes=versTableau(o.contraintes);
-  o.votes=(o.votes&&typeof o.votes==="object")?o.votes:{};
+  o.votes=(o.votes&&typeof o.votes==="object"&&!Array.isArray(o.votes))?o.votes:{};
   o.chef=o.chef||null;
-  o.participants=versTableau(o.participants);
+  o.participants=lstPseudos(o.participants);
   o.sujet=o.sujet||""; o.resume=o.resume||""; o.consequences=o.consequences||"";
   o.contactPropose=(o.contactPropose&&o.contactPropose.pseudo)?o.contactPropose:null;
   o.contactInscrit=!!o.contactInscrit;
@@ -109,33 +159,27 @@ function normaliser(o){
 }
 function serialize(m){var o={};for(var k in m){if(m.hasOwnProperty(k)&&k!=="id")o[k]=m[k];}return o;}
 
-var _lastWrite=0;
+/* ---- écritures : tout passe par le socle partagé ----
+   PATCH ciblé + bump de taches_faiseuses_rev/{id} dans le MÊME appel réseau.
+   RÈGLE : ne jamais écrire dans taches_faiseuses par un autre chemin. */
 function patch(m, champs){
-  _lastWrite=Date.now();
-  var up={}; for(var k in champs){if(champs.hasOwnProperty(k))up[CFG.NODE+"/"+m.id+"/"+k]=champs[k];}
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  return window.TDLBase.ecrire(CFG.NODE, m.id, champs, "modification de "+m.titre);
+}
+var ecr = patch;    /* mêmes mécanique et libellé, chemins relatifs */
+/* Une tâche restée en v1 n'accepte pas d'écriture dans participants. */
+function exigeV2(m){
+  if(m&&m.schema===SCHEMA)return true;
+  toast("Tâche au format ancien — lancez d\u2019abord la conversion (bouton staff).");
+  return false;
 }
 function parId(id){for(var i=0;i<T.length;i++){if(T[i].id===id)return T[i];}return null;}
 
 /* ===================== ÉTAT ===================== */
 var S = {statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, alerte:false};
 function $(s,ctx){return (ctx||document).querySelector(s);}
-/* ---- avatars : lus dans le bottin des faceclaims ----
-   Aucune copie : si un membre change de faceclaim, son avatar suit ici. */
-var AVATARS = {};
-function indexAvatars(rec){
-  var fc=(rec&&rec.faceclaims)||{}, idx={};
-  function score(c){ return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0); }
-  Object.keys(fc).forEach(function(k){
-    var c=fc[k]; if(!c||!c.pseudo)return;
-    var a=idx[c.pseudo];
-    if(!a||score(c)>score(a))idx[c.pseudo]=c;
-  });
-  return idx;
-}
+/* [MAJ] avatars : index partagé du socle, chargé une fois pour tous les tableaux */
 function av(n){
-  var c=AVATARS[n];
+  var c=window.TDLBase.avatar(n);
   if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
   return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
 }
@@ -179,12 +223,22 @@ var _lastSel=null;
 function renderAll(){renderStatutFilters();renderStage();}
 function loading(msg){var el=$("#tdlf-stage");if(el)el.innerHTML='<div class="tdlm-empty">'+esc(msg||"Chargement…")+'</div>';}
 
+/* Bandeau de conversion — staff seulement, tant qu'il reste des tâches en v1. */
+function nonMigrees(){return T.filter(function(m){return m.schema!==SCHEMA;});}
+function barreMigration(){
+  if(!isStaff())return "";
+  var n=nonMigrees().length; if(!n)return "";
+  return '<div class="tdlm-migbar"><span>⚙ '+n+' tâche'+(n>1?'s':'')+' au format ancien. '
+    +'L\u2019inscription des participants y reste bloquée avant conversion.</span>'
+    +'<button class="tdlm-abtn prim" data-act="migrer">Convertir maintenant</button></div>';
+}
+
 function renderStage(){
   var el=$("#tdlf-stage"); if(!el)return;
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=S.alerte?formAlerte():(S.creation?formCreation():viewDossier());
+  el.innerHTML=barreMigration()+(S.alerte?formAlerte():(S.creation?formCreation():viewDossier()));
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -226,7 +280,7 @@ function voteBox(m){
   var c={accepter:0,reporter:0,refuser:0};
   Object.keys(m.votes).forEach(function(p){if(c[m.votes[p]]!=null)c[m.votes[p]]++;});
   var compte=Object.keys(VOTES).map(function(k){return VOTES[k]+' <b>'+c[k]+'</b>';}).join(" · ");
-  var mien=me?m.votes[me]:null;
+  var mien=me?m.votes[cp(me)]:null;
   var btns=vote?Object.keys(VOTES).map(function(k){
     return '<button class="tdlm-abtn'+(mien===k?" prim":"")+'" data-act="vote-'+k+'">'+VOTES[k]+'</button>';
   }).join(""):"";
@@ -289,9 +343,9 @@ function panel(m){
   /* contact issu de la tâche */
   var contact="";
   if(m.contactPropose){
-    var cp=m.contactPropose;
+    var cpr=m.contactPropose;
     contact='<div class="tdlm-reqbanner"><p class="tdlm-hsec">'+(m.contactInscrit?'Contact inscrit au réseau':'Contact proposé au réseau')+'</p>'
-      +'<div class="tdlm-reqrow"><span><b>'+esc(cp.pseudo)+'</b>'+(cp.activite?' — '+esc(cp.activite):'')+' · '+esc(cp.apport||'—')+' <span class="tdlm-todo">('+esc(DISPO[cp.statut]||cp.statut||'—')+')</span></span></div></div>';
+      +'<div class="tdlm-reqrow"><span><b>'+esc(cpr.pseudo)+'</b>'+(cpr.activite?' — '+esc(cpr.activite):'')+' · '+esc(cpr.apport||'—')+' <span class="tdlm-todo">('+esc(DISPO[cpr.statut]||cpr.statut||'—')+')</span></span></div></div>';
   }
 
   var banner="";
@@ -351,16 +405,16 @@ function drawer(m){
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="sujetok">Enregistrer</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.drawer==="bilan"){
-    var cp=m.contactPropose||{};
-    var opts=Object.keys(DISPO).map(function(k){return '<option value="'+k+'"'+(k===cp.statut?' selected':'')+'>'+DISPO[k]+'</option>';}).join("");
+    var cpr=m.contactPropose||{};
+    var opts=Object.keys(DISPO).map(function(k){return '<option value="'+k+'"'+(k===cpr.statut?' selected':'')+'>'+DISPO[k]+'</option>';}).join("");
     return '<div class="tdlm-drawer on"><h4>Bilan de la tâche</h4>'
       +'<label class="tdlm-fl">Résumé</label><textarea id="tdlf-bresume">'+esc(m.resume)+'</textarea>'
       +'<label class="tdlm-fl">Conséquences</label><textarea id="tdlf-bconseq">'+esc(m.consequences)+'</textarea>'
       +'<h4 style="margin-top:14px">Contact à intégrer au réseau (facultatif)</h4>'
-      +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Pseudo</label><input type="text" id="tdlf-cps" value="'+escAttr(cp.pseudo||"")+'"></div>'
-      +'<div style="flex:1"><label class="tdlm-fl">Activité</label><input type="text" id="tdlf-cact" value="'+escAttr(cp.activite||"")+'"></div>'
+      +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Pseudo</label><input type="text" id="tdlf-cps" value="'+escAttr(cpr.pseudo||"")+'"></div>'
+      +'<div style="flex:1"><label class="tdlm-fl">Activité</label><input type="text" id="tdlf-cact" value="'+escAttr(cpr.activite||"")+'"></div>'
       +'<div style="flex:1"><label class="tdlm-fl">Disponibilité</label><select id="tdlf-cdisp">'+opts+'</select></div></div>'
-      +'<label class="tdlm-fl">Ce qu\u2019il apporte</label><input type="text" id="tdlf-capp" value="'+escAttr(cp.apport||"")+'">'
+      +'<label class="tdlm-fl">Ce qu\u2019il apporte</label><input type="text" id="tdlf-capp" value="'+escAttr(cpr.apport||"")+'">'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="bilanok">'+(m.statut==="en_validation"?"Enregistrer":"Envoyer en validation")+'</button>'
       +(m.statut!=="en_validation"?'<button class="tdlm-abtn" data-do="bilansave">Enregistrer sans envoyer</button>':'')
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
@@ -433,6 +487,25 @@ function formAlerte(){
 /* ===================== ÉVÉNEMENTS ===================== */
 function toast(msg){var t=document.createElement("div");t.className="tdlm-toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);}
 
+/* ---- bandeau d'échec d'écriture (monté sur body : position:fixed) ---- */
+function majBandeau(n){
+  var el=document.getElementById("tdlm-echec");
+  if(!n){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="tdlm-echec"; el.className="tdlm-echec"; document.body.appendChild(el); }
+  var s=(n>1)?"s":"";
+  el.innerHTML='<span>⛔ '+n+' modification'+s+' non enregistrée'+s+'. Ne rechargez pas la page.</span>'
+    +'<button class="tdlm-abtn prim" data-rejouer>Réessayer</button>';
+  var b=el.querySelector("[data-rejouer]");
+  b.onclick=function(){
+    b.disabled=true; b.textContent="Envoi…";
+    window.TDLBase.reessayer().then(function(){
+      var r=window.TDLBase.enAttente();
+      majBandeau(r);
+      toast(r?"Il reste "+r+" modification(s) en échec.":"Modifications enregistrées.");
+    });
+  };
+}
+
 function brancher(){
   var stage=$("#tdlf-stage"); if(!stage)return;
   stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};});
@@ -442,6 +515,7 @@ function brancher(){
 }
 
 function act(k){
+  if(k==="migrer"){lancerMigration();return;}
   var m=parId(S.sel); if(!m&&k.indexOf("vote-")!==0)return;
   var me=myPseudo();
   if(k.indexOf("vote-")===0){voter(m,k.slice(5));return;}
@@ -451,17 +525,21 @@ function act(k){
     if(m.statut!=="en_attente"&&m.statut!=="acceptee"){toast("Tâche fermée à l\u2019inscription.");return;}
     if(m.origine==="faveur"&&!estFaiseuse(me)){toast("Cette faveur reste entre les mains du réseau.");return;}
     if(m.participants.indexOf(me)>=0){toast("Déjà inscrit·e.");return;}
+    if(!exigeV2(m))return;
     m.participants.push(me);
-    var champs={participants:m.participants};
+    /* [MAJ v3] on n'écrit QUE sa propre clé : deux inscriptions simultanées
+       ne s'écrasent plus. */
+    var champs={}; champs["participants/"+cp(me)]=me;
     if(!m.chef&&estFaiseuse(me)){m.chef=me;m.statut="acceptee";champs.chef=me;champs.statut="acceptee";}
-    patch(m,champs);
+    ecr(m,champs);
     toast(m.chef===me?"Vous êtes chef de tâche.":"Inscrit·e — une Faiseuse doit encore prendre la tête.");
     renderAll();return;
   }
   if(k==="rouvrir"){
     if(!estFaiseuse(me)&&!isStaff()){toast("Réservé aux Faiseuses.");return;}
     m.statut="en_vote";m.votes={};m.ouverte=new Date().toISOString();
-    patch(m,{statut:"en_vote",votes:{},ouverte:m.ouverte});
+    /* null supprime la branche : on repart d'un vote vierge */
+    patch(m,{statut:"en_vote",votes:null,ouverte:m.ouverte});
     toast("Vote rouvert.");renderAll();return;
   }
   if(k==="sujet"){S.inline=S.inline==="sujet"?null:"sujet";S.drawer=null;renderStage();return;}
@@ -513,19 +591,31 @@ function doo(k){
 }
 
 /* ===================== VOTE ===================== */
+/* [MAJ v3] Une voix s'écrit SEULE, à sa propre clé. Puis le quorum se calcule
+   sur une relecture fraîche de la branche votes : sans ça, deux Faiseuses
+   votant coup sur coup décideraient chacune sur sa vision partielle du scrutin. */
 function voter(m, choix){
   if(!VOTES[choix])return;
   var me=myPseudo();
   if(!me){toast("Connectez-vous pour voter.");return;}
   if(!peutVoter()){toast("Le vote est réservé aux Faiseuses.");return;}
   if(m.statut!=="en_vote"){toast("Le vote est clos.");return;}
-  m.votes[me]=choix;patch(m,{votes:m.votes});
-  var c={accepter:0,reporter:0,refuser:0},gagnant=null;
-  Object.keys(m.votes).forEach(function(p){if(c[m.votes[p]]!=null)c[m.votes[p]]++;});
-  Object.keys(c).forEach(function(kk){if(c[kk]>=QUORUM)gagnant=kk;});
-  if(gagnant){appliquer(m,gagnant);toast("Quorum atteint — "+VOTES[gagnant].toLowerCase()+".");}
-  else toast("Voix enregistrée.");
+  var cle=cp(me);
+  m.votes[cle]=choix;
+  var ch={}; ch["votes/"+cle]=choix;
   renderAll();
+  Promise.resolve(ecr(m,ch)).then(function(ok){
+    if(!ok){toast("Voix non enregistrée — réessayez.");return;}
+    return Promise.resolve(window.EcoCore.firebaseGet(CFG.NODE+"/"+m.id+"/votes")).then(function(v){
+      m.votes=(v&&typeof v==="object"&&!Array.isArray(v))?v:m.votes;
+      var c={accepter:0,reporter:0,refuser:0},gagnant=null;
+      Object.keys(m.votes).forEach(function(p){if(c[m.votes[p]]!=null)c[m.votes[p]]++;});
+      Object.keys(c).forEach(function(kk){if(c[kk]>=QUORUM)gagnant=kk;});
+      if(gagnant&&m.statut==="en_vote"){appliquer(m,gagnant);toast("Quorum atteint — "+VOTES[gagnant].toLowerCase()+".");}
+      else toast("Voix enregistrée.");
+      renderAll();
+    });
+  }).catch(function(){ toast("Voix enregistrée."); renderAll(); });
 }
 function trancher(m){
   var choix=window.prompt("Décision du staff — tapez : accepter, reporter ou refuser.","accepter");
@@ -542,26 +632,30 @@ function appliquer(m, choix){
 }
 
 /* ===================== STAFF ===================== */
+/* [MAJ v3] lecture de la SEULE branche liens du membre, au lieu des 126 ko
+   racine. L'adressage par indice de membres/{pseudo}/liens reste : chantier
+   à part, partagé avec quai-staff, rep-det-main et les onglets du bottin. */
 function ajouterLien(pseudo, lien){
-  return Promise.resolve(window.EcoCore.safeReadBin()).then(function(r){
-    var arr=versTableau(r&&r[CFG.NODE_MEMBRES]&&r[CFG.NODE_MEMBRES][pseudo]&&r[CFG.NODE_MEMBRES][pseudo].liens);
+  var chemin=CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens";
+  return Promise.resolve(window.EcoCore.firebaseGet(chemin)).then(function(v){
+    var arr=versTableau(v);
     arr.push(lien);
-    return window.EcoCore.writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens",arr);
+    return window.EcoCore.writeField(chemin,arr);
   });
 }
 function valider(m){
-  var cp=m.contactPropose;
+  var cpr=m.contactPropose;
   var msg="Valider et clore « "+m.titre+" » ?";
-  if(cp&&!m.contactInscrit)msg+="\n"+cp.pseudo+" sera inscrit·e au réseau des Faiseuses.";
+  if(cpr&&!m.contactInscrit)msg+="\n"+cpr.pseudo+" sera inscrit·e au réseau des Faiseuses.";
   if(!window.confirm(msg))return;
-  var op=(cp&&!m.contactInscrit)
-    ? ajouterLien(cp.pseudo,{type:"reseau_faiseuses",categorie:"faiseuses",role:cp.apport||"",activite:cp.activite||"",statut:cp.statut||"disponible"})
+  var op=(cpr&&!m.contactInscrit)
+    ? ajouterLien(cpr.pseudo,{type:"reseau_faiseuses",categorie:"faiseuses",role:cpr.apport||"",activite:cpr.activite||"",statut:cpr.statut||"disponible"})
     : Promise.resolve();
   op.then(function(){
-    m.statut="terminee";m.demandeValidation=false;if(cp)m.contactInscrit=true;
-    patch(m,{statut:"terminee",demandeValidation:false,contactInscrit:!!cp});
-    try{ if(window.EcoNotif && cp && cp.pseudo) EcoNotif.a(cp.pseudo,135,{},"cont"+m.id); }catch(e){}
-    toast(cp?"Tâche close ; contact inscrit au réseau.":"Tâche close.");renderAll();
+    m.statut="terminee";m.demandeValidation=false;if(cpr)m.contactInscrit=true;
+    patch(m,{statut:"terminee",demandeValidation:false,contactInscrit:!!cpr});
+    try{ if(window.EcoNotif && cpr && cpr.pseudo) EcoNotif.a(cpr.pseudo,135,{},"cont"+m.id); }catch(e){}
+    toast(cpr?"Tâche close ; contact inscrit au réseau.":"Tâche close.");renderAll();
   }).catch(function(){toast("Inscription du contact échouée — tâche non close.");});
 }
 function classer(m){
@@ -572,11 +666,38 @@ function classer(m){
 }
 function supprimer(m){
   if(!window.confirm("Supprimer définitivement « "+m.titre+" » ?"))return;
-  var up={};up[CFG.NODE+"/"+m.id]=null;
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Suppression Firebase échouée.");});}catch(e){toast("Suppression échouée.");}
+  window.TDLBase.supprimerEntree(CFG.NODE, m.id, "suppression de "+m.titre);
   T=T.filter(function(x){return x!==m;});
   var d=filtre();S.sel=d[0]?d[0].id:null;S.drawer=null;S.inline=null;S.mob="liste";
   toast("Tâche supprimée.");renderAll();
+}
+
+/* ===================== CONVERSION v1 → v2 (staff) ===================== */
+function lancerMigration(){
+  if(!isStaff()){toast("Réservé au staff.");return;}
+  var reste=nonMigrees().length;
+  if(!reste){toast("Rien à convertir.");return;}
+  if(!window.confirm("Convertir "+reste+" tâche(s) au nouveau format ?\n\n"
+    +"Seule la liste des participants change de forme ; les votes sont déjà au bon format.\n"
+    +"Chaque tâche est traitée séparément et l\u2019opération peut être relancée sans risque.\n"
+    +"Assurez-vous que personne n\u2019a le tableau ouvert sur l\u2019ancienne version du script."))return;
+  var b=document.querySelector('[data-act="migrer"]');
+  if(b){b.disabled=true;b.textContent="Conversion…";}
+  Promise.resolve(window.EcoCore.firebaseGet(CFG.NODE)).then(function(raw){
+    return window.TDLBase.migrer({
+      node:CFG.NODE, schema:SCHEMA, listes:PLAN, entrees:raw||{},
+      surProgres:function(f,t){var x=document.querySelector('[data-act="migrer"]');if(x)x.textContent="Conversion "+f+" / "+t+"…";}
+    });
+  }).then(function(res){
+    toast(res.erreurs.length
+      ? res.faits+" tâche(s) converties, "+res.erreurs.length+" en échec — relancez la conversion."
+      : res.faits+" tâche(s) converties.");
+    loadData();
+  }).catch(function(e){
+    toast("Conversion impossible — rien n\u2019a été modifié.");
+    try{console.error("[faiseuses] migration",e);}catch(_){}
+    renderStage();
+  });
 }
 
 /* ===================== CRÉATION ===================== */
@@ -586,28 +707,35 @@ function creer(){
   var titre=(($("#tdlf-ntitre")||{}).value||"").trim();
   if(!titre){toast("Donne un titre à la tâche.");return;}
   var o={
+    schema:SCHEMA,
     origine:"faiseuse", categorie:(($("#tdlf-ncat")||{}).value||"contact"),
     titre:titre, demandeur:null, demande:"", don:"", versRp:true,
     contexte:(($("#tdlf-nctx")||{}).value||"").trim(),
     objectif:(($("#tdlf-nobj")||{}).value||"").trim(),
     contraintes:(($("#tdlf-ncontr")||{}).value||"").split("\n").map(function(x){return x.trim();}).filter(Boolean),
-    statut:"en_attente", votes:{}, chef:null, participants:[],
+    statut:"en_attente", votes:{}, chef:null,
     sujet:"", resume:"", consequences:"", contactPropose:null, contactInscrit:false,
     demandeValidation:false, expire:false,
     cree:new Date().toISOString(), ouverte:new Date().toISOString()
   };
   var id=newId();
-  _lastWrite=Date.now();
-  Promise.resolve(window.EcoCore.writeField(CFG.NODE+"/"+id,o)).then(function(){
-    o.id=id;T.unshift(normaliser(o));S.creation=false;S.sel=id;S.mob="detail";
+  window.TDLBase.ecrireEntree(CFG.NODE, id, o, "ouverture de "+titre).then(function(ok){
+    if(!ok){toast("Ouverture échouée.");return;}
+    var copie={}; for(var k in o)if(o.hasOwnProperty(k))copie[k]=o[k];
+    copie.id=id; T.unshift(normaliser(copie));
+    S.creation=false;S.sel=id;S.mob="detail";
          try{ if(window.EcoNotif) EcoNotif.bande("faiseuses",133,{titre:o.titre},"tac"+id); }catch(e){}
     toast("Tâche ouverte — une semaine pour trouver des volontaires.");renderAll();
-  }).catch(function(){toast("Ouverture échouée.");});
+  });
 }
 
    /* Écrit directement dans dossiers_main : pas de vote, pas de quorum. Une seule
    Faiseuse suffit — c'est une urgence, pas une délibération. Le compteur
-   d'appels, lui, est collectif : il se voit des deux côtés. */
+   d'appels, lui, est collectif : il se voit des deux côtés.
+   [MAJ v3] dossiers_main est en schéma 2 et sous sentinelle : le signalement
+   part par TDLBase.ecrireEntree, naît en schema 2 (donc aucune conversion à
+   refaire côté Main) et apparaît au tableau des dettes sans rechargement.
+   participants est OMIS : en schéma 2, une branche vide ne s'écrit pas. */
 function alerter(){
   var me=myPseudo();
   if(!estFaiseuse(me)&&!isStaff()){toast("Réservé aux Faiseuses d\u2019Anges.");return;}
@@ -617,7 +745,8 @@ function alerter(){
   if(!sait){toast("Dis à la Main ce que vous savez — sans ça, elle ne peut rien commencer.");return;}
   if(!window.confirm("Transmettre ce signalement à la Main ?\nElle décidera seule de la suite."))return;
 
-  var o={ type:"silence", origine:"faiseuses", titre:titre,
+  var o={ schema:SCHEMA_DOSSIER,
+          type:"silence", origine:"faiseuses", titre:titre,
           doigt:null, demandeur:me, cible_type:"aucune", cible:"", protege:"les Faiseuses d\u2019Anges",
           accord:null, defaut:null, dette:null, montant:0,
           contexte:sait,
@@ -625,23 +754,26 @@ function alerter(){
           contraintes:[],
           certitude:(($("#tdlf-acert")||{}).value||"soupcon"),
           evoquees:(($("#tdlf-aevoq")||{}).value||"").trim(), urgence:"",
-          statut:"ouvert", responsable:null, participants:[],
+          statut:"ouvert", responsable:null,
           sujet:"", resume:"", consequences:"", conclusion:null,
           demandeValidation:false, verse:false,
           cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null };
 
-  var id="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-  Promise.resolve(window.EcoCore.writeField(CFG.NODE_DOSSIERS+"/"+id,o)).then(function(){
+  var id=window.TDLBase.nouvelleCle();
+  window.TDLBase.ecrireEntree(CFG.NODE_DOSSIERS, id, o, "signalement à la Main").then(function(ok){
+    if(!ok){toast("Transmission échouée — rien n\u2019a été envoyé.");return;}
     S.alerte=false;renderStage();
     try{ if(window.EcoNotif){
       EcoNotif.bande("main",132,{url:EcoNotif.URLS.DETTES},"sil"+id);
       EcoNotif.bande("faiseuses",132,{},"silf"+id);
     } }catch(e){}
     toast("Signalement transmis. Suivez-le au tableau des dettes de la Main.");
-  }).catch(function(){toast("Transmission échouée — rien n\u2019a été envoyé.");});
+  });
 }
 
-/* ---- refus auto : 7 j sans chef (origine faiseuse uniquement) ---- */
+/* ---- refus auto : 7 j sans chef (origine faiseuse uniquement) ----
+   La transaction sur /expire sert de verrou entre onglets : un seul passe.
+   Le patch qui suit bumpe la sentinelle, les autres onglets suivent. */
 function autoRefus(){
   var now=Date.now();
   T.forEach(function(m){
@@ -658,47 +790,60 @@ function autoRefus(){
 }
 
 /* ===================== CHARGEMENT ===================== */
+/* [MAJ v3] deux lectures ciblées (tâches ~2 ko, membres ~3 ko via le socle)
+   au lieu des 126 ko de la racine. */
 function loadData(){
   loading("Chargement des tâches…");
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
-  Promise.resolve(pr).then(function(rec){
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||{};
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
+  var pt, pm;
+  try{ pt=window.EcoCore.firebaseGet(CFG.NODE); pm=window.TDLBase.membres(); }
+  catch(e){ loading("EcoCore indisponible."); return; }
+  Promise.all([Promise.resolve(pt), Promise.resolve(pm)]).then(function(r){
+    var raw=r[0]||{};
+    MEMBRES=r[1]||{};
     T=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     T.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
     autoRefus();fixSel();renderAll();
+    if(VEILLE&&VEILLE.caler)VEILLE.caler(raw);
     if(!T.length)loading("Aucune tâche pour l\u2019instant.");
   }).catch(function(){loading("Impossible de charger les tâches.");});
 }
+function pret(){return !!(window.EcoCore&&window.EcoCore.firebaseGet&&window.TDLBase&&window.TDLBase.suivre);}
 function whenEco(cb){
-  if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
+  if(pret()){cb();return;}
   loading("Connexion à la base…");
-  var n=0,iv=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv);cb();}
-    else if(++n>80){clearInterval(iv);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+  var n=0,iv2=setInterval(function(){
+    if(pret()){clearInterval(iv2);cb();}
+    else if(++n>80){clearInterval(iv2);loading("EcoCore ou tdl-base introuvable — vérifiez l\u2019ordre de chargement des scripts.");}
   },125);
 }
 
-var REFRESH_MS=60000;
-function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
-function tickRefresh(){
-  if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
-  if(S.drawer||S.inline||S.creation)return;
-  if(Date.now()-_lastWrite<5000)return;
-  var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  try{if(window.EcoCore.invalidateCache)window.EcoCore.invalidateCache();}catch(e){}
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){return;}
-  Promise.resolve(pr).then(function(rec){
-    if(S.drawer||S.inline||S.creation||Date.now()-_lastWrite<5000)return;
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
-    var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-    next.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-    if(signature(next)===signature(T))return;
-    T=next;fixSel();renderAll();
-  }).catch(function(){});
+/* ---- veille sentinelle ---- */
+var VEILLE=null;
+function startAutoRefresh(){
+  VEILLE=window.TDLBase.suivre({
+    node: CFG.NODE,
+    rev: true,
+    ms: VEILLE_MS,
+    occupe: function(){ return !!(S.drawer||S.inline||S.creation||S.alerte); },
+    onEntrees: absorber
+  });
+}
+function absorber(majs, supprimes){
+  var change=false, j;
+  majs.forEach(function(x){
+    var o=x.brut||{}; o.id=x.id;
+    var n=normaliser(o), i=-1;
+    for(j=0;j<T.length;j++){ if(T[j].id===x.id){i=j;break;} }
+    if(i<0)T.push(n); else T[i]=n;
+    change=true;
+  });
+  if(supprimes&&supprimes.length){
+    T=T.filter(function(x){return supprimes.indexOf(x.id)<0;});
+    change=true;
+  }
+  if(!change)return;
+  T.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+  autoRefus();fixSel();renderAll();
 }
 
 /* ===================== INIT / MONTAGE ===================== */
@@ -716,17 +861,10 @@ function initApp(){
     alrt.onclick=function(){S.creation=false;S.alerte=true;S.drawer=null;S.inline=null;renderStage();};
   }
   whenEco(function(){
+    window.TDLBase.surEchec(majBandeau);
+    window.TDLBase.avatars(function(){ if(!S.drawer&&!S.inline&&!S.creation&&!S.alerte)renderAll(); });
+    startAutoRefresh();
     loadData();
-    setInterval(tickRefresh,REFRESH_MS);
-    if(window.TDLPoll)window.TDLPoll.suivre({
-      node: CFG.NODE,
-      occupe: function(){ return !!(S.drawer||S.inline||S.creation)||Date.now()-_lastWrite<3000; },
-      onDonnees: function(raw){
-        T=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-        T.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-        autoRefus();fixSel();renderAll();
-      }
-    });
     setTimeout(function(){ /* les boutons n'apparaissent qu'une fois l'appartenance connue */
       var ok=estFaiseuse(myPseudo())||isStaff();
       if(neuf&&ok)neuf.style.display="";
