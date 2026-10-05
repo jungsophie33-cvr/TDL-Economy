@@ -1,6 +1,23 @@
 /* THE DROWNED LANDS — TABLEAU DES DETTES (LA MAIN DE LA PROVIDENCE) · JS
    Moulé sur rep-tac-fais-v1.js, dont il réutilise le CSS (classes tdlm-).
-   Dépend de window.EcoCore. Données : dossiers_main/{id}.
+   Données : dossiers_main/{id}. Sentinelle : dossiers_main_rev/{id}.
+
+   [MAJ v4] PASSAGE AU SOCLE PARTAGÉ tdl-base.
+     - plus aucun safeReadBin : on lit la branche dossiers_main (~10 ko) et la
+       branche membres (~3 ko, partagée par le socle) au lieu des 126 ko racine ;
+     - le tickRefresh à 60 s disparaît : veille sentinelle à 15 s, qui ne relit
+       que les dossiers dont la révision a bougé, plus une réconciliation
+       complète toutes les 5 min qui rattrape les dossiers créés par un module
+       tiers (quai-staff, tant qu'il écrit en firebasePush) ;
+     - toute écriture passe par TDLBase et bumpe la sentinelle ; en cas d'échec
+       elle part dans une file de réessai au lieu d'être perdue ;
+     - les avatars viennent de l'index partagé du socle.
+
+   [MAJ v4] SCHÉMA 2 — participants et valides deviennent des nœuds à clés
+     (clé = pseudo assaini). Deux membres de la Main qui cliquent « Je participe »
+     en même temps ne s'écrasent plus. contraintes RESTE un tableau : il s'édite
+     dans un textarea qui réécrit la liste entière, les clés n'y apporteraient
+     rien. phase1 est une archive en lecture seule, laissée telle quelle.
 
    Ce que la Main doit, ce qu'on lui doit. TROIS types de dossiers :
    - recouvrement : une dette contractée auprès de la Main que le débiteur
@@ -21,7 +38,9 @@
    dans le dossier ; quais-core le lit et le déduit du solde dépensable.
    CLÔTURE : transfert vers la cagnotte Providence, refus de clore si le compte
    n'y est pas, puis la dette rattachée est acquittée — supprimée du grand
-   livre, ou dépouillée de son statut s'il s'agit d'un lien réseau. */
+   livre, ou dépouillée de son statut s'il s'agit d'un lien réseau.
+
+   Ordre de chargement : eco-core → tdl-base → ce fichier. */
 (function(){
 "use strict";
 
@@ -38,6 +57,8 @@ var CFG = {
   CREANCIER: "La Main de la Providence",
   EDIT_URL: "https://thedrownedlands.forumactif.com/post?p=469&mode=editpost" /* [MAJ] sujet porteur */
 };
+var SCHEMA    = 2;       /* version du schéma de données des dossiers */
+var VEILLE_MS = 15000;   /* cadence de la veille sentinelle           */
 
 var STATUTS = {
   accord_attendu:{label:"Accord attendu", c:"var(--clair2)"},
@@ -84,11 +105,28 @@ function prixSelon(m, issue){
   return pi;
 }
 
+/* ---- PLAN DE MIGRATION v1 → v2, lu par TDLBase.migrer() ----
+   Seules les listes réellement disputées y figurent. Un champ absent du plan
+   est recopié tel quel : contraintes garde sa forme de tableau, phase1 son
+   contenu d'archive. */
+var PLAN = {
+  participants: {mode:"pseudo", conv:function(x){return x?String(x):null;}},
+  valides:      {mode:"pseudo", conv:function(x){return x?String(x):null;}}
+};
+
 /* ===================== UTILS ===================== */
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function escAttr(s){return String(s==null?"":s).replace(/"/g,"&quot;");}
 function vt(v){return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]);}
 function newId(){return "d"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function cp(p){return window.TDLBase.clePseudo(p);}
+/* pseudos : v1 = tableau de pseudos, v2 = {pseudoAssaini: pseudoRéel} */
+function lstPseudos(v){
+  if(v==null)return [];
+  if(Array.isArray(v))return v.filter(Boolean).map(String);
+  if(typeof v!=="object")return [];
+  return Object.keys(v).map(function(k){return String(v[k]||k);});
+}
 function nbJours(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;return Math.floor((Date.now()-t)/86400000);}
 function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j");}
 function money(n){return (+n||0)+" $";}
@@ -103,7 +141,7 @@ function myPseudo(){try{if(typeof _userdata!=="undefined"&&_userdata.username)re
 
 /* ===================== DONNÉES ===================== */
 var D = [];        /* dossiers en mémoire */
-var MEMBRES = {};  /* snapshot membres */
+var MEMBRES = {};  /* snapshot membres, fourni par le socle */
 
 function hll(p){var m=MEMBRES[p];return (m&&m.hors_la_loi)||null;}
 function estMain(p){var h=hll(p);return !!(h&&h.bande===CFG.BANDE);}
@@ -169,6 +207,7 @@ function ardoise(){
 }
 
 function normaliser(o){
+  o.schema=(o.schema===SCHEMA)?SCHEMA:1;
   o.titre=o.titre||"Dossier";
   o.type=TYPES[o.type]?o.type:"recouvrement";
   o.origine=o.origine||"main";
@@ -187,7 +226,7 @@ function normaliser(o){
   o.evoquees=o.evoquees||""; o.urgence=o.urgence||"";
   o.statut=STATUTS[o.statut]?o.statut:"ouvert";
   o.responsable=o.responsable||null;
-  o.participants=vt(o.participants);
+  o.participants=lstPseudos(o.participants);
   o.sujet=o.sujet||""; o.resume=o.resume||""; o.consequences=o.consequences||"";
   o.conclusion=CONCLUSIONS[o.conclusion]?o.conclusion:null;
   o.demandeValidation=!!o.demandeValidation;
@@ -204,19 +243,25 @@ function normaliser(o){
   o.phase=(o.phase==="service")?"service":(o.phase==="nego"?"nego":null);
   o.phaseService=!!o.phaseService;
   o.phase1=(o.phase1&&typeof o.phase1==="object")?o.phase1:null;
-  o.valides=vt(o.valides);
+  o.valides=lstPseudos(o.valides);
   o.cree=o.cree||new Date().toISOString();
   o.ouverte=o.ouverte||o.cree; o.clos=o.clos||null;
   return o;
 }
 function serialize(m){var o={};for(var k in m){if(m.hasOwnProperty(k)&&k!=="id")o[k]=m[k];}return o;}
 
-var _lastWrite=0;
+/* ---- écritures : tout passe par le socle partagé ----
+   PATCH ciblé + bump de dossiers_main_rev/{id} dans le MÊME appel réseau.
+   RÈGLE : ne jamais écrire dans dossiers_main par un autre chemin. */
 function patch(m, champs){
-  _lastWrite=Date.now();
-  var up={}; for(var k in champs){if(champs.hasOwnProperty(k))up[CFG.NODE+"/"+m.id+"/"+k]=champs[k];}
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  return window.TDLBase.ecrire(CFG.NODE, m.id, champs, "modification de "+m.titre);
+}
+var ecr = patch;    /* mêmes mécanique et libellé, chemins relatifs */
+/* Un dossier resté en v1 n'accepte aucune écriture de liste à clés. */
+function exigeV2(m){
+  if(m&&m.schema===SCHEMA)return true;
+  toast("Dossier au format ancien — lancez d\u2019abord la conversion (bouton staff).");
+  return false;
 }
 function parId(id){for(var i=0;i<D.length;i++){if(D[i].id===id)return D[i];}return null;}
 
@@ -268,21 +313,9 @@ function compteurs(pseudo){
 /* ===================== ÉTAT / FILTRAGE ===================== */
 var S={statut:"tous", sel:null, mob:"liste", drawer:null, inline:null, creation:false, prefill:null, phase:2};
 function $(s,ctx){return (ctx||document).querySelector(s);}
-/* ---- avatars : lus dans le bottin des faceclaims ----
-   Aucune copie : si un membre change de faceclaim, son avatar suit ici. */
-var AVATARS = {};
-function indexAvatars(rec){
-  var fc=(rec&&rec.faceclaims)||{}, idx={};
-  function score(c){ return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0); }
-  Object.keys(fc).forEach(function(k){
-    var c=fc[k]; if(!c||!c.pseudo)return;
-    var a=idx[c.pseudo];
-    if(!a||score(c)>score(a))idx[c.pseudo]=c;
-  });
-  return idx;
-}
+/* [MAJ] avatars : index partagé du socle, chargé une fois pour tous les tableaux */
 function av(n){
-  var c=AVATARS[n];
+  var c=window.TDLBase.avatar(n);
   if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
   return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
 }
@@ -320,13 +353,24 @@ function stamp(m){var v=STATUTS[m.statut];return '<span class="tdlm-stamp" style
 function renderAll(){renderStatutFilters();renderStage();}
 function loading(msg){var el=$("#tdld-stage");if(el)el.innerHTML='<div class="tdlm-empty">'+esc(msg||"Chargement…")+'</div>';}
 
+/* Bandeau de conversion — staff seulement, et seulement tant qu'il reste des
+   dossiers au format v1. Il disparaît de lui-même une fois le travail fait. */
+function nonMigres(){return D.filter(function(m){return m.schema!==SCHEMA;});}
+function barreMigration(){
+  if(!isStaff())return "";
+  var n=nonMigres().length; if(!n)return "";
+  return '<div class="tdlm-migbar"><span>⚙ '+n+' dossier'+(n>1?'s':'')+' au format ancien. '
+    +'La saisie et la validation des participants y restent bloquées avant conversion.</span>'
+    +'<button class="tdlm-abtn prim" data-act="migrer">Convertir maintenant</button></div>';
+}
+
 var _lastSel=null;
 function renderStage(){
   var el=$("#tdld-stage"); if(!el)return;
   var pl=el.querySelector(".tdlm-dlist-rows"); var scl=pl?pl.scrollTop:0;
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
-  el.innerHTML=S.creation?formCreation():(S.statut==="ardoise"&&peutOuvrir()?viewArdoise():viewDossier());
+  el.innerHTML=barreMigration()+(S.creation?formCreation():(S.statut==="ardoise"&&peutOuvrir()?viewArdoise():viewDossier()));
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -506,7 +550,8 @@ function panel(m){
     +(S.phase===1&&m.phase1?'':actionbar(m));
 }
 
-/* rendu en lecture seule de la phase archivée */
+/* rendu en lecture seule de la phase archivée — vt() accepte le tableau v1
+   comme le nœud à clés, si une archive future en portait un */
 function phaseClose(p){
   var part=vt(p.participants);
   return '<div class="tdlm-sec"><p class="tdlm-hsec">Qui s\u2019en est chargé</p>'
@@ -662,6 +707,26 @@ function formCreation(){
 /* ===================== ÉVÉNEMENTS ===================== */
 function toast(msg){var t=document.createElement("div");t.className="tdlm-toast";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);}
 
+/* ---- bandeau d'échec d'écriture (monté sur body : position:fixed) ----
+   Tant qu'il est affiché, recharger la page perd les modifications en attente. */
+function majBandeau(n){
+  var el=document.getElementById("tdlm-echec");
+  if(!n){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="tdlm-echec"; el.className="tdlm-echec"; document.body.appendChild(el); }
+  var s=(n>1)?"s":"";
+  el.innerHTML='<span>⛔ '+n+' modification'+s+' non enregistrée'+s+'. Ne rechargez pas la page.</span>'
+    +'<button class="tdlm-abtn prim" data-rejouer>Réessayer</button>';
+  var b=el.querySelector("[data-rejouer]");
+  b.onclick=function(){
+    b.disabled=true; b.textContent="Envoi…";
+    window.TDLBase.reessayer().then(function(){
+      var reste=window.TDLBase.enAttente();
+      majBandeau(reste);
+      toast(reste?"Il reste "+reste+" modification(s) en échec.":"Modifications enregistrées.");
+    });
+  };
+}
+
 function brancher(){
   var stage=$("#tdld-stage"); if(!stage)return;
     stage.querySelectorAll("[data-sel]").forEach(function(el){el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.phase=2;S.mob="detail";renderStage();};});
@@ -671,11 +736,13 @@ function brancher(){
     if(S.phase===1){S.drawer=null;S.inline=null;}   
     renderStage();
   };});
+     /* [MAJ v4] une case cochée n'écrit QUE sa propre clé */
      stage.querySelectorAll("[data-val]").forEach(function(el){el.onchange=function(){
     var m=parId(S.sel); if(!m)return;
+    if(!exigeV2(m)){el.checked=!el.checked;return;}
     var p=el.getAttribute("data-val"), i=m.valides.indexOf(p);
     if(el.checked && i<0)m.valides.push(p); else if(!el.checked && i>=0)m.valides.splice(i,1);
-    patch(m,{valides:m.valides});
+    var ch={}; ch["valides/"+cp(p)]=el.checked?p:null; ecr(m,ch);
   };});
   stage.querySelectorAll("[data-ard]").forEach(function(el){el.onclick=function(){
     var p=el.getAttribute("data-ard").split("\u0001");
@@ -711,12 +778,12 @@ function brancher(){
   if(deb)deb.onchange=function(){
     var cr=$("#tdld-ncre"); if(cr)cr.innerHTML=optCreances(deb.value);
     var mt=$("#tdld-nmontant"); if(mt)mt.value="0";
-    var cn=$("#tdld-ncible-nom"), ct=$("#tdld-nctype");
-    /* cp/cn : le select sert aux PJ, le champ texte aux PNJ et familles */
-    var cp=$("#tdld-ncible-pj");
-    if(cp&&deb.value)cp.value=deb.value;                 /* le débiteur est la cible par défaut */
+    var cn=$("#tdld-ncible-nom"), ct2=$("#tdld-nctype");
+    /* le select sert aux PJ, le champ texte aux PNJ et familles */
+    var cpj2=$("#tdld-ncible-pj");
+    if(cpj2&&deb.value)cpj2.value=deb.value;             /* le débiteur est la cible par défaut */
     if(cn)cn.value="";
-    if(ct&&deb.value){ ct.value="pj"; if(ct.onchange)ct.onchange(); }
+    if(ct2&&deb.value){ ct2.value="pj"; if(ct2.onchange)ct2.onchange(); }
   };
   var cre=$("#tdld-ncre");
   if(cre)cre.onchange=function(){
@@ -736,14 +803,17 @@ function brancher(){
 }
 
 function act(k){
+  if(k==="migrer"){lancerMigration();return;}
   var m=parId(S.sel); if(!m)return;
   var me=myPseudo();
   if(k==="accord-oui"||k==="accord-non"){repondre(m,k==="accord-oui");return;}
   if(k==="saisir"){
     if(!peutSaisir(m)){toast("Ce dossier ne vous est pas ouvert.");return;}
+    if(!exigeV2(m))return;
     m.responsable=me;m.statut="saisi";
     if(m.participants.indexOf(me)<0)m.participants.push(me);
-    patch(m,{responsable:me,statut:"saisi",participants:m.participants});
+    var ch={responsable:me,statut:"saisi"}; ch["participants/"+cp(me)]=me;
+    ecr(m,ch);
          try{ if(window.EcoNotif){
       if(m.demandeur) EcoNotif.a(m.demandeur,123,{titre:m.titre},"sai"+m.id);
       if(m.type==="negociation"||m.phase==="nego") EcoNotif.bande("main",161,{titre:m.titre,chef:me},"pre"+m.id);
@@ -754,7 +824,9 @@ function act(k){
     if(m.type==="negociation"||m.phase==="nego"){toast("Une négociation ne nécessite qu\u2019un seul membre de la Main.");return;}
     if(!estMain(me)){toast("Réservé aux membres de la Main.");return;}
     if(m.participants.indexOf(me)>=0)return;
-    m.participants.push(me);patch(m,{participants:m.participants});
+    if(!exigeV2(m))return;
+    m.participants.push(me);
+    var cj={}; cj["participants/"+cp(me)]=me; ecr(m,cj);
          try{ if(window.EcoNotif && m.responsable) EcoNotif.a(m.responsable,166,{pseudo:me,titre:m.titre},"join"+m.id+"_"+me); }catch(e){}
     toast("Inscrit·e au dossier.");renderAll();return;
   }
@@ -892,18 +964,25 @@ function cloreNego(m){
               resume:m.resume,consequences:m.consequences,issue:m.issue,prixFinal:px,
               clos:new Date().toISOString()};
     if(m.phaseService){
+      /* [MAJ v4] participants et valides sont des branches : on les SUPPRIME
+         (null) au lieu d'y écrire un tableau vide. */
       var ch={phase1:arch, phase:"service", type:"service", prixFinal:px,
-              responsable:null, participants:[], valides:[], sujet:"", resume:"", consequences:"",
+              responsable:null, participants:null, valides:null,
+              sujet:"", resume:"", consequences:"",
               statut:"ouvert", demandeValidation:false, ouverte:new Date().toISOString()};
-      for(var k in ch) if(ch.hasOwnProperty(k)) m[k]=ch[k];
-      patch(m,ch); S.phase=2;
+      patch(m,ch);
+      m.phase1=arch; m.phase="service"; m.type="service"; m.prixFinal=px;
+      m.responsable=null; m.participants=[]; m.valides=[];
+      m.sujet=""; m.resume=""; m.consequences="";
+      m.statut="ouvert"; m.demandeValidation=false; m.ouverte=ch.ouverte;
+      S.phase=2;
       toast("Négociation close \u2014 le service à rendre est ouvert.");
     } else {
       m.prixFinal=px;m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
       patch(m,{prixFinal:px,statut:"close",demandeValidation:false,clos:m.clos});
       toast("Négociation close.");
     }
-    E.invalider();loadData();
+    rafraichir();
   }).catch(function(e){
     if(e&&e.message==="FONDS"){toast("Solde devenu insuffisant \u2014 rien n\u2019a été prélevé.");return;}
     toast("Prélèvement échoué \u2014 dossier non clos.");
@@ -953,7 +1032,7 @@ function cloreService(m){
       if(m.demandeur) EcoNotif.a(m.demandeur,164,{titre:m.titre},"fin"+m.id);
     } }catch(e){}
     toast("Service clos \u2014 "+money(total)+" versés.");
-    E.invalider();loadData();
+    rafraichir();
   }).catch(function(e){
     if(e&&e.message==="CAG"){toast("Cagnotte insuffisante ("+money(pot)+" nécessaires) \u2014 rien n\u2019a été versé.");return;}
     toast("Versement échoué \u2014 dossier non clos.");
@@ -962,16 +1041,21 @@ function cloreService(m){
 
 /* la créance disparaît du grand livre ; un LIEN réseau perd son statut de
    dette mais reste au bottin — on s'acquitte d'une dette, on ne cesse pas
-   d'être un contact. */
+   d'être un contact.
+   [MAJ v4] lecture ciblée de la seule branche liens, au lieu des 126 ko racine.
+   NOTE : membres/{pseudo}/liens reste un TABLEAU adressé par indice, partagé
+   avec quai-staff et les onglets du bottin. C'est fragile, et c'est l'objet
+   d'un chantier à part. */
 function acquitter(m){
   if(!m.dette||!m.dette.pseudo)return Promise.resolve();
   var p=m.dette.pseudo, EC=window.EcoCore;
   if(m.dette.source==="lien"){
-    return Promise.resolve(EC.safeReadBin()).then(function(r){
-      var arr=vt(r&&r[CFG.NODE_MEMBRES]&&r[CFG.NODE_MEMBRES][p]&&r[CFG.NODE_MEMBRES][p].liens);
+    var chemin=CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/liens";
+    return Promise.resolve(EC.firebaseGet(chemin)).then(function(v){
+      var arr=vt(v);
       var ix=+m.dette.idx;
       if(arr[ix]){var l={};for(var k in arr[ix])if(arr[ix].hasOwnProperty(k))l[k]=arr[ix][k];l.statut=null;arr[ix]=l;}
-      return EC.writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/liens",arr.length?arr:null);
+      return EC.writeField(chemin,arr.length?arr:null);
     });
   }
   var o={}; o[CFG.NODE_MEMBRES+"/"+p+"/"+(m.dette.source==="pret"?"prets":"dettes")+"/"+m.dette.key]=null;
@@ -981,7 +1065,7 @@ function finaliser(m){
   m.statut="close";m.demandeValidation=false;m.clos=new Date().toISOString();
   patch(m,{statut:"close",demandeValidation:false,clos:m.clos});
      try{ if(window.EcoNotif && m.dette && m.dette.pseudo) EcoNotif.a(m.dette.pseudo,125,{},"clos"+m.id); }catch(e){}
-  toast("Dossier clos.");E.invalider();loadData();
+  toast("Dossier clos.");rafraichir();
 }
 function classer(m){
   if(m.origine==="boutique"){toast("Un service acheté ne se classe pas : il doit être mené à son terme.");return;}
@@ -993,13 +1077,45 @@ function classer(m){
 }
 function supprimer(m){
   if(!window.confirm("Supprimer définitivement « "+m.titre+" » ?\nAucun mouvement d\u2019argent n\u2019est effectué."))return;
-  var up={};up[CFG.NODE+"/"+m.id]=null;
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Suppression Firebase échouée.");});}catch(e){toast("Suppression échouée.");}
+  window.TDLBase.supprimerEntree(CFG.NODE, m.id, "suppression de "+m.titre);
   D=D.filter(function(x){return x!==m;});
   var d=filtre();S.sel=d[0]?d[0].id:null;S.drawer=null;S.inline=null;S.mob="liste";
   toast("Dossier supprimé.");renderAll();
 }
-var E={invalider:function(){try{if(window.EcoCore.invalidateCache)window.EcoCore.invalidateCache();}catch(e){}}};
+/* un mouvement d'argent rend le snapshot des soldes périmé */
+function rafraichir(){
+  return window.TDLBase.rafraichirMembres().then(function(m){ MEMBRES=m||{}; loadData(); });
+}
+
+/* ===================== CONVERSION v1 → v2 (staff) ===================== */
+/* Relit la branche BRUTE : la version en mémoire est normalisée, donc lossy.
+   Idempotente : un dossier déjà en v2 est ignoré, un échec se retente. */
+function lancerMigration(){
+  if(!isStaff()){toast("Réservé au staff.");return;}
+  var reste=nonMigres().length;
+  if(!reste){toast("Rien à convertir.");return;}
+  if(!window.confirm("Convertir "+reste+" dossier(s) au nouveau format ?\n\n"
+    +"Seules les listes participants et valides changent de forme. Chaque dossier est\n"
+    +"traité séparément et l\u2019opération peut être relancée sans risque.\n"
+    +"Assurez-vous que personne n\u2019a le tableau ouvert sur l\u2019ancienne version du script."))return;
+  var b=document.querySelector('[data-act="migrer"]');
+  if(b){b.disabled=true;b.textContent="Conversion…";}
+  Promise.resolve(window.EcoCore.firebaseGet(CFG.NODE)).then(function(raw){
+    return window.TDLBase.migrer({
+      node:CFG.NODE, schema:SCHEMA, listes:PLAN, entrees:raw||{},
+      surProgres:function(f,t){var x=document.querySelector('[data-act="migrer"]');if(x)x.textContent="Conversion "+f+" / "+t+"…";}
+    });
+  }).then(function(res){
+    toast(res.erreurs.length
+      ? res.faits+" dossier(s) convertis, "+res.erreurs.length+" en échec — relancez la conversion."
+      : res.faits+" dossier(s) convertis.");
+    loadData();
+  }).catch(function(e){
+    toast("Conversion impossible — rien n\u2019a été modifié.");
+    try{console.error("[dettes] migration",e);}catch(_){}
+    renderStage();
+  });
+}
 
 /* ===================== CRÉATION ===================== */
 function creer(){
@@ -1009,7 +1125,8 @@ function creer(){
   if(!titre){toast("Donne un titre au dossier.");return;}
   var type=main?(($("#tdld-ntype")||{}).value||"recouvrement"):"protection";
 
-  var o={ type:type, origine:main?"main":"contact", titre:titre,
+  var o={ schema:SCHEMA,
+          type:type, origine:main?"main":"contact", titre:titre,
           doigt:main?((($("#tdld-ndoigt")||{}).value)||null):null,
           demandeur:main?null:me, cible_type:"aucune", cible:"", protege:"",
           accord:null, defaut:null, dette:null, montant:0,
@@ -1017,7 +1134,7 @@ function creer(){
           objectif:(($("#tdld-nobj")||{}).value||"").trim(),
           contraintes:(($("#tdld-ncontr")||{}).value||"").split("\n").map(function(x){return x.trim();}).filter(Boolean),
           certitude:null, evoquees:"", urgence:(($("#tdld-nurg")||{}).value||"").trim(),
-          statut:"ouvert", responsable:null, participants:[],
+          statut:"ouvert", responsable:null,
           sujet:"", resume:"", consequences:"", conclusion:null,
           demandeValidation:false, verse:false,
           cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null };
@@ -1065,9 +1182,11 @@ function creer(){
   }
 
   var id=newId();
-  _lastWrite=Date.now();
-  Promise.resolve(window.EcoCore.writeField(CFG.NODE+"/"+id,o)).then(function(){
-    o.id=id;D.unshift(normaliser(o));S.creation=false;S.sel=id;S.mob="detail";
+  window.TDLBase.ecrireEntree(CFG.NODE, id, o, "ouverture de "+titre).then(function(ok){
+    if(!ok){toast("Ouverture échouée.");return;}
+    var copie={}; for(var k in o)if(o.hasOwnProperty(k))copie[k]=o[k];
+    copie.id=id; D.unshift(normaliser(copie));
+    S.creation=false;S.sel=id;S.mob="detail";
          try{ if(window.EcoNotif){
       if(o.statut==="accord_attendu"&&o.cible){
         EcoNotif.a(o.cible,120,{},"acc"+id);          /* la cible SEULE : rien ne sort du cercle */
@@ -1080,50 +1199,66 @@ function creer(){
     toast(o.statut==="accord_attendu"?"Dossier créé : en attente de l\u2019accord de "+o.cible+"."
          :(o.montant?"Dossier ouvert ; "+money(o.montant)+" gelés.":"Dossier ouvert."));
     renderAll();
-  }).catch(function(){toast("Ouverture échouée.");});
+  });
 }
 
 /* ===================== CHARGEMENT ===================== */
+/* [MAJ v4] deux lectures ciblées (dossiers ~10 ko, membres ~3 ko via le socle)
+   au lieu des 126 ko de la racine. */
 function loadData(){
   loading("Chargement des dossiers…");
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
-  Promise.resolve(pr).then(function(rec){
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||{};
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
+  var pd, pm;
+  try{ pd=window.EcoCore.firebaseGet(CFG.NODE); pm=window.TDLBase.membres(); }
+  catch(e){ loading("EcoCore indisponible."); return; }
+  Promise.all([Promise.resolve(pd), Promise.resolve(pm)]).then(function(r){
+    var raw=r[0]||{};
+    MEMBRES=r[1]||{};
     D=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
     D.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
     fixSel();renderAll();
+    if(VEILLE&&VEILLE.caler)VEILLE.caler(raw);
     if(!D.length)loading("Aucun dossier ouvert.");
   }).catch(function(){loading("Impossible de charger les dossiers.");});
 }
+function pret(){return !!(window.EcoCore&&window.EcoCore.firebaseGet&&window.TDLBase&&window.TDLBase.suivre);}
 function whenEco(cb){
-  if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
+  if(pret()){cb();return;}
   loading("Connexion à la base…");
   var n=0,iv2=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv2);cb();}
-    else if(++n>80){clearInterval(iv2);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+    if(pret()){clearInterval(iv2);cb();}
+    else if(++n>80){clearInterval(iv2);loading("EcoCore ou tdl-base introuvable — vérifiez l\u2019ordre de chargement des scripts.");}
   },125);
 }
-var REFRESH_MS=60000;
-function signature(list){return list.map(function(o){return o.id+":"+JSON.stringify(serialize(o));}).sort().join("|");}
-function tickRefresh(){
-  if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
-  if(S.drawer||S.inline||S.creation)return;
-  if(Date.now()-_lastWrite<5000)return;
-  var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  E.invalider();
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){return;}
-  Promise.resolve(pr).then(function(rec){
-    if(S.drawer||S.inline||S.creation||Date.now()-_lastWrite<5000)return;
-    MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
-    AVATARS=indexAvatars(rec);
-    var raw=(rec&&rec[CFG.NODE])?rec[CFG.NODE]:{};
-    var next=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-    next.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-    if(signature(next)===signature(D))return;
-    D=next;fixSel();renderAll();
-  }).catch(function(){});
+
+/* ---- veille sentinelle ----
+   La réconciliation périodique du socle rattrape les dossiers créés par
+   quai-staff tant qu'il écrit en firebasePush, sans sentinelle. */
+var VEILLE=null;
+function startAutoRefresh(){
+  VEILLE=window.TDLBase.suivre({
+    node: CFG.NODE,
+    rev: true,
+    ms: VEILLE_MS,
+    occupe: function(){ return !!(S.drawer||S.inline||S.creation); },
+    onEntrees: absorber
+  });
+}
+function absorber(majs, supprimes){
+  var change=false, j;
+  majs.forEach(function(x){
+    var o=x.brut||{}; o.id=x.id;
+    var n=normaliser(o), i=-1;
+    for(j=0;j<D.length;j++){ if(D[j].id===x.id){i=j;break;} }
+    if(i<0)D.push(n); else D[i]=n;
+    change=true;
+  });
+  if(supprimes&&supprimes.length){
+    D=D.filter(function(x){return supprimes.indexOf(x.id)<0;});
+    change=true;
+  }
+  if(!change)return;
+  D.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+  fixSel();renderAll();
 }
 
 /* ===================== INIT / MONTAGE ===================== */
@@ -1136,17 +1271,10 @@ function initApp(){
     neuf.onclick=function(){S.creation=true;S.drawer=null;S.inline=null;renderStage();};
   }
   whenEco(function(){
+    window.TDLBase.surEchec(majBandeau);
+    window.TDLBase.avatars(function(){ if(!S.drawer&&!S.inline&&!S.creation)renderAll(); });
+    startAutoRefresh();
     loadData();
-    setInterval(tickRefresh,REFRESH_MS);
-    if(window.TDLPoll)window.TDLPoll.suivre({
-      node: CFG.NODE,
-      occupe: function(){ return !!(S.drawer||S.inline||S.creation)||Date.now()-_lastWrite<3000; },
-      onDonnees: function(raw){
-        D=Object.keys(raw).map(function(id){var o=raw[id]||{};o.id=id;return normaliser(o);});
-        D.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
-        fixSel();renderAll();
-      }
-    });
     setTimeout(function(){ if(neuf&&(peutOuvrir()||peutAppeler()))neuf.style.display=""; },1200);
   });
 }
