@@ -63,6 +63,33 @@
     });
   }
 
+  /* ForumActif transforme une URL écrite en clair en lien cliquable : la
+     valeur de la clé arrive vide, l'adresse étant partie dans un <a> voisin.
+     On va la chercher jusqu'au saut de ligne suivant, et on consomme les
+     nœuds qui la portaient pour qu'ils ne finissent pas dans un onglet. */
+  function urlVoisine(n) {
+    var pris = [], x = n.nextSibling, url = '';
+    while (x && !(x.nodeType === 1 && x.tagName === 'BR')) {
+      pris.push(x);
+      if (x.nodeType === 1) {
+        var img = x.tagName === 'IMG' ? x : (x.querySelector ? x.querySelector('img[src]') : null);
+        if (img && !url) url = img.getAttribute('src');
+        var a = x.tagName === 'A' ? x : (x.querySelector ? x.querySelector('a[href]') : null);
+        if (a && !url) url = a.getAttribute('href');
+      } else if (x.nodeType === 3 && !url && /^\s*https?:\/\/\S+\s*$/.test(x.data)) {
+        url = x.data.trim();
+      }
+      x = x.nextSibling;
+    }
+    if (url) {
+      pris.forEach(function (p) {
+        p.__tdlplPris = true;
+        if (p.parentNode) p.parentNode.removeChild(p);
+      });
+    }
+    return url;
+  }
+
   function analyse(el) {
     decoupe(el);
 
@@ -81,6 +108,7 @@
     }
 
     Array.prototype.slice.call(el.childNodes).forEach(function (n) {
+      if (n.__tdlplPris) return;            // nœud déjà consommé par une clé
       var t = (n.textContent || '').trim(), r;
       var estLigne = n.nodeType === 3 || (n.nodeType === 1 && !n.children.length);
 
@@ -120,8 +148,17 @@
         if (!onglet && (r = t.match(RE_CLE))) {
           var cle = r[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           var val = r[2].trim();
-          if (CLES.indexOf(cle) >= 0) { m[cle] = val; n.remove(); return; }
-          if (/^img[1-9]$/.test(cle)) { m.imgs[+cle.charAt(3) - 1] = val; n.remove(); return; }
+          if (CLES.indexOf(cle) >= 0) {
+            m[cle] = (cle === 'image' && !val) ? urlVoisine(n) : val;
+            if (cle === 'image' && !m.image) alerte('IMAGE: aucune adresse trouvée sur cette ligne');
+            n.remove(); return;
+          }
+          if (/^img[1-9]$/.test(cle)) {
+            var rang = +cle.charAt(3) - 1;
+            m.imgs[rang] = val || urlVoisine(n);
+            if (!m.imgs[rang]) alerte(cle.toUpperCase() + ' : aucune adresse trouvée sur cette ligne');
+            n.remove(); return;
+          }
           // Une clé inconnue avant le premier onglet disparaîtrait en silence.
           alerte('clé non reconnue, ligne ignorée : « ' + t + ' »');
           n.remove(); return;
@@ -131,7 +168,11 @@
       if (!actif) return;
       if (!onglet) {
         // Du contenu posé avant le premier --- ONGLET --- n'a nulle part où aller.
-        if (t) alerte('contenu situé avant le premier onglet, il ne sera pas affiché');
+        // On montre le nœud : c'est souvent là qu'une URL transformée atterrit.
+        if (t || n.nodeType === 1) {
+          alerte('avant le premier onglet, ignoré : ' +
+                 (n.nodeType === 1 ? n.outerHTML.slice(0, 160) : '« ' + t + ' »'));
+        }
         return;
       }
       if (n.nodeType === 3 && !t) return;                     // lignes vides
@@ -147,9 +188,10 @@
 
   /* ----------------------------------------------------------- COMPOSANT */
 
-  function Famille(el, modele) {
+  function Famille(el, modele, source) {
     this.el = el;
     this.m = modele;
+    this.src = source || '';      // le HTML d'origine, pour diagnostic
     this.i = 0;
     this.j = 0;
     this.monte();
@@ -259,7 +301,7 @@
     var pan = document.createElement('div');
     pan.className = 'tdlplf-panneau' + (changementOnglet ? ' tdlplf-depuis-bas' : '');
     pan.innerHTML = '<div class="h3"><h3><span class="tdlplf-num">' +
-    ('0' + num).slice(-2) + '.</span>' + T.echappe(titre) + '</h3></div>';
+      ('0' + num).slice(-2) + '.</span>' + T.echappe(titre) + '</h3></div>';
 
     /* LE DÉPLACEMENT : appendChild détache le nœud de sa position actuelle et
        le rattache ici. Rien n'est sérialisé, rien n'est reconstruit. */
@@ -294,16 +336,35 @@
 
   /* ----------------------------------------------------------- AMORÇAGE */
 
+  var instances = [];
+
   function demarre() {
     var cibles = T.postsAvec('=== FAMILLE:', '.tdlplf');
     if (!cibles.length) return;
     cibles.forEach(function (el) {
+      // analyse() détruit le source : on en garde une copie AVANT.
+      var source = el.innerHTML;
       var modele = analyse(el);
-      if (modele) new Famille(el, modele);
+      if (modele) instances.push(new Famille(el, modele, source));
     });
   }
 
   T.pret(demarre);
 
-  window.TDLPL_FAMILLE = { relancer: demarre, analyse: analyse };
+  /* analyse() est destructive : elle retire les marqueurs du DOM. La rappeler
+     après coup renvoie toujours null. Pour vérifier ce qui a été lu, passer
+     par le modèle conservé dans instances :
+       TDLPL_FAMILLE.instances[0].m.image
+       TDLPL_FAMILLE.instances[0].m.imgs                                     */
+  /* TDLPL_FAMILLE.source() : le début du HTML d'origine, tel que ForumActif
+     l'a produit. C'est le seul moyen de voir ce qu'est devenue une URL. */
+  function source(i) {
+    var inst = instances[i || 0];
+    if (!inst) { return '(aucune instance)'; }
+    return inst.src.slice(0, 2000);
+  }
+
+  window.TDLPL_FAMILLE = {
+    relancer: demarre, analyse: analyse, instances: instances, source: source
+  };
 })();
