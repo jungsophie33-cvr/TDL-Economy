@@ -34,6 +34,8 @@
   var RE_ONGLET = /^---\s*ONGLET\s*:?\s*(.*?)\s*---$/i;
   var RE_RUB    = /^--\s*(.*?)\s*--$/;
   var RE_CLE    = /^([A-ZÉÈ0-9]+)\s*:\s*(.*)$/;   // les chiffres comptent : IMG1, IMG2…
+  var RE_CIT    = /^CITATION\s*:\s*(.*)$/i;       // utilisable DANS un onglet
+  var RE_SRC    = /^SOURCE\s*:\s*(.+)$/i;
 
   var CLES = ['soustitre', 'secteur', 'tw', 'image', 'referent', 'credits'];
 
@@ -69,10 +71,26 @@
       referent: '', credits: '', imgs: [], onglets: []
     };
     var actif = false, onglet = null, rub = null;
+    /* cit : la citation en cours de remplissage, ouverte par CITATION: et
+       refermée par le <br> suivant. dernierCit : la dernière posée, pour
+       qu'un SOURCE: placé juste après vienne s'y accrocher. */
+    var cit = null, dernierCit = null;
+
+    function ranger(noeud) {
+      (rub ? rub.noeuds : onglet.noeuds).push(noeud);
+    }
 
     Array.prototype.slice.call(el.childNodes).forEach(function (n) {
       var t = (n.textContent || '').trim(), r;
       var estLigne = n.nodeType === 3 || (n.nodeType === 1 && !n.children.length);
+
+      /* Une citation ouverte avale tout jusqu'au saut de ligne : c'est ce qui
+         permet d'y écrire des italiques ou du gras sans rien casser. */
+      if (cit) {
+        if (n.nodeType === 1 && n.tagName === 'BR') { cit = null; n.remove(); return; }
+        if (!(estLigne && estMarqueur(t))) { cit.appendChild(n); return; }
+        cit = null;
+      }
 
       if (estLigne) {
         if ((r = t.match(RE_BLOC))) { actif = true; m.nom = r[1].trim(); n.remove(); return; }
@@ -81,11 +99,23 @@
 
         if ((r = t.match(RE_ONGLET))) {
           onglet = { titre: r[1], noeuds: [], rubs: [] };
-          m.onglets.push(onglet); rub = null; n.remove(); return;
+          m.onglets.push(onglet); rub = null; dernierCit = null; n.remove(); return;
         }
         if (onglet && (r = t.match(RE_RUB))) {
           rub = { titre: r[1], noeuds: [] };
-          onglet.rubs.push(rub); n.remove(); return;
+          onglet.rubs.push(rub); dernierCit = null; n.remove(); return;
+        }
+        if (onglet && (r = t.match(RE_CIT))) {
+          cit = document.createElement('div');
+          cit.className = 'cit-bloc';
+          if (r[1]) cit.appendChild(document.createTextNode(r[1]));
+          ranger(cit); dernierCit = cit; n.remove(); return;
+        }
+        if (onglet && dernierCit && (r = t.match(RE_SRC))) {
+          var c = document.createElement('cite');
+          c.textContent = r[1];
+          dernierCit.appendChild(c);
+          n.remove(); return;
         }
         if (!onglet && (r = t.match(RE_CLE))) {
           var cle = r[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -106,7 +136,8 @@
       }
       if (n.nodeType === 3 && !t) return;                     // lignes vides
       if (n.nodeType === 1 && n.tagName === 'BR') { n.remove(); return; }
-      (rub ? rub.noeuds : onglet.noeuds).push(n);             // à déplacer plus tard
+      dernierCit = null;                                      // un SOURCE: tardif n'a plus de cible
+      ranger(n);                                              // à déplacer plus tard
     });
 
     if (!m.nom) return null;
