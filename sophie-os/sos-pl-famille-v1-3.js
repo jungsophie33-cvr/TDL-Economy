@@ -90,12 +90,22 @@
     return url;
   }
 
+  /* « Laelyss | 2 », « Laelyss | /u2 », « Laelyss | https://… » : on accepte
+     les trois écritures et on normalise vers une adresse utilisable. */
+  function versProfil(v) {
+    v = String(v || '').trim();
+    if (!v) return '';
+    if (/^\d+$/.test(v)) return '/u' + v;
+    if (/^u\d+$/i.test(v)) return '/' + v;
+    return v;
+  }
+
   function analyse(el) {
     decoupe(el);
 
     var m = {
       nom: '', soustitre: '', secteur: '', tw: '', image: '',
-      referent: '', credits: '', imgs: [], onglets: []
+      referent: '', referentLien: '', credits: '', imgs: [], onglets: []
     };
     var actif = false, onglet = null, rub = null;
     /* cit : la citation en cours de remplissage, ouverte par CITATION: et
@@ -148,6 +158,13 @@
         if (!onglet && (r = t.match(RE_CLE))) {
           var cle = r[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           var val = r[2].trim();
+          if (cle === 'referent') {
+            var bouts = val.split('|');
+            m.referent = (bouts[0] || '').trim();
+            // Pas de lien écrit ? FA a peut-être transformé l'adresse en <a>.
+            m.referentLien = versProfil((bouts[1] || '').trim() || urlVoisine(n));
+            n.remove(); return;
+          }
           if (CLES.indexOf(cle) >= 0) {
             m[cle] = (cle === 'image' && !val) ? urlVoisine(n) : val;
             if (cle === 'image' && !m.image) alerte('IMAGE: aucune adresse trouvée sur cette ligne');
@@ -243,8 +260,12 @@
       ? '<img src="' + T.echappe(m.image) + '" alt="">'
       : T.echappe(m.nom.charAt(0).toUpperCase());
 
+    var nomRef = T.echappe(m.referent);
+    if (m.referent && m.referentLien) {
+      nomRef = '<a href="' + T.echappe(m.referentLien) + '">' + nomRef + '</a>';
+    }
     this.$meta.innerHTML =
-      (m.referent ? '<div class="tdlplf-referent"><b>Référent</b>' + T.echappe(m.referent) +
+      (m.referent ? '<div class="tdlplf-referent"><b>Référent</b>' + nomRef +
          '<span>à contacter pour toute question sur la famille</span></div>' : '') +
       (m.credits ? '<div class="tdlplf-credits"><b>Crédits</b>' + T.echappe(m.credits) + '</div>' : '');
 
