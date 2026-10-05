@@ -6,6 +6,9 @@
                   d'un nœud à clés sous forme de liste triée.
      - ÉCRITURE : PATCH ciblé + bump de la sentinelle {node}_rev/{id} dans le
                   MÊME appel réseau, file de réessai en cas d'échec.
+     - MIGRATION: convertit les listes d'un tableau (tableaux JS écrits en
+                  bloc) vers des nœuds à clés, sur descripteur fourni par
+                  l'appelant. Idempotente, une entrée par PATCH.
      - VEILLE   : relit la sentinelle (quelques ko) au lieu du nœud entier, et
                   ne va chercher que les entrées réellement modifiées. Silence
                   total quand l'onglet est masqué ou l'utilisateur inactif.
@@ -20,7 +23,7 @@
    EXPOSE : window.TDLBase  (+ window.TDLPoll en alias de compatibilité)
    DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate)
 
-   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · EXPORT */
+   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · MIGRATION · EXPORT */
 
 (function () {
 "use strict";
@@ -308,6 +311,86 @@ document.addEventListener("visibilitychange", function () {
   });
 });
 
+/* ===================== MIGRATION ===================== */
+/* Convertit les listes d'un tableau — tableaux JS écrits en bloc — vers des
+   nœuds à clés, où chaque entrée s'écrit et se supprime seule. Le descripteur
+   est fourni par le tableau appelant ; le socle ne connaît aucun schéma.
+
+   plan = { <champ> : {
+       mode : "auto"   → clé = push-ID local (défaut)
+              "pseudo" → clé = clePseudo(valeur convertie)
+              "ref"    → clé donnée par cle()
+       conv : function(x, i) → la valeur v2, ou null pour écarter l'entrée
+       cle  : function(x, i) → la clé, calculée sur la valeur D'ORIGINE
+   } }
+
+   Une liste vide après conversion rend null : la branche n'est pas écrite.
+   Un champ absent du plan est recopié tel quel. */
+
+function convertirListe(v, def) {
+  var src = versTableau(v), dst = {}, n = 0;
+  src.forEach(function (x, i) {
+    var val = def.conv ? def.conv(x, i) : x;
+    if (val == null) return;
+    var cle = def.cle ? def.cle(x, i)
+            : (def.mode === "pseudo" ? clePseudo(val) : nouvelleCle());
+    if (cle == null || cle === "") return;
+    dst[String(cle)] = val; n++;
+  });
+  return n ? dst : null;
+}
+
+function convertirEntree(o, plan, schema) {
+  var out = {}, k;
+  for (k in o) {
+    if (!o.hasOwnProperty(k)) continue;
+    out[k] = plan[k] ? convertirListe(o[k], plan[k]) : o[k];
+  }
+  out.schema = schema;
+  return out;
+}
+
+/* Les ids dont le schéma n'est pas à jour. */
+function aMigrer(brut, schema) {
+  var out = [], b = brut || {};
+  Object.keys(b).forEach(function (id) {
+    var o = b[id];
+    if (o && typeof o === "object" && o.schema !== schema) out.push(id);
+  });
+  return out;
+}
+
+/* Une entrée à la fois, en série : chaque affaire part dans son propre PATCH,
+   donc une conversion ratée n'entraîne pas les autres et sera simplement
+   retentée au prochain lancement (l'opération est idempotente).
+   opts = { node, schema, listes, entrees, ids?, surProgres? }
+   → Promise<{faits, total, erreurs:[id]}> */
+function migrer(opts) {
+  var node   = opts.node;
+  var schema = opts.schema || 2;
+  var plan   = opts.listes || {};
+  var brut   = opts.entrees || {};
+  var ids    = opts.ids || aMigrer(brut, schema);
+  var faits = 0, erreurs = [];
+  var chaine = Promise.resolve();
+  ids.forEach(function (id) {
+    chaine = chaine.then(function () {
+      var o = brut[id];
+      if (!o || typeof o !== "object") { erreurs.push(id); return; }
+      var v2;
+      try { v2 = convertirEntree(o, plan, schema); }
+      catch (e) { journal("conversion", id, e); erreurs.push(id); return; }
+      return ecrireEntree(node, id, v2, "migration de " + id).then(function (ok) {
+        if (ok) faits++; else erreurs.push(id);
+        if (opts.surProgres) { try { opts.surProgres(faits + erreurs.length, ids.length); } catch (e) {} }
+      });
+    });
+  });
+  return chaine.then(function () {
+    return { faits: faits, total: ids.length, erreurs: erreurs };
+  });
+}
+
 /* ===================== EXPORT ===================== */
 
 window.TDLBase = {
@@ -318,6 +401,8 @@ window.TDLBase = {
   reessayer: reessayer, enAttente: enAttente, enVol: enVol, surEchec: surEchec,
   /* veille */
   suivre: suivre,
+  /* migration */
+  migrer: migrer, aMigrer: aMigrer,
   /* réglages, lisibles par les tableaux */
   CADENCE_MS: CADENCE_MS, SUFFIXE_REV: SUFFIXE_REV
 };
