@@ -14,18 +14,46 @@
  *   (membres/<pseudo>/liens, en TABLEAU comme le bottin ; la « situation vis-à-vis de
  *   la Main » va dans le champ role, lu par le span concours du bottin).
  *
- * DÉPEND DE : window.EcoCore (safeReadBin, firebaseUpdate, firebaseTransaction,
- *   firebasePush, writeField).
+ * [MAJ v5] CRÉATIONS SENTINELLÉES.
+ *   creerDossierMain et creerTache passaient par firebasePush : la clé était
+ *   générée par le serveur et AUCUNE sentinelle n'était bumpée. Conséquence :
+ *   un dossier de la Main créé par une validation staff restait invisible des
+ *   onglets déjà ouverts sur le tableau. Les deux passent désormais par
+ *   TDLBase.ecrireEntree avec une clé générée en local — un seul aller-retour
+ *   au lieu de deux, et {node}_rev/{id} bumpé dans le même PATCH.
+ *   Le dossier de la Main naît en schema 2 : plus de conversion à refaire.
+ *
+ * [MAJ v5] LECTURES CIBLÉES.
+ *   charger() relisait les 126 ko de la racine à CHAQUE action staff. Il lit
+ *   maintenant boutique_demandes (~11 ko), membres (~3 ko, partagé par le
+ *   socle) et, une seule fois par session, le catalogue boutique/barge
+ *   (~12 ko) qui ne change qu'à l'édition d'un item.
+ *   ajouterLien et regler lisent la seule branche liens du membre concerné.
+ *
+ * DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate, firebaseTransaction,
+ *   firebasePush, writeField) et window.TDLBase (nouvelleCle, ecrireEntree,
+ *   membres). Ordre de chargement : eco-core → tdl-base → ce fichier.
  */
 (function () {
   "use strict";
-  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", NODE_CATALOGUE:"boutique/barge", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var SCHEMA_DOSSIER = 2;      /* doit suivre rep-det-main */
   function E(){ return window.EcoCore; }
+  function B(){ return window.TDLBase; }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function money(n){ return (typeof n==="number"?n.toLocaleString("fr-FR").replace(/\u202f/g," "):n)+" "+CFG.MONNAIE; }
   function dateFr(iso){ if(!iso) return "—"; var d=new Date(iso); return isNaN(d.getTime())?String(iso):d.toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}); }
   function vt(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
+
+  /* [MAJ v5] TDLBase.ecrireEntree rend false au lieu de lever : les appelants
+     ci-dessous comptent sur une exception pour afficher leur alerte. */
+  function ecrireEntree(node, id, data, libelle){
+    return Promise.resolve(B().ecrireEntree(node, id, data, libelle)).then(function(ok){
+      if (!ok) throw new Error("écriture refusée : "+node+"/"+id);
+      return id;
+    });
+  }
 
   var TYPES = { comptant:"Paiement comptant", dette:"Dette", pret:"Prêt", nego:"Négociation", don:"Don", mission:"Mission", offrande:"Offrande", braconneurs:"Braconneurs", demande:"Demande", faveur:"Faveur — Faiseuses", don_reseau:"Don au réseau — Faiseuses" };
   var STATUTS = { en_attente:"En attente", validee:"Validée", annulee:"Annulée / remboursée", traitee:"Traitée", refusee:"Refusée" };
@@ -44,7 +72,7 @@
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
 
   var st = { filtre:"en_attente" };
-  var root, demandes = [], dettesList = [], CATALOGUE = {};
+  var root, demandes = [], dettesList = [], CATALOGUE = {}, catalogueLu = false;
 
   function chip(t){ return '<span class="qsd-chip">'+esc(TYPES[t]||t||"—")+'</span>'; }
   function stChip(s){ return '<span class="qsd-st qsd-st-'+esc(s||"en_attente")+'">'+esc(STATUTS[s]||s||"—")+'</span>'; }
@@ -79,7 +107,6 @@
     FIELDS.forEach(function(f){ var v=d[f[0]]; if (v!=null && String(v).trim()!=="") { if (VMAP[f[0]] && VMAP[f[0]][v]) v=VMAP[f[0]][v]; out += ligne(f[1], v); } });
     return out ? '<div class="fi-carte-grille">'+out+'</div>' : "";
   }
-  /* si le réseau doit être inscrit et que le staff doit fixer le statut, on affiche un menu */
      /* si le réseau doit être inscrit et que le staff doit fixer le statut, on affiche un menu */
   function statutBloc(d){
     var ri = reseauAInscrire(d); if (!ri || ri.fixe) return "";
@@ -164,23 +191,29 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qsd-regler"), function(b){ b.onclick = function(){ regler(b.getAttribute("data-source"), b.getAttribute("data-pseudo"), b.getAttribute("data-key"), b.getAttribute("data-idx"), b.getAttribute("data-montant"), b.getAttribute("data-cag")); }; });
   }
 
+  /* [MAJ v5] lecture de la SEULE branche liens du membre, au lieu des 126 ko
+     racine. L'adressage par indice reste : membres/{pseudo}/liens est encore un
+     tableau partagé avec rep-det-main et les onglets du bottin, et sa conversion
+     en nœud à clés fait l'objet d'un chantier à part. */
+  function cheminLiens(pseudo){ return CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens"; }
   async function ajouterLien(pseudo, lien){
-    var r = await E().safeReadBin();
-    var arr = vt(r && r[CFG.NODE_MEMBRES] && r[CFG.NODE_MEMBRES][pseudo] && r[CFG.NODE_MEMBRES][pseudo].liens);
+    var arr = vt(await E().firebaseGet(cheminLiens(pseudo)));
     arr.push(lien);
-    await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens", arr);
+    await E().writeField(cheminLiens(pseudo), arr);
   }
 
+  /* [MAJ v5] clé générée en local + sentinelle bumpée dans le même PATCH. */
   function creerTache(d){
     var now = new Date().toISOString();
-    return E().firebasePush(CFG.NODE_TACHES, {
+    var id = B().nouvelleCle();
+    return ecrireEntree(CFG.NODE_TACHES, id, {
       origine:"faveur", demandeId:d.id||"", demandeur:d.pseudo||"",
       titre:d.nom||"Faveur demandée", categorie:"faveur",
       demande:d.demande||"", contexte:d.contexte||"", don:d.don||"",
       versRp: d.rp_mission==="oui",
-      statut:"en_vote", votes:{}, participants:[], sujet:"",
+      statut:"en_vote", votes:{}, sujet:"",
       cree:now, ouverte:now
-    }).then(function(r){
+    }, "faveur transmise aux Faiseuses").then(function(r){
       try{ if(window.EcoNotif) EcoNotif.bande("faiseuses",130,{titre:d.nom||"Faveur demandée"},"fav"+(d.id||"")); }catch(e){}
       return r;
     });
@@ -203,7 +236,17 @@
 
   /* Une disparition ou une opération validée descend au tableau du hangar.
      La prime est FIGÉE ici : elle a déjà quitté le demandeur au moment de
-     l'achat, et le tableau la versera au capitaine à la clôture. */
+     l'achat, et le tableau la versera au capitaine à la clôture.
+
+     [MAJ v5] CELLE-CI RESTE EN writeField, volontairement. Le nœud flottille
+     est à DEUX niveaux (flottille/disparitions/{id}, flottille/operations/{id},
+     flottille/marees/{id}) : la convention de sentinelle {node}_rev/{id} du
+     socle y produirait soit une branche flottille/disparitions_rev à l'intérieur
+     même du nœud surveillé par rep-flot-core, soit une sentinelle imbriquée que
+     la veille ne saurait pas diffuser. À trancher lors de la migration de la
+     flottille. En attendant, rep-flot-core est encore en mode hérité (il relit
+     le nœud entier) : il voit donc ces créations sans sentinelle, et la
+     réconciliation périodique du socle couvrira le jour où il basculera. */
   function creerEntreeFlottille(d){
     var dispa = d.itemId==="flot_disparition";
     var sous  = dispa ? "disparitions" : "operations";
@@ -235,14 +278,20 @@
     }
     return E().writeField(CFG.NODE_FLOT+"/"+sous+"/"+newIdFlot(), o);
   }
-  
+
+  /* [MAJ v5] clé locale + sentinelle, et naissance directe en schema 2 :
+     le dossier n'aura jamais à passer par la conversion de rep-det-main.
+     participants et valides sont OMIS : en schema 2 ce sont des nœuds à clés,
+     et une branche vide ne s'écrit pas. */
   function creerDossierMain(d, nego, service){
     var it = CATALOGUE[d.itemId] || {};
     var cible = (d.cible_type==="pj") ? (d.cible_pj||"") : (d.cible||"");
     /* la prime est FIGÉE ici : l'argent vient d'être encaissé par la cagnotte,
        relire la demande plus tard exposerait à une modification entre-temps. */
     var prime = (d.compensation==="prix") ? (parseInt(d.prix_offert,10)||0) : 0;
-    return E().firebasePush(CFG.NODE_DOSSIERS, {
+    var id = B().nouvelleCle();
+    return ecrireEntree(CFG.NODE_DOSSIERS, id, {
+      schema: SCHEMA_DOSSIER,
       type: service ? "service" : "negociation",
       origine:"boutique", demandeId:d.id||"", demandeur:d.pseudo||"",
       titre:d.nom||"Service de la Main", service:d.itemId||"",
@@ -256,11 +305,11 @@
       prime:prime, primeVersee:false,
       phase: nego ? "nego" : "service",
       phaseService: !!service, phase1:null,
-      statut:"ouvert", responsable:null, participants:[],
+      statut:"ouvert", responsable:null,
       sujet:"", resume:"", consequences:"", conclusion:null,
       demandeValidation:false, verse:false,
             cree:new Date().toISOString(), ouverte:new Date().toISOString(), clos:null
-    }).then(function(r){
+    }, "dossier de la Main ouvert").then(function(r){
       try{ if(window.EcoNotif){
         if(nego) EcoNotif.bande("main",160,{titre:d.nom||"Service de la Main",prix:parseInt(d.prix_negocie,10)||0},"dm"+(d.id||""));
         else     EcoNotif.bande("main",162,{titre:d.nom||"Service de la Main"},"ds"+(d.id||""));
@@ -275,9 +324,10 @@
     if (act==="annuler" && !confirm("Rembourser "+money(d.montant||0)+" à "+(d.pseudo||"?")+" et annuler la demande ?")) return;
     if (act==="supprimer" && !confirm("Supprimer définitivement cette demande ?")) return;
     var base = CFG.NODE_DEMANDES+"/"+id, o = {};
+    var argentBouge = false;
     try {
       if (act==="annuler"){
-        if (d.pseudo && d.montant) await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
+        if (d.pseudo && d.montant) { await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); }); argentBouge = true; }
         o[base+"/statut"]="annulee"; await E().firebaseUpdate(o);
       } else if (act==="supprimer"){ o[base]=null; await E().firebaseUpdate(o); }
       else if (act==="valider" || act==="traiter"){
@@ -287,10 +337,11 @@
             try {
               await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cible), function(cur){ var c=cur||0; if (c < d.montant) throw new Error("CAG"); return c - d.montant; });
               await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
+              argentBouge = true;
             } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
             if (d.pret_contrepartie==="remboursement") { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/prets", { montant:d.montant|0, cagnotte:cible, nom:d.nom||"Prêt", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] prêt", e); } }
           } else if (d.type==="comptant" && d.cagnotte && d.montant){
-            try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); }
+            try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); argentBouge = true; }
             catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
           }
         }
@@ -301,6 +352,7 @@
             try {
               await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ var c=cur||0; if (c < px) throw new Error("FONDS"); return c - px; });
               await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cagP), function(cur){ return (cur||0)+px; });
+              argentBouge = true;
             } catch(e){ if (e&&e.message==="FONDS"){ alert(d.pseudo+" n'a pas les fonds pour payer "+money(px)+"."); return; } if (window.console) console.error(e); alert("Débit impossible."); return; }
           }
         }
@@ -354,7 +406,7 @@
         }
       }
     } catch(e){}
-    await charger(); render();
+    await charger(argentBouge); render();
   }
 
   async function regler(source, pseudo, key, idx, montant, cag){
@@ -367,15 +419,14 @@
         var op = {}; op[CFG.NODE_MEMBRES+"/"+pseudo+"/prets/"+key] = null; await E().firebaseUpdate(op);
       } catch(e){ if (e&&e.message==="FONDS"){ alert(pseudo+" n'a pas les fonds pour rembourser ("+money(montant)+")."); return; } if (window.console) console.error("[quais-staff] remboursement", e); alert("Remboursement impossible."); return; }
       dettesList = dettesList.filter(function(x){ return !(x.source==="pret" && x.pseudo===pseudo && x.key===key); });
-      render(); charger().then(render); return;
+      render(); charger(true).then(render); return;
     }
     if (!confirm("Régler et retirer cette entrée de "+pseudo+" ? (à faire quand elle a été honorée en RP)")) return;
     try {
       if (source==="lien") {
-        var r = await E().safeReadBin();
-        var arr = vt(r && r[CFG.NODE_MEMBRES] && r[CFG.NODE_MEMBRES][pseudo] && r[CFG.NODE_MEMBRES][pseudo].liens);
+        var arr = vt(await E().firebaseGet(cheminLiens(pseudo)));
         arr.splice(parseInt(idx,10), 1);
-        await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens", arr.length?arr:null);
+        await E().writeField(cheminLiens(pseudo), arr.length?arr:null);
       } else {
         var o = {}; o[CFG.NODE_MEMBRES+"/"+pseudo+"/dettes/"+key] = null;   /* chemin brut : PATCH racine */
         await E().firebaseUpdate(o);
@@ -383,17 +434,24 @@
     } catch(e){ if (window.console) console.error("[quais-staff] régler", e); alert("Impossible de régler l'entrée."); return; }
     dettesList = dettesList.filter(function(x){ return !(x.pseudo===pseudo && ((source==="dette"&&x.key===key) || (source==="lien"&&String(x.idx)===String(idx)))); });
     render();
-    charger().then(render);
+    charger(true).then(render);
   }
 
-  async function charger(){
+  /* [MAJ v5] trois lectures ciblées (~26 ko) au lieu des 126 ko de la racine,
+     à chaque action staff. Le catalogue ne bouge qu'à l'édition d'un item de
+     boutique : une seule lecture par session suffit.
+     fraisMembres force la relecture des soldes après un mouvement d'argent. */
+  async function charger(fraisMembres){
     try {
-      var r = await E().safeReadBin();
-      var node = (r && r[CFG.NODE_DEMANDES]) || {};
+      var taches = [ E().firebaseGet(CFG.NODE_DEMANDES),
+                     fraisMembres ? B().rafraichirMembres() : B().membres(),
+                     catalogueLu ? Promise.resolve(CATALOGUE) : E().firebaseGet(CFG.NODE_CATALOGUE) ];
+      var r = await Promise.all(taches);
+      var node = r[0] || {};
       demandes = Object.keys(node).map(function(id){ var d = node[id]||{}; d.id = id; return d; })
         .sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
-      CATALOGUE = (r && r.boutique && r.boutique.barge) || {};
-      var membres = (r && r[CFG.NODE_MEMBRES]) || {};
+      var membres = r[1] || {};
+      CATALOGUE = r[2] || {}; catalogueLu = true;
       dettesList = [];
       Object.keys(membres).forEach(function(p){
         var m = membres[p] || {};
@@ -404,16 +462,20 @@
         if (prets && typeof prets==="object") Object.keys(prets).forEach(function(key){ var e = prets[key]; if (e && typeof e==="object") dettesList.push({ pseudo:p, source:"pret", key:key, montant:e.montant, cagnotte:e.cagnotte, motif:e.nom, date:e.date }); });
       });
       dettesList.sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
-    } catch(e){ demandes = []; dettesList = []; }
+    } catch(e){ if (window.console) console.error("[quais-staff] chargement", e); demandes = []; dettesList = []; }
   }
 
   function boot(){
     var n = 0;
     (function wait(){
       var m = document.querySelector(CFG.MOUNT);
-      var eco = window.EcoCore && typeof EcoCore.safeReadBin==="function";
-      if (m && eco){ demarrer(m); return; }
-      if (n++ > CFG.RETRY_MAX) return;
+      var pret = window.EcoCore && typeof EcoCore.firebaseGet==="function"
+              && window.TDLBase && typeof window.TDLBase.ecrireEntree==="function";
+      if (m && pret){ demarrer(m); return; }
+      if (n++ > CFG.RETRY_MAX) {
+        if (m && window.console) console.warn("[quais-staff] EcoCore ou tdl-base introuvable — vérifiez l'ordre de chargement.");
+        return;
+      }
       setTimeout(wait, CFG.RETRY_MS);
     })();
   }
