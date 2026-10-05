@@ -258,8 +258,8 @@
 
     var pan = document.createElement('div');
     pan.className = 'tdlplf-panneau' + (changementOnglet ? ' tdlplf-depuis-bas' : '');
-    pan.innerHTML = '<div class="h3"><span class="tdlplf-num">' +
-      ('0' + num).slice(-2) + '.</span>' + T.echappe(titre) + '</div>';
+    pan.innerHTML = '<div class="h3"><h3><span class="tdlplf-num">' +
+    ('0' + num).slice(-2) + '.</span>' + T.echappe(titre) + '</h3></div>';
 
     /* LE DÉPLACEMENT : appendChild détache le nœud de sa position actuelle et
        le rattache ici. Rien n'est sérialisé, rien n'est reconstruit. */
