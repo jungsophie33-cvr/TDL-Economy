@@ -6,6 +6,8 @@
                   d'un nœud à clés sous forme de liste triée.
      - ÉCRITURE : PATCH ciblé + bump de la sentinelle {node}_rev/{id} dans le
                   MÊME appel réseau, file de réessai en cas d'échec.
+     - AVATARS  : index pseudo → faceclaim, chargé une fois et partagé par
+                  tous les tableaux (au lieu d'un full read racine chacun).
      - MIGRATION: convertit les listes d'un tableau (tableaux JS écrits en
                   bloc) vers des nœuds à clés, sur descripteur fourni par
                   l'appelant. Idempotente, une entrée par PATCH.
@@ -23,7 +25,7 @@
    EXPOSE : window.TDLBase  (+ window.TDLPoll en alias de compatibilité)
    DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate)
 
-   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · MIGRATION · EXPORT */
+   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · AVATARS · MIGRATION · EXPORT */
 
 (function () {
 "use strict";
@@ -311,6 +313,54 @@ document.addEventListener("visibilitychange", function () {
   });
 });
 
+/* ===================== AVATARS ===================== */
+/* Index pseudo → fiche de faceclaim, PARTAGÉ par tous les tableaux. Avant, chacun
+   relisait la racine entière (126 ko) toutes les 60 s pour reconstruire le même
+   index ; la branche faceclaims pèse ~1,5 ko et ne bouge que de loin en loin. */
+
+var AVATARS_TTL = 600000;          /* 10 min : un faceclaim change deux fois par mois */
+var _av = null, _avT = 0, _avEnVol = null, _avAbonnes = [];
+
+/* un pseudo peut apparaître sur plusieurs cartes : on garde la plus engageante */
+function scoreFc(c) {
+  return (c.statut === "pris" ? 4 : (c.statut === "reserve" ? 1 : 0)) + (c.image ? 2 : 0);
+}
+function indexerFc(fc) {
+  var idx = {};
+  Object.keys(fc || {}).forEach(function (k) {
+    var c = fc[k];
+    if (!c || !c.pseudo) return;
+    var a = idx[c.pseudo];
+    if (!a || scoreFc(c) > scoreFc(a)) idx[c.pseudo] = c;
+  });
+  return idx;
+}
+
+/* avatars(cb) : rend une Promise de l'index, et rappelle cb à chaque
+   rafraîchissement. Les appels concurrents partagent un seul aller-retour. */
+function avatars(cb) {
+  if (cb && _avAbonnes.indexOf(cb) < 0) _avAbonnes.push(cb);
+  if (_av && Date.now() - _avT < AVATARS_TTL) {
+    if (cb) { try { cb(_av); } catch (e) {} }
+    return Promise.resolve(_av);
+  }
+  if (_avEnVol) return _avEnVol;
+  if (!window.EcoCore || !window.EcoCore.firebaseGet) return Promise.resolve(_av || {});
+  _avEnVol = Promise.resolve(window.EcoCore.firebaseGet("faceclaims")).then(function (fc) {
+    _av = indexerFc(fc); _avT = Date.now(); _avEnVol = null;
+    _avAbonnes.forEach(function (f) { try { f(_av); } catch (e) {} });
+    return _av;
+  }, function (e) {
+    _avEnVol = null; journal("faceclaims", e);
+    return _av || {};
+  });
+  return _avEnVol;
+}
+
+/* Lecture synchrone, pour le rendu : null tant que l'index n'est pas chargé.
+   Les tableaux affichent alors leurs initiales et se redessinent au rappel. */
+function avatar(pseudo) { return (_av && _av[pseudo]) || null; }
+
 /* ===================== MIGRATION ===================== */
 /* Convertit les listes d'un tableau — tableaux JS écrits en bloc — vers des
    nœuds à clés, où chaque entrée s'écrit et se supprime seule. Le descripteur
@@ -401,6 +451,8 @@ window.TDLBase = {
   reessayer: reessayer, enAttente: enAttente, enVol: enVol, surEchec: surEchec,
   /* veille */
   suivre: suivre,
+  /* avatars */
+  avatars: avatars, avatar: avatar,
   /* migration */
   migrer: migrer, aMigrer: aMigrer,
   /* réglages, lisibles par les tableaux */
