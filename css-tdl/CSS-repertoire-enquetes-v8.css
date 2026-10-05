@@ -199,6 +199,19 @@
 .tdle-empty{padding:50px 20px;text-align:center;color:var(--darkopa7);font-style:italic}
 .tdle-toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:99999;font-family:var(--txt3);font-size:13px;background:var(--dark);color:var(--clair1);padding:11px 18px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,.3);max-width:90%;text-align:center}
 
+.tdle-echec{
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  display:flex; align-items:center; gap:14px;
+  max-width:min(620px,92vw); padding:10px 16px;
+  background:var(--dark); color:var(--clair1);
+  border:1px solid var(--dark2); border-radius:3px;
+  box-shadow:0 4px 14px var(--darkopa5);
+  font-family:var(--font0); font-size:14px; line-height:1.4;
+  z-index:99999;
+}
+.tdle-echec .tdle-abtn{ flex:0 0 auto; }
+.tdle-echec .tdle-abtn[disabled]{ opacity:.6; cursor:default; }
+
 /* ---- responsive : une colonne sous 860px ---- */
 @media(max-width:1100px){.tdle-app{width:94%}}
 @media(max-width:860px){
