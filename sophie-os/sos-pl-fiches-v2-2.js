@@ -36,7 +36,7 @@
   var CLES = {
     GEN: 'gen', FC: 'fc', NAISSANCE: 'naissance', METIER: 'metier',
     CARACTERE: 'caractere', IMAGE: 'image', BANNIERE: 'banniere',
-    STATUT: 'statut', SEXE: 'sexe'
+    STATUT: 'statut', SEXE: 'sexe', PARENT: 'parent'
   };
 
   function analyse(txt) {
@@ -206,6 +206,17 @@
     this.rendFiche(true);
   };
 
+     /* « PARENT: Jason » → la fiche de Jason Blackford, si elle existe en GEN-1. */
+  Composant.prototype.ficheParent = function (f) {
+    if (!f.parent) return null;
+    var cible = slug(f.parent), trouvee = null;
+    this.modele.fiches.forEach(function (x) {
+      if (trouvee || x.gen !== f.gen - 1) return;
+      if (x.slug === cible || slug(x.nom.split(/\s+/)[0]) === cible) trouvee = x;
+    });
+    return trouvee;
+  };
+
   Composant.prototype.rendFrise = function () {
     var self = this;
     if (!this.$frise.childElementCount) {
@@ -290,24 +301,29 @@
     }
     this.$meta.innerHTML = dl;
 
-    // Bandeau
+        // Bandeau
     this.$bandeau.style.setProperty('--tdlplf-img', f.banniere ? "url('" + f.banniere + "')" : '');
     var lienProfil = (f.statut === 'pris' && f.uid)
       ? '<a class="tdlplf-profil" href="/u' + f.uid + '" title="Profil du joueur">' +
         '<i class="fi fi-tr-user"></i></a>' : '';
+
+    var ligneParent = '';
+    if (f.parent) {
+      var pf = this.ficheParent(f);
+      ligneParent = pf
+        // L'interception globale ouvre la fiche sans recharger la page.
+        ? '<a class="tdlplf-band-parent" href="?fiche=' + pf.slug + '">enfant de ' +
+          echappe(f.parent) + '</a>'
+        : '<span class="tdlplf-band-parent">enfant de ' + echappe(f.parent) + '</span>';
+    }
+
     this.$bandeau.innerHTML =
-      '<div class="tdlplf-band-txt"><h2 class="tdlplf-band-nom">' + echappe(f.nom) + '</h2></div>' +
+      '<div class="tdlplf-band-txt">' +
+        '<h2 class="tdlplf-band-nom">' + echappe(f.nom) + '</h2>' + ligneParent +
+      '</div>' +
       lienProfil +
       '<span class="tdlplf-tampon tdlplf-' + f.statut + '">' +
       T.libelle(f.statut, f.sexe) + '</span>';
-
-    if (changementPerso) {
-      [this.$bandeau, this.$aside].forEach(function (n) {
-        n.classList.remove('tdlplf-entre');
-        void n.offsetWidth;                       // force la relance de l'animation
-        n.classList.add('tdlplf-entre');
-      });
-    }
 
     // Rubriques disponibles
     var dispo = ORDRE_RUB.filter(function (r) {
