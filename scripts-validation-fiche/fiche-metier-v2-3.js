@@ -78,14 +78,16 @@
     return Math.max(0, (Number(p.n) || 0) - pris);
   }
 
-  FI.metierCharger = async function () {
-    const rec = await window.EcoCore.safeReadBin();
-    const lieux   = (rec && rec.lieux)   || {};
-    const emplois = (rec && rec.emplois) || {};
-    ENT = Object.keys(lieux)
+   FI.metierCharger = async function () {
+    /* [MAJ] deux branches ciblées : 16,7 ko au lieu de 126. */
+    const [lieux, emplois] = await Promise.all([
+      window.EcoCore.firebaseGet("lieux"),
+      window.EcoCore.firebaseGet("emplois")
+    ]);
+    ENT = Object.keys(lieux || {})
       .filter((id) => lieux[id] && lieux[id].emploi === true && !lieux[id].masque)
       .map((id) => {
-        const e = Object.assign({ id }, lieux[id], emplois[id] || {});
+        const e = Object.assign({ id }, lieux[id], (emplois || {})[id] || {});
         e.roles  = vt(e.roles);
         e.postes = vt(e.postes);
         return e;
@@ -294,9 +296,7 @@
   /* === RÉSERVATION (au dépôt de la demande) ===
      Le rôle est inscrit immédiatement avec attente:true. Le poste est donc
      bloqué dans le bottin, et la réservation y est VISIBLE : le staff peut la
-     retirer d'un clic si la fiche n'aboutit pas. Appelé APRÈS le writeBin de
-     soumettre() — un writeBin réécrit toute la racine et effacerait sinon
-     cette écriture. */
+     retirer d'un clic si la fiche n'aboutit pas.  */
   FI.metierReserver = async function (d, pseudo, uid) {
     if (d.sans_emploi) return { ok: true };
     const E = window.EcoCore;
@@ -358,9 +358,9 @@
     const E = window.EcoCore;
     if (!E || typeof E.firebaseUpdate !== "function") return { ok: false };
 
-    const rec = await E.safeReadBin();
-    const emplois = (rec && rec.emplois) || {};
-    const lieux   = (rec && rec.lieux)   || {};
+    const [lieux, emplois] = await Promise.all([
+    E.firebaseGet("lieux"), E.firebaseGet("emplois")
+    ]);
 
     let id = d.metier_entreprise;
     if (!id && d.metier_mode === "activite") {
@@ -403,8 +403,7 @@
       return { ok: true, sansEmploi: true };
     }
 
-    const rec = await E.safeReadBin();
-    const emplois = (rec && rec.emplois) || {};
+    const emplois = (await E.firebaseGet("emplois")) || {};
 
     // L'activité créée porte son id ; sinon on retrouve l'entreprise choisie.
     let id = d.metier_entreprise;
