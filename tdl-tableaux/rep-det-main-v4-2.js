@@ -200,9 +200,9 @@ function creances(p){
     var e=prs[k]; if(!e||typeof e!=="object")return;
     out.push({source:"pret",key:k,libelle:"prêt de "+money(e.montant)+(e.nom?" — "+e.nom:""),date:e.date,montant:+e.montant||0});
   });
-  vt(m.liens).forEach(function(l,idx){
-    if(l&&l.type==="reseau_main"&&l.statut)
-      out.push({source:"lien",idx:idx,libelle:"réseau — "+(l.role||l.categorie||"lien"),date:l.date,montant:0});
+  window.TDLBase.liens(m).forEach(function(l){
+    if(l.type==="reseau_main"&&l.statut)
+      out.push({source:"lien",cle:l.k,libelle:"réseau — "+(l.role||l.categorie||"lien"),date:l.date,montant:0});
   });
   return out;
 }
@@ -1098,13 +1098,8 @@ function acquitter(m){
   if(!m.dette||!m.dette.pseudo)return Promise.resolve();
   var p=m.dette.pseudo, EC=window.EcoCore;
   if(m.dette.source==="lien"){
-    var chemin=CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/liens";
-    return Promise.resolve(EC.firebaseGet(chemin)).then(function(v){
-      var arr=vt(v);
-      var ix=+m.dette.idx;
-      if(arr[ix]){var l={};for(var k in arr[ix])if(arr[ix].hasOwnProperty(k))l[k]=arr[ix][k];l.statut=null;arr[ix]=l;}
-      return EC.writeField(chemin,arr.length?arr:null);
-    });
+    /* [MAJ] un seul champ au lieu de la réécriture du tableau entier */
+    return window.TDLBase.ecrireChampLien(p, m.dette.cle, "statut", null);
   }
   var o={}; o[CFG.NODE_MEMBRES+"/"+p+"/"+(m.dette.source==="pret"?"prets":"dettes")+"/"+m.dette.key]=null;
   return EC.firebaseUpdate(o);
