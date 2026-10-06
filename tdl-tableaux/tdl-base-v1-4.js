@@ -26,7 +26,8 @@
    EXPOSE : window.TDLBase  (+ window.TDLPoll en alias de compatibilité)
    DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate)
 
-   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · AVATARS · MIGRATION · EXPORT */
+   CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · AVATARS
+                     · MIGRATION · FABRIQUE · EXPORT */
 
 (function () {
 "use strict";
@@ -108,6 +109,14 @@ function versTableau(v) { return versListe(v).map(function (e) { return e.v; });
 
 /* ===================== ÉCRITURES ===================== */
 
+/* Chemin de la sentinelle. Par défaut {nœud}_rev, frère du nœud à la racine.
+   opts.revPath le remplace, pour un nœud à DEUX niveaux : flottille/marees doit
+   voir ses révisions en flottille_rev/marees — hors du nœud surveillé, sans
+   quoi une branche de service se retrouverait mêlée aux données. */
+function cheminRev(node, opts) {
+  return (opts && opts.revPath) || (node + SUFFIXE_REV);
+}
+
 var _enVol = 0;
 var _enAttente = [];
 var _derniereEcriture = {};     /* par nœud */
@@ -122,7 +131,7 @@ function enVol() { return _enVol; }
 function reessayer() {
   var f = _enAttente.splice(0);
   notifier();
-  return Promise.all(f.map(function (x) { return pousser(x.node, x.id, x.updates, x.libelle, { dejaRev: true }); }));
+  return Promise.all(f.map(function (x) { return pousser(x.node, x.id, x.updates, x.libelle, { dejaRev: true, revPath: x.revPath }); }));
 }
 
 /* Cœur commun.
@@ -133,11 +142,12 @@ function reessayer() {
      différé recréerait l'entrée APRÈS le recrédit. */
 function pousser(node, id, updates, libelle, opts) {
   opts = opts || {};
+  var cle = cheminRev(node, opts) + "/" + id;
   var rev = Date.now();
-  if (!opts.dejaRev && updates[node + SUFFIXE_REV + "/" + id] === undefined) {
-    updates[node + SUFFIXE_REV + "/" + id] = rev;
+  if (!opts.dejaRev && updates[cle] === undefined) {
+    updates[cle] = rev;
   } else {
-    rev = updates[node + SUFFIXE_REV + "/" + id];
+    rev = updates[cle];
   }
   _derniereEcriture[node] = Date.now();
   _enVol++;
@@ -153,7 +163,7 @@ function pousser(node, id, updates, libelle, opts) {
     _enVol--;
     journal("écriture refusée —", libelle || node, e);
     if (opts.sansFile) return false;          /* l'appelant compense lui-même */
-    _enAttente.push({ node: node, id: id, updates: updates, libelle: libelle || "modification" });
+    _enAttente.push({ node: node, id: id, updates: updates, libelle: libelle || "modification", revPath: opts.revPath });
     notifier();
     return false;
   });
@@ -178,11 +188,11 @@ function ecrireEntree(node, id, objet, libelle, opts) {
 
 /* Suppression : l'entrée ET sa sentinelle, pour que les autres onglets voient
    la disparition au tick suivant. */
-function supprimerEntree(node, id, libelle) {
+function supprimerEntree(node, id, libelle, opts) {
   var updates = {};
   updates[node + "/" + id] = null;
-  updates[node + SUFFIXE_REV + "/" + id] = null;
-  return pousser(node, id, updates, libelle, { dejaRev: true });
+  updates[cheminRev(node, opts) + "/" + id] = null;
+  return pousser(node, id, updates, libelle, { dejaRev: true, revPath: opts && opts.revPath });
 }
 
 /* ===================== VEILLE ===================== */
@@ -206,6 +216,8 @@ function caler(node, id, rev) {
      onDonnees : function(brut) — mode hérité, nœud entier
      occupe    : function() → true si l'interface ne doit pas être redessinée
      ms        : cadence (défaut 15 000)
+     revPath   : chemin de la sentinelle (défaut {nœud}_rev) — à préciser pour
+                 un nœud à deux niveaux, voir cheminRev()
      reconcile : période de relecture complète du nœud (défaut 300 000, 0 = jamais)
    } */
 function suivre(opts) {
@@ -215,6 +227,7 @@ function suivre(opts) {
 
   var v = {
     node: opts.node,
+    revPath: cheminRev(opts.node, opts),
     revs: {},
     ms: opts.ms || CADENCE_MS,
     derniere: null,
@@ -262,7 +275,7 @@ function suivre(opts) {
      d'ailleurs, par exemple), que le tick sentinelle ne peut pas voir. */
   function tickReconcile(force) {
     v.enCours = true;
-    return Promise.all([lire(v.node), lire(v.node + SUFFIXE_REV)]).then(function (res) {
+    return Promise.all([lire(v.node), lire(v.revPath)]).then(function (res) {
       var brut = res[0] || {}, rev = res[1] || {};
       v.enCours = false; v.dernierComplet = Date.now();
       if (v.mort) return;
@@ -283,7 +296,7 @@ function suivre(opts) {
   /* Mode sentinelle : on ne lit que les révisions, puis les entrées bougées. */
   function tickRev(force) {
     v.enCours = true;
-    return lire(v.node + SUFFIXE_REV).then(function (r) {
+    return lire(v.revPath).then(function (r) {
       r = r || {};
       var neufs = [], supprimes = [];
       Object.keys(r).forEach(function (id) { if (v.revs[id] !== r[id]) neufs.push(id); });
@@ -324,7 +337,7 @@ function suivre(opts) {
     caler: function (brut) {
       v.derniere = JSON.stringify(brut || {});
       if (!modeRev) return Promise.resolve();
-      return lire(v.node + SUFFIXE_REV).then(function (r) {
+      return lire(v.revPath).then(function (r) {
         r = r || {};
         Object.keys(r).forEach(function (id) { v.revs[id] = r[id]; });
         Object.keys(brut || {}).forEach(function (id) { if (v.revs[id] === undefined) v.revs[id] = 0; });
@@ -490,7 +503,7 @@ function migrer(opts) {
       var v2;
       try { v2 = convertirEntree(o, plan, schema); }
       catch (e) { journal("conversion", id, e); erreurs.push(id); return; }
-      return ecrireEntree(node, id, v2, "migration de " + id).then(function (ok) {
+      return ecrireEntree(node, id, v2, "migration de " + id, { revPath: opts.revPath }).then(function (ok) {
         if (ok) faits++; else erreurs.push(id);
         if (opts.surProgres) { try { opts.surProgres(faits + erreurs.length, ids.length); } catch (e) {} }
       });
@@ -499,6 +512,38 @@ function migrer(opts) {
   return chaine.then(function () {
     return { faits: faits, total: ids.length, erreurs: erreurs };
   });
+}
+
+/* ===================== FABRIQUE ===================== */
+/* Lie un nœud et son chemin de sentinelle une fois pour toutes, au lieu de
+   répéter revPath à chaque appel. Indispensable dès qu'un tableau surveille
+   plusieurs nœuds — la flottille en a trois : disparitions, operations, marees.
+     var T = TDLBase.table({node:"flottille/marees", revPath:"flottille_rev/marees"});
+     T.ecrire(id, {statut:"close"});  T.suivre({rev:true, onEntrees:…});
+   Un tableau à un seul nœud plat n'en a pas besoin : les fonctions nues
+   gardent exactement leur comportement. */
+function table(conf) {
+  var node = conf.node, revPath = conf.revPath || (node + SUFFIXE_REV);
+  function avecRev(extra) {
+    var o = { revPath: revPath }, k;
+    if (extra) for (k in extra) { if (extra.hasOwnProperty(k)) o[k] = extra[k]; }
+    return o;
+  }
+  return {
+    node: node, revPath: revPath,
+    ecrire:          function (id, champs, libelle, extra) { return ecrire(node, id, champs, libelle, avecRev(extra)); },
+    ecrireEntree:    function (id, objet, libelle, extra)  { return ecrireEntree(node, id, objet, libelle, avecRev(extra)); },
+    supprimerEntree: function (id, libelle)                { return supprimerEntree(node, id, libelle, avecRev()); },
+    suivre: function (o) {
+      o = o || {}; o.node = node; o.revPath = revPath;
+      return suivre(o);
+    },
+    migrer: function (o) {
+      o = o || {}; o.node = node; o.revPath = revPath;
+      return migrer(o);
+    },
+    aMigrer: function (brut, schema) { return aMigrer(brut, schema); }
+  };
 }
 
 /* ===================== EXPORT ===================== */
@@ -517,6 +562,8 @@ window.TDLBase = {
   membres: membres, rafraichirMembres: rafraichirMembres,
   /* migration */
   migrer: migrer, aMigrer: aMigrer,
+  /* fabrique (nœuds à deux niveaux) */
+  table: table,
   /* réglages, lisibles par les tableaux */
   CADENCE_MS: CADENCE_MS, SUFFIXE_REV: SUFFIXE_REV
 };
