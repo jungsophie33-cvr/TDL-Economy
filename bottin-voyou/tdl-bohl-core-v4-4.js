@@ -3,10 +3,22 @@
    Squelette commun : header · onglets scrollables · hero PARTAGÉ & éditable
    (desc + mots-clés + image de fond) · barre d'action staff en bas ·
    lecture/écriture Firebase · aiguillage vers l'onglet actif.
-   À charger APRÈS tdl-bohl-config.js et eco-core, AVANT les onglets.
+   À charger APRÈS tdl-bohl-config.js, eco-core ET tdl-base, AVANT les onglets.
+
+   [MAJ v2] LECTURES CIBLÉES. charger() appelait safeReadBin() : 126 ko pour en
+     utiliser 8,8. Il lit maintenant les trois seules branches nécessaires et
+     reconstitue un « rec » PARTIEL — tout le reste du bottin continue de lire
+     BHL.rec.membres et BHL.rec.bandes sans aucun changement.
+
+   [MAJ v2] TDLBase EST DÉSORMAIS REQUIS. Les trois onglets qui portent un
+     réseau de contacts (Main, Faiseuses, Flottille) passent par son API des
+     liens, et la barre staff par migrerLiens(). ecoPret() l'exige donc au même
+     titre qu'EcoCore : sans lui, les onglets rendraient puis lèveraient.
 
    Deux nœuds Firebase :
      · membres/{pseudo}.hors_la_loi  → placement d'un personnage (par onglet) ;
+     · membres/{pseudo}/liens/{clé}  → réseaux de contacts, partagés par les
+       trois onglets ET par quai-staff, rep-det-main et rep-tac-fais ;
      · bandes/{bande}                → contenu de présentation éditable (desc, motscles, image).
 
    Blocs : TEXTES · CONFIG · ÉTAT · UTILS · INDEX · DONNÉES · CONTENU
@@ -25,6 +37,7 @@ window.BHL = window.BHL || {};
     ajouter:"Ajouter un membre", modifier:"Modifier", retirer:"Retirer",
     enregistrer:"Enregistrer", annuler:"Annuler", choisir:"— Choisir —",
     modifierBande:"Modifier cette bande",
+    errLecture:"Lecture impossible — le bottin s'affiche vide.",
     heroImg:"Image de fond (URL)", heroMc:"Mots-clés", heroDesc:"Description", mcAjout:"Nouveau mot-clé…",
     confirmRetrait:function (p){ return "Retirer "+p+" de cette bande ?"; },
   };
@@ -33,7 +46,7 @@ window.BHL = window.BHL || {};
   BHL.CFG = {
     SEL:{ app:"tdlb-app", tabs:"tdlb-tabs", tab:"tdlb-tab", bar:"tdlb-actionbar", home:"tdlb-home", edit:"tdlb-edit" },
     HREF_ACCUEIL:"/",                              /* [MAJ] accueil du forum */
-    NODE_MEMBRES:"membres", NODE_BANDES:"bandes",
+    NODE_MEMBRES:"membres", NODE_BANDES:"bandes", NODE_FC:"faceclaims",
   };
 
   /* ===================== ÉTAT ===================== */
@@ -78,15 +91,41 @@ window.BHL = window.BHL || {};
   BHL.couleurGroupe = function (court){ return COMMU[court] || "var(--clair1)"; };
 
   /* ===================== DONNÉES (lecture) ===================== */
-  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.safeReadBin==="function"); }
+  /* [MAJ v2] tdl-base est exigé au même titre qu'eco-core : les trois onglets
+     à réseau de contacts et la barre staff en dépendent. */
+  function ecoPret(){
+    return !!(window.EcoCore && typeof window.EcoCore.firebaseGet==="function"
+           && window.TDLBase && typeof window.TDLBase.liens==="function");
+  }
   function attendreEco(ms){ return new Promise(function(res){ var n=0,t=setInterval(function(){ if(ecoPret()||++n>ms/100){ clearInterval(t); res(ecoPret()); } },100); }); }
+
+  /* [MAJ v2] trois branches ciblées (~8,8 ko) au lieu des 126 ko de la racine.
+     Le « rec » reconstitué garde la forme attendue par tout le reste du bottin. */
+  /* un rec VIDE mais bien formé : sans lui, un échec de lecture laissait
+     BHL.rec à null et chaque onglet levait sur BHL.rec.membres au lieu
+     d'afficher un bottin vide. */
+  function recVide(){ return { membres:{}, bandes:{}, faceclaims:{} }; }
 
   BHL.charger = function (){
     return attendreEco(8000).then(function(ok){
-      if(!ok){ if(window.console) console.warn("[TDL bandes] EcoCore introuvable."); return; }
-      return window.EcoCore.safeReadBin().then(function(rec){
-        BHL.rec = rec || {}; BHL.avatars = indexAvatars(BHL.rec); BHL.construireCOMMU();
-      }).catch(function(e){ if(window.console) console.error("[TDL bandes] lecture", e); });
+      if(!ok){
+        if(window.console) console.warn("[TDL bandes] EcoCore ou tdl-base introuvable — vérifiez l'ordre de chargement.");
+        BHL.rec = BHL.rec || recVide();
+        return;
+      }
+      return Promise.all([
+        window.EcoCore.firebaseGet(BHL.CFG.NODE_MEMBRES),
+        window.EcoCore.firebaseGet(BHL.CFG.NODE_BANDES),
+        window.EcoCore.firebaseGet(BHL.CFG.NODE_FC)
+      ]).then(function(r){
+        BHL.rec = { membres:r[0]||{}, bandes:r[1]||{}, faceclaims:r[2]||{} };
+        BHL.avatars = indexAvatars(BHL.rec);
+        BHL.construireCOMMU();
+      }).catch(function(e){
+        if(window.console) console.error("[TDL bandes] lecture", e);
+        BHL.rec = BHL.rec || recVide();
+        toast(BHL.T.errLecture);
+      });
     });
   };
 
@@ -198,9 +237,15 @@ window.BHL = window.BHL || {};
     BHL.PERSIST.contenu(bande, data).catch(function(){ toast(BHL.T.errEcriture); });
   };
 
-     /* [MAJ] Conversion des liens : bouton staff, visible tant qu'un membre porte
-     ses liens en tableau. Il disparaît de lui-même une fois le travail fait. */
+  /* ===================== CONVERSION DES LIENS (staff) =====================
+     Bouton visible tant qu'un membre porte ses liens en TABLEAU. Il disparaît
+     de lui-même une fois le travail fait.
+     ATTENTION : ne le cliquer qu'une fois les SIX écrivains déployés — les
+     trois onglets de ce bottin, quai-staff, rep-det-main et rep-tac-fais.
+     Un seul écrivain resté en ancienne version réécrit la branche en tableau
+     et défait la conversion au premier contact créé. */
   BHL.liensAConvertir = function (){
+    if(!window.TDLBase || !window.TDLBase.liensAConvertir) return 0;
     var ms=(BHL.rec&&BHL.rec.membres)||{}, n=0;
     Object.keys(ms).forEach(function(p){ if(window.TDLBase.liensAConvertir(ms[p])) n++; });
     return n;
@@ -312,7 +357,7 @@ window.BHL = window.BHL || {};
 
   /* ===================== INIT ===================== */
    function init(){
-    monter();                                        // ← AJOUT
+    monter();
     var home=BHL.$(BHL.CFG.SEL.home); if(home) home.setAttribute("href", BHL.CFG.HREF_ACCUEIL);
     BHL.monPseudo = window.EcoCore && window.EcoCore.getPseudo && window.EcoCore.getPseudo() || null;
     BHL.S.admin = BHL.estStaff();
