@@ -1,6 +1,22 @@
 /* ============================================================
    TDL — BANDES HORS-LA-LOI · ONGLET LA MAIN DE LA PROVIDENCE
    (tdl-bohl-main.js) — à charger APRÈS tdl-bohl-core.js.
+   Requiert aussi window.TDLBase (API des liens de réseau).
+
+   [MAJ v2] LE RÉSEAU D'INFLUENCE PASSE AUX CLÉS.
+     Chaque geste réécrivait le TABLEAU ENTIER des liens du membre :
+     ecrireLiens(pseudo, arr) après un push, un Object.assign sur arr[idx], ou
+     un splice(idx,1). Deux conséquences silencieuses.
+     D'abord l'écrasement : un lien ajouté par un autre onglet entre notre
+     lecture et notre écriture disparaissait. Ensuite, et c'est le pire, le
+     RETRAIT PAR INDICE — splice décale tous les liens suivants, de sorte que
+     le retrait d'après visait le mauvais contact. La Main et les Faiseuses
+     partagent la même branche membres/{pseudo}/liens : le mauvais retrait
+     traversait même les deux réseaux.
+     Chaque lien porte désormais sa clé et s'écrit seul :
+       membres/{pseudo}/liens/{clé}
+     La référence d'édition devient « pseudo\u0001clé » au lieu de
+     « pseudo\u0001indice ».
 
    Affiliation pleine (hors_la_loi) :
      · La Main (le Chef)  → { bande:"main", type:"main" }            (Jason, posé par le staff)
@@ -15,15 +31,17 @@
   "use strict";
   var BANDE="main", CONF=window.BHL_CONFIG.bandes[BANDE];
   var DOIGTS=CONF.doigts, ORDRE=CONF.ordre_doigts, CAT=CONF.reseau_cat, STATUTS=CONF.statuts;
-  var $=BHL.$, escH=BHL.escH, escA=BHL.escA, ini=BHL.initiales, vt=BHL.vt;
+  var $=BHL.$, escH=BHL.escH, escA=BHL.escA, ini=BHL.initiales;
 
   var T = { membres:"Membres", doigts:"Doigts", reseau:"Réseau d'influence",
             chefLbl:"La Main", fondateur:"Fondateur & vision d'ensemble", aDefinir:"À définir",
             cavaliers:"Les Cavaliers", dirige:"Dirigé par", tous:"Tous", dette:"Dette / service",
-            porteur:"Doigt", concours:"Situation vis-à-vis de la Main" };
+            porteur:"Doigt", concours:"Situation vis-à-vis de la Main",
+            aConvertir:"Liens au format ancien — lancez la conversion (bouton staff).",
+            disparu:"Ce contact n\u2019existe plus." };
   var memEdit=null;    // hors_la_loi : null | "new" | pseudo
   var doigtEdit=null;  // chef d'un Doigt (PL) : null | key
-  var resEdit=null;    // réseau (lien) : null | "new" | "pseudo\u0001idx"
+  var resEdit=null;    // réseau (lien) : null | "new" | "pseudo\u0001cle"
   var texteEdit=null;  // texte éditable : null | "cav" | "reseau"
   var filtre="tous";   // filtre du réseau
 
@@ -41,6 +59,10 @@
     return { nom:s.nom, emoji:s.emoji||"", tagline:s.tagline||"",
       chef:(o.chef!=null?o.chef:(s.chef||"")), chef_url:(o.chef_url!=null?o.chef_url:(s.chef_url||"")) };
   }
+  /* [MAJ v2] la clé du lien remplace son indice. TDLBase.liens lit les deux
+     formats : un membre non converti reçoit des clés de substitution, qui
+     servent à l'affichage mais jamais à une écriture — exigeCles() barre la
+     route avant. */
   function tousReseau(){
     var ms=BHL.rec.membres||{}, out=[];
     Object.keys(ms).forEach(function(pseudo){
@@ -48,19 +70,21 @@
       window.TDLBase.liens(m).forEach(function(l){
         if(l.type==="reseau_main")
           out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo),
-                     couleur:BHL.couleurGroupe(m.group), cle:l.k, lien:l,
-                     brut:window.TDLBase.liensAConvertir(m) });
+                     couleur:BHL.couleurGroupe(m.group), cle:l.k, lien:l });
       });
     });
     return out.sort(function(a,b){ return a.pseudo.localeCompare(b.pseudo,"fr"); });
   }
-    /* [MAJ] un lien s'écrit SEUL : plus de réécriture du tableau du membre, donc
-     plus d'écrasement d'un lien voisin ajouté entre-temps. */
+  /* un membre dont les liens sont encore un tableau n'accepte aucune écriture
+     ciblée : un PATCH par clé sur une branche-tableau produirait un nœud bâtard */
   function exigeCles(pseudo){
     if(!window.TDLBase.liensAConvertir(BHL.rec.membres[pseudo])) return true;
-    BHL.toast("Liens au format ancien — lancez la conversion (bouton staff).");
+    BHL.toast(T.aConvertir);
     return false;
   }
+  /* [MAJ v2] un lien s'écrit SEUL : plus de réécriture du tableau du membre,
+     donc plus d'écrasement d'un lien voisin ajouté entre-temps — y compris un
+     lien des Faiseuses, qui vit dans la même branche. */
   function majLien(pseudo, cle, lien){
     var m=BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
     m.liens=m.liens||{}; m.liens[cle]=lien;
@@ -72,6 +96,11 @@
     if(m.liens) delete m.liens[cle];
     BHL.rendreOnglet();
     window.TDLBase.supprimerLien(pseudo, cle).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
+  }
+  /* le lien tel qu'il est EN BASE, jamais la copie du rendu : un champ ajouté
+     ailleurs (date, type…) ne doit pas disparaître à la modification */
+  function lienEnBase(pseudo, cle){
+    return ((BHL.rec.membres[pseudo]||{}).liens||{})[cle] || null;
   }
 
   /* ================= helpers ================= */
@@ -161,7 +190,9 @@
     return b;
   }
   function reseauCard(p){
-    var l=p.lien, var key=p.pseudo+"\u0001"+p.cle;
+    /* [CORRIGÉ] un seul « var » pour la liste de déclaration : le second
+       rendait le fichier inanalysable, et l'onglet ne s'enregistrait jamais. */
+    var l=p.lien, key=p.pseudo+"\u0001"+p.cle;
     var dette = l.statut ? '<span class="tag-dette '+escA(l.statut)+'">'+escH(STATUTS[l.statut]||l.statut)+'</span>' : '';
     var ac = BHL.S.admin ? '<div class="actes"><button class="tdlb-ic" data-redit="'+escA(key)+'" title="'+BHL.T.modifier+'"><i class="fi fi-tr-pencil"></i></button>'
       + '<button class="tdlb-ic" data-rrm="'+escA(key)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>' : "";
@@ -200,9 +231,15 @@
       + ch(BHL.T.depuis+" (année)",'<input class="tdlb-in" data-f="depuis" value="'+escA(m?m.hll.depuis:"")+'" placeholder="2020">')
       + '<div class="btns"><button class="tdlb-btn prim" data-msave="'+(neuf?"new":escA(m.pseudo))+'">'+BHL.T.enregistrer+'</button><button class="tdlb-btn" data-fcancel="1">'+BHL.T.annuler+'</button></div></div>';
   }
+  /* la recherche se fait sur la CLÉ ; si le lien a disparu entre l'ouverture du
+     formulaire et son rendu, on referme au lieu de lever sur p.pseudo */
   function resForm(ref){
     var neuf=(ref==="new"), p=null;
-    if(!neuf){ var pr=ref.split("\u0001"); tousReseau().forEach(function(x){ if(x.pseudo===pr[0]&&x.cle===pr[1]) p=x; }); }
+    if(!neuf){
+      var pr=ref.split("\u0001");
+      tousReseau().forEach(function(x){ if(x.pseudo===pr[0]&&x.cle===pr[1]) p=x; });
+      if(!p){ resEdit=null; return ""; }
+    }
     var l=p?p.lien:{};
     return '<div class="tdlb-bra-form">'
       + (neuf?ch("Contact",'<select class="tdlb-in" data-f="pseudo">'+optMembres("")+'</select>'):'<div><label>Contact</label><div class="fixe">'+escH(p.pseudo)+'</div></div>')
@@ -267,6 +304,8 @@
     // réseau (liens)
     host.querySelectorAll("[data-filtre]").forEach(function(b){ b.addEventListener("click", function(){ filtre=b.dataset.filtre; BHL.rendreOnglet(); }); });
     host.querySelectorAll("[data-redit]").forEach(function(b){ b.addEventListener("click", function(){ fermer(); resEdit=b.dataset.redit; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+    /* [MAJ v2] le retrait vise une CLÉ : il ne peut plus décaler les liens
+       suivants ni emporter un contact des Faiseuses logé dans la même branche. */
     host.querySelectorAll("[data-rrm]").forEach(function(b){ b.addEventListener("click", function(){
       var pr=b.dataset.rrm.split("\u0001"), pseudo=pr[0], cle=pr[1];
       if(!exigeCles(pseudo)) return;
@@ -285,7 +324,8 @@
       } else {
         var pr=b.dataset.rsave.split("\u0001"), ps=pr[0], cle=pr[1];
         if(!exigeCles(ps)) return;
-        var anc=(BHL.rec.membres[ps].liens||{})[cle]||{};
+        var anc=lienEnBase(ps, cle);
+        if(!anc){ BHL.toast(T.disparu); fermer(); BHL.rendreOnglet(); BHL.renderActionbar(); return; }
         fermer();
         majLien(ps, cle, Object.assign({}, anc, { categorie:v.categorie, role:v.role, statut:v.statut||null }));
       }
