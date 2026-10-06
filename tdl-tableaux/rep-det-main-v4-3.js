@@ -2,6 +2,15 @@
    Moulé sur rep-tac-fais-v1.js, dont il réutilise le CSS (classes tdlm-).
    Données : dossiers_main/{id}. Sentinelle : dossiers_main_rev/{id}.
 
+   [MAJ v6] LES CRÉANCES DE RÉSEAU SONT DÉSIGNÉES PAR CLÉ.
+     Le dossier portait dette.idx : la POSITION du lien dans le tableau du
+     membre. Un contact retiré depuis le bottin décalait tous les suivants, et
+     le dossier se retrouvait rattaché à une autre créance — « acquitter »
+     effaçait alors le statut du mauvais contact, en silence. Il porte
+     maintenant dette.cle, et acquitter n'écrit plus qu'un champ.
+     Les dossiers nés avant cette version ne sont PAS repris : aucune dette de
+     réseau n'existait en base au moment de la bascule.
+
    [MAJ v5] VERROUS SUR LES MOUVEMENTS D'ARGENT.
      clore(), cloreNego() et cloreService() se gardaient d'un double
      prélèvement en lisant un booléen (verse, primeVersee) dans l'instantané
@@ -182,7 +191,7 @@ function doigtDe(p){var h=hll(p);return (h&&h.doigt)||null;}
 function aucunPorteur(){var n=0;Object.keys(MEMBRES).forEach(function(p){if(estPorteur(p))n++;});return n===0;}
 function aLienMain(p){
   var m=MEMBRES[p]; if(!m) return false;
-  return vt(m.liens).some(function(l){return l&&l.type==="reseau_main";});
+  return window.TDLBase.liens(m).some(function(l){return l.type==="reseau_main";});
 }
 function solde(p){var m=MEMBRES[p];return (m&&+m.dollars)||0;}
 
@@ -200,6 +209,10 @@ function creances(p){
     var e=prs[k]; if(!e||typeof e!=="object")return;
     out.push({source:"pret",key:k,libelle:"prêt de "+money(e.montant)+(e.nom?" — "+e.nom:""),date:e.date,montant:+e.montant||0});
   });
+  /* [MAJ v6] la créance de réseau est désignée par la CLÉ du lien, plus par sa
+     position. Un contact retiré ailleurs décalait tous les suivants : le
+     dossier pointait alors une autre créance, et « acquitter » effaçait le
+     statut du mauvais contact. */
   window.TDLBase.liens(m).forEach(function(l){
     if(l.type==="reseau_main"&&l.statut)
       out.push({source:"lien",cle:l.k,libelle:"réseau — "+(l.role||l.categorie||"lien"),date:l.date,montant:0});
@@ -212,7 +225,7 @@ function creanceDe(d){
   for(var i=0;i<list.length;i++){
     var c=list[i];
     if(c.source!==d.dette.source)continue;
-    if(c.source==="lien"){ if(String(c.idx)===String(d.dette.idx))return c; }
+    if(c.source==="lien"){ if(c.cle===d.dette.cle)return c; }
     else if(c.key===d.dette.key)return c;
   }
   return null;
@@ -221,7 +234,7 @@ function dossierSur(pseudo, c){
   return D.some(function(m){
     if(!m.dette||m.dette.pseudo!==pseudo)return false;
     if(m.statut==="close"||m.statut==="classee")return false;
-    if(c.source==="lien")return m.dette.source==="lien"&&String(m.dette.idx)===String(c.idx);
+    if(c.source==="lien")return m.dette.source==="lien"&&m.dette.cle===c.cle;
     return m.dette.source===c.source&&m.dette.key===c.key;
   });
 }
@@ -776,7 +789,9 @@ function brancher(){
   };});
   stage.querySelectorAll("[data-ard]").forEach(function(el){el.onclick=function(){
     var p=el.getAttribute("data-ard").split("\u0001");
-    S.prefill={pseudo:p[0], idx:+p[1]}; S.creation=true; S.drawer=null; S.inline=null; renderStage();
+    /* p[1] est le rang dans la liste des créances affichée, pas une clé de
+       lien : il ne sert qu'à présélectionner le menu du formulaire. */
+    S.prefill={pseudo:p[0], rang:+p[1]}; S.creation=true; S.drawer=null; S.inline=null; renderStage();
   };});
   stage.querySelectorAll("[data-act]").forEach(function(el){el.onclick=function(){act(el.getAttribute("data-act"));};});
   stage.querySelectorAll("[data-do]").forEach(function(el){el.onclick=function(){doo(el.getAttribute("data-do"));};});
@@ -828,7 +843,7 @@ function brancher(){
     var db=$("#tdld-ndeb");
     if(db){ db.value=pf.pseudo; db.onchange(); }
     var cr2=$("#tdld-ncre");
-    if(cr2){ cr2.value=String(pf.idx); cr2.onchange(); }
+    if(cr2){ cr2.value=String(pf.rang); cr2.onchange(); }
   }
 }
 
@@ -1090,17 +1105,19 @@ function cloreService(m){
 /* la créance disparaît du grand livre ; un LIEN réseau perd son statut de
    dette mais reste au bottin — on s'acquitte d'une dette, on ne cesse pas
    d'être un contact.
-   [MAJ v4] lecture ciblée de la seule branche liens, au lieu des 126 ko racine.
-   NOTE : membres/{pseudo}/liens reste un TABLEAU adressé par indice, partagé
-   avec quai-staff et les onglets du bottin. C'est fragile, et c'est l'objet
-   d'un chantier à part. */
+   [MAJ v6] UN SEUL CHAMP. La version précédente relisait la branche entière,
+   la normalisait en tableau — ce qui écrasait les clés — modifiait l'entrée par
+   indice et réécrivait tout. Trois défauts d'un coup : la conversion des liens
+   était annulée, un lien ajouté entre-temps disparaissait, et l'indice pouvait
+   désigner un autre contact. On n'écrit plus que liens/{clé}/statut. */
 function acquitter(m){
   if(!m.dette||!m.dette.pseudo)return Promise.resolve();
-  var p=m.dette.pseudo, EC=window.EcoCore;
+  var p=m.dette.pseudo;
   if(m.dette.source==="lien"){
-    /* [MAJ] un seul champ au lieu de la réécriture du tableau entier */
+    if(!m.dette.cle)return Promise.resolve();
     return window.TDLBase.ecrireChampLien(p, m.dette.cle, "statut", null);
   }
+  var EC=window.EcoCore;
   var o={}; o[CFG.NODE_MEMBRES+"/"+p+"/"+(m.dette.source==="pret"?"prets":"dettes")+"/"+m.dette.key]=null;
   return EC.firebaseUpdate(o);
 }
@@ -1188,7 +1205,7 @@ function creer(){
     if(!deb||ci===""){toast("Choisis un débiteur et la créance concernée.");return;}
     var c=creances(deb)[+ci];
     if(!c){toast("Créance introuvable.");return;}
-    o.dette=(c.source==="lien")?{pseudo:deb,source:"lien",idx:c.idx}:{pseudo:deb,source:c.source,key:c.key};
+    o.dette=(c.source==="lien")?{pseudo:deb,source:"lien",cle:c.cle}:{pseudo:deb,source:c.source,key:c.key};
     o.montant=parseInt((($("#tdld-nmontant")||{}).value||"0").replace(/[^\d]/g,""),10)||0;
     if(o.montant&&solde(deb)<o.montant){toast("Le solde de "+deb+" ("+money(solde(deb))+") ne couvre pas la somme — inutile d\u2019ouvrir.");return;}
   }
