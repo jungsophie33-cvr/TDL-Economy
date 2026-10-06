@@ -163,7 +163,7 @@ var TAGS = [["[INTRIGUE]", 150], ["[EV. MEMBRE]", 151]];
 
 /* ===================== UTILS ===================== */
 function E() { return window.EcoCore; }
-function ok() { return !!(E() && E().firebaseUpdate && E().safeReadBin); }
+function ok() { return !!(E() && E().firebaseUpdate && E().firebaseGet); }
 function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 /* clé Firebase valide : ni . $ # [ ] / */
 function cle(s) { return String(s == null ? "" : s).replace(/[.$#\[\]\/]/g, "_"); }
@@ -180,11 +180,14 @@ var MEM = null;   /* snapshot membres */
 function charger() {
   if (INV && MEM) return Promise.resolve();
   if (!ok()) return Promise.reject(new Error("EcoCore absent"));
-  return Promise.resolve(E().safeReadBin()).then(function (rec) {
-    rec = rec || {};
-    MEM = rec[CFG.NODE_MEMBRES] || {};
+  /* [MAJ] deux branches ciblées au lieu de la racine : ~3 ko contre 126. */
+  return Promise.all([
+    E().firebaseGet(CFG.NODE_MEMBRES),
+    E().firebaseGet(CFG.NODE_UID)
+  ]).then(function (r) {
+    MEM = r[0] || {};
     INV = {};
-    var ix = rec[CFG.NODE_UID] || {};
+    var ix = r[1] || {};
     Object.keys(ix).forEach(function (uid) {
       var p = String(ix[uid] == null ? "" : ix[uid]).trim();
       if (p) INV[p] = String(uid);
@@ -300,10 +303,10 @@ function nettoyer(titre) {
   });
   return t.replace(/\s+/g, " ").trim();
 }
-
-function plancherDe(rec) {
-  var meta = (rec && rec[CFG.NODE_META]) || {};
-  return parseInt(meta.dernier_topic, 10);
+/* [MAJ] une feuille, pas la racine */
+function lirePlancher() {
+  return Promise.resolve(E().firebaseGet(CFG.NODE_META + "/dernier_topic"))
+    .then(function (v) { return parseInt(v, 10); });
 }
 function amorcer(valeur) {
   var up = {}; up[CFG.NODE_META + "/dernier_topic"] = valeur;
@@ -332,8 +335,7 @@ function surSujet() {
   var titre = ((el && el.textContent) || document.title || "").trim();
   var t = typeDe(titre);
   if (!id || !t) return Promise.resolve();
-  return Promise.resolve(E().safeReadBin()).then(function (rec) {
-    var plancher = plancherDe(rec);
+    return lirePlancher().then(function (plancher) {
     if (isNaN(plancher)) return amorcer(id);   /* amorçage : on note et on se tait */
     if (id <= plancher) return;
     return annoncer(id, t, titre, location.pathname);
@@ -342,8 +344,7 @@ function surSujet() {
 
 function traiterTopics(evs) {
   if (!evs.length || !ok()) return;
-  Promise.resolve(E().safeReadBin()).then(function (rec) {
-    var plancher = plancherDe(rec);
+  lirePlancher().then(function (plancher) {
     if (isNaN(plancher)) {                     /* amorçage : on note le plus haut */
       var max = 0;
       evs.forEach(function (e) { if (e.id > max) max = e.id; });
