@@ -636,12 +636,8 @@ function appliquer(m, choix){
    racine. L'adressage par indice de membres/{pseudo}/liens reste : chantier
    à part, partagé avec quai-staff, rep-det-main et les onglets du bottin. */
 function ajouterLien(pseudo, lien){
-  var chemin=CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens";
-  return Promise.resolve(window.EcoCore.firebaseGet(chemin)).then(function(v){
-    var arr=versTableau(v);
-    arr.push(lien);
-    return window.EcoCore.writeField(chemin,arr);
-  });
+  return window.TDLBase.ecrireLien(pseudo, window.TDLBase.nouvelleCle(), lien)
+    .then(function(ok){ if(!ok) throw new Error("écriture du lien refusée"); });
 }
 function valider(m){
   var cpr=m.contactPropose;
