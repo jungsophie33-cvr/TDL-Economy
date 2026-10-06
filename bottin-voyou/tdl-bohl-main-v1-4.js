@@ -45,18 +45,33 @@
     var ms=BHL.rec.membres||{}, out=[];
     Object.keys(ms).forEach(function(pseudo){
       var m=ms[pseudo]||{};
-      vt(m.liens).forEach(function(l,idx){
-        if(l && l.type==="reseau_main")
-          out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo), couleur:BHL.couleurGroupe(m.group), idx:idx, lien:l });
+      window.TDLBase.liens(m).forEach(function(l){
+        if(l.type==="reseau_main")
+          out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo),
+                     couleur:BHL.couleurGroupe(m.group), cle:l.k, lien:l,
+                     brut:window.TDLBase.liensAConvertir(m) });
       });
     });
     return out.sort(function(a,b){ return a.pseudo.localeCompare(b.pseudo,"fr"); });
   }
-  function ecrireLiens(pseudo, arr){
-    BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
-    BHL.rec.membres[pseudo].liens = arr.length?arr:null;
+    /* [MAJ] un lien s'écrit SEUL : plus de réécriture du tableau du membre, donc
+     plus d'écrasement d'un lien voisin ajouté entre-temps. */
+  function exigeCles(pseudo){
+    if(!window.TDLBase.liensAConvertir(BHL.rec.membres[pseudo])) return true;
+    BHL.toast("Liens au format ancien — lancez la conversion (bouton staff).");
+    return false;
+  }
+  function majLien(pseudo, cle, lien){
+    var m=BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
+    m.liens=m.liens||{}; m.liens[cle]=lien;
     BHL.rendreOnglet();
-    BHL.PERSIST.champ("membres/"+pseudo+"/liens", arr.length?arr:null).catch(function(){ BHL.toast(BHL.T.errEcriture); });
+    window.TDLBase.ecrireLien(pseudo, cle, lien).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
+  }
+  function retirerLien(pseudo, cle){
+    var m=BHL.rec.membres[pseudo]||{};
+    if(m.liens) delete m.liens[cle];
+    BHL.rendreOnglet();
+    window.TDLBase.supprimerLien(pseudo, cle).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
   }
 
   /* ================= helpers ================= */
@@ -146,7 +161,7 @@
     return b;
   }
   function reseauCard(p){
-    var l=p.lien, key=p.pseudo+"\u0001"+p.idx;
+    var l=p.lien, var key=p.pseudo+"\u0001"+p.cle;
     var dette = l.statut ? '<span class="tag-dette '+escA(l.statut)+'">'+escH(STATUTS[l.statut]||l.statut)+'</span>' : '';
     var ac = BHL.S.admin ? '<div class="actes"><button class="tdlb-ic" data-redit="'+escA(key)+'" title="'+BHL.T.modifier+'"><i class="fi fi-tr-pencil"></i></button>'
       + '<button class="tdlb-ic" data-rrm="'+escA(key)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>' : "";
@@ -187,7 +202,7 @@
   }
   function resForm(ref){
     var neuf=(ref==="new"), p=null;
-    if(!neuf){ var pr=ref.split("\u0001"); tousReseau().forEach(function(x){ if(x.pseudo===pr[0]&&String(x.idx)===pr[1]) p=x; }); }
+    if(!neuf){ var pr=ref.split("\u0001"); tousReseau().forEach(function(x){ if(x.pseudo===pr[0]&&x.cle===pr[1]) p=x; }); }
     var l=p?p.lien:{};
     return '<div class="tdlb-bra-form">'
       + (neuf?ch("Contact",'<select class="tdlb-in" data-f="pseudo">'+optMembres("")+'</select>'):'<div><label>Contact</label><div class="fixe">'+escH(p.pseudo)+'</div></div>')
@@ -253,17 +268,27 @@
     host.querySelectorAll("[data-filtre]").forEach(function(b){ b.addEventListener("click", function(){ filtre=b.dataset.filtre; BHL.rendreOnglet(); }); });
     host.querySelectorAll("[data-redit]").forEach(function(b){ b.addEventListener("click", function(){ fermer(); resEdit=b.dataset.redit; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
     host.querySelectorAll("[data-rrm]").forEach(function(b){ b.addEventListener("click", function(){
-      var pr=b.dataset.rrm.split("\u0001"), pseudo=pr[0], idx=+pr[1];
+      var pr=b.dataset.rrm.split("\u0001"), pseudo=pr[0], cle=pr[1];
+      if(!exigeCles(pseudo)) return;
       if(!window.confirm("Retirer ce contact du réseau ?")) return;
-      var arr=vt(BHL.rec.membres[pseudo].liens); arr.splice(idx,1); ecrireLiens(pseudo, arr);
+      retirerLien(pseudo, cle);
     }); });
     host.querySelectorAll("[data-rsave]").forEach(function(b){ b.addEventListener("click", function(){
       var v=lireForm(host), neuf=b.dataset.rsave==="new";
-      if(neuf){ var pseudo=(host.querySelector('[data-f="pseudo"]')||{}).value||""; if(!pseudo||!v.role) return;
-        var arr=vt(BHL.rec.membres[pseudo]&&BHL.rec.membres[pseudo].liens);
-        arr.push({ type:"reseau_main", categorie:v.categorie, role:v.role, statut:v.statut||null }); fermer(); ecrireLiens(pseudo, arr);
-      } else { var pr=b.dataset.rsave.split("\u0001"), ps=pr[0], idx=+pr[1]; var a=vt(BHL.rec.membres[ps].liens);
-        if(a[idx]) a[idx]=Object.assign({},a[idx],{ categorie:v.categorie, role:v.role, statut:v.statut||null }); fermer(); ecrireLiens(ps, a); }
+      if(neuf){
+        var pseudo=(host.querySelector('[data-f="pseudo"]')||{}).value||"";
+        if(!pseudo||!v.role) return;
+        if(!exigeCles(pseudo)) return;
+        fermer();
+        majLien(pseudo, window.TDLBase.nouvelleCle(),
+          { type:"reseau_main", categorie:v.categorie, role:v.role, statut:v.statut||null });
+      } else {
+        var pr=b.dataset.rsave.split("\u0001"), ps=pr[0], cle=pr[1];
+        if(!exigeCles(ps)) return;
+        var anc=(BHL.rec.membres[ps].liens||{})[cle]||{};
+        fermer();
+        majLien(ps, cle, Object.assign({}, anc, { categorie:v.categorie, role:v.role, statut:v.statut||null }));
+      }
       BHL.renderActionbar();
     }); });
     // annulation générique
