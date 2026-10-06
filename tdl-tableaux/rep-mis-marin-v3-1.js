@@ -7,6 +7,12 @@
    + recrédit ; négociation → ajustement du delta ; validation staff → prime
    en parts égales aux participants + 50 $ bonus chef (fonds maison).
 
+   [MAJ v4] CORRECTIF DE DÉBIT. crediterDollars plafonnait à zéro et servait
+     aussi à prélever (accepterNego, quand la prime négociée monte) : sur un
+     solde insuffisant, le payeur tombait à 0 et la différence était CRÉÉE.
+     Les prélèvements passent désormais par EcoCore.debiterDollars, qui lève
+     FONDS, et la prime affichée revient en arrière si le débit est refusé.
+
    [MAJ v3] VERROUS SUR LES VERSEMENTS — le correctif le plus important ici.
      valider(), refuserStaff() et retirer() se gardaient d'un double paiement
      en lisant un booléen (primeVersee, rembourse) dans l'instantané en
@@ -94,10 +100,20 @@ function nbJours(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;retu
 function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j");}
 function money(n){return (+n||0)+" $";}
 
-/* crédite/débite un membre via transaction atomique (chemin racine) */
+/* [MAJ v4] CORRECTIF DE DÉBIT. Cette fonction faisait  Math.max(0, cur+delta)
+   et servait aussi à DÉBITER, avec un delta négatif — c'est ce que fait
+   accepterNego quand la prime négociée monte. Sur un solde insuffisant, le
+   plafonnement à zéro ne lève rien : le payeur tombe à 0, et la différence est
+   créée. Le pré-test  solde(m.payeur) < delta  ne protégeait pas, puisqu'il lit
+   l'instantané en mémoire.
+   Les deux sens passent désormais par eco-core : crediterDollars pour un
+   crédit, debiterDollars pour un prélèvement — ce dernier lève FONDS. Tous les
+   appels de ce fichier passent par ici, le correctif les couvre tous. */
 function crediterDollars(pseudo, delta){
-  return window.EcoCore.firebaseTransaction("membres/"+encodeURIComponent(pseudo)+"/dollars",
-    function(cur){return Math.max(0,(cur||0)+delta);});
+  delta=Math.round(+delta||0);
+  if(!delta)return Promise.resolve(0);
+  return (delta>0) ? window.EcoCore.crediterDollars(pseudo, delta)
+                   : window.EcoCore.debiterDollars(pseudo, -delta);
 }
 
 /* [MAJ v3] Verrou de mouvement d'argent. La transaction fait passer le drapeau
@@ -520,15 +536,23 @@ function accepterNego(m){
   var montant=m.nego.montant, delta=montant-m.prime;
   if(delta>0&&solde(m.payeur)<delta){toast("Fonds insuffisants pour couvrir la hausse de prime ("+money(delta)+" manquants).");return;}
   _negoEnVol[m.id]=true;
+  var ancienne=m.prime;
   m.nego=null; m.prime=montant;
   patch(m,{prime:montant,nego:null});
-  var op=(delta!==0)?crediterDollars(m.payeur,-delta):Promise.resolve(); /* delta>0 → débit ; delta<0 → recrédit */
+  /* delta>0 → débit STRICT du payeur ; delta<0 → recrédit */
+  var op=(delta!==0)?crediterDollars(m.payeur,-delta):Promise.resolve();
   op.then(function(){
     try{ if(window.EcoNotif && m.chef) EcoNotif.a(m.chef,113,{titre:m.titre,ok:true},"negor"+m.id+"_"+montant); }catch(e){}
     toast("Prime ajustée à "+money(montant)+".");
     return rafraichir();
-  }).catch(function(){toast("Ajustement de la prime échoué — la proposition a été annulée, le chef peut la refaire.");renderAll();})
-    .then(function(){ delete _negoEnVol[m.id]; });
+  }).catch(function(e){
+    /* le débit a été refusé : la prime affichée doit revenir en arrière, sinon
+       le tableau promettrait un montant qui n'a pas été retenu. */
+    m.prime=ancienne; patch(m,{prime:ancienne});
+    if(e&&e.message==="FONDS")toast("Fonds insuffisants au moment du prélèvement — prime inchangée, la proposition est annulée.");
+    else toast("Ajustement de la prime échoué — prime inchangée, la proposition est annulée.");
+    renderAll();
+  }).then(function(){ delete _negoEnVol[m.id]; });
 }
 
 function retirer(m){
