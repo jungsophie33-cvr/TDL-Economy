@@ -27,7 +27,7 @@
    DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate)
 
    CARTE DES BLOCS : CONFIG · ACTIVITÉ · CLÉS · ÉCRITURES · VEILLE · AVATARS
-                     · MIGRATION · FABRIQUE · EXPORT */
+                     · LIENS · MIGRATION · FABRIQUE · EXPORT */
 
 (function () {
 "use strict";
@@ -458,6 +458,92 @@ function membres(cb, forcer) {
 /* À appeler après un mouvement d'argent : le solde affiché doit suivre. */
 function rafraichirMembres() { return membres(null, true); }
 
+/* ===================== LIENS DE RÉSEAU ===================== */
+/* membres/{pseudo}/liens — réseau d'influence de la Main et des Faiseuses.
+   C'était le dernier tableau du forum adressé par INDICE, et le plus exposé :
+   CINQ fichiers l'écrivaient en bloc (les deux onglets du bottin hors-la-loi,
+   quai-staff, rep-det-main, rep-tac-fais) et deux le réduisaient par
+   splice(indice). Retirer un lien décalait tous les suivants : le retrait
+   d'après visait alors le mauvais contact.
+   Chaque lien porte désormais sa clé. « membres » n'est pas un nœud
+   sentinellé — il n'y a donc aucune révision à bumper ici, seulement des
+   écritures ciblées qui n'écrasent plus les liens voisins. */
+
+var NODE_LIENS = "membres";
+
+/* Lecture bi-schéma : rend [{k, …lien}] trié par clé. Un lien v1 reçoit une
+   clé de substitution « x<indice> », qui sert à l'affichage mais JAMAIS à une
+   écriture — les appelants exigent la conversion avant de modifier. */
+function liens(membre) {
+  var v = membre && membre.liens, out = [];
+  if (v == null) return out;
+  function pose(l, k) {
+    if (!l || typeof l !== "object") return;
+    var o = {}, c;
+    for (c in l) { if (l.hasOwnProperty(c)) o[c] = l[c]; }
+    o.k = k;
+    out.push(o);
+  }
+  if (Array.isArray(v)) v.forEach(function (l, i) { pose(l, "x" + i); });
+  else if (typeof v === "object") Object.keys(v).forEach(function (k) { pose(v[k], k); });
+  out.sort(function (a, b) { return String(a.k).localeCompare(String(b.k)); });
+  return out;
+}
+/* true tant que le membre porte ses liens en tableau : aucune écriture ciblée
+   n'est permise dans cet état. */
+function liensAConvertir(membre) { return Array.isArray(membre && membre.liens); }
+
+/* Chemins BRUTS : firebaseUpdate est un PATCH racine, jamais
+   encodeURIComponent, même pour un pseudo qui contient un espace. */
+function cheminLien(pseudo, cle, champ) {
+  return NODE_LIENS + "/" + pseudo + "/liens/" + cle + (champ ? "/" + champ : "");
+}
+function majLiens(up, libelle) {
+  _enVol++;
+  var p;
+  try { p = window.EcoCore.firebaseUpdate(up); } catch (e) { p = Promise.reject(e); }
+  return Promise.resolve(p).then(function () { _enVol--; return true; }, function (e) {
+    _enVol--;
+    journal("écriture refusée —", libelle, e);
+    _enAttente.push({ node: NODE_LIENS, id: "", updates: up, libelle: libelle });
+    notifier();
+    return false;
+  });
+}
+function ecrireLien(pseudo, cle, lien) {
+  var up = {}; up[cheminLien(pseudo, cle)] = lien;
+  return majLiens(up, "lien de " + pseudo);
+}
+function ecrireChampLien(pseudo, cle, champ, valeur) {
+  var up = {}; up[cheminLien(pseudo, cle, champ)] = valeur;
+  return majLiens(up, "lien de " + pseudo);
+}
+function supprimerLien(pseudo, cle) {
+  var up = {}; up[cheminLien(pseudo, cle)] = null;
+  return majLiens(up, "retrait d'un lien de " + pseudo);
+}
+
+/* Conversion tableau → nœud à clés, tous membres confondus, en UN SEUL PATCH :
+   Firebase l'applique en tout ou rien. Idempotente — un membre déjà converti,
+   ou sans lien, est ignoré. */
+function migrerLiens(membres) {
+  var up = {}, n = 0, m = membres || {};
+  Object.keys(m).forEach(function (pseudo) {
+    var v = m[pseudo] && m[pseudo].liens;
+    if (!Array.isArray(v)) return;
+    var dst = {}, vides = true;
+    v.forEach(function (l) {
+      if (!l || typeof l !== "object") return;
+      dst[nouvelleCle()] = l; vides = false;
+    });
+    up[NODE_LIENS + "/" + pseudo + "/liens"] = vides ? null : dst;
+    n++;
+  });
+  if (!n) return Promise.resolve({ faits: 0 });
+  return Promise.resolve(window.EcoCore.firebaseUpdate(up))
+    .then(function () { return { faits: n }; });
+}
+
 /* ===================== MIGRATION ===================== */
 /* Convertit les listes d'un tableau — tableaux JS écrits en bloc — vers des
    nœuds à clés, où chaque entrée s'écrit et se supprime seule. Le descripteur
@@ -584,6 +670,10 @@ window.TDLBase = {
   avatars: avatars, avatar: avatar,
   /* membres */
   membres: membres, rafraichirMembres: rafraichirMembres,
+  /* liens de réseau (membres/{pseudo}/liens) */
+  liens: liens, liensAConvertir: liensAConvertir,
+  ecrireLien: ecrireLien, ecrireChampLien: ecrireChampLien,
+  supprimerLien: supprimerLien, migrerLiens: migrerLiens,
   /* migration */
   migrer: migrer, aMigrer: aMigrer,
   /* fabrique (nœuds à deux niveaux) */
