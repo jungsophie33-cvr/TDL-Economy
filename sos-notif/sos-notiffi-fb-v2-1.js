@@ -54,6 +54,7 @@ var CFG = {
   NODE_ETAT:  "notifs_etat",
   POLL_GLOB:  60000,            /* relecture du canal global */
   POLL_DEG:   45000,            /* mode dégradé : relecture ciblée */
+  DELAI_SDK:  10000,            /* [MAJ] au-delà, le flux SDK est réputé mort */
   VIE:        120000,           /* contrôle de vitalité du flux */
   PLAFOND:    30,               /* notifs personnelles conservées */
   PURGE_J:    30,
@@ -73,7 +74,9 @@ var S = {
   pret:   false,
   flux:   null,
   sdk:    false,
-  vu:     0                     /* dernier signe de vie du flux */
+  vu:     0,                     /* dernier signe de vie du flux */
+  connecte: false,              /* .info/connected du SDK */
+  refs:   null                 /* écoutes à démonter en cas de repli */
 };
 
 /* ===================== UTILS ===================== */
@@ -369,6 +372,21 @@ function fluxSDK() {
 
     var rg = db.ref(CFG.NODE_GLOB).orderByKey().limitToLast(CFG.GLOB_MAX);
     rg.on("child_added",   function (s) { arrive(s.key, s.val(), "g"); });
+
+    /* [MAJ] on() ne lève rien si la websocket ne monte jamais : sans ce
+       contrôle, un DNS qui ne résout pas les shards Firebase laissait les
+       notifications muettes, sans repli et sans message. .info/connected est
+       une valeur locale du SDK, lisible même déconnecté. */
+    S.refs = [rp, rg];
+    db.ref(".info/connected").on("value", function (s) { S.connecte = !!s.val(); });
+    setTimeout(function () {
+      if (S.connecte) return;
+      try { S.refs.forEach(function (r) { r.off(); }); } catch (e) {}
+      S.refs = null; S.sdk = false;
+      if (window.console) console.warn("[NotiffiFB] flux temps réel injoignable — repli sur l'interrogation.");
+      if (flux()) { globales(true); setInterval(function () { globales(false); }, CFG.POLL_GLOB); }
+      else { lireCible(u, true); degrade(u); }
+    }, CFG.DELAI_SDK);
   } catch (e) { return false; }
   S.sdk = true;
   return true;
