@@ -11,8 +11,17 @@
  *
  * À la validation (ou « Marquer traitée ») : mouvements d'argent (cagnotte/prêt),
  *   inscription des dettes (membres/<pseudo>/dettes) et des liens réseau d'influence
- *   (membres/<pseudo>/liens, en TABLEAU comme le bottin ; la « situation vis-à-vis de
- *   la Main » va dans le champ role, lu par le span concours du bottin).
+ *   (membres/<pseudo>/liens, en NŒUD À CLÉS depuis la v7 ; la « situation vis-à-vis
+ *   de la Main » va dans le champ role, lu par le span concours du bottin).
+ *
+ * [MAJ v7] LES LIENS DE RÉSEAU PASSENT AUX CLÉS.
+ *   ajouterLien lisait le tableau du membre, y poussait le nouveau lien et
+ *   réécrivait le tout : un lien ajouté entre-temps par un onglet du bottin
+ *   disparaissait. Et « Régler » faisait un splice(indice) — qui décalait tous
+ *   les liens suivants, de sorte que le règlement d'après visait le mauvais
+ *   contact, y compris à travers les deux réseaux (Main et Faiseuses partagent
+ *   la même branche). Les deux passent désormais par l'API du socle, qui
+ *   n'écrit qu'un chemin : membres/{pseudo}/liens/{clé}.
  *
  * [MAJ v5] CRÉATIONS SENTINELLÉES.
  *   creerDossierMain et creerTache passaient par firebasePush : la clé était
@@ -33,11 +42,12 @@
  *   maintenant boutique_demandes (~11 ko), membres (~3 ko, partagé par le
  *   socle) et, une seule fois par session, le catalogue boutique/barge
  *   (~12 ko) qui ne change qu'à l'édition d'un item.
- *   ajouterLien et regler lisent la seule branche liens du membre concerné.
+ *   ajouterLien et regler visent une clé, sans lire ni réécrire la branche.
  *
  * DÉPEND DE : window.EcoCore (firebaseGet, firebaseUpdate, firebaseTransaction,
- *   firebasePush, writeField) et window.TDLBase (nouvelleCle, ecrireEntree,
- *   membres). Ordre de chargement : eco-core → tdl-base → ce fichier.
+ *   firebasePush) et window.TDLBase (nouvelleCle, ecrireEntree, table, membres,
+ *   liens, ecrireLien, supprimerLien).
+ *   Ordre de chargement : eco-core → tdl-base → ce fichier.
  */
 (function () {
   "use strict";
@@ -51,7 +61,6 @@
   function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
   function money(n){ return (typeof n==="number"?n.toLocaleString("fr-FR").replace(/\u202f/g," "):n)+" "+CFG.MONNAIE; }
   function dateFr(iso){ if(!iso) return "—"; var d=new Date(iso); return isNaN(d.getTime())?String(iso):d.toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}); }
-  function vt(v){ return Array.isArray(v)?v:(v?Object.keys(v).map(function(k){return v[k];}):[]); }
 
   /* [MAJ v5] TDLBase.ecrireEntree rend false au lieu de lever : les appelants
      ci-dessous comptent sur une exception pour afficher leur alerte. */
@@ -151,7 +160,7 @@
   function reglerBtn(x){
     if (x.source==="pret") return '<button class="qsd-regler" data-source="pret" data-pseudo="'+esc(x.pseudo)+'" data-key="'+esc(x.key)+'" data-montant="'+(x.montant|0)+'" data-cag="'+esc(x.cagnotte||"Providence")+'">Procéder au remboursement</button>';
     return '<button class="qsd-regler" data-source="'+x.source+'" data-pseudo="'+esc(x.pseudo)+'"'
-      + (x.source==="dette"?' data-key="'+esc(x.key)+'"':' data-idx="'+x.idx+'"')+'>Régler</button>';
+      + (x.source==="dette"?' data-key="'+esc(x.key)+'"':' data-cle="'+esc(x.cle)+'"')+'>Régler</button>';
   }
   function detteRow(x){
     var puce, label;
@@ -195,18 +204,15 @@
     Array.prototype.forEach.call(root.querySelectorAll(".qsd-tab"), function(b){ b.onclick = function(){ st.filtre = b.getAttribute("data-f"); render(); }; });
     Array.prototype.forEach.call(root.querySelectorAll(".qsd-accbar"), function(b){ b.onclick = function(){ var acc=b.parentElement, bd=b.nextElementSibling; var open=acc.classList.toggle("qsd-open"); bd.style.display = open?"":"none"; }; });
     Array.prototype.forEach.call(root.querySelectorAll("[data-act]"), function(b){ b.onclick = function(){ action(b.getAttribute("data-id"), b.getAttribute("data-act")); }; });
-    Array.prototype.forEach.call(root.querySelectorAll(".qsd-regler"), function(b){ b.onclick = function(){ regler(b.getAttribute("data-source"), b.getAttribute("data-pseudo"), b.getAttribute("data-key"), b.getAttribute("data-idx"), b.getAttribute("data-montant"), b.getAttribute("data-cag")); }; });
+    Array.prototype.forEach.call(root.querySelectorAll(".qsd-regler"), function(b){ b.onclick = function(){ regler(b.getAttribute("data-source"), b.getAttribute("data-pseudo"), b.getAttribute("data-key"), b.getAttribute("data-cle"), b.getAttribute("data-montant"), b.getAttribute("data-cag")); }; });
   }
 
-  /* [MAJ v5] lecture de la SEULE branche liens du membre, au lieu des 126 ko
-     racine. L'adressage par indice reste : membres/{pseudo}/liens est encore un
-     tableau partagé avec rep-det-main et les onglets du bottin, et sa conversion
-     en nœud à clés fait l'objet d'un chantier à part. */
-  function cheminLiens(pseudo){ return CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/liens"; }
+  /* [MAJ v7] un lien s'écrit SEUL, sous sa propre clé : plus de lecture-puis-
+     réécriture du tableau du membre, donc plus d'écrasement d'un lien ajouté
+     entre-temps par un onglet du bottin. */
   async function ajouterLien(pseudo, lien){
-    var arr = vt(await E().firebaseGet(cheminLiens(pseudo)));
-    arr.push(lien);
-    await E().writeField(cheminLiens(pseudo), arr);
+    var ok = await B().ecrireLien(pseudo, B().nouvelleCle(), lien);
+    if (!ok) throw new Error("écriture du lien refusée : "+pseudo);
   }
 
   /* [MAJ v5] clé générée en local + sentinelle bumpée dans le même PATCH. */
@@ -416,7 +422,7 @@
     await charger(argentBouge); render();
   }
 
-  async function regler(source, pseudo, key, idx, montant, cag){
+  async function regler(source, pseudo, key, cle, montant, cag){
     if (source==="pret") {
       montant = parseInt(montant,10)||0;
       if (!confirm("Procéder au remboursement de "+money(montant)+" par "+pseudo+" ? (débité de son solde, recrédité à la cagnotte « "+cag+" »)")) return;
@@ -431,15 +437,16 @@
     if (!confirm("Régler et retirer cette entrée de "+pseudo+" ? (à faire quand elle a été honorée en RP)")) return;
     try {
       if (source==="lien") {
-        var arr = vt(await E().firebaseGet(cheminLiens(pseudo)));
-        arr.splice(parseInt(idx,10), 1);
-        await E().writeField(cheminLiens(pseudo), arr.length?arr:null);
+        /* [MAJ v7] le retrait vise une CLÉ : il ne peut plus décaler les liens
+           suivants ni emporter un contact de l'autre réseau. */
+        var ok = await B().supprimerLien(pseudo, cle);
+        if (!ok) throw new Error("retrait du lien refusé");
       } else {
         var o = {}; o[CFG.NODE_MEMBRES+"/"+pseudo+"/dettes/"+key] = null;   /* chemin brut : PATCH racine */
         await E().firebaseUpdate(o);
       }
     } catch(e){ if (window.console) console.error("[quais-staff] régler", e); alert("Impossible de régler l'entrée."); return; }
-    dettesList = dettesList.filter(function(x){ return !(x.pseudo===pseudo && ((source==="dette"&&x.key===key) || (source==="lien"&&String(x.idx)===String(idx)))); });
+    dettesList = dettesList.filter(function(x){ return !(x.pseudo===pseudo && ((source==="dette"&&x.key===key) || (source==="lien"&&x.cle===cle))); });
     render();
     charger(true).then(render);
   }
@@ -464,7 +471,8 @@
         var m = membres[p] || {};
         var dts = m.dettes;
         if (dts && typeof dts==="object") Object.keys(dts).forEach(function(key){ var e = dts[key]; if (e && typeof e==="object") dettesList.push({ pseudo:p, source:"dette", key:key, type:e.type, motif:e.motif, creancier:e.creancier, date:e.date }); });
-        vt(m.liens).forEach(function(l, idx){ if (l && l.type==="reseau_main" && l.statut) dettesList.push({ pseudo:p, source:"lien", idx:idx, type:l.statut, categorie:l.categorie, motif:l.role, date:l.date }); });
+        /* [MAJ v7] lecture bi-schéma par le socle : chaque lien porte sa clé */
+        B().liens(m).forEach(function(l){ if (l.type==="reseau_main" && l.statut) dettesList.push({ pseudo:p, source:"lien", cle:l.k, type:l.statut, categorie:l.categorie, motif:l.role, date:l.date }); });
         var prets = m.prets;
         if (prets && typeof prets==="object") Object.keys(prets).forEach(function(key){ var e = prets[key]; if (e && typeof e==="object") dettesList.push({ pseudo:p, source:"pret", key:key, montant:e.montant, cagnotte:e.cagnotte, motif:e.nom, date:e.date }); });
       });
