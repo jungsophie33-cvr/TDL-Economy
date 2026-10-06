@@ -23,7 +23,7 @@
   function toutPret() {
     return !!(
       window.EcoCore &&
-      window.EcoCore.safeReadBin &&
+      window.EcoCore.firebaseGet &&
       window.TDLJauges &&
       window.TDLJauges.CFG
     );
@@ -66,15 +66,12 @@
 
   // ---------- FIREBASE (lecture publique) ----------
 
-  function chargerDonnees(container) {
-    window.EcoCore.safeReadBin()
-      .then(function (rec) {
-        const data = (rec && rec.jauges) ? rec.jauges : {};
-        mettreAJourAffichage(data);
-      })
-      .catch(function (e) {
-        console.error(MODULE, "Lecture Firebase :", e);
-      });
+    function chargerDonnees(container) {
+    // [MAJ] firebaseGet("jauges") : 230 octets. safeReadBin() en tirait 126 000
+    // toutes les 60 secondes pour en utiliser 0,2 %.
+    window.EcoCore.firebaseGet("jauges")
+      .then(function (data) { mettreAJourAffichage(data || {}); })
+      .catch(function (e) { console.error(MODULE, "Lecture Firebase :", e); });
   }
 
   // ---------- RENDER (structure statique posée une seule fois) ----------
