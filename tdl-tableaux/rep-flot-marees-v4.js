@@ -3,6 +3,21 @@
    (rep-flot-marees.js) — à charger APRÈS rep-flot-core.js ET
    rep-flot-postes.js, dont il utilise le moteur.
 
+   [MAJ v2] POSTES ET ACCROCHES AUX CLÉS. Les deux listes étaient réécrites en
+     bloc : prendre un poste écrasait l'inscription d'un voisin prise dans la
+     même fenêtre de veille, dé compris ; ouvrir une accroche écrasait celle
+     qu'un autre venait d'ouvrir. Chaque poste et chaque accroche portait déjà
+     un k — il devient la clé Firebase, et chacun s'écrit seul. Un champ ordre
+     fige l'affichage, que l'indice du tableau donnait jusqu'ici par accident.
+
+   [MAJ v2] LA CLÔTURE n'écrit plus le tableau des postes. Les postes muets
+     sont notés un par un, puis payerMaree pose un verrou PAR POSTE : deux
+     clôtures simultanées ne paient plus deux fois, et la paie reste reprenable.
+
+   [MAJ v2] L'OUVERTURE passe par F.creerEntree : clé locale, sentinelle dans
+     le même PATCH, naissance directe en schéma 2. La marée apparaît aux
+     autres onglets sans rechargement.
+
    Une marée est une sortie de travail de la Flottille, ouverte par un membre
    qui a un navire, ou par le staff au nom d'un navire canon ou du hangar.
    Elle n'est pas achetée en boutique : personne ne la paie, le hangar règle
@@ -11,20 +26,17 @@
    LES ACCROCHES — deux ou trois faits attachés à la MARÉE, pas à un poste,
    chacun avec sa condition. Invisibles sauf du créateur et du staff. Quand un
    joueur remplit la condition DANS LE SUJET, l'un des deux ouvre l'accroche :
-   elle devient publique, au nom de celui qui l'a obtenue. On n'atteint rien
-   sans l'écrire là où les autres le lisent.
+   elle devient publique, au nom de celui qui l'a obtenue.
 
-   RÈGLE D'ADMISSION — au moins un poste qui ne soit pas « à bord ». Si tous
-   les présents sont payés par la Flottille, ce n'est pas une marée, c'est un
-   RP entre capitaines. Deux postes minimum, cinq maximum.
+   RÈGLE D'ADMISSION — au moins un poste qui ne soit pas « à bord ». Deux
+   postes minimum, cinq maximum.
 
    LE CAPITAINE — celui qui monte la sortie, s'il est de la Flottille, reçoit
    d'office un poste « à bord » en tête : pas de scellé ni de rapport, mais son
    dé, sa part de bord et la prime de chef. Un créateur hors Flottille (staff
    au nom du hangar) reste à terre et touche la part de créateur.
 
-   CYCLE   en_attente (postes à pourvoir, le créateur fait partir quand il
-           veut) → en_cours → en_validation → clos.
+   CYCLE   en_attente → en_cours → en_validation → clos.
    ARGENT  fonds du hangar : à bord 100 $, les autres postes 75 $, créateur
            100 $, modulés par la note du créateur. Aucune prime retenue, donc
            aucun remboursement : annuler une marée ne rend rien à personne.
@@ -55,7 +67,23 @@ var T={
   OUVERT:"Marée affichée. Les postes se remplissent un par un."
 };
 
+/* ---- PLAN DE MIGRATION v1 → v2 ----
+   postes : fourni par le moteur. accroches : même principe, le k existait déjà. */
+var PLAN = {
+  postes: P.PLAN.postes,
+  accroches: {
+    cle: function(a,i){ return (a&&a.k)||("a"+i); },
+    conv:function(a,i){
+      if(!a||!a.fait)return null;
+      return {k:(a.k||("a"+i)), ordre:i, fait:a.fait, condition:a.condition||"",
+              ouverte:!!a.ouverte, par:a.par||"", date:a.date||""};
+    }
+  }
+};
+
 /* ===================== NORMALISATION ===================== */
+/* [MAJ v2] postes et accroches restent BRUTS : les lecteurs bi-schéma
+   (P.postes, accroches) les interprètent, qu'ils soient tableau ou nœud. */
 function normaliser(o){
   o.titre=o.titre||"Marée";
   o.createur=o.createur||null;
@@ -63,12 +91,6 @@ function normaliser(o){
   o.sortie=SORTIES[o.sortie]?o.sortie:"extraction";
   o.lieu=o.lieu||""; o.quand=o.quand||"";
   o.contexte=o.contexte||"";
-  o.postes=vt(o.postes).map(P.normPoste);
-  o.accroches=vt(o.accroches).map(function(a,i){
-    a=a||{}; a.k=a.k||("a"+i); a.fait=a.fait||""; a.condition=a.condition||"";
-    a.ouverte=!!a.ouverte; a.par=a.par||""; a.date=a.date||"";
-    return a;
-  });
   o.statut=STATUTS[o.statut]?o.statut:"en_attente";
   o.sujet=o.sujet||"";
   o.resume=o.resume||""; o.consequences=o.consequences||"";
@@ -78,21 +100,49 @@ function normaliser(o){
   return o;
 }
 
+/* lecteur bi-schéma des accroches, trié comme les postes */
+function accroches(m){
+  var v=m&&m.accroches, out=[];
+  if(v==null)return out;
+  function norm(a,k,i){
+    a=a||{}; a.k=k||a.k||("a"+i);
+    if(a.ordre==null)a.ordre=(i==null?999:i);
+    a.fait=a.fait||""; a.condition=a.condition||"";
+    a.ouverte=!!a.ouverte; a.par=a.par||""; a.date=a.date||"";
+    return a;
+  }
+  if(Array.isArray(v)) v.forEach(function(a,i){ if(a)out.push(norm(a,(a&&a.k)||("a"+i),i)); });
+  else if(typeof v==="object") Object.keys(v).forEach(function(k){ var a=v[k]; if(a)out.push(norm(a,k,null)); });
+  out.sort(function(a,b){
+    var oa=(a.ordre==null)?999:a.ordre, ob=(b.ordre==null)?999:b.ordre;
+    if(oa!==ob)return oa-ob;
+    return String(a.k).localeCompare(String(b.k));
+  });
+  return out;
+}
+function accrocheDe(m,k){
+  var l=accroches(m);
+  for(var i=0;i<l.length;i++)if(l[i].k===k)return l[i];
+  return null;
+}
+
 /* ===================== RANGÉE ===================== */
-function pourvus(m){var n=0;vt(m.postes).forEach(function(p){if(p.etat==="pris"||p.etat==="clos")n++;});return n;}
+function pourvus(m){var n=0;P.postes(m).forEach(function(p){if(p.etat==="pris"||p.etat==="clos")n++;});return n;}
 /* ordre horaire : la marée se lit comme une nuit, pas comme quatre fils.
    Les postes sans heure passent en dernier ; écrire HH:MM les range seuls. */
 function parHeure(m){
-  return vt(m.postes).map(function(p,i){return {p:p,i:i};}).sort(function(a,b){
-    var x=a.p.heure||"~", y=b.p.heure||"~";
-    return x===y ? a.i-b.i : (x<y?-1:1);
+  return P.postes(m).slice().sort(function(a,b){
+    var x=a.heure||"~", y=b.heure||"~";
+    if(x!==y)return x<y?-1:1;
+    var oa=(a.ordre==null)?999:a.ordre, ob=(b.ordre==null)?999:b.ordre;
+    return oa-ob;
   });
 }
 function sub(m){
   return { sub:SORTIES[m.sortie].label, qui:m.createur, quand:"ouverte "+ilya(m.cree) };
 }
 function tags(m){
-  var libres=vt(m.postes).filter(function(p){return p.etat==="libre";}).length;
+  var libres=P.postes(m).filter(function(p){return p.etat==="libre";}).length;
   return [ m.navire, libres?(libres+" poste"+(libres>1?"s":"")+" libre"+(libres>1?"s":"")):"" ];
 }
 
@@ -107,9 +157,9 @@ function panel(m){
       +'<div class="tdlm-reqrow"><span>Les postes non notés seront réglés comme non transmis.</span></div></div>';
   }
 
-  var cartes=parHeure(m).map(function(x){return P.carte(m,x.p,x.i,vu);}).join("")
+  var cartes=parHeure(m).map(function(p){return P.carte(m,p,vu);}).join("")
     || '<div class="tdlm-empty">Aucun poste.</div>';
-  var accroches=blocAccroches(m,vu);
+  var blocs=blocAccroches(m,vu);
 
   var bilan="";
   if(m.resume||m.consequences||m.statut==="en_validation"||m.statut==="close"){
@@ -127,12 +177,12 @@ function panel(m){
         +'<div class="tdlm-m"><span class="tdlm-k">Sortie</span><span class="tdlm-v">'+esc(SORTIES[m.sortie].label)+'</span></div>'
         +'<div class="tdlm-m"><span class="tdlm-k">Où</span><span class="tdlm-v">'+esc(m.lieu||"—")+'</span></div>'
         +'<div class="tdlm-m"><span class="tdlm-k">Quand</span><span class="tdlm-v">'+esc(m.quand||"—")+'</span></div>'
-        +'<div class="tdlm-m"><span class="tdlm-k">Postes</span><span class="tdlm-v">'+pourvus(m)+' / '+vt(m.postes).length+'</span></div>'
+        +'<div class="tdlm-m"><span class="tdlm-k">Postes</span><span class="tdlm-v">'+pourvus(m)+' / '+P.postes(m).length+'</span></div>'
         +sujetLine
       +'</div>'+banner+'</div>'
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Le contexte</p><div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div>'
       +'<div class="tdlm-prose tdlm-todo">'+esc(SORTIES[m.sortie].desc)+'</div></div>'
-      +accroches
+      +blocs
       +'<div class="tdlm-sec"><p class="tdlm-hsec">Les postes</p></div>'
       +cartes+bilan+drawer(m)
     +'</div>'
@@ -141,13 +191,13 @@ function panel(m){
 
 /* ---- accroches ---- */
 function blocAccroches(m,vu){
-  var acc=vt(m.accroches);
+  var acc=accroches(m);
   if(!acc.length)return "";
   var maitre=(vu.createur||vu.staff);
   var ouvertes=acc.filter(function(a){return a.ouverte;});
   if(!maitre&&!ouvertes.length)return "";
 
-  var corps=acc.map(function(a,i){
+  var corps=acc.map(function(a){
     if(a.ouverte){
       return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
         +'<span class="tdlm-hsec" style="margin:0">Découvert</span>'
@@ -158,7 +208,7 @@ function blocAccroches(m,vu){
     if(!maitre)return "";
     return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
       +'<span class="tdlm-hsec" style="margin:0">Fermée</span>'
-      +'<button class="tdlm-abtn" data-acc="'+i+'">Ouvrir à quelqu\u2019un</button></div>'
+      +'<button class="tdlm-abtn" data-acc="'+escAttr(a.k)+'">Ouvrir à quelqu\u2019un</button></div>'
       +'<div class="tdlm-prose">'+esc(a.fait)+'</div>'
       +'<div class="tdlm-prose tdlm-todo"><b>Condition :</b> '+esc(a.condition||"—")+'</div></div>';
   }).join("");
@@ -213,21 +263,21 @@ function drawer(m){
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="sujetok">Enregistrer</button><button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.inline&&S.inline.indexOf("acc:")===0){
-    var ia=+S.inline.split(":")[1], a=vt(m.accroches)[ia];
+    var ka=S.inline.slice(4), a=accrocheDe(m,ka);
     if(a){
-      var tenants=vt(m.postes).filter(function(p){return p.qui&&p.etat!=="abandonne";})
+      var tenants=P.postes(m).filter(function(p){return p.qui&&p.etat!=="abandonne";})
         .map(function(p){return '<option value="'+escAttr(p.qui)+'">'+esc(p.qui)+' \u2014 '+esc(P.POSTES[p.type].label)+'</option>';}).join("");
       return '<div class="tdlm-drawer on"><h4>Ouvrir une accroche</h4>'
         +'<div class="tdlm-prose">'+esc(a.fait)+'</div>'
         +'<div class="tdlm-prose tdlm-todo"><b>Condition :</b> '+esc(a.condition||"—")+'</div>'
         +'<label class="tdlm-fl">Qui l\u2019a obtenue</label><select id="tdlh-accqui">'+tenants+'</select>'
-        +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="accok:'+ia+'">Rendre publique</button>'
+        +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="accok:'+escAttr(a.k)+'">Rendre publique</button>'
         +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
     }
   }
   if(S.inline&&S.inline.indexOf("poste:")===0){
-    var i=+S.inline.split(":")[1], p=vt(m.postes)[i];
-    if(p)return P.tiroirCloture(m,p,i);
+    var kp=S.inline.slice(6), p=P.posteDe(m,kp);
+    if(p)return P.tiroirCloture(m,p);
   }
   return "";
 }
@@ -238,7 +288,7 @@ function act(k,m){
   if(k==="bilan"){S.drawer="bilan";S.inline=null;F.renderStage();return;}
 
   if(k==="partir"){
-    if(!vt(m.postes).some(function(p){return p.etat==="pris";})){toast("Personne à bord ni à terre : attends au moins un poste pourvu.");return;}
+    if(!P.postes(m).some(function(p){return p.etat==="pris";})){toast("Personne à bord ni à terre : attends au moins un poste pourvu.");return;}
     m.statut="en_cours";patch(m,{statut:"en_cours"});
     toast("La marée part. Les postes vacants restent affichés en creux.");F.renderAll();return;
   }
@@ -255,8 +305,8 @@ function act(k,m){
 
 function doo(k,m){
   if(k==="cancel"){S.drawer=null;S.inline=null;F.renderStage();return;}
-  if(k&&k.indexOf("posteok:")===0){P.cloturerPoste(m,+k.split(":")[1]);return;}
-  if(k&&k.indexOf("accok:")===0){ouvrirAccroche(m,+k.split(":")[1]);return;}
+  if(k&&k.indexOf("posteok:")===0){P.cloturerPoste(m,k.slice(8));return;}
+  if(k&&k.indexOf("accok:")===0){ouvrirAccroche(m,k.slice(6));return;}
   if(k==="sujetok"){
     var el=$("#tdlh-sujet"), url=el?String(el.value||"").trim():"";
     m.sujet=url;patch(m,{sujet:url});S.inline=null;toast("Sujet enregistré.");F.renderStage();return;
@@ -269,7 +319,7 @@ function doo(k,m){
     if(k==="bilanok"&&m.statut!=="en_validation"){
       if(!m.resume){toast("Écris au moins un résumé.");return;}
       /* prévenir avant d'envoyer : un poste muet sera réglé comme non transmis */
-      var muets=vt(m.postes).filter(function(p){return p.etat==="pris"&&P.rapporte(p)&&!p.branche;});
+      var muets=P.postes(m).filter(function(p){return p.etat==="pris"&&P.rapporte(p)&&!p.branche;});
       if(muets.length&&!window.confirm(muets.length+" poste(s) n\u2019ont pas encore rendu compte : "
         +muets.map(function(p){return p.qui;}).join(", ")
         +".\nIls seront réglés comme non transmis s\u2019ils ne le font pas avant la clôture.\n\nDemander la clôture quand même ?"))return;
@@ -282,12 +332,18 @@ function doo(k,m){
   }
 }
 
-function ouvrirAccroche(m,i){
-  var acc=vt(m.accroches), a=acc[i]; if(!a)return;
+/* [MAJ v2] une accroche s'ouvre SEULE : accroches/{k}/… */
+function ouvrirAccroche(m,k){
+  if(!F.exigeV2(m))return;
+  var a=accrocheDe(m,k); if(!a)return;
   var sel=$("#tdlh-accqui"), qui=sel?sel.value:"";
   if(!qui){toast("Dis qui l\u2019a obtenue.");return;}
-  a.ouverte=true; a.par=qui; a.date=new Date().toISOString();
-  m.accroches=acc; patch(m,{accroches:acc});
+  var date=new Date().toISOString(), ch={};
+  ch["accroches/"+k+"/ouverte"]=true;
+  ch["accroches/"+k+"/par"]=qui;
+  ch["accroches/"+k+"/date"]=date;
+  patch(m,ch);
+  a.ouverte=true; a.par=qui; a.date=date;
   S.inline=null;
   try{if(window.EcoNotif)EcoNotif.a(qui,100,{nom:m.titre},"acc"+m.id+a.k);}catch(e){}
   toast("Accroche ouverte. Tout le monde la voit maintenant.");
@@ -301,40 +357,46 @@ function brancher(stage){
   stage.querySelectorAll("[data-poste]").forEach(function(el){
     el.onclick=function(){
       var m=F.parId(S.sel); if(!m)return;
-      var b=el.getAttribute("data-poste").split(":"), i=+b[1];
-      if(b[0]==="prendre")P.prendre(m,i);
-      else if(b[0]==="abandon")P.abandonner(m,i);
-      else if(b[0]==="cloturer"){S.inline="poste:"+i;S.drawer=null;F.renderStage();}
+      /* <action>:<cleDuPoste> — aucune clé générée ici ne contient « : » */
+      var raw=el.getAttribute("data-poste"), i=raw.indexOf(":");
+      var act2=raw.slice(0,i), k=raw.slice(i+1);
+      if(act2==="prendre")P.prendre(m,k);
+      else if(act2==="abandon")P.abandonner(m,k);
+      else if(act2==="cloturer"){S.inline="poste:"+k;S.drawer=null;F.renderStage();}
     };
   });
   stage.querySelectorAll("[data-note]").forEach(function(el){
     el.onchange=function(){
       var m=F.parId(S.sel); if(!m||!el.value)return;
-      P.noterPoste(m,+el.getAttribute("data-note"),el.value);
+      P.noterPoste(m,el.getAttribute("data-note"),el.value);
       toast("Poste noté.");F.renderStage();
     };
   });
 }
 
 /* ===================== CLÔTURE ===================== */
+/* [MAJ v2] Les postes muets sont notés UN PAR UN (postes/{k}/note), puis
+   payerMaree pose son verrou par poste. Plus aucune écriture du tableau
+   entier, et aucun verrou au niveau de la marée : la paie reste reprenable. */
 function clore(m){
   if(m.primeVersee){toast("Marée déjà réglée.");return;}
-  var postes=vt(m.postes), aNoter=0;
-  postes.forEach(function(p){
+  if(!F.exigeV2(m))return;
+  var l=P.postes(m), muets=[];
+  l.forEach(function(p){
     if(p.etat!=="pris"||!P.rapporte(p))return;   /* chef, diversion, écueil : part due, pas de note */
-    if(!p.note){p.note="non_transmise";aNoter++;}
+    if(!p.note)muets.push(p);
   });
-  if(!window.confirm("Clore la marée et régler les postes ?"+(aNoter?"\n"+aNoter+" poste(s) sans note seront réglés comme non transmis.":"")))return;
-  m.postes=postes;
+  if(!window.confirm("Clore la marée et régler les postes ?"+(muets.length?"\n"+muets.length+" poste(s) sans note seront réglés comme non transmis.":"")))return;
+  muets.forEach(function(p){ P.noterPoste(m,p.k,"non_transmise"); });
   P.payerMaree(m).then(function(total){
     m.primeVersee=true;m.statut="close";m.demandeValidation=false;
-    patch(m,{primeVersee:true,createurPaye:true,statut:"close",demandeValidation:false,postes:m.postes});
-    postes.forEach(function(p){
+    patch(m,{primeVersee:true,createurPaye:!!m.createurPaye,statut:"close",demandeValidation:false});
+    l.forEach(function(p){
       if(!p.qui||p.etat!=="pris")return;
       try{if(window.EcoNotif)EcoNotif.a(p.qui,100,{nom:m.titre},"vma"+m.id+p.k);}catch(e){}
     });
-    toast("Marée close. "+money(total)+" distribués.");F.renderAll();
-  }).catch(function(){toast("Règlement interrompu \u2014 vérifie avant de recommencer.");});
+    toast("Marée close. "+money(total)+" distribués.");F.rechargerCarnet().then(F.renderAll);
+  }).catch(function(){toast("Règlement interrompu \u2014 les postes déjà réglés le restent, relancez la clôture.");F.renderAll();});
 }
 
 /* ===================== OUVERTURE ===================== */
@@ -414,51 +476,56 @@ function formOuverture(){
     +'</div></div></div>';
 }
 
+/* [MAJ v2] postes et accroches naissent en NŒUDS À CLÉS, avec leur ordre. */
 function creer(){
   var g=function(id){var e=$(id);return e?String(e.value||"").trim():"";};
   var titre=g("#tdlh-ntitre");
   if(!titre){toast("Donne un titre à la marée.");return;}
-  var postes=[];
+  var sceau=Date.now().toString(36).slice(-4);
+  var liste=[];
   for(var i=0;i<MAX_POSTES;i++){
     var t=g("#tdlh-nt"+i); if(!P.POSTES[t])continue;
-    postes.push(P.normPoste({k:"p"+i+Date.now().toString(36).slice(-3), type:t,
-      titre:g("#tdlh-ni"+i)||P.POSTES[t].label, heure:g("#tdlh-nhr"+i),
-      consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},i));
+    liste.push(P.normPoste({type:t, titre:g("#tdlh-ni"+i)||P.POSTES[t].label,
+      heure:g("#tdlh-nhr"+i), consigne:g("#tdlh-nc"+i), scelle:g("#tdlh-ns"+i)},
+      "p"+i+sceau, liste.length+1));
   }
-  if(postes.length<MIN_POSTES){toast("Il faut au moins "+MIN_POSTES+" postes.");return;}
-  if(!postes.some(function(p){return p.type!=="bord";})){toast(T.ADMISSION);return;}
+  if(liste.length<MIN_POSTES){toast("Il faut au moins "+MIN_POSTES+" postes.");return;}
+  if(!liste.some(function(p){return p.type!=="bord";})){toast(T.ADMISSION);return;}
 
-  /* le capitaine qui monte la sortie embarque : son poste est ajouté en tête,
-     sans scellé ni rapport. Un créateur hors Flottille (staff au nom du
-     hangar) reste à terre et touche la part de créateur. */
+  /* le capitaine qui monte la sortie embarque : son poste est ajouté en tête
+     (ordre 0), sans scellé ni rapport. Un créateur hors Flottille (staff au nom
+     du hangar) reste à terre et touche la part de créateur. */
   var me2=F.myPseudo();
   if(F.estFlottille(me2)){
-    postes.unshift(P.normPoste({ k:"chef"+Date.now().toString(36).slice(-4), type:"bord", chef:true,
+    liste.unshift(P.normPoste({ type:"bord", chef:true,
       titre:"Le capitaine", heure:g("#tdlh-nhr0"), consigne:"Mener la sortie qu\u2019il a montée.",
-      qui:me2, etat:"pris", de:P.tirerDe(), pris:new Date().toISOString() },0));
+      qui:me2, etat:"pris", de:P.tirerDe(), pris:new Date().toISOString() },
+      "chef"+sceau, 0));
   }
+  var postes={};
+  liste.forEach(function(p){ postes[p.k]=p; });
 
-  var accroches=[];
+  var accs={};
   for(var j=0;j<MAX_ACCROCHES;j++){
     var fait=g("#tdlh-af"+j); if(!fait)continue;
-    accroches.push({k:"a"+j+Date.now().toString(36).slice(-3), fait:fait,
-      condition:g("#tdlh-ac"+j), ouverte:false, par:"", date:""});
+    var ka="a"+j+sceau;
+    accs[ka]={k:ka, ordre:j, fait:fait, condition:g("#tdlh-ac"+j), ouverte:false, par:"", date:""};
   }
 
-  var o={ titre:titre, createur:F.myPseudo(), accroches:accroches, navire:g("#tdlh-nnavire")||"Le hangar",
+  var o={ titre:titre, createur:me2, navire:g("#tdlh-nnavire")||"Le hangar",
           sortie:g("#tdlh-nsortie")||"extraction", lieu:g("#tdlh-nlieu"), quand:g("#tdlh-nquand"),
           contexte:g("#tdlh-nctx"), postes:postes, statut:"en_attente",
           sujet:"", resume:"", consequences:"", demandeValidation:false,
           createurPaye:false, primeVersee:false, cree:new Date().toISOString() };
+  if(Object.keys(accs).length)o.accroches=accs;
+
   var id=F.newId("ma");
-  try{
-    var pr=window.EcoCore.writeField(F.CFG.RACINE+"/"+SOUS+"/"+id,o);
-    Promise.resolve(pr).then(function(){
-      S.statut="tous";S.sel=id;toast(T.OUVERT);
-      try{if(window.EcoNotif)EcoNotif.bande("flottille",110,{titre:titre},"ma"+id);}catch(e){}
-      F.renderAll();
-    }).catch(function(){toast("Ouverture échouée.");});
-  }catch(e){toast("Ouverture échouée.");}
+  F.creerEntree("marees", id, o, "ouverture de "+titre).then(function(ok){
+    if(!ok){toast("Ouverture échouée.");return;}
+    S.statut="tous";S.sel=id;toast(T.OUVERT);
+    try{if(window.EcoNotif)EcoNotif.bande("flottille",110,{titre:titre},"ma"+id);}catch(e){}
+    F.renderAll();
+  });
 }
 
 F.vue({
@@ -491,7 +558,7 @@ F.vue({
 
 /* ===================== DÉCLARATION ===================== */
 F.type({
-  k:"marees", sous:SOUS, label:"Marée", ic:"fi-tr-ship",
+  k:"marees", sous:SOUS, label:"Marée", ic:"fi-tr-ship", plan:PLAN,
   normaliser:normaliser, sub:sub, tags:tags, panel:panel,
   act:act, doo:doo, brancher:brancher
 });
