@@ -198,6 +198,32 @@ window.BHL = window.BHL || {};
     BHL.PERSIST.contenu(bande, data).catch(function(){ toast(BHL.T.errEcriture); });
   };
 
+     /* [MAJ] Conversion des liens : bouton staff, visible tant qu'un membre porte
+     ses liens en tableau. Il disparaît de lui-même une fois le travail fait. */
+  BHL.liensAConvertir = function (){
+    var ms=(BHL.rec&&BHL.rec.membres)||{}, n=0;
+    Object.keys(ms).forEach(function(p){ if(window.TDLBase.liensAConvertir(ms[p])) n++; });
+    return n;
+  };
+  function boutonConversion(bar){
+    if(!BHL.S.admin || !window.TDLBase || !window.TDLBase.migrerLiens) return;
+    var n = BHL.liensAConvertir(); if(!n) return;
+    var b = document.createElement("button");
+    b.className = "tdlb-btn";
+    b.innerHTML = '<i class="fi fi-tr-wrench-simple"></i> Convertir les liens ('+n+')';
+    b.addEventListener("click", function(){
+      if(!window.confirm("Convertir les liens de "+n+" membre(s) au format à clés ?\n\n"
+        + "Chaque lien recevra une clé propre : un retrait ne pourra plus viser le mauvais contact.\n"
+        + "L'opération est sans risque et peut être relancée.")) return;
+      b.disabled = true; b.textContent = "Conversion…";
+      window.TDLBase.migrerLiens(BHL.rec.membres).then(function(r){
+        toast(r.faits+" membre(s) convertis.");
+        BHL.charger().then(BHL.render);
+      }).catch(function(){ toast(BHL.T.errEcriture); b.disabled=false; });
+    });
+    bar.appendChild(b);
+  }
+
   /* ===================== ACTIONBAR (bas, staff) ===================== */
   BHL.renderActionbar = function (){
     var bar=BHL.$(BHL.CFG.SEL.bar); if(!bar) return;
@@ -214,6 +240,7 @@ window.BHL = window.BHL || {};
     BHL.$("tdlb-hero-edit").addEventListener("click", function(){
       heroMC = BHL.contenu(BHL.S.tab).motscles.slice(); BHL.S.heroEdit=BHL.S.tab; BHL.render();
     });
+    boutonConversion(bar);
     var api=BHL.TABS[BHL.S.tab];
     if(api && api.renderActions) api.renderActions(bar);
   };
