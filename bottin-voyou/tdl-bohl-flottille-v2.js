@@ -1,11 +1,28 @@
 /* ============================================================
    TDL — BANDES HORS-LA-LOI · ONGLET FLOTTILLE
    (tdl-bohl-flottille.js) — à charger APRÈS tdl-bohl-core.js.
+   Requiert aussi window.TDLBase (API des liens de réseau).
+
+   [MAJ v2] LES PILIERS PASSENT AUX CLÉS.
+     Ne pas confondre deux « carnets » : celui du hangar, flottille/carnet/{pseudo},
+     qui note la fiabilité des postes et vit dans son propre nœud — et les
+     Piliers de la terre ferme ci-dessous, qui sont des liens rangés dans
+     membres/{pseudo}/liens, la MÊME branche que le réseau de la Main et celui
+     des Faiseuses.
+     D'où le défaut, et il était plus insidieux ici qu'ailleurs : ecrireLiens()
+     lisait la branche, la normalisait en tableau par vt(), y poussait le
+     nouveau pilier et réécrivait le tout. Un contact créé depuis cet onglet
+     REPASSAIT donc en tableau les liens déjà convertis des deux autres bandes,
+     et un lien de la Main ajouté entre-temps disparaissait. Le retrait, lui,
+     faisait splice(indice) sur le tableau COMPLET du membre : supprimer un
+     Pilier pouvait emporter un contact de la Main ou des Faiseuses.
+     Chaque lien porte désormais sa clé et s'écrit seul :
+       membres/{pseudo}/liens/{clé}
 
    DEUX sources :
      · navires (équipage / indépendant) → membres/{pseudo}.hors_la_loi
          = { bande:"flottille", navire, capitaine, role, depuis }
-     · piliers de la terre ferme → membres/{pseudo}.liens[] (cumulables)
+     · piliers de la terre ferme → membres/{pseudo}/liens/{clé} (cumulables)
          = { type:"pilier_flottille", concours, statut }
    Contenu navire éditable (staff OU capitaine) : bandes/flottille/navires/{key} = { image, spec, zones, … }.
    Capitaine canon affiché en pré-lien (tag PL) tant qu'aucun membre ne tient la barre.
@@ -21,12 +38,14 @@
             piliers:"Les Piliers de la terre ferme",
             piliersTxt:"Ils ne sont pas membres de la Flottille, mais en sont des contacts indispensables.",
             concours:"Concours apporté", dette:"Dette / service", aDefinir:"À définir",
-            creerNavire:"Créer un navire", nomNavire:"Nom du navire", image:"Image (URL)" };
+            creerNavire:"Créer un navire", nomNavire:"Nom du navire", image:"Image (URL)",
+            aConvertir:"Liens au format ancien — lancez la conversion (bouton staff).",
+            disparu:"Ce contact n\u2019existe plus." };
   // états d'édition (un formulaire à la fois)
   var memEdit=null;    // membre équipage/indépendant : null | "new" | pseudo
   var navEdit=null;    // contenu navire : null | key
   var navCreate=false; // création de navire
-  var pilEdit=null;    // pilier : null | "new" | "pseudo\u0001idx"
+  var pilEdit=null;    // pilier : null | "new" | "pseudo\u0001cle"
   var zonesWork=[];    // zones en cours d'édition
 
   /* ================= données navires ================= */
@@ -48,23 +67,49 @@
   function capReel(key){ return membresNavire(key).filter(function(m){ return m.hll.capitaine; })[0]||null; }
   function peutEditerNavire(key){ var c=capReel(key); return BHL.S.admin || !!(c && c.pseudo===BHL.monPseudo); }
 
-  /* ================= données piliers (liens) ================= */
+  /* ================= données piliers (liens) =================
+     [MAJ v2] la clé du lien remplace son indice. TDLBase.liens lit les deux
+     formats : un membre non converti reçoit des clés de substitution, qui
+     servent à l'affichage mais jamais à une écriture — exigeCles() barre la
+     route avant. */
   function tousPiliers(){
     var membres=BHL.rec.membres||{}, out=[];
     Object.keys(membres).forEach(function(pseudo){
       var m=membres[pseudo]||{};
-      vt(m.liens).forEach(function(l,idx){
-        if(l && l.type==="pilier_flottille")
-          out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo), couleur:BHL.couleurGroupe(m.group), idx:idx, lien:l });
+      window.TDLBase.liens(m).forEach(function(l){
+        if(l.type==="pilier_flottille")
+          out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo),
+                     couleur:BHL.couleurGroupe(m.group), cle:l.k, lien:l });
       });
     });
     return out.sort(function(a,b){ return a.pseudo.localeCompare(b.pseudo,"fr"); });
   }
-  function ecrireLiens(pseudo, arr){
-    BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
-    BHL.rec.membres[pseudo].liens = arr.length?arr:null;
+  /* un membre dont les liens sont encore un tableau n'accepte aucune écriture
+     ciblée : un PATCH par clé sur une branche-tableau produirait un nœud bâtard */
+  function exigeCles(pseudo){
+    if(!window.TDLBase.liensAConvertir(BHL.rec.membres[pseudo])) return true;
+    BHL.toast(T.aConvertir);
+    return false;
+  }
+  /* [MAJ v2] un lien s'écrit SEUL. C'est ici que le défaut faisait le plus de
+     dégâts : cet onglet réécrivait la branche entière en TABLEAU, annulant la
+     conversion faite pour la Main et les Faiseuses. */
+  function majLien(pseudo, cle, lien){
+    var m=BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
+    m.liens=m.liens||{}; m.liens[cle]=lien;
     BHL.rendreOnglet();
-    BHL.PERSIST.champ("membres/"+pseudo+"/liens", arr.length?arr:null).catch(function(){ BHL.toast(BHL.T.errEcriture); });
+    window.TDLBase.ecrireLien(pseudo, cle, lien).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
+  }
+  function retirerLien(pseudo, cle){
+    var m=BHL.rec.membres[pseudo]||{};
+    if(m.liens) delete m.liens[cle];
+    BHL.rendreOnglet();
+    window.TDLBase.supprimerLien(pseudo, cle).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
+  }
+  /* le lien tel qu'il est EN BASE, jamais la copie du rendu : un champ ajouté
+     ailleurs (date, type…) ne doit pas disparaître à la modification */
+  function lienEnBase(pseudo, cle){
+    return ((BHL.rec.membres[pseudo]||{}).liens||{})[cle] || null;
   }
 
   /* ================= helpers ================= */
@@ -149,7 +194,7 @@
   }
 
   function pilierHTML(p){
-    var l=p.lien, key=p.pseudo+"\u0001"+p.idx;
+    var l=p.lien, key=p.pseudo+"\u0001"+p.cle;
     var dette = l.statut ? '<span class="tag-dette '+escA(l.statut)+'">'+escH(STATUTS[l.statut]||l.statut)+'</span>' : '';
     var actes = BHL.S.admin ? '<div class="actes"><button class="tdlb-ic" data-pedit="'+escA(key)+'" title="'+BHL.T.modifier+'"><i class="fi fi-tr-pencil"></i></button>'
       + '<button class="tdlb-ic" data-prm="'+escA(key)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>' : "";
@@ -191,9 +236,15 @@
       + '<div class="btns"><button class="tdlb-btn prim" data-msave="'+(neuf?"new":escA(m.pseudo))+'">'+BHL.T.enregistrer+'</button>'
       +   '<button class="tdlb-btn" data-fcancel="1">'+BHL.T.annuler+'</button></div></div>';
   }
+  /* la recherche se fait sur la CLÉ ; si le lien a disparu entre l'ouverture du
+     formulaire et son rendu, on referme au lieu de lever sur p.pseudo */
   function pilForm(ref){
     var neuf=(ref==="new"), p=null;
-    if(!neuf){ var parts=ref.split("\u0001"); tousPiliers().forEach(function(x){ if(x.pseudo===parts[0]&&String(x.idx)===parts[1]) p=x; }); }
+    if(!neuf){
+      var parts=ref.split("\u0001");
+      tousPiliers().forEach(function(x){ if(x.pseudo===parts[0]&&x.cle===parts[1]) p=x; });
+      if(!p){ pilEdit=null; return ""; }
+    }
     var l=p?p.lien:{};
     return '<div class="tdlb-bra-form">'
       + (neuf ? champ("Contact",'<select class="tdlb-in" data-f="pseudo">'+optionsMembres("")+'</select>')
@@ -280,20 +331,31 @@
 
     // pilier (lien)
     host.querySelectorAll("[data-pedit]").forEach(function(b){ b.addEventListener("click", function(){ fermer(); pilEdit=b.dataset.pedit; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+    /* [MAJ v2] le retrait vise une CLÉ : il ne peut plus décaler les liens
+       suivants ni emporter un contact de la Main ou des Faiseuses, logés dans
+       la même branche. */
     host.querySelectorAll("[data-prm]").forEach(function(b){ b.addEventListener("click", function(){
-      var parts=b.dataset.prm.split("\u0001"), pseudo=parts[0], idx=+parts[1];
+      var parts=b.dataset.prm.split("\u0001"), pseudo=parts[0], cle=parts[1];
+      if(!exigeCles(pseudo)) return;
       if(!window.confirm("Retirer ce contact de la Flottille ?")) return;
-      var arr=vt(BHL.rec.membres[pseudo].liens); arr.splice(idx,1); ecrireLiens(pseudo, arr);
+      retirerLien(pseudo, cle);
     }); });
     host.querySelectorAll("[data-psave]").forEach(function(b){ b.addEventListener("click", function(){
       var v=lireForm(host), neuf=b.dataset.psave==="new";
       if(neuf){
-        var pseudo=(host.querySelector('[data-f="pseudo"]')||{}).value||""; if(!pseudo||!v.concours) return;
-        var arr=vt(BHL.rec.membres[pseudo]&&BHL.rec.membres[pseudo].liens);
-        arr.push({ type:"pilier_flottille", concours:v.concours, statut:v.statut||null }); fermer(); ecrireLiens(pseudo, arr);
+        var pseudo=(host.querySelector('[data-f="pseudo"]')||{}).value||"";
+        if(!pseudo||!v.concours) return;
+        if(!exigeCles(pseudo)) return;
+        fermer();
+        majLien(pseudo, window.TDLBase.nouvelleCle(),
+          { type:"pilier_flottille", concours:v.concours, statut:v.statut||null });
       } else {
-        var parts=b.dataset.psave.split("\u0001"), ps=parts[0], idx=+parts[1];
-        var a=vt(BHL.rec.membres[ps].liens); if(a[idx]){ a[idx]=Object.assign({},a[idx],{ concours:v.concours, statut:v.statut||null }); } fermer(); ecrireLiens(ps, a);
+        var parts=b.dataset.psave.split("\u0001"), ps=parts[0], cle=parts[1];
+        if(!exigeCles(ps)) return;
+        var anc=lienEnBase(ps, cle);
+        if(!anc){ BHL.toast(T.disparu); fermer(); BHL.rendreOnglet(); BHL.renderActionbar(); return; }
+        fermer();
+        majLien(ps, cle, Object.assign({}, anc, { concours:v.concours, statut:v.statut||null }));
       }
       BHL.renderActionbar();
     }); });
