@@ -1,23 +1,44 @@
 /* ==================================================================
    THE DROWNED LANDS — TABLEAU DU HANGAR (LA FLOTTILLE) · SOCLE
-   (rep-flot-core.js) — à charger AVANT rep-flot-ops.js.
+   (rep-flot-core.js) — à charger AVANT rep-flot-ops.js et rep-flot-postes.js.
+   Ordre global : eco-core → tdl-base → rep-flot-core → les types.
+
+   [MAJ v2] SENTINELLE À DEUX NIVEAUX.
+     Les entrées vivent en flottille/{sous}/{id} : la convention habituelle
+     {nœud}_rev/{id} y produirait soit une carte de révisions imbriquée que la
+     veille ne sait pas comparer, soit une branche flottille/{sous}_rev à
+     l'intérieur même du nœud surveillé. Chaque type reçoit donc sa propre
+     TDLBase.table, avec un chemin de sentinelle EXPLICITE :
+         flottille/marees      →  flottille_rev/marees
+     Les révisions vivent dans un arbre parallèle, hors des données, et chaque
+     carte reste plate. Un veilleur par type, quelques centaines d'octets par
+     tick au lieu des 126 ko de la racine.
+
+   [MAJ v2] SCHÉMA 2 — les listes des entrées passent aux nœuds à clés, chaque
+     type déclarant son propre plan (voir t.plan). Pour les marées, c'est
+     postes : deux joueurs prenant DEUX postes différents de la même marée
+     s'écrasaient mutuellement, et le second effaçait l'inscription du premier
+     ET son dé — qui n'est tiré qu'une fois et ne se retrouve pas.
+
+   [MAJ v2] L'ARGENT passe par eco-core. F.crediter accepte toujours un delta
+     signé, mais un delta négatif part en debiterDollars, qui LÈVE si le compte
+     ne couvre pas, au lieu de plafonner à zéro et de créer de la monnaie.
+     F.verrou() expose aux types le verrou transactionnel des versements.
 
    Moulé sur rep-mis-marin / rep-det-main, dont il réutilise intégralement le
    CSS « tdlm- ». Préfixe propre : « tdlh- » (tdlf- est pris par les Faiseuses).
 
    UNE SEULE LISTE. Opérations, disparitions et marées se mélangent dans la
-   colonne de gauche, triées par date ; le type s'affiche sous le titre, comme
-   partout ailleurs. Les filtres du haut portent sur le STATUT, commun à tous
-   les types, plus « À traiter » (staff) et « Le carnet » (Flottille).
+   colonne de gauche, triées par date ; le type s'affiche sous le titre.
 
    Chaque type s'enregistre auprès du socle :
-     TDLFlot.type({ k, sous, label, ic, normaliser(o), sub(m), tags(m),
+     TDLFlot.type({ k, sous, label, ic, plan, normaliser(o), sub(m), tags(m),
                     panel(m), act(k,m), doo(k,m), brancher(stage), auto(list) });
-   sous = enfant de  flottille/<sous>.
+   sous = enfant de  flottille/<sous>.  plan = descripteur de migration v1→v2.
 
    Données : flottille/<sous>/{id} et flottille/carnet/{pseudo}.
-   Appartenance : membres/{pseudo}.hors_la_loi = { bande:"flottille", navire, role }.
-   DÉPEND DE : window.EcoCore. Optionnel : window.TDLPoll, window.EcoNotif.
+   Le CARNET reste hors sentinelle : index de fiches écrit par transaction, sans
+   liste ni concurrence problématique. Il est relu à l'ouverture de sa vue.
    ================================================================== */
 (function(){
 "use strict";
@@ -25,13 +46,15 @@
 /* ===================== CONFIG ===================== */
 var CFG = {
   RACINE:       "flottille",
+  RACINE_REV:   "flottille_rev",
   SOUS_CARNET:  "carnet",
   NODE_MEMBRES: "membres",
   EDIT_URL:     "https://thedrownedlands.forumactif.com/post?p=470&mode=editpost" /* [MAJ] sujet porteur */
 };
+var SCHEMA      = 2;               /* version du schéma des entrées */
+var VEILLE_MS   = 15000;
 var DELAI_REFUS = 14 * 86400000;   /* 14 j sans preneur → refus auto + recrédit */
 var CHEF_BONUS  = 50;              /* aligné sur rep-mis-marin et rep-det-main */
-var REFRESH_MS  = 60000;
 
 /* statuts COMMUNS à tous les types : c'est ce qui permet la liste mélangée */
 var STATUTS = {
@@ -58,11 +81,32 @@ function money(n){return (+n||0)+" $";}
 function nbJours(iso){var t=new Date(iso).getTime();if(isNaN(t))return null;return Math.floor((Date.now()-t)/86400000);}
 function ilya(iso){var d=nbJours(iso);if(d==null)return"—";return d<=0?"aujourd'hui":("il y a "+d+" j");}
 function $(s,ctx){return (ctx||document).querySelector(s);}
+function cp(p){return window.TDLBase.clePseudo(p);}
 
+/* [MAJ v2] L'ancien crediterDollars faisait Math.max(0, cur+delta) et servait
+   aussi à PRÉLEVER (la revente d'information débitait par delta négatif) : sur
+   un solde insuffisant, l'acheteur tombait à zéro, le vendeur touchait le prix
+   entier, et la différence était créée. Un delta négatif part désormais en
+   debiterDollars, qui lève FONDS. */
 function crediterDollars(pseudo, delta){
-  return window.EcoCore.firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(pseudo)+"/dollars",
-    function(cur){return Math.max(0,(cur||0)+delta);});
+  delta=Math.round(+delta||0);
+  if(!delta)return Promise.resolve(0);
+  return (delta>0) ? window.EcoCore.crediterDollars(pseudo, delta)
+                   : window.EcoCore.debiterDollars(pseudo, -delta);
 }
+
+/* Verrou de mouvement d'argent : la transaction fait passer un drapeau
+   false → true, un seul client gagne. Le chemin est absolu pour pouvoir viser
+   un drapeau DANS une entrée, par exemple un poste précis. */
+function verrou(chemin){
+  try{
+    return Promise.resolve(window.EcoCore.firebaseTransaction(chemin,function(cur){
+      if(cur===true)throw new Error("DEJA");
+      return true;
+    }));
+  }catch(e){ return Promise.reject(e); }
+}
+function estDeja(e){ return !!(e&&e.message==="DEJA"); }
 
 function isStaff(){try{return typeof _userdata!=="undefined"&&(_userdata.user_level===1||_userdata.user_level===2);}catch(e){return false;}}
 function estConnecte(){try{return typeof _userdata!=="undefined"&&parseInt(_userdata.user_id,10)>0;}catch(e){return false;}}
@@ -74,7 +118,7 @@ var VUES  = [];     /* vues annexes : une puce de filtre + une scène pleine lar
 var L = [];         /* LA liste, tous types confondus, triée par date */
 var CARNET = {};    /* flottille/carnet/{pseudo} */
 var MEMBRES = {};
-var AVATARS = {};
+var demarre = false;
 
 function typeDe(k){for(var i=0;i<TYPES.length;i++)if(TYPES[i].k===k)return TYPES[i];return null;}
 function vueDe(k){for(var i=0;i<VUES.length;i++)if(VUES[i].k===k)return VUES[i];return null;}
@@ -92,39 +136,43 @@ function estCapitaine(pseudo){
 }
 function solde(pseudo){var m=MEMBRES[pseudo];return (m&&+m.dollars)||0;}
 
-function indexAvatars(rec){
-  var fc=(rec&&rec.faceclaims)||{}, idx={};
-  function score(c){return (c.statut==="pris"?4:(c.statut==="reserve"?1:0))+(c.image?2:0);}
-  Object.keys(fc).forEach(function(k){
-    var c=fc[k]; if(!c||!c.pseudo)return;
-    var a=idx[c.pseudo]; if(!a||score(c)>score(a))idx[c.pseudo]=c;
-  });
-  return idx;
-}
+/* [MAJ v2] avatars : index partagé du socle, chargé une fois pour tous les tableaux */
 function av(n){
-  var c=AVATARS[n];
+  var c=window.TDLBase.avatar(n);
   if(c&&c.image)return '<span class="tdlm-avatar"><img src="'+escAttr(c.image)+'" alt=""></span>';
   return '<span class="tdlm-avatar">'+esc(String(n||"?").replace(/[@.\s]/g,"").slice(0,2).toUpperCase())+'</span>';
 }
 
 function serialize(m){var o={};for(var k in m){if(m.hasOwnProperty(k)&&k!=="id"&&k!=="_t")o[k]=m[k];}return o;}
 
-var _lastWrite=0;
-/* écriture ciblée : patch(m,{statut:…}) → PATCH flottille/<sous>/{id}/statut */
+/* ---- écritures : chaque type a sa table liée (nœud + chemin de sentinelle) ----
+   patch(m,{statut:…})                → PATCH flottille/<sous>/{id}/statut
+   patch(m,{"postes/p0rfl":{…}})       → PATCH …/{id}/postes/p0rfl
+   et, dans le même appel, flottille_rev/<sous>/{id}. */
 function patch(m, champs){
-  _lastWrite=Date.now();
-  var t=m._t; if(!t)return;
-  var up={}; for(var k in champs){if(champs.hasOwnProperty(k))up[CFG.RACINE+"/"+t.sous+"/"+m.id+"/"+k]=champs[k];}
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Sauvegarde échouée — réessaie.");});}
-  catch(e){toast("Sauvegarde échouée.");}
+  var t=m&&m._t; if(!t||!t._tab)return Promise.resolve(false);
+  return t._tab.ecrire(m.id, champs, "modification de "+(m.titre||m.id));
+}
+/* Création d'une entrée par son type : la table liée fournit le chemin ET la
+   sentinelle, de sorte qu'une marée ouverte apparaisse aux autres onglets sans
+   rechargement. k = clé du type ("marees", "operations"…). */
+function creerEntree(k, id, objet, libelle){
+  var t=typeDe(k);
+  if(!t||!t._tab)return Promise.resolve(false);
+  objet.schema=SCHEMA;
+  return t._tab.ecrireEntree(id, objet, libelle||("création dans "+t.sous));
 }
 function supprimerEntree(m){
-  _lastWrite=Date.now();
-  var up={}; up[CFG.RACINE+"/"+m._t.sous+"/"+m.id]=null;
-  try{var p=window.EcoCore.firebaseUpdate(up);if(p&&p.catch)p.catch(function(){toast("Suppression échouée.");});}
-  catch(e){toast("Suppression échouée.");}
+  var t=m&&m._t; if(!t||!t._tab)return;
+  t._tab.supprimerEntree(m.id, "suppression de "+(m.titre||m.id));
   L=L.filter(function(x){return x!==m;});
   fixSel(); S.drawer=null; S.inline=null; S.mob="liste";
+}
+/* Une entrée restée en v1 n'accepte pas d'écriture dans ses listes à clés. */
+function exigeV2(m){
+  if(m&&m.schema===SCHEMA)return true;
+  toast("Entrée au format ancien — lancez d\u2019abord la conversion (bouton staff).");
+  return false;
 }
 function parId(id){for(var i=0;i<L.length;i++)if(L[i].id===id)return L[i];return null;}
 
@@ -143,12 +191,19 @@ function carnetListe(){
   }).sort(function(a,b){return (b.dernier||"").localeCompare(a.dernier||"");});
 }
 function peutVoirCarnet(){return isStaff()||estFlottille(myPseudo());}
+/* [MAJ v2] hors sentinelle : relu à la demande. Il ne bouge qu'à la clôture
+   d'une marée, et il est minuscule. */
+function rechargerCarnet(){
+  if(!window.EcoCore||!window.EcoCore.firebaseGet)return Promise.resolve(CARNET);
+  return Promise.resolve(window.EcoCore.firebaseGet(CFG.RACINE+"/"+CFG.SOUS_CARNET))
+    .then(function(c){ CARNET=c||{}; return CARNET; })
+    .catch(function(){ return CARNET; });
+}
 /* remise à zéro d'une fiche du carnet — staff seulement, utile en phase de
    test et quand une notation a été portée à tort. */
 function razCarnet(pseudo){
   if(!isStaff()||!pseudo)return;
   if(!window.confirm("Effacer la fiche de "+pseudo+" du carnet ?\nPostes comptés, notes et ratio disparaissent. Irréversible."))return;
-  _lastWrite=Date.now();
   var up={}; up[CFG.RACINE+"/"+CFG.SOUS_CARNET+"/"+pseudo]=null;
   try{
     Promise.resolve(window.EcoCore.firebaseUpdate(up)).then(function(){
@@ -170,6 +225,15 @@ function fixSel(){var d=filtre(),ok=false;d.forEach(function(m){if(m.id===S.sel)
 
 /* ===================== RENDER ===================== */
 function stamp(m){var v=STATUTS[m.statut]||{label:m.statut,c:"var(--cntr)"};return '<span class="tdlm-stamp" style="--sc:'+v.c+'">'+esc(v.label)+'</span>';}
+
+function nonMigrees(){return L.filter(function(m){return m.schema!==SCHEMA&&m._t&&m._t.plan;});}
+function barreMigration(){
+  if(!isStaff())return "";
+  var n=nonMigrees().length; if(!n)return "";
+  return '<div class="tdlm-migbar"><span>⚙ '+n+' entrée'+(n>1?'s':'')+' au format ancien. '
+    +'La prise de poste et la notation y restent bloquées avant conversion.</span>'
+    +'<button class="tdlm-abtn prim" data-migrer="1">Convertir maintenant</button></div>';
+}
 
 function renderStatutFilters(){
   var el=$("#tdlh-stf"); if(!el)return;
@@ -193,7 +257,11 @@ function renderStatutFilters(){
   });
   el.innerHTML=html;
   el.querySelectorAll("[data-st]").forEach(function(b){
-    b.onclick=function(){S.statut=b.getAttribute("data-st");S.drawer=null;S.inline=null;fixSel();renderStage();renderStatutFilters();};
+    b.onclick=function(){
+      S.statut=b.getAttribute("data-st");S.drawer=null;S.inline=null;fixSel();
+      if(S.statut==="carnet"){ rechargerCarnet().then(function(){renderStage();renderStatutFilters();}); return; }
+      renderStage();renderStatutFilters();
+    };
   });
 }
 
@@ -204,7 +272,8 @@ function renderStage(){
   var pb=el.querySelector(".tdlm-dp-body"); var scb=pb?pb.scrollTop:0;
   var same=(_lastSel===S.sel);
   var vue=vueActive();
-  el.innerHTML=vue?vue.render():((S.statut==="carnet"&&peutVoirCarnet())?viewCarnet():viewDossier());
+  el.innerHTML=barreMigration()
+    +(vue?vue.render():((S.statut==="carnet"&&peutVoirCarnet())?viewCarnet():viewDossier()));
   var nl=el.querySelector(".tdlm-dlist-rows"); if(nl)nl.scrollTop=scl;
   if(same){var nb=el.querySelector(".tdlm-dp-body"); if(nb)nb.scrollTop=scb;}
   _lastSel=S.sel;
@@ -273,8 +342,29 @@ function toast(msg){
   setTimeout(function(){t.style.transition="opacity .4s";t.style.opacity="0";setTimeout(function(){t.remove();},400);},3600);
 }
 
+/* ---- bandeau d'échec d'écriture (monté sur body : position:fixed) ---- */
+function majBandeau(n){
+  var el=document.getElementById("tdlm-echec");
+  if(!n){ if(el)el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="tdlm-echec"; el.className="tdlm-echec"; document.body.appendChild(el); }
+  var s=(n>1)?"s":"";
+  el.innerHTML='<span>⛔ '+n+' modification'+s+' non enregistrée'+s+'. Ne rechargez pas la page.</span>'
+    +'<button class="tdlm-abtn prim" data-rejouer>Réessayer</button>';
+  var b=el.querySelector("[data-rejouer]");
+  b.onclick=function(){
+    b.disabled=true; b.textContent="Envoi…";
+    window.TDLBase.reessayer().then(function(){
+      var r=window.TDLBase.enAttente();
+      majBandeau(r);
+      toast(r?"Il reste "+r+" modification(s) en échec.":"Modifications enregistrées.");
+    });
+  };
+}
+
 function brancher(){
   var stage=$("#tdlh-stage"); if(!stage)return;
+  var mig=stage.querySelector("[data-migrer]");
+  if(mig)mig.onclick=function(){lancerMigration();};
   stage.querySelectorAll("[data-sel]").forEach(function(el){
     el.onclick=function(){S.sel=el.getAttribute("data-sel");S.drawer=null;S.inline=null;S.mob="detail";renderStage();};
   });
@@ -297,26 +387,64 @@ function brancher(){
   if(t&&t.brancher)t.brancher(stage);
 }
 
+/* ===================== CONVERSION v1 → v2 (staff) ===================== */
+/* Chaque type porte son plan. On relit la branche BRUTE de chaque sous-nœud :
+   la version en mémoire est normalisée, donc lossy. Idempotente. */
+function lancerMigration(){
+  if(!isStaff()){toast("Réservé au staff.");return;}
+  var reste=nonMigrees().length;
+  if(!reste){toast("Rien à convertir.");return;}
+  if(!window.confirm("Convertir "+reste+" entrée(s) au nouveau format ?\n\n"
+    +"Les listes internes (postes, participants\u2026) passent aux clés ; aucun montant\n"
+    +"n\u2019est touché. Chaque entrée est traitée séparément et l\u2019opération peut être\n"
+    +"relancée sans risque.\nAssurez-vous que personne n\u2019a le tableau ouvert sur l\u2019ancienne version."))return;
+  var b=document.querySelector("[data-migrer]");
+  if(b){b.disabled=true;b.textContent="Conversion…";}
+  var faits=0, erreurs=0;
+  var chaine=Promise.resolve();
+  TYPES.forEach(function(t){
+    if(!t.plan||!t._tab)return;
+    chaine=chaine.then(function(){
+      return Promise.resolve(window.EcoCore.firebaseGet(CFG.RACINE+"/"+t.sous)).then(function(raw){
+        return t._tab.migrer({schema:SCHEMA, listes:t.plan, entrees:raw||{},
+          surProgres:function(f,tot){var x=document.querySelector("[data-migrer]");if(x)x.textContent="Conversion "+esc(t.label)+" "+f+" / "+tot+"…";}});
+      }).then(function(res){ faits+=res.faits; erreurs+=res.erreurs.length; });
+    });
+  });
+  chaine.then(function(){
+    toast(erreurs ? faits+" entrée(s) converties, "+erreurs+" en échec — relancez la conversion."
+                  : faits+" entrée(s) converties.");
+    loadData();
+  }).catch(function(e){
+    toast("Conversion impossible — rien n\u2019a été modifié.");
+    try{console.error("[flottille] migration",e);}catch(_){}
+    renderStage();
+  });
+}
+
 /* ===================== CHARGEMENT ===================== */
-function absorber(rec){
-  MEMBRES=(rec&&rec[CFG.NODE_MEMBRES])||MEMBRES;
-  AVATARS=indexAvatars(rec);
-  var racine=(rec&&rec[CFG.RACINE])||{};
+function absorberRacine(racine){
+  racine=racine||{};
   CARNET=racine[CFG.SOUS_CARNET]||{};
   var out=[];
   TYPES.forEach(function(t){
     var raw=racine[t.sous]||{};
     Object.keys(raw).forEach(function(id){
       var o=raw[id]||{}; o.id=id; o._t=t;
+      o.schema=(o.schema===SCHEMA)?SCHEMA:1;
       out.push(t.normaliser?t.normaliser(o):o);
     });
   });
   out.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
   L=out;
 }
-function signature(){
-  return L.map(function(o){return o._t.k+"/"+o.id+":"+JSON.stringify(serialize(o));}).sort().join("|")
-    +"||"+JSON.stringify(CARNET);
+/* fusion d'une seule entrée, venue de la veille sentinelle */
+function absorberEntree(t, id, brut){
+  var o=brut||{}; o.id=id; o._t=t;
+  o.schema=(o.schema===SCHEMA)?SCHEMA:1;
+  var n=t.normaliser?t.normaliser(o):o, i=-1;
+  for(var j=0;j<L.length;j++){ if(L[j].id===id&&L[j]._t===t){i=j;break;} }
+  if(i<0)L.push(n); else L[i]=n;
 }
 function echeances(){
   TYPES.forEach(function(t){
@@ -325,50 +453,72 @@ function echeances(){
   });
 }
 
+/* [MAJ v2] lecture de la seule racine flottille (~6 ko) et de la branche
+   membres partagée, au lieu des 126 ko du record. */
 function loadData(){
   loading("Ouverture du registre…");
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){loading("EcoCore indisponible.");return;}
-  Promise.resolve(pr).then(function(rec){
-    absorber(rec);echeances();fixSel();renderAll();
+  var pr, pm;
+  try{ pr=window.EcoCore.firebaseGet(CFG.RACINE); pm=window.TDLBase.membres(); }
+  catch(e){ loading("EcoCore indisponible."); return; }
+  Promise.all([Promise.resolve(pr), Promise.resolve(pm)]).then(function(r){
+    var racine=r[0]||{};
+    MEMBRES=r[1]||{};
+    absorberRacine(racine);
+    echeances();fixSel();renderAll();
+    TYPES.forEach(function(t){ if(t._veille&&t._veille.caler)t._veille.caler(racine[t.sous]||{}); });
+    if(!L.length)loading("Rien dans le registre pour l\u2019instant.");
   }).catch(function(){loading("Impossible de charger le registre.");});
 }
 
+function pret(){return !!(window.EcoCore&&window.EcoCore.firebaseGet&&window.TDLBase&&window.TDLBase.table);}
 function whenEco(cb){
-  if(window.EcoCore&&window.EcoCore.safeReadBin){cb();return;}
+  if(pret()){cb();return;}
   loading("Connexion à la base…");
-  var n=0,iv=setInterval(function(){
-    if(window.EcoCore&&window.EcoCore.safeReadBin){clearInterval(iv);cb();}
-    else if(++n>80){clearInterval(iv);loading("EcoCore introuvable — vérifiez que le script économie est chargé.");}
+  var n=0,iv2=setInterval(function(){
+    if(pret()){clearInterval(iv2);cb();}
+    else if(++n>80){clearInterval(iv2);loading("EcoCore ou tdl-base introuvable — vérifiez l\u2019ordre de chargement des scripts.");}
   },125);
 }
 
-function occupe(){return !!(S.drawer||S.inline)||Date.now()-_lastWrite<5000;}
-function tickRefresh(){
-  if(!window.EcoCore||!window.EcoCore.safeReadBin)return;
-  if(occupe())return;
-  var ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
-  try{if(window.EcoCore.invalidateCache)window.EcoCore.invalidateCache();}catch(e){}
-  var pr;try{pr=window.EcoCore.safeReadBin();}catch(e){return;}
-  Promise.resolve(pr).then(function(rec){
-    if(occupe())return;
-    var avant=signature();
-    absorber(rec);
-    if(signature()===avant)return;
-    echeances();fixSel();renderAll();
-  }).catch(function(){});
-}
+function occupe(){return !!(S.drawer||S.inline);}
 
-/* TDLPoll ne surveille qu'un nœud : on écoute la racine, tous types confondus. */
-function startAutoRefresh(){
-  setInterval(tickRefresh,REFRESH_MS);
-  if(window.TDLPoll)window.TDLPoll.suivre({node:CFG.RACINE, occupe:occupe, onDonnees:function(){tickRefresh();}});
+/* ---- une table liée et un veilleur PAR TYPE ----
+   Un type enregistré après le montage (rep-flot-ops arrivé plus tard, ou le
+   type « operations » qui n'a encore aucune entrée en base) reçoit les siens
+   à son tour : la machinerie ne suppose pas que la branche existe. */
+function equiper(t){
+  if(t._tab||!pret())return;
+  t._tab=window.TDLBase.table({
+    node:    CFG.RACINE+"/"+t.sous,
+    revPath: CFG.RACINE_REV+"/"+t.sous
+  });
+  t._veille=t._tab.suivre({
+    rev:true, ms:VEILLE_MS, occupe:occupe,
+    onEntrees:function(majs, supprimes){
+      var change=false;
+      majs.forEach(function(x){ absorberEntree(t, x.id, x.brut); change=true; });
+      if(supprimes&&supprimes.length){
+        L=L.filter(function(m){ return !(m._t===t&&supprimes.indexOf(m.id)>=0); });
+        change=true;
+      }
+      if(!change)return;
+      L.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+      echeances();fixSel();renderAll();
+    }
+  });
 }
 
 /* ===================== INIT / MONTAGE ===================== */
 function initApp(){
   var edit=$("#tdlh-edit");
   if(edit){edit.href=CFG.EDIT_URL||"#";if(isStaff())edit.classList.add("on");}
-  whenEco(function(){loadData();startAutoRefresh();});
+  whenEco(function(){
+    demarre=true;
+    window.TDLBase.surEchec(majBandeau);
+    window.TDLBase.avatars(function(){ if(!occupe())renderAll(); });
+    TYPES.forEach(equiper);
+    loadData();
+  });
 }
 
 var mounted=false;
@@ -391,19 +541,22 @@ function boot(){
 
 /* ===================== EXPORT ===================== */
 window.TDLFlot = {
-  CFG:CFG, S:S, STATUTS:STATUTS, DELAI_REFUS:DELAI_REFUS, CHEF_BONUS:CHEF_BONUS,
-  /* un type arrivé après le montage relance la lecture */
+  CFG:CFG, S:S, STATUTS:STATUTS, SCHEMA:SCHEMA, DELAI_REFUS:DELAI_REFUS, CHEF_BONUS:CHEF_BONUS,
+  /* un type arrivé après le montage reçoit sa table et son veilleur, puis relance la lecture */
   type: function(def){
     TYPES.push(def);
-    if(mounted&&window.EcoCore&&window.EcoCore.safeReadBin)loadData();
+    if(demarre){ equiper(def); loadData(); }
   },
   /* vue annexe : { k, label, visible(), compte(), render(), brancher(stage) } */
   vue: function(def){ VUES.push(def); if(mounted)renderAll(); },
   esc:esc, escAttr:escAttr, vt:vt, money:money, ilya:ilya, nbJours:nbJours,
-  newId:newId, av:av, stamp:stamp, toast:toast, $:$,
-  patch:patch, supprimer:supprimerEntree, parId:parId,
+  newId:newId, cp:cp, av:av, stamp:stamp, toast:toast, $:$,
+  patch:patch, creerEntree:creerEntree, supprimer:supprimerEntree, parId:parId, exigeV2:exigeV2,
   renderAll:renderAll, renderStage:renderStage, liste:function(){return L;},
-  crediter:crediterDollars, solde:solde, carnet:function(){return CARNET;}, carnetEtat:carnetEtat,
+  crediter:crediterDollars, debiter:function(p,n){return window.EcoCore.debiterDollars(p,n);},
+  transferer:function(a,b,n){return window.EcoCore.transfererDollars(a,b,n);},
+  verrou:verrou, estDeja:estDeja, cheminEntree:function(m){return CFG.RACINE+"/"+m._t.sous+"/"+encodeURIComponent(m.id);},
+  solde:solde, carnet:function(){return CARNET;}, carnetEtat:carnetEtat, rechargerCarnet:rechargerCarnet,
   isStaff:isStaff, estConnecte:estConnecte, myPseudo:myPseudo,
   estFlottille:estFlottille, estCapitaine:estCapitaine, navireDe:navireDe,
   membres:function(){return MEMBRES;}
