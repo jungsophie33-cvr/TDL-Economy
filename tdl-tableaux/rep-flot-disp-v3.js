@@ -2,6 +2,30 @@
    THE DROWNED LANDS — TABLEAU DU HANGAR · TYPE « DISPARITION »
    (rep-flot-disp.js) — à charger APRÈS rep-flot-core.js.
 
+   [MAJ v2] AUCUNE MIGRATION. Ce type n'a pas une seule liste : pression,
+     denouement et nego sont des objets uniques, et il n'y a ni participants ni
+     postes. Il ne déclare donc PAS de plan, et le bandeau de conversion
+     l'ignore — un schéma 2 n'y voudrait rien dire.
+
+   [MAJ v2] TRANSFERT DE DETTE ATOMIQUE. Le dénouement « introuvable » déplace
+     une créance d'un compte à l'autre. Il le faisait en DEUX appels : un
+     firebasePush sur le repreneur, puis un firebaseUpdate pour effacer
+     l'ancienne. Si le second échouait, la dette existait sur LES DEUX comptes.
+     Et comme le bouton staff s'appelle « Revoir le dénouement », un second
+     passage poussait une deuxième copie. Les deux chemins vivant dans le même
+     arbre, ils tiennent dans UN SEUL firebaseUpdate multi-chemins, que Firebase
+     applique atomiquement : soit la dette change de compte, soit rien ne bouge.
+     Un drapeau transfere interdit de rejouer le mouvement sur une révision.
+
+   [MAJ v2] VERROUS SUR LES VERSEMENTS. clore() et le remboursement lisaient
+     primeVersee / rembourse dans l'instantané en mémoire : deux membres du
+     staff agissant dans la même fenêtre de veille payaient le capitaine deux
+     fois, ou remboursaient deux fois le passager. auto() faisait pourtant déjà
+     la bonne chose. Le drapeau est désormais posé par transaction partout.
+
+   [MAJ v2] LA NÉGOCIATION prélève par le débit strict du socle, et la prime
+     affichée revient en arrière si le compte ne couvre pas.
+
    Données : flottille/disparitions/{id}, créées par quai-staff à la validation
    d'un achat « Disparition temporaire » en boutique (500 $ minimum, prime déjà
    retenue sur le demandeur).
@@ -56,6 +80,7 @@ var ISSUES={
 };
 function issuesDe(m){ return ISSUES[m.motif]||ISSUES.perso; }
 function issueDe(m){ var i=issuesDe(m); return (m.denouement&&i[m.denouement.issue])||null; }
+function cheminDisp(m){ return F.cheminEntree(m); }
 
 var T={
   NON_CAP:"Prendre un départ exige un navire : réservé aux capitaines de la Flottille.",
@@ -65,7 +90,8 @@ var T={
   CONNECT:"Connectez-vous pour interagir.",
   ATTENTE:"En attente d\u2019un capitaine.",
   DEN_MANQUE:"Tranche d\u2019abord le dénouement : la dette doit aller quelque part.",
-  SOI_MEME:"Vous ne pouvez pas assurer votre propre départ : un capitaine qui s\u2019exfiltre lui-même retire son bateau du réseau, et le hangar s\u2019en aperçoit avant la fin de la semaine."
+  SOI_MEME:"Vous ne pouvez pas assurer votre propre départ : un capitaine qui s\u2019exfiltre lui-même retire son bateau du réseau, et le hangar s\u2019en aperçoit avant la fin de la semaine.",
+  DEJA_TRANSFEREE:"La dette a déjà changé de compte lors du premier dénouement. Vous pouvez corriger le libellé, mais l\u2019argent ne sera pas redéplacé \u2014 reprenez-le à la main si besoin."
 };
 
 /* ===================== NORMALISATION ===================== */
@@ -279,7 +305,8 @@ function drawer(m){
       argent='<label class="tdlm-fl">Introuvable : la dette rachetée par un PJ — la créance passe à lui</label>'
         +'<select id="tdlh-dpj"><option value="">— aucun —</option>'+pjs+'</select>'
         +'<label class="tdlm-fl">Ou lavée par l\u2019entourage (PNJ) — la dette sort du grand livre</label>'
-        +'<input type="text" id="tdlh-dpnj" value="'+escAttr(cur.lavee_pnj||"")+'" placeholder="Qui a payé à sa place…">';
+        +'<input type="text" id="tdlh-dpnj" value="'+escAttr(cur.lavee_pnj||"")+'" placeholder="Qui a payé à sa place…">'
+        +(cur.transfere?'<div class="tdlm-prose tdlm-todo">'+esc(T.DEJA_TRANSFEREE)+'</div>':'');
     }
     return '<div class="tdlm-drawer on"><h4>Dénouement (staff)</h4>'
       +'<label class="tdlm-fl">Ce qu\u2019est devenu le passager</label><select id="tdlh-dissue">'+isel+'</select>'
@@ -306,6 +333,8 @@ function drawer(m){
 }
 
 /* ===================== ACTIONS ===================== */
+var _negoEnVol={};
+
 function act(k,m){
   var me=F.myPseudo();
 
@@ -322,28 +351,13 @@ function act(k,m){
   if(k==="sujet"||k==="nego"||k==="pression"){S.inline=k;S.drawer=null;F.renderStage();return;}
   if(k==="bilan"||k==="edit"||k==="denouement"){S.drawer=k;S.inline=null;F.renderStage();return;}
 
-  if(k==="negoyes"){
-    if(!m.nego)return;
-    var neuf=+m.nego.montant||0, delta=neuf-m.prime;
-    if(delta>0&&F.solde(m.demandeur)<delta){toast("Solde insuffisant pour couvrir la hausse.");return;}
-    F.crediter(m.demandeur,-delta).then(function(){
-      m.prime=neuf;m.nego=null;patch(m,{prime:neuf,nego:null});
-      toast("Prime portée à "+money(neuf)+".");F.renderStage();
-    }).catch(function(){toast("Ajustement impossible.");});
-    return;
-  }
+  if(k==="negoyes"){accepterNego(m);return;}
   if(k==="negono"){m.nego=null;patch(m,{nego:null});toast("Proposition refusée.");F.renderStage();return;}
 
   if(k==="retirer"||k==="refuser"){
     if(m.rembourse){toast("Déjà remboursée.");return;}
     if(!window.confirm("Fermer ce départ et rembourser "+money(m.prime)+" à "+(m.demandeur||"?")+" ?"))return;
-    var suite=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
-    Promise.resolve(suite).then(function(){
-      m.rembourse=true;m.statut="refusee";
-      patch(m,{rembourse:true,statut:"refusee"});
-      try{if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,101,{nom:m.titre,montant:m.prime},"fdi"+m.id);}catch(e){}
-      toast("Départ annulé, prime rendue.");F.renderAll();
-    }).catch(function(){toast("Remboursement impossible.");});
+    rembourser(m,"Départ annulé, prime rendue.");
     return;
   }
   if(k==="valider"){clore(m);return;}
@@ -408,7 +422,13 @@ function doo(k,m){
 function brancher(){ /* aucune case à cocher ici : un seul capitaine, pas de participants */ }
 
 /* ===================== DÉNOUEMENT ===================== */
-/* Chemins BRUTS pour firebaseUpdate : c'est un PATCH à la racine, jamais
+/* [MAJ v2] LE TRANSFERT DE DETTE EST ATOMIQUE. L'ancienne version poussait la
+   copie chez le repreneur, PUIS effaçait l'originale dans un second appel : un
+   échec entre les deux laissait la dette sur les deux comptes. Les deux chemins
+   vivant dans le même arbre, un seul firebaseUpdate multi-chemins suffit, et
+   Firebase l'applique en tout ou rien. La clé du repreneur est générée en local
+   (TDLBase), ce qui permet justement de l'inclure dans ce PATCH unique.
+   Chemins BRUTS pour firebaseUpdate : c'est un PATCH à la racine, jamais
    encodeURIComponent, y compris pour un pseudo qui contient un espace. */
 function denouer(m){
   var i=$("#tdlh-dissue"), pj=$("#tdlh-dpj"), pnj=$("#tdlh-dpnj");
@@ -423,63 +443,130 @@ function denouer(m){
     if(lPar&&lPnj){toast("Un seul payeur : un PJ ou l\u2019entourage, pas les deux.");return;}
   }
 
-  var den={issue:issue, lavee_par:lPar||"", lavee_pnj:lPnj||"", date:new Date().toISOString(), par:F.myPseudo()};
-    /* la clé porte son nœud : "dettes:abc" ou "prets:abc" */
+  var deja=!!(m.denouement&&m.denouement.transfere);
+  var den={issue:issue, lavee_par:lPar||"", lavee_pnj:lPnj||"",
+           date:new Date().toISOString(), par:F.myPseudo(), transfere:deja};
+
+  /* la clé porte son nœud : "dettes:abc" ou "prets:abc" */
   var bout=String(m.dette_key||"").split(":");
   var coin=(bout.length>1?bout[0]:"dettes"), cle=(bout.length>1?bout.slice(1).join(":"):bout[0]);
-  var ancien=(m.motif==="dette"&&m.demandeur&&cle)
-    ? "membres/"+m.demandeur+"/"+coin+"/"+cle : null;
+  var bouge=(m.motif==="dette"&&issue==="introuvable"&&m.demandeur&&cle&&!deja);
 
-  var suite=Promise.resolve();
-  if(ancien&&issue==="introuvable"){
-    if(lPar){
-      var src=(F.membres()[m.demandeur]||{})[coin]||{}, d0=src[cle]||{}, copie={};
-      for(var kk in d0)if(d0.hasOwnProperty(kk))copie[kk]=d0[kk];
+  if(!bouge){
+    if(deja&&issue==="introuvable")toast(T.DEJA_TRANSFEREE);
+    enregistrer(m,den);
+    return;
+  }
+
+  var ancien="membres/"+m.demandeur+"/"+coin+"/"+cle;           /* RAW : PATCH racine */
+  if(!lPar){
+    /* lavée par l'entourage : la créance sort simplement du grand livre */
+    var up={}; up[ancien]=null;
+    den.transfere=true;
+    Promise.resolve(window.EcoCore.firebaseUpdate(up))
+      .then(function(){ enregistrer(m,den,"Dette réglée hors jeu."); })
+      .catch(function(){ toast("Effacement de la dette impossible \u2014 dénouement non enregistré."); });
+    return;
+  }
+
+  /* rachetée par un PJ : on relit la créance à la source plutôt que de la
+     recopier depuis l'instantané des membres, qui peut avoir deux minutes. */
+  Promise.resolve(window.EcoCore.firebaseGet("membres/"+encodeURIComponent(m.demandeur)+"/"+coin+"/"+cle))
+    .then(function(d0){
+      if(!d0||typeof d0!=="object"){throw new Error("INTROUVABLE");}
+      var copie={}, kk;
+      for(kk in d0)if(d0.hasOwnProperty(kk))copie[kk]=d0[kk];
       copie.motif=(d0.motif||d0.nom||m.dette_libelle||"Dette")
         +" \u2014 reportée pendant la disparition de "+m.demandeur;
       copie.date=den.date; copie.statut="active";
-      suite=Promise.resolve(window.EcoCore.firebasePush("membres/"+encodeURIComponent(lPar)+"/"+coin,copie))
-        .then(function(){ var up={}; up[ancien]=null; return window.EcoCore.firebaseUpdate(up); });
-    } else {
-      var up2={}; up2[ancien]=null;
-      suite=Promise.resolve(window.EcoCore.firebaseUpdate(up2));
-    }
-  }
-    Promise.resolve(suite).then(function(){
-    m.denouement=den;patch(m,{denouement:den});
-    S.drawer=null;
-    toast(lPar?("Dette reportée sur "+lPar+"."):(lPnj?"Dette réglée hors jeu.":"Dénouement enregistré."));
-    F.renderAll();
-  }).catch(function(){toast("Écriture de la dette impossible \u2014 dénouement non enregistré.");});
+      /* UN SEUL PATCH : la créance quitte un compte et arrive sur l'autre,
+         ou rien ne se produit. */
+      var up={}; 
+      up[ancien]=null;
+      up["membres/"+lPar+"/"+coin+"/"+window.TDLBase.nouvelleCle()]=copie;
+      return window.EcoCore.firebaseUpdate(up);
+    })
+    .then(function(){ den.transfere=true; enregistrer(m,den,"Dette reportée sur "+lPar+"."); })
+    .catch(function(e){
+      if(e&&e.message==="INTROUVABLE")toast("Créance introuvable au compte de "+m.demandeur+" \u2014 dénouement non enregistré.");
+      else toast("Transfert de la dette impossible \u2014 rien n\u2019a bougé, dénouement non enregistré.");
+    });
+}
+function enregistrer(m,den,msg){
+  m.denouement=den;patch(m,{denouement:den});
+  S.drawer=null;
+  toast(msg||"Dénouement enregistré.");
+  F.renderAll();
 }
 
 /* ===================== ARGENT ===================== */
+/* [MAJ v2] La hausse de prime est un PRÉLÈVEMENT : débit strict du socle, et
+   la prime affichée revient en arrière si le compte ne couvre pas. */
+function accepterNego(m){
+  if(!m.nego||_negoEnVol[m.id])return;
+  var neuf=+m.nego.montant||0, delta=neuf-m.prime, ancienne=m.prime;
+  if(delta>0&&F.solde(m.demandeur)<delta){toast("Solde insuffisant pour couvrir la hausse.");return;}
+  _negoEnVol[m.id]=true;
+  m.prime=neuf; m.nego=null;
+  patch(m,{prime:neuf,nego:null});
+  F.crediter(m.demandeur,-delta).then(function(){
+    toast("Prime portée à "+money(neuf)+".");F.renderStage();
+  }).catch(function(e){
+    m.prime=ancienne; patch(m,{prime:ancienne});
+    if(e&&e.message==="FONDS")toast("Fonds insuffisants au moment du prélèvement — prime inchangée, la proposition est annulée.");
+    else toast("Ajustement impossible — prime inchangée, la proposition est annulée.");
+    F.renderStage();
+  }).then(function(){ delete _negoEnVol[m.id]; });
+}
+
+/* [MAJ v2] verrou AVANT le recrédit — même motif que l'échéance automatique. */
+function rembourser(m,msg){
+  F.verrou(cheminDisp(m)+"/rembourse").then(function(){
+    m.rembourse=true;
+    var suite=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
+    return Promise.resolve(suite).then(function(){
+      m.statut="refusee";
+      patch(m,{statut:"refusee"});
+      try{if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,101,{nom:m.titre,montant:m.prime},"fdi"+m.id);}catch(e){}
+      toast(msg);F.renderAll();
+    });
+  }).catch(function(e){
+    if(F.estDeja(e)){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});toast("Déjà remboursée ailleurs — aucun second recrédit.");F.renderAll();return;}
+    toast("Remboursement impossible — le départ est marqué remboursé, vérifiez le solde avant de recommencer.");F.renderAll();
+  });
+}
+
+/* [MAJ v2] verrou AVANT le versement : deux clôtures simultanées payaient le
+   capitaine DEUX FOIS, la prime entière à chaque passage. */
 function clore(m){
   if(m.primeVersee){toast("Prime déjà versée.");return;}
   if(!m.capitaine){toast("Aucun capitaine à payer.");return;}
   if(m.motif==="dette"&&!m.denouement){toast(T.DEN_MANQUE);return;}
   if(!window.confirm("Verser "+money(m.prime)+" à "+m.capitaine+" et clore le départ ?"))return;
-  F.crediter(m.capitaine,m.prime).then(function(){
-    m.primeVersee=true;m.statut="close";m.demandeValidation=false;
-    patch(m,{primeVersee:true,statut:"close",demandeValidation:false});
+  F.verrou(cheminDisp(m)+"/primeVersee").then(function(){
+    m.primeVersee=true;
+    return F.crediter(m.capitaine,m.prime);
+  }).then(function(){
+    m.statut="close";m.demandeValidation=false;
+    patch(m,{statut:"close",demandeValidation:false});
     try{if(window.EcoNotif)EcoNotif.a(m.capitaine,100,{nom:m.titre},"vdi"+m.id);}catch(e){}
     toast("Départ clos, capitaine payé.");F.renderAll();
-  }).catch(function(){toast("Versement impossible.");});
+  }).catch(function(e){
+    if(F.estDeja(e)){m.primeVersee=true;toast("Prime déjà versée ailleurs — rien n\u2019a été versé une seconde fois.");F.renderAll();return;}
+    toast("Versement impossible — le départ est marqué payé, vérifiez le solde du capitaine avant de reclore.");F.renderAll();
+  });
 }
 
 /* ===================== ÉCHÉANCE 14 JOURS =====================
    Drapeau rembourse posé par TRANSACTION : seul le client qui le fait passer
-   false→true rembourse. Pas de double recrédit sur chargements simultanés. */
+   false→true rembourse. C'est ce motif, déjà juste ici, qui est désormais
+   appliqué aux chemins manuels ci-dessus. */
 function auto(list){
   var now=Date.now();
   list.forEach(function(m){
     if(m.statut!=="en_attente"||m.capitaine||m.rembourse)return;
     if(now-new Date(m.cree).getTime()<F.DELAI_REFUS)return;
-    var path=F.CFG.RACINE+"/"+SOUS+"/"+encodeURIComponent(m.id)+"/rembourse";
-    var pr;
-    try{pr=window.EcoCore.firebaseTransaction(path,function(cur){if(cur===true)throw new Error("DEJA");return true;});}
-    catch(e){return;}
-    Promise.resolve(pr).then(function(){
+    F.verrou(cheminDisp(m)+"/rembourse").then(function(){
       m.rembourse=true;m.statut="refusee";
       var credit=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
       return Promise.resolve(credit).then(function(){
@@ -487,12 +574,13 @@ function auto(list){
         patch(m,{statut:"refusee"});F.renderAll();
       });
     }).catch(function(e){
-      if(e&&e.message==="DEJA"){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});F.renderAll();}
+      if(F.estDeja(e)){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});F.renderAll();}
     });
   });
 }
 
-/* ===================== DÉCLARATION ===================== */
+/* ===================== DÉCLARATION =====================
+   Pas de plan : ce type n'a aucune liste à convertir. */
 F.type({
   k:"disparitions", sous:SOUS, label:"Disparition", ic:"fi-tr-fog",
   normaliser:normaliser, sub:sub, tags:tags, panel:panel,
