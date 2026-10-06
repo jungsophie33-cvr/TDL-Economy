@@ -632,12 +632,15 @@ function appliquer(m, choix){
 }
 
 /* ===================== STAFF ===================== */
-/* [MAJ v3] lecture de la SEULE branche liens du membre, au lieu des 126 ko
-   racine. L'adressage par indice de membres/{pseudo}/liens reste : chantier
-   à part, partagé avec quai-staff, rep-det-main et les onglets du bottin. */
+/* [MAJ v4] UN LIEN S'ÉCRIT SEUL, sous sa propre clé.
+   La version précédente relisait la branche, la normalisait en tableau par
+   versTableau() — ce qui écrasait les clés des liens déjà convertis — y
+   poussait le nouveau contact et réécrivait le tout. Valider une faveur
+   annulait donc la conversion pour tout le forum, et effaçait au passage tout
+   lien ajouté entre la lecture et l'écriture, quel que soit son réseau. */
 function ajouterLien(pseudo, lien){
-  return window.TDLBase.ecrireLien(pseudo, window.TDLBase.nouvelleCle(), lien)
-    .then(function(ok){ if(!ok) throw new Error("écriture du lien refusée"); });
+  return Promise.resolve(window.TDLBase.ecrireLien(pseudo, window.TDLBase.nouvelleCle(), lien))
+    .then(function(ok){ if(!ok) throw new Error("écriture du lien refusée : "+pseudo); });
 }
 function valider(m){
   var cpr=m.contactPropose;
