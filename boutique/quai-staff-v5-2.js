@@ -23,6 +23,11 @@
  *   au lieu de deux, et {node}_rev/{id} bumpé dans le même PATCH.
  *   Le dossier de la Main naît en schema 2 : plus de conversion à refaire.
  *
+ * [MAJ v6] L'entrée du hangar (disparition, opération) est elle aussi
+ *   sentinellée, grâce au chemin de révision explicite de TDLBase.table :
+ *   flottille/{sous}/{id} pour la donnée, flottille_rev/{sous}/{id} pour la
+ *   révision. Plus aucune écriture croisée du forum n'est aveugle.
+ *
  * [MAJ v5] LECTURES CIBLÉES.
  *   charger() relisait les 126 ko de la racine à CHAQUE action staff. Il lit
  *   maintenant boutique_demandes (~11 ko), membres (~3 ko, partagé par le
@@ -37,7 +42,9 @@
 (function () {
   "use strict";
   var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", NODE_CATALOGUE:"boutique/barge", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
-  var SCHEMA_DOSSIER = 2;      /* doit suivre rep-det-main */
+  var SCHEMA_DOSSIER = 2;      /* doit suivre rep-det-main   */
+  var SCHEMA_TACHE   = 2;      /* doit suivre rep-tac-fais    */
+  var RACINE_FLOT_REV= "flottille_rev";   /* sentinelle du hangar, hors du nœud */
   function E(){ return window.EcoCore; }
   function B(){ return window.TDLBase; }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
@@ -207,7 +214,7 @@
     var now = new Date().toISOString();
     var id = B().nouvelleCle();
     return ecrireEntree(CFG.NODE_TACHES, id, {
-      schema: 2,
+      schema: SCHEMA_TACHE,
       origine:"faveur", demandeId:d.id||"", demandeur:d.pseudo||"",
       titre:d.nom||"Faveur demandée", categorie:"faveur",
       demande:d.demande||"", contexte:d.contexte||"", don:d.don||"",
@@ -233,21 +240,17 @@
   }
   function phaseService(d){ return d.rp_mission==="oui"; }
 
-    function newIdFlot(){ return "f"+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-
   /* Une disparition ou une opération validée descend au tableau du hangar.
      La prime est FIGÉE ici : elle a déjà quitté le demandeur au moment de
      l'achat, et le tableau la versera au capitaine à la clôture.
 
-     [MAJ v5] CELLE-CI RESTE EN writeField, volontairement. Le nœud flottille
-     est à DEUX niveaux (flottille/disparitions/{id}, flottille/operations/{id},
-     flottille/marees/{id}) : la convention de sentinelle {node}_rev/{id} du
-     socle y produirait soit une branche flottille/disparitions_rev à l'intérieur
-     même du nœud surveillé par rep-flot-core, soit une sentinelle imbriquée que
-     la veille ne saurait pas diffuser. À trancher lors de la migration de la
-     flottille. En attendant, rep-flot-core est encore en mode hérité (il relit
-     le nœud entier) : il voit donc ces créations sans sentinelle, et la
-     réconciliation périodique du socle couvrira le jour où il basculera. */
+     [MAJ v6] SENTINELLE À DEUX NIVEAUX. Le nœud flottille range ses entrées en
+     flottille/{sous}/{id} : la convention {node}_rev/{id} y produirait une
+     branche de service à l'intérieur même du nœud surveillé. TDLBase.table
+     accepte désormais un chemin de révision EXPLICITE — les révisions du hangar
+     vivent en flottille_rev/{sous}/{id}, dans un arbre parallèle. L'entrée
+     apparaît donc au tableau du hangar sans rechargement, au lieu d'attendre
+     la réconciliation de cinq minutes. */
   function creerEntreeFlottille(d){
     var dispa = d.itemId==="flot_disparition";
     var sous  = dispa ? "disparitions" : "operations";
@@ -277,7 +280,10 @@
       o.mandataireType = d.mandtype||"joueur";
       o.chef = null; o.nego = null;
     }
-    return E().writeField(CFG.NODE_FLOT+"/"+sous+"/"+newIdFlot(), o);
+    var tab = B().table({ node: CFG.NODE_FLOT+"/"+sous, revPath: RACINE_FLOT_REV+"/"+sous });
+    var id  = B().nouvelleCle();
+    return Promise.resolve(tab.ecrireEntree(id, o, "entrée du hangar ("+sous+")"))
+      .then(function(ok){ if(!ok) throw new Error("écriture refusée : "+sous+"/"+id); return id; });
   }
 
   /* [MAJ v5] clé locale + sentinelle, et naissance directe en schema 2 :
