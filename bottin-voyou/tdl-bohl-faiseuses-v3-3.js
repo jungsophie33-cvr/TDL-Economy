@@ -1,6 +1,22 @@
 /* ============================================================
    TDL — BANDES HORS-LA-LOI · ONGLET FAISEUSES D'ANGES
    (tdl-bohl-faiseuses.js) — à charger APRÈS tdl-bohl-core.js.
+   Requiert aussi window.TDLBase (API des liens de réseau).
+
+   [MAJ v2] LE RÉSEAU DE RESSOURCES PASSE AUX CLÉS.
+     Chaque geste réécrivait le TABLEAU ENTIER des liens du membre :
+     ecrireLiens(pseudo, arr) après un push, un Object.assign sur arr[idx], ou
+     un splice(idx,1). Deux conséquences, toutes deux silencieuses.
+     D'abord l'écrasement : un lien ajouté par un autre onglet entre notre
+     lecture et notre écriture disparaissait. Ensuite, et c'est le pire, le
+     RETRAIT PAR INDICE — splice décale tous les liens suivants, de sorte que
+     la suppression d'après visait le mauvais contact. Un membre porte souvent
+     plusieurs liens, dont certains appartiennent à la Main et non aux
+     Faiseuses : le mauvais retrait traversait même les deux réseaux.
+     Chaque lien porte désormais sa clé, et s'écrit seul :
+       membres/{pseudo}/liens/{clé}
+     La référence d'édition devient « pseudo\u0001clé » au lieu de
+     « pseudo\u0001indice ».
 
    Structure plate : catégorie (Intervention médicale / Soutien psychologique),
    vocation (texte), année « depuis ». Hero partagé (core).
@@ -19,9 +35,10 @@
     activite:"Activité", apport:"Ce qu'il apporte au réseau", statut:"Disponibilité",
     reseauTxt:"Elles ne paient personne et ne sont payées par personne. Ce qu'elles ont, elles le doivent à ceux qui laissent une porte entrouverte \u2014 une pharmacie, un entrepôt, un nom murmuré au bon moment.",
     reseauVide:"Aucune ressource recensée pour cette disponibilité.",
+    aConvertir:"Liens au format ancien — lancez la conversion (bouton staff).",
   };
   var edit = null;      // membre : null | "new" | pseudo
-  var resEdit = null;   // ressource (lien) : null | "new" | "pseudo\u0001idx"
+  var resEdit = null;   // ressource (lien) : null | "new" | "pseudo\u0001cle"
   var filtreRes = "tous";
 
   /* ---------- helpers ---------- */
@@ -38,24 +55,43 @@
     }).join("");
   }
      /* ---------- réseau de ressources (liens cumulables) ---------- */
+  /* [MAJ v2] la clé du lien remplace son indice. TDLBase.liens lit les deux
+     formats : un membre non converti reçoit des clés de substitution, qui
+     servent à l'affichage mais jamais à une écriture — exigeCles() barre la
+     route avant. */
   function tousReseau(){
     var ms=BHL.rec.membres||{}, out=[];
     Object.keys(ms).forEach(function(pseudo){
       var m=ms[pseudo]||{};
-      vt(m.liens).forEach(function(l,idx){
-        if(l && l.type==="reseau_faiseuses")
+      window.TDLBase.liens(m).forEach(function(l){
+        if(l.type==="reseau_faiseuses")
           out.push({ pseudo:pseudo, uid:m.uid||null, avatar:BHL.avatarDe(pseudo),
-                     couleur:BHL.couleurGroupe(m.group), idx:idx, lien:l });
+                     couleur:BHL.couleurGroupe(m.group), cle:l.k, lien:l });
       });
     });
     return out.sort(function(a,b){ return a.pseudo.localeCompare(b.pseudo,"fr"); });
   }
-  function ecrireLiens(pseudo, arr){
-    BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
-    BHL.rec.membres[pseudo].liens = arr.length?arr:null;
+  /* un membre dont les liens sont encore un tableau n'accepte aucune écriture
+     ciblée : un PATCH par clé sur une branche-tableau produirait un nœud bâtard */
+  function exigeCles(pseudo){
+    if(!window.TDLBase.liensAConvertir(BHL.rec.membres[pseudo])) return true;
+    BHL.toast(T.aConvertir);
+    return false;
+  }
+  /* [MAJ v2] un lien s'écrit SEUL : plus de réécriture du tableau du membre,
+     donc plus d'écrasement d'un lien voisin ajouté entre-temps — y compris un
+     lien de la Main, qui vit dans la même branche. */
+  function majLien(pseudo, cle, lien){
+    var m=BHL.rec.membres[pseudo]=BHL.rec.membres[pseudo]||{};
+    m.liens=m.liens||{}; m.liens[cle]=lien;
     BHL.rendreOnglet();
-    BHL.PERSIST.champ("membres/"+pseudo+"/liens", arr.length?arr:null)
-      .catch(function(){ BHL.toast(BHL.T.errEcriture); });
+    window.TDLBase.ecrireLien(pseudo, cle, lien).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
+  }
+  function retirerLien(pseudo, cle){
+    var m=BHL.rec.membres[pseudo]||{};
+    if(m.liens) delete m.liens[cle];
+    BHL.rendreOnglet();
+    window.TDLBase.supprimerLien(pseudo, cle).then(function(ok){ if(!ok) BHL.toast(BHL.T.errEcriture); });
   }
   function optTousMembres(sel){
     return '<option value="">'+BHL.T.choisir+'</option>' + BHL.tousMembres().map(function(p){
@@ -114,7 +150,7 @@
     }).join("");
   }
   function resCard(p){
-    var l=p.lien, key=p.pseudo+"\u0001"+p.idx;
+    var l=p.lien, key=p.pseudo+"\u0001"+p.cle;
     var st=l.statut||"disponible";
     var tag='<span class="tag-dispo '+escA(st)+'">'+escH(DISPO[st]||st)+'</span>';
     var ac = BHL.S.admin
@@ -140,9 +176,15 @@
                    :'<div class="tdlb-empty">'+escH(T.reseauVide)+'</div>')
       + '</section>';
   }
+  /* la recherche se fait désormais sur la CLÉ ; si le lien a disparu entre
+     l'ouverture du formulaire et son rendu, on referme au lieu de planter */
   function resForm(ref){
     var neuf=(ref==="new"), p=null;
-    if(!neuf){ var parts=ref.split("\u0001"); tousReseau().forEach(function(x){ if(x.pseudo===parts[0]&&String(x.idx)===parts[1]) p=x; }); }
+    if(!neuf){
+      var parts=ref.split("\u0001");
+      tousReseau().forEach(function(x){ if(x.pseudo===parts[0] && x.cle===parts[1]) p=x; });
+      if(!p){ resEdit=null; return ""; }
+    }
     var l=p?p.lien:{};
     return '<div class="tdlb-bra-form">'
       + (neuf ? '<div><label>'+T.contact+'</label><select class="tdlb-in" data-rf="pseudo">'+optTousMembres("")+'</select></div>'
@@ -182,26 +224,35 @@
          host.querySelectorAll("[data-rfiltre]").forEach(function(b){ b.addEventListener("click", function(){ filtreRes=b.dataset.rfiltre; BHL.rendreOnglet(); }); });
     host.querySelectorAll("[data-redit]").forEach(function(b){ b.addEventListener("click", function(e){ e.preventDefault(); edit=null; resEdit=b.dataset.redit; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
     host.querySelectorAll("[data-rcancel]").forEach(function(b){ b.addEventListener("click", function(){ resEdit=null; BHL.rendreOnglet(); BHL.renderActionbar(); }); });
+    /* [MAJ v2] le retrait vise une CLÉ : il ne peut plus décaler les liens
+       suivants ni emporter un contact de la Main logé dans la même branche. */
     host.querySelectorAll("[data-rrm]").forEach(function(b){ b.addEventListener("click", function(e){
       e.preventDefault();
-      var pr=b.dataset.rrm.split("\u0001"), pseudo=pr[0], idx=+pr[1];
+      var pr=b.dataset.rrm.split("\u0001"), pseudo=pr[0], cle=pr[1];
+      if(!exigeCles(pseudo)) return;
       if(!window.confirm("Retirer "+pseudo+" du réseau des Faiseuses ?")) return;
-      var arr=vt(BHL.rec.membres[pseudo]&&BHL.rec.membres[pseudo].liens);
-      arr.splice(idx,1); ecrireLiens(pseudo, arr);
+      retirerLien(pseudo, cle);
     }); });
     host.querySelectorAll("[data-rsave]").forEach(function(b){ b.addEventListener("click", function(){
       var v={}; host.querySelectorAll(".tdlb-bra-form [data-rf]").forEach(function(el){ v[el.dataset.rf]=el.value.trim(); });
       if(b.dataset.rsave==="new"){
         var pseudo=(host.querySelector('[data-rf="pseudo"]')||{}).value||"";
         if(!pseudo || !v.role) return;
-        var arr=vt(BHL.rec.membres[pseudo]&&BHL.rec.membres[pseudo].liens);
-        arr.push({ type:"reseau_faiseuses", categorie:"faiseuses", activite:v.activite||"", role:v.role, statut:v.statut||"disponible" });
-        resEdit=null; ecrireLiens(pseudo, arr);
+        if(!exigeCles(pseudo)) return;
+        resEdit=null;
+        majLien(pseudo, window.TDLBase.nouvelleCle(),
+          { type:"reseau_faiseuses", categorie:"faiseuses", activite:v.activite||"",
+            role:v.role, statut:v.statut||"disponible" });
       } else {
-        var pp=b.dataset.rsave.split("\u0001"), ps=pp[0], ix=+pp[1];
-        var a=vt(BHL.rec.membres[ps].liens);
-        if(a[ix]) a[ix]=Object.assign({},a[ix],{ activite:v.activite||"", role:v.role, statut:v.statut||"disponible" });
-        resEdit=null; ecrireLiens(ps, a);
+        var pp=b.dataset.rsave.split("\u0001"), ps=pp[0], cle=pp[1];
+        if(!exigeCles(ps)) return;
+        /* on repart du lien tel qu'il est en base : les champs qu'on n'édite
+           pas ici (date, type…) ne doivent pas disparaître */
+        var anc=((BHL.rec.membres[ps]||{}).liens||{})[cle];
+        if(!anc){ BHL.toast("Ce contact n\u2019existe plus."); resEdit=null; BHL.rendreOnglet(); return; }
+        resEdit=null;
+        majLien(ps, cle, Object.assign({}, anc,
+          { activite:v.activite||"", role:v.role, statut:v.statut||"disponible" }));
       }
       BHL.renderActionbar();
     }); });
