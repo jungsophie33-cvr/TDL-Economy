@@ -36,6 +36,7 @@
 
 var CADENCE_MS    = 15000;      /* cadence par défaut d'une veille            */
 var INACTIVITE_MS = 600000;     /* 10 min sans action → on cesse de sonder    */
+var FOCUS_GRACE_MS= 30000;      /* 30 s sans focus fenêtre → idem             */
 var FENETRE_MS    = 15000;      /* délai après écriture avant de relire       */
 var ABSENCE_MS    = 600000;     /* masqué plus longtemps → relecture complète */
 var SEUIL_LOT     = 20;         /* au-delà, lecture complète du nœud          */
@@ -50,14 +51,23 @@ function journal() { try { console.warn.apply(console, ["[TDLBase]"].concat([].s
 
 var _derniereAction = Date.now();
 var _masqueDepuis   = 0;
+var _perduFocus     = 0;
 
-function marquerAction() { _derniereAction = Date.now(); }
+function marquerAction() { _derniereAction = Date.now(); _perduFocus = 0; }
 ["pointerdown", "keydown", "wheel", "touchstart"].forEach(function (ev) {
   document.addEventListener(ev, marquerAction, true);
 });
+/* [MAJ v7] document.hidden ne suffit pas. Un onglet reste « visible » tant
+   qu'il est l'onglet de premier plan de SA fenêtre, même si cette fenêtre est
+   derrière une autre : deux fenêtres de navigateur ouvertes sur le forum, et
+   celle de derrière continuait de sonder. On ajoute donc la perte de focus,
+   avec un court délai pour ne pas couper la veille à chaque clic hors page. */
+window.addEventListener("blur",  function () { if (!_perduFocus) _perduFocus = Date.now(); });
+window.addEventListener("focus", marquerAction);
 
 function inactif() {
   if (typeof document.hidden === "boolean" && document.hidden) return true;
+  if (_perduFocus && Date.now() - _perduFocus > FOCUS_GRACE_MS) return true;
   return Date.now() - _derniereAction > INACTIVITE_MS;
 }
 
@@ -203,8 +213,8 @@ var _veilles = [];
 function caler(node, id, rev) {
   _veilles.forEach(function (v) {
     if (v.node !== node) return;
-    if (rev == null) delete v.revs[id];
-    else v.revs[id] = rev;
+    if (rev == null) { delete v.revs[id]; delete v.sansRev[id]; }
+    else { v.revs[id] = rev; delete v.sansRev[id]; }
   });
 }
 
@@ -229,6 +239,11 @@ function suivre(opts) {
     node: opts.node,
     revPath: cheminRev(opts.node, opts),
     revs: {},
+    /* [MAJ v7] ids connus SANS sentinelle (jamais réécrits depuis que la
+       sentinelle existe, ou écrits par un module tiers). Leur absence de la
+       carte des révisions ne vaut PAS suppression : seule la réconciliation,
+       qui lit le nœud lui-même, peut trancher leur sort. */
+    sansRev: {},
     ms: opts.ms || CADENCE_MS,
     derniere: null,
     enCours: false,
@@ -282,12 +297,14 @@ function suivre(opts) {
       if (!force && opts.occupe && opts.occupe()) return;
       var majs = [], supprimes = [];
       Object.keys(brut).forEach(function (id) {
-        var r = (rev[id] != null) ? rev[id] : 0;
-        if (v.revs[id] !== r) majs.push({ id: id, brut: brut[id] });
-        v.revs[id] = r;
+        var rv = rev[id];
+        if (rv == null) { v.sansRev[id] = true; rv = 0; } else { delete v.sansRev[id]; }
+        if (v.revs[id] !== rv) majs.push({ id: id, brut: brut[id] });
+        v.revs[id] = rv;
       });
+      /* ici la suppression est certaine : on a lu le nœud, pas seulement ses révisions */
       Object.keys(v.revs).forEach(function (id) {
-        if (brut[id] == null) { supprimes.push(id); delete v.revs[id]; }
+        if (brut[id] == null) { supprimes.push(id); delete v.revs[id]; delete v.sansRev[id]; }
       });
       if (majs.length || supprimes.length) opts.onEntrees(majs, supprimes);
     }, function (e) { v.enCours = false; v.dernierComplet = Date.now(); journal("réconciliation", v.node, e); });
@@ -300,12 +317,17 @@ function suivre(opts) {
       r = r || {};
       var neufs = [], supprimes = [];
       Object.keys(r).forEach(function (id) { if (v.revs[id] !== r[id]) neufs.push(id); });
-      Object.keys(v.revs).forEach(function (id) { if (r[id] == null) supprimes.push(id); });
+      Object.keys(v.revs).forEach(function (id) {
+        if (r[id] != null) return;
+        if (v.sansRev[id]) return;        /* n'a jamais eu de révision : pas une suppression */
+        supprimes.push(id);
+      });
       if (!neufs.length && !supprimes.length) { v.enCours = false; return; }
       if (neufs.length > SEUIL_LOT) {           /* lot massif → une seule requête */
         v.enCours = false;
         return tickReconcile(force);
       }
+      neufs.forEach(function (id) { delete v.sansRev[id]; });   /* elles en ont une maintenant */
       return Promise.all(neufs.map(function (id) {
         return lire(v.node + "/" + id).then(function (o) { return { id: id, brut: o }; });
       })).then(function (majs) {
@@ -339,8 +361,10 @@ function suivre(opts) {
       if (!modeRev) return Promise.resolve();
       return lire(v.revPath).then(function (r) {
         r = r || {};
-        Object.keys(r).forEach(function (id) { v.revs[id] = r[id]; });
-        Object.keys(brut || {}).forEach(function (id) { if (v.revs[id] === undefined) v.revs[id] = 0; });
+        Object.keys(r).forEach(function (id) { v.revs[id] = r[id]; delete v.sansRev[id]; });
+        Object.keys(brut || {}).forEach(function (id) {
+          if (v.revs[id] === undefined) { v.revs[id] = 0; v.sansRev[id] = true; }
+        });
         v.dernierComplet = Date.now();
       }, function () {});
     }
@@ -354,7 +378,7 @@ document.addEventListener("visibilitychange", function () {
   var longue = _masqueDepuis && (Date.now() - _masqueDepuis > ABSENCE_MS);
   _masqueDepuis = 0;
   _veilles.forEach(function (v) {
-    if (longue) v.revs = {};        /* on repart de zéro : tout sera relu */
+    if (longue) { v.revs = {}; v.sansRev = {}; }   /* on repart de zéro : tout sera relu */
     v.enCours = false;
   });
 });
