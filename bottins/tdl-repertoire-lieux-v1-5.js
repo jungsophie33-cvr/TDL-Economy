@@ -119,8 +119,8 @@ function noeudLieu(l){ const o = Object.assign({}, l); delete o.id; return o; }
 
 function ecoPret(cb, n){
   n = n || 0;
-  if(window.EcoCore && typeof EcoCore.safeReadBin==='function' && typeof EcoCore.firebaseUpdate==='function'){ cb(EcoCore); return; }
-  if(n > 40){ if(window.console) console.warn('[TDL lieux] EcoCore introuvable — mode mémoire.'); cb(null); return; }
+   if(window.EcoCore && typeof EcoCore.firebaseGet==='function' && typeof EcoCore.firebaseUpdate==='function'){ cb(EcoCore); return; }
+   if(n > 40){ if(window.console) console.warn('[TDL lieux] EcoCore introuvable — mode mémoire.'); cb(null); return; }
   setTimeout(()=>ecoPret(cb, n+1), 250);
 }
 function semerSiVide(eco){
@@ -132,11 +132,12 @@ function semerSiVide(eco){
   eco.firebaseUpdate(u).catch(e=>window.console&&console.error('[TDL lieux] semer', e));
 }
 const Store = {
-  charger(rendre){
+    charger(rendre){
     ecoPret(eco=>{
       if(!eco){ rendre(); return; }
-      eco.safeReadBin().then(root=>{
-        const brut = root && root.lieux;
+      /* [MAJ] firebaseGet('lieux') : 11,6 ko au lieu des 126 ko de la racine.
+         Ce module ne lit aucune autre branche — les lieux n'ont pas d'avatar. */
+      Promise.resolve(eco.firebaseGet(CHEMIN_LIEUX)).then(brut=>{
         if(brut && Object.keys(brut).length){
           LIEUX = Object.entries(brut)
             /* « masque » : lieu créé par le formulaire de validation de fiche pour
@@ -419,14 +420,14 @@ function init(){
   elListe = $(SEL.liste); elPanneau = $(SEL.panneau); elApp = document.querySelector('.tdlr-app');
   if(!elListe || !elPanneau) return;              /* structure absente → on sort */
   const home=$(SEL.home); if(home) home.setAttribute('href',HREF_ACCUEIL);
-  const edit=$(SEL.edit); 
-   if(edit){
+  const edit=$(SEL.edit);
+  if(edit){
     edit.setAttribute('href',EDIT_URL);
     edit.addEventListener("click", function(ev){
-  ev.preventDefault(); ev.stopPropagation();
-  window.open(CFG.EDIT_URL, "_blank", "noopener");
-});
-   }
+      ev.preventDefault(); ev.stopPropagation();
+      window.open(EDIT_URL, "_blank", "noopener");   /* [MAJ] CFG n'existe pas ici */
+    });
+  }
   $(SEL.lAccueil).textContent   = TEXTES.accueil;
   $(SEL.lEntete).textContent    = TEXTES.entete;
   $(SEL.lLieux).textContent     = TEXTES.lieux;
