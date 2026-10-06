@@ -3,15 +3,39 @@
    son HTML. À charger APRÈS Notiffi.init(). Dépend de window.EcoCore et de
    eco-notif.js (registre des types).
 
+   [MAJ v2] PLUS AUCUNE LECTURE DE LA RACINE.
+     lire(true) appelait safeReadBin() au démarrage : 126 ko lus sur CHAQUE
+     page ouverte par CHAQUE membre, pour en utiliser 9,9. Et c'était inutile :
+     le flux temps réel du SDK redélivre notifs/{uid} et notifs_globales juste
+     après, par child_added.
+     Ce qu'il faut vraiment connaître AVANT d'attacher le flux tient en deux
+     feuilles minuscules :
+       notifs_etat/{uid}     — le curseur et les annonces masquées, sans quoi
+                               une annonce déjà écartée resurgirait en alerte ;
+       notifs_pseudo/{k}     — les notifications déposées sous un pseudo non
+                               résolu, à rapatrier.
+     Soit ~900 octets au lieu de 126 ko : un facteur 140 sur toutes les pages
+     du forum. Le reste arrive par le flux.
+
+   [MAJ v2] LE MODE DÉGRADÉ NE JETTE PLUS LE CACHE COMMUN. Il appelait
+     invalidateCache() avant chaque lecture, ce qui vidait le cache partagé en
+     sessionStorage : tous les autres modules de la page étaient alors forcés
+     de relire la racine. Il lit maintenant notifs/{uid} et notifs_globales en
+     ciblé, sans toucher au cache de personne.
+
+   [MAJ v2] LA PURGE est différée. Elle s'appuyait sur S.perso rempli par la
+     lecture initiale ; c'est désormais le flux qui le remplit, de façon
+     asynchrone. Elle passe donc après un court délai.
+
    TROIS ACCROCHES
    - displayNotifications : fusionne nos notifs avec celles de FA (la méthode
      d'origine écrase syncStore.notifs, on l'enveloppe donc, on ne l'alimente pas)
    - handleUnread         : additionne les deux compteurs
    - boutons              : « Marquer comme lu » et « Tout supprimer » couvrent TDL
 
-   TEMPS RÉEL : EventSource (streaming REST Firebase, sans SDK) sur notifs/{uid}.
-   Le canal global est relu toutes les 60 s — il ne porte que des annonces rares.
-   Sans URL de base détectable, repli automatique sur EcoCore en interrogation.
+   TEMPS RÉEL : le SDK Firebase, déjà chargé par eco-core pour l'auth, multiplexe
+   toutes les écoutes sur une seule websocket. À défaut, EventSource (streaming
+   REST). À défaut encore, interrogation ciblée.
 
    PIÈGE POTION : le morphing recopie tous les attributs SAUF @… et #…, donc un
    handler @click lié à une ligne réutilisée pointe encore l'ancien contexte.
@@ -29,10 +53,11 @@ var CFG = {
   NODE_GLOB:  "notifs_globales",
   NODE_ETAT:  "notifs_etat",
   POLL_GLOB:  60000,            /* relecture du canal global */
-  POLL_DEG:   45000,            /* mode dégradé : tout relire via EcoCore */
+  POLL_DEG:   45000,            /* mode dégradé : relecture ciblée */
   VIE:        120000,           /* contrôle de vitalité du flux */
   PLAFOND:    30,               /* notifs personnelles conservées */
   PURGE_J:    30,
+  DELAI_PURGE:8000,             /* [MAJ v2] le flux doit d'abord livrer le nœud */
   GLOB_MAX:   20,               /* annonces globales relues */
   CLE_TS:     "tdl_notif_fa_ts" /* horodatage local des notifs FA */
 };
@@ -66,6 +91,15 @@ function base() {
   var e = E();
   var b = (e && typeof e.BASE_URL === "string" && e.BASE_URL) || CFG.BASE;
   return String(b || "").replace(/\/+$/, "");
+}
+
+/* [MAJ v2] lecture d'une feuille, jamais de la racine. Le chemin part dans une
+   URL : ses segments variables doivent être ENCODÉS — contrairement aux
+   chemins de firebaseUpdate, qui restent bruts. */
+function lireChemin(p) {
+  if (!E() || !E().firebaseGet) return Promise.resolve(null);
+  try { return Promise.resolve(E().firebaseGet(p)).catch(function () { return null; }); }
+  catch (e) { return Promise.resolve(null); }
 }
 
 function ecrire(map) {
@@ -312,7 +346,8 @@ function alerte(id, n) {
    websocket — perso + canal global pour une connexion au lieu de deux — et
    gère seul la reconnexion. On le préfère à EventSource quand il est là.
    Les enfants déjà présents déclenchent child_added à l'attache : le filtre
-   ts > S.ouvert suffit à ne pas rejouer l'historique en alertes. */
+   ts > S.ouvert suffit à ne pas rejouer l'historique en alertes. C'est aussi
+   lui qui remplit S.perso et S.glob, ce qui rend la lecture initiale inutile. */
 function arrive(id, n, src) {
   if (!n || typeof n !== "object") return;
   var neuf = !(src === "g" ? S.glob[id] : S.perso[id]);
@@ -402,34 +437,63 @@ function globales(premier) {
     .catch(function () {});
 }
 
-/* mode dégradé : sans URL de base, tout passe par EcoCore */
-function degrade() {
-  setInterval(function () {
-    try { if (E().invalidateCache) E().invalidateCache(); } catch (e) {}
-    lire(false);
-  }, CFG.POLL_DEG);
+/* [MAJ v2] mode dégradé : deux lectures CIBLÉES, et plus aucun
+   invalidateCache — il vidait le cache partagé de toute la page. */
+function degrade(u) {
+  setInterval(function () { lireCible(u, false); }, CFG.POLL_DEG);
 }
 
 /* ===================== CHARGEMENT ===================== */
-function lire(premier) {
-  var u = uid();
-  if (!u || !E() || !E().safeReadBin) return Promise.resolve();
-  return Promise.resolve(E().safeReadBin()).then(function (rec) {
-    rec = rec || {};
-    var neuf = [];
-    var p = (rec[CFG.NODE] || {})[u] || {};
-    var g = rec[CFG.NODE_GLOB] || {};
-    var e = (rec[CFG.NODE_ETAT] || {})[u] || {};
+/* Amorçage : les deux seules feuilles à connaître AVANT d'attacher le flux.
+   notifs_etat porte le curseur et les masquées — sans elles, une annonce déjà
+   écartée resurgirait en alerte dès le premier child_added. */
+function amorcer(u) {
+  return Promise.all([lireEtat(u), lirePseudo(u)]).catch(function () {});
+}
 
+function lireEtat(u) {
+  return lireChemin(CFG.NODE_ETAT + "/" + encodeURIComponent(u)).then(function (e) {
+    e = e || {};
     S.etat.lues = e.lues || {};
     S.etat.masquees = e.masquees || {};
     if (e.curseur == null) {
       /* première connexion : on n'affiche pas l'historique des annonces */
       S.etat.curseur = Date.now();
-      var up = {}; up[CFG.NODE_ETAT + "/" + u + "/curseur"] = S.etat.curseur;
+      var up = {}; up[CFG.NODE_ETAT + "/" + u + "/curseur"] = S.etat.curseur;   /* RAW */
       ecrire(up);
     } else S.etat.curseur = +e.curseur || 0;
+  });
+}
 
+/* notifs déposées sous un pseudo non résolu : on les rapatrie sous notre UID.
+   Le chemin de LECTURE est encodé (il part dans une URL), celui d'ÉCRITURE
+   reste brut (PATCH à la racine). */
+function lirePseudo(u) {
+  var k = cle(pseudo());
+  if (!k) return Promise.resolve();
+  return lireChemin(CFG.NODE_PSEUDO + "/" + encodeURIComponent(k)).then(function (src) {
+    if (!src || !Object.keys(src).length) return;
+    var up = {};
+    Object.keys(src).forEach(function (id) {
+      S.perso[id] = src[id];
+      up[CFG.NODE + "/" + u + "/" + id] = src[id];
+    });
+    up[CFG.NODE_PSEUDO + "/" + k] = null;
+    ecrire(up);
+    rafraichir();
+  });
+}
+
+/* Lecture ciblée du nœud personnel et du canal global — repli quand ni le SDK
+   ni EventSource ne sont disponibles. Remplace l'ancien lire(), qui passait
+   par safeReadBin() et tirait la racine entière. */
+function lireCible(u, premier) {
+  if (!u) return Promise.resolve();
+  return Promise.all([
+    lireChemin(CFG.NODE + "/" + encodeURIComponent(u)),
+    lireChemin(CFG.NODE_GLOB)
+  ]).then(function (r) {
+    var p = r[0] || {}, g = r[1] || {}, neuf = [];
     if (premier) { S.perso = p; S.glob = g; }
     else {
       Object.keys(p).forEach(function (id) {
@@ -441,24 +505,9 @@ function lire(premier) {
         S.glob[id] = g[id];
       });
     }
-    reconcilier(rec, u);
     rafraichir();
     neuf.forEach(function (x) { alerte(x[0], x[1]); });
   }).catch(function () {});
-}
-
-/* notifs déposées sous un pseudo non résolu : on les rapatrie sous notre UID */
-function reconcilier(rec, u) {
-  var k = cle(pseudo());
-  var src = (rec[CFG.NODE_PSEUDO] || {})[k];
-  if (!src || !Object.keys(src).length) return;
-  var up = {};
-  Object.keys(src).forEach(function (id) {
-    S.perso[id] = src[id];
-    up[CFG.NODE + "/" + u + "/" + id] = src[id];
-  });
-  up[CFG.NODE_PSEUDO + "/" + k] = null;
-  ecrire(up);
 }
 
 /* plafond et ancienneté — seul le propriétaire purge son nœud */
@@ -481,14 +530,20 @@ function demarrer() {
   S.ouvert = Date.now();
   patcher();
   brancher();
-  lire(true).then(function () {
-    purger(u);
+  amorcer(u).then(function () {
     S.pret = true;
     rafraichir();
-    if (!fluxSDK()) {
-      if (flux()) { globales(true); setInterval(function () { globales(false); }, CFG.POLL_GLOB); }
-      else degrade();
+    if (fluxSDK()) {
+      /* le SDK livre perso ET global : rien à lire */
+    } else if (flux()) {
+      globales(true);
+      setInterval(function () { globales(false); }, CFG.POLL_GLOB);
+    } else {
+      lireCible(u, true);
+      degrade(u);
     }
+    /* [MAJ v2] la purge attend que le flux ait livré le nœud personnel */
+    setTimeout(function () { purger(u); }, CFG.DELAI_PURGE);
     if (window.EcoNotif && window.EcoNotif.calendrier) window.EcoNotif.calendrier();
   });
 }
@@ -496,7 +551,7 @@ function demarrer() {
 function attendre() {
   var n = 0;
   var iv = setInterval(function () {
-    if (N() && N().syncStore && E() && E().safeReadBin) { clearInterval(iv); demarrer(); }
+    if (N() && N().syncStore && E() && E().firebaseGet) { clearInterval(iv); demarrer(); }
     else if (++n > 80) { clearInterval(iv); if (window.console) console.warn("[NotiffiFB] Notiffi ou EcoCore introuvable."); }
   }, 250);
 }
@@ -504,6 +559,6 @@ function attendre() {
 if (document.readyState === "complete") attendre();
 else window.addEventListener("load", attendre);
 
-window.NotiffiFB = { etat: S, rafraichir: rafraichir, lire: lire };
+window.NotiffiFB = { etat: S, rafraichir: rafraichir, lire: function (p) { return lireCible(uid(), !!p); } };
 
 })();
