@@ -15,6 +15,11 @@
 //       5 min. Coût nul 59 minutes sur 60 ;
 //     - chaque appel rejoue UNE fois sur 401, token forcé, pour le cas où il
 //       expire pendant la requête elle-même.
+//
+// [MAJ v1-10] DÉBIT STRICT MUTUALISÉ. debiterDollars / crediterDollars /
+//   transfererDollars remplacent les crediterDollars locaux des tableaux, qui
+//   plafonnaient à zéro et CRÉAIENT de la monnaie quand le solde ne couvrait
+//   pas le prélèvement.
 console.log("[EcoV2] >>> eco-core chargé (Firebase)");
 
 (function(){
@@ -431,6 +436,48 @@ function firebaseGet(path) {
     return v;
   }
 
+  // ---------- MOUVEMENTS D'ARGENT ----------
+  // [MAJ v1-10] Jusqu'ici chaque tableau écrivait son propre crediterDollars,
+  // bâti sur  Math.max(0, cur + delta)  — et s'en servait aussi pour DÉBITER en
+  // passant un delta négatif. Sur un solde insuffisant, ce plafonnement ne lève
+  // rien : le payeur tombe à zéro, le bénéficiaire touche la somme entière, et
+  // la différence est CRÉÉE. Les pré-tests du genre  if (solde(p) < prix)  ne
+  // protégeaient pas, puisqu'ils lisent un instantané vieux de quinze secondes.
+  // Les deux opérations sont désormais distinctes et partagées :
+  //   debiterDollars  refuse et lève FONDS si le compte ne couvre pas ;
+  //   crediterDollars n'accepte qu'un montant positif.
+  // RÈGLE : ne jamais débiter en créditant un montant négatif.
+  async function debiterDollars(pseudo, montant) {
+    montant = Math.round(+montant || 0);
+    if (!pseudo || montant <= 0) return 0;
+    return firebaseTransaction("membres/" + encodeURIComponent(pseudo) + "/dollars", function (cur) {
+      var c = cur || 0;
+      if (c < montant) throw new Error("FONDS");
+      return c - montant;
+    });
+  }
+  async function crediterDollars(pseudo, montant) {
+    montant = Math.round(+montant || 0);
+    if (!pseudo || montant <= 0) return 0;
+    return firebaseTransaction("membres/" + encodeURIComponent(pseudo) + "/dollars", function (cur) {
+      return (cur || 0) + montant;
+    });
+  }
+  // Transfert d'un membre à un autre : débit STRICT d'abord, crédit ensuite.
+  // Si le crédit échoue, le débit est annulé — sans quoi l'argent disparaîtrait.
+  async function transfererDollars(de, vers, montant) {
+    montant = Math.round(+montant || 0);
+    if (montant <= 0) return 0;
+    await debiterDollars(de, montant);
+    try {
+      await crediterDollars(vers, montant);
+    } catch (e) {
+      try { await crediterDollars(de, montant); } catch (e2) { err("transfert : recrédit impossible", de, montant, e2); }
+      throw e;
+    }
+    return montant;
+  }
+
   // [MAJ] transactDollars a été SUPPRIMÉE : fonction morte (aucun appelant) qui
   // pointait encore vers le chemin obsolète `eco/membres/...` (préfixe abandonné
   // depuis le passage des collections à la racine). Les débits/crédits passent
@@ -473,6 +520,8 @@ function firebaseGet(path) {
      // Nouvelles API Firebase
     writeField, lireFrais, invalidateCache,
     firebaseGet, firebaseTransaction, firebasePush, firebaseUpdate,
+    // Mouvements d'argent — ne jamais débiter en créditant un montant négatif
+    debiterDollars, crediterDollars, transfererDollars,
     // Extractors & helpers
     getPseudo, getUserId, getMessagesCount,
     insertAfter, createErrorBanner, showEcoGain
