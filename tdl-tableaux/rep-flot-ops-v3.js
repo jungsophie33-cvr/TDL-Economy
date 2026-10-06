@@ -2,6 +2,27 @@
    THE DROWNED LANDS — TABLEAU DU HANGAR · FLUX « OPÉRATIONS »
    (rep-flot-ops.js) — à charger APRÈS rep-flot-core.js.
 
+   [MAJ v2] SCHÉMA 2 — participants et valides deviennent des nœuds à clés
+     (clé = pseudo assaini). Deux membres de la Flottille qui cliquent
+     « Je participe » dans la même fenêtre de veille ne s'écrasent plus.
+     contraintes RESTE un tableau : il s'édite dans un textarea qui réécrit la
+     liste entière, les clés n'y apporteraient rien.
+
+   [MAJ v2] VERROUS SUR LES VERSEMENTS. verser() et le remboursement se
+     gardaient d'un double paiement en lisant primeVersee / rembourse dans
+     l'instantané en mémoire. Deux membres du staff agissant dans la même
+     fenêtre de veille versaient la prime DEUX FOIS, ou remboursaient deux
+     fois le commanditaire. auto() faisait pourtant déjà la bonne chose : le
+     drapeau est désormais posé par transaction partout.
+     COMPROMIS ASSUMÉ : le verrou est pris AVANT le mouvement. Si celui-ci
+     échoue, l'opération reste marquée réglée sans que l'argent ait bougé. Un
+     double versement est silencieux ; une opération bloquée est visible.
+
+   [MAJ v2] LA NÉGOCIATION débitait par F.crediter(demandeur, -delta), bâti sur
+     Math.max(0, …) : sur un solde insuffisant le commanditaire tombait à zéro
+     et la différence était créée. Le prélèvement est strict, la prime affichée
+     revient en arrière s'il est refusé, et un second clic ne passe plus.
+
    Données : flottille/operations/{id}, créées par quai-staff à la validation
    d'un achat « Opération » en boutique (1 000 $ minimum, prime déjà retenue
    sur le demandeur).
@@ -17,7 +38,7 @@
 "use strict";
 if(!F){ if(window.console) console.warn("[rep-flot-ops] rep-flot-core absent."); return; }
 var esc=F.esc, escAttr=F.escAttr, vt=F.vt, money=F.money, ilya=F.ilya, av=F.av, $=F.$;
-var S=F.S, patch=F.patch, toast=F.toast;
+var S=F.S, patch=F.patch, toast=F.toast, cp=F.cp;
 
 /* ===================== CONFIG ===================== */
 var SOUS="operations";
@@ -36,6 +57,21 @@ var T={
   ATTENTE:"En attente d\u2019un capitaine."
 };
 
+/* ---- PLAN DE MIGRATION v1 → v2 ---- */
+var PLAN = {
+  participants: {mode:"pseudo", conv:function(x){return x?String(x):null;}},
+  valides:      {mode:"pseudo", conv:function(x){return x?String(x):null;}}
+};
+
+/* pseudos : v1 = tableau de pseudos, v2 = {pseudoAssaini: pseudoRéel} */
+function lstPseudos(v){
+  if(v==null)return [];
+  if(Array.isArray(v))return v.filter(Boolean).map(String);
+  if(typeof v!=="object")return [];
+  return Object.keys(v).map(function(k){return String(v[k]||k);});
+}
+function cheminOp(m){ return F.cheminEntree(m); }
+
 /* ===================== NORMALISATION ===================== */
 function normaliser(o){
   o.titre=o.titre||"Opération";
@@ -51,8 +87,8 @@ function normaliser(o){
   o.contexte=o.contexte||"";
   o.statut=STATUTS[o.statut]?o.statut:"en_attente";
   o.chef=o.chef||null;
-  o.participants=vt(o.participants);
-  o.valides=vt(o.valides);
+  o.participants=lstPseudos(o.participants);
+  o.valides=lstPseudos(o.valides);
   o.nego=(o.nego&&o.nego.montant!=null)?o.nego:null;
   o.sujet=o.sujet||"";
   o.resume=o.resume||""; o.consequences=o.consequences||"";
@@ -214,6 +250,8 @@ function drawer(m){
 }
 
 /* ===================== ACTIONS ===================== */
+var _negoEnVol={};
+
 function act(k,m){
   var me=F.myPseudo();
 
@@ -221,24 +259,17 @@ function act(k,m){
     if(!F.estFlottille(me)){toast(T.NON_FLOT);return;}
     if(m.statut!=="en_attente"&&m.statut!=="en_cours"){toast(T.FERMEE);return;}
     if(m.participants.indexOf(me)>=0){toast(T.DEJA);return;}
+    if(!F.exigeV2(m))return;
     m.participants.push(me);
-    var champs={participants:m.participants};
+    /* [MAJ v2] on n'écrit QUE sa propre clé */
+    var champs={}; champs["participants/"+cp(me)]=me;
     if(!m.chef){m.chef=me;m.statut="en_cours";champs.chef=me;champs.statut="en_cours";}
     patch(m,champs);toast(m.chef===me?T.CHEF:T.PART);F.renderStage();return;
   }
   if(k==="sujet"||k==="nego"){S.inline=k;S.drawer=null;F.renderStage();return;}
   if(k==="bilan"||k==="edit"){S.drawer=(k==="bilan"?"bilan":"edit");S.inline=null;F.renderStage();return;}
 
-  if(k==="negoyes"){
-    if(!m.nego)return;
-    var neuf=+m.nego.montant||0, delta=neuf-m.prime;
-    if(delta>0&&F.solde(m.demandeur)<delta){toast("Solde insuffisant pour couvrir la hausse.");return;}
-    F.crediter(m.demandeur,-delta).then(function(){
-      m.prime=neuf;m.nego=null;patch(m,{prime:neuf,nego:null});
-      toast("Prime portée à "+money(neuf)+".");F.renderStage();
-    }).catch(function(){toast("Ajustement impossible.");});
-    return;
-  }
+  if(k==="negoyes"){accepterNego(m);return;}
   if(k==="negono"){m.nego=null;patch(m,{nego:null});toast("Proposition refusée.");F.renderStage();return;}
 
   if(k==="retirer"||k==="refuser"){
@@ -306,58 +337,94 @@ function brancher(stage){
   stage.querySelectorAll("[data-val]").forEach(function(el){
     el.onchange=function(){
       var m=F.parId(S.sel); if(!m)return;
+      if(!F.exigeV2(m)){el.checked=!el.checked;return;}
       var p=el.getAttribute("data-val"), i=m.valides.indexOf(p);
       if(el.checked&&i<0)m.valides.push(p); else if(!el.checked&&i>=0)m.valides.splice(i,1);
-      patch(m,{valides:m.valides});
+      var ch={}; ch["valides/"+cp(p)]=el.checked?p:null; patch(m,ch);
     };
   });
 }
 
 /* ===================== ARGENT ===================== */
-function rembourser(m, msg){
-  var suite=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
-  Promise.resolve(suite).then(function(){
-    m.rembourse=true;m.statut="refusee";
-    patch(m,{rembourse:true,statut:"refusee"});
-    try{if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,101,{nom:m.titre,montant:m.prime},"fop"+m.id);}catch(e){}
-    toast(msg);F.renderAll();
-  }).catch(function(){toast("Remboursement impossible.");});
+/* [MAJ v2] La hausse de prime est un PRÉLÈVEMENT : elle passe par le débit
+   strict du socle, et la prime affichée revient en arrière si le compte ne
+   couvre pas. Un second clic ne passe plus tant que le premier est en vol. */
+function accepterNego(m){
+  if(!m.nego||_negoEnVol[m.id])return;
+  var neuf=+m.nego.montant||0, delta=neuf-m.prime, ancienne=m.prime;
+  if(delta>0&&F.solde(m.demandeur)<delta){toast("Solde insuffisant pour couvrir la hausse.");return;}
+  _negoEnVol[m.id]=true;
+  m.prime=neuf; m.nego=null;
+  patch(m,{prime:neuf,nego:null});
+  F.crediter(m.demandeur,-delta).then(function(){
+    toast("Prime portée à "+money(neuf)+".");F.renderStage();
+  }).catch(function(e){
+    m.prime=ancienne; patch(m,{prime:ancienne});
+    if(e&&e.message==="FONDS")toast("Fonds insuffisants au moment du prélèvement — prime inchangée, la proposition est annulée.");
+    else toast("Ajustement impossible — prime inchangée, la proposition est annulée.");
+    F.renderStage();
+  }).then(function(){ delete _negoEnVol[m.id]; });
 }
 
+/* [MAJ v2] verrou AVANT le recrédit — mêmes trois chemins que l'échéance
+   automatique, qui le faisait déjà. */
+function rembourser(m, msg){
+  F.verrou(cheminOp(m)+"/rembourse").then(function(){
+    m.rembourse=true;
+    var suite=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
+    return Promise.resolve(suite).then(function(){
+      m.statut="refusee";
+      patch(m,{statut:"refusee"});
+      try{if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,101,{nom:m.titre,montant:m.prime},"fop"+m.id);}catch(e){}
+      toast(msg);F.renderAll();
+    });
+  }).catch(function(e){
+    if(F.estDeja(e)){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});toast("Déjà remboursée ailleurs — aucun second recrédit.");F.renderAll();return;}
+    toast("Remboursement impossible — l\u2019opération est marquée remboursée, vérifiez le solde avant de recommencer.");F.renderAll();
+  });
+}
+
+/* [MAJ v2] verrou AVANT tout versement : deux validations simultanées ne
+   versaient pas l'une après l'autre, elles versaient DEUX FOIS. */
 function verser(m){
   if(m.primeVersee){toast("Prime déjà versée.");return;}
-  var gagnants=m.valides.length?m.valides:m.participants;
+  var gagnants=m.valides.length?m.valides.slice():m.participants.slice();
   if(!gagnants.length){toast("Aucun participant à payer.");return;}
   var part=Math.floor(m.prime/gagnants.length);
   var total=part*gagnants.length+(m.chef?F.CHEF_BONUS:0);
   if(!window.confirm("Verser "+money(part)+" à chacun des "+gagnants.length+" participants"
       +(m.chef?", plus "+money(F.CHEF_BONUS)+" au chef":"")+" ?\nTotal distribué : "+money(total)+"."))return;
 
-  var suite=Promise.resolve();
-  gagnants.forEach(function(p){suite=suite.then(function(){return F.crediter(p,part);});});
-  if(m.chef)suite=suite.then(function(){return F.crediter(m.chef,F.CHEF_BONUS);});
-  suite.then(function(){
-    m.primeVersee=true;m.statut="close";m.demandeValidation=false;
-    patch(m,{primeVersee:true,statut:"close",demandeValidation:false,valides:gagnants});
+  F.verrou(cheminOp(m)+"/primeVersee").then(function(){
+    m.primeVersee=true;
+    var suite=Promise.resolve();
+    gagnants.forEach(function(p){suite=suite.then(function(){return F.crediter(p,part);});});
+    if(m.chef)suite=suite.then(function(){return F.crediter(m.chef,F.CHEF_BONUS);});
+    return suite;
+  }).then(function(){
+    m.statut="close";m.demandeValidation=false;m.valides=gagnants;
+    /* les validés retenus sont consignés un par un : aucune liste réécrite */
+    var ch={statut:"close",demandeValidation:false};
+    gagnants.forEach(function(p){ ch["valides/"+cp(p)]=p; });
+    patch(m,ch);
     gagnants.forEach(function(p){try{if(window.EcoNotif)EcoNotif.a(p,100,{nom:m.titre},"vop"+m.id+p);}catch(e){}});
     toast("Opération close, prime versée.");F.renderAll();
-  }).catch(function(){toast("Versement interrompu \u2014 vérifie les soldes avant de recommencer.");});
+  }).catch(function(e){
+    if(F.estDeja(e)){m.primeVersee=true;toast("Prime déjà versée ailleurs — rien n\u2019a été versé une seconde fois.");F.renderAll();return;}
+    toast("Versement interrompu \u2014 l\u2019opération est marquée payée, vérifiez les soldes avant de recommencer.");F.renderAll();
+  });
 }
 
 /* ===================== ÉCHÉANCE 14 JOURS =====================
    Le drapeau rembourse est posé par TRANSACTION : seul le client qui le fait
-   passer false→true rembourse. Élimine le double-recrédit en cas de
-   chargements simultanés. */
+   passer false→true rembourse. C'est ce motif, déjà juste ici, qui est
+   désormais appliqué aux chemins manuels ci-dessus. */
 function auto(list){
   var now=Date.now();
   list.forEach(function(m){
     if(m.statut!=="en_attente"||m.chef||m.rembourse)return;
     if(now-new Date(m.cree).getTime()<F.DELAI_REFUS)return;
-    var path=F.CFG.RACINE+"/"+SOUS+"/"+encodeURIComponent(m.id)+"/rembourse";
-    var pr;
-    try{pr=window.EcoCore.firebaseTransaction(path,function(cur){if(cur===true)throw new Error("DEJA");return true;});}
-    catch(e){return;}
-    Promise.resolve(pr).then(function(){
+    F.verrou(cheminOp(m)+"/rembourse").then(function(){
       m.rembourse=true;m.statut="refusee";
       var credit=(m.demandeur&&m.prime>0)?F.crediter(m.demandeur,m.prime):Promise.resolve();
       return Promise.resolve(credit).then(function(){
@@ -365,14 +432,14 @@ function auto(list){
         patch(m,{statut:"refusee"});F.renderAll();
       });
     }).catch(function(e){
-      if(e&&e.message==="DEJA"){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});F.renderAll();}
+      if(F.estDeja(e)){m.rembourse=true;m.statut="refusee";patch(m,{statut:"refusee"});F.renderAll();}
     });
   });
 }
 
 /* ===================== DÉCLARATION ===================== */
 F.type({
-  k:"operations", sous:SOUS, label:"Opération", ic:"fi-tr-anchor",
+  k:"operations", sous:SOUS, label:"Opération", ic:"fi-tr-anchor", plan:PLAN,
   normaliser:normaliser, sub:sub, tags:tags, panel:panel,
   act:act, doo:doo, brancher:brancher, auto:auto
 });
