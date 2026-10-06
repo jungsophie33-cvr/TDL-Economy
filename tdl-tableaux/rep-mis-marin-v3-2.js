@@ -759,7 +759,7 @@ var mounted=false;
 function boot(){
   if(mounted)return true;
   var bg=document.querySelector(".tdlm-bg");
-  if(!bg)return false;
+  if(!bg||!document.querySelector("#tdlm-stage"))return false;
   mounted=true;
   document.body.appendChild(bg);
   var st=document.createElement("style");
