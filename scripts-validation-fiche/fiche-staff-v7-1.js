@@ -3,22 +3,44 @@
  *
  * CE QUE CE FICHIER FAIT : affiche les demandes en attente, ouvre une modale
  * de validation avec message personnalisé, poste dans la fiche du membre,
- * applique les actions automatiques (dollars, cagnotte, groupe, DC).
+ * applique les actions automatiques (dollars, groupe, bande, habitation, DC).
  * CE QU'IL NE FAIT PAS : formulaire membre, gestion des listes de membres.
  *
- * CARTE DES BLOCS :
- *   RENDER PANEL    — création du panel et des cartes de demande
- *   CHARGEMENT      — lecture JSONBin et rendu des cartes
- *   MODAL STAFF     — modale avec textarea de message personnalisé
- *   VALIDATION      — post dans la fiche + mise à jour statut
- *   ACTIONS         — dollars, cagnotte, groupe, complétion DC
- *   INIT            — point d'entrée exposé sur window.FI
+ * [MAJ v2] PLUS AUCUN readBin / writeBin.
+ *   writeBin est un patch différentiel AU NIVEAU DES BRANCHES RACINE :
+ *   appliquerActions mutait rec.membres, donc la branche membres repartait EN
+ *   ENTIER, reconstruite depuis un instantané lu quelques secondes plus tôt.
+ *   Tout ce qui avait bougé entre-temps était effacé — et membres est l'endroit
+ *   le plus actif du forum : un achat débité pendant la validation revenait, un
+ *   lien ajouté depuis le bottin disparaissait, une prime versée était annulée.
+ *   Chaque champ part désormais seul, et les montants passent par des
+ *   transactions : deux validations simultanées ne peuvent plus s'annuler.
  *
- * Dépend de : fiche-config.js, fiche-utils.js, window.EcoCore
+ * [MAJ v2] LES LIENS DE RÉSEAU PASSENT PAR LE SOCLE.
+ *   affecterBande faisait versTableau(m.liens).push(…) : la branche repartait
+ *   en TABLEAU, ce qui annulait la conversion aux clés pour tout le forum à
+ *   chaque fiche validée. Un seul chemin désormais : liens/{clé}.
+ *
+ * [MAJ v2] demandes_fiche DEVIENT UN NŒUD À CLÉS.
+ *   refuser() filtrait le tableau, ce qui RÉINDEXE tout : refuser une demande
+ *   pendant qu'un autre admin en valide une autre déplaçait sa cible. La
+ *   conversion se fait d'elle-même, en un PATCH atomique, au premier écrit qui
+ *   rencontre encore un tableau.
+ *
+ * CARTE DES BLOCS :
+ *   RENDER PANEL · AVATARS · DEMANDES · CHARGEMENT · MODAL STAFF
+ *   · VALIDATION · REFUS · ACTIONS CIBLÉES · FACECLAIM · FALLBACK · INIT
+ *
+ * Dépend de : fiche-config.js, fiche-utils.js, window.EcoCore, window.TDLBase.
  */
 
 (function (FI, CFG, T) {
   "use strict";
+
+  const NODE = "demandes_fiche";
+  const E = () => window.EcoCore;
+  const B = () => window.TDLBase;
+  const enc = (s) => encodeURIComponent(s);
 
   /* === RENDER PANEL === */
 
@@ -80,6 +102,39 @@
     const ini = String(d.pseudo).split(/\s+/).filter(Boolean)
       .map((w) => w[0]).slice(0, 2).join("").toUpperCase();
     return `<span class="mc-av">${ini}</span>`;
+  }
+
+  /* === DEMANDES : lecture et écriture par clé =====================
+     Lecture bi-schéma : rend [{_k, …demande}]. Un tableau v1 reçoit son indice
+     comme clé de substitution, qui sert à l'affichage mais JAMAIS à une
+     écriture — convertir() passe avant. */
+  function listerDemandes(src) {
+    if (!src) return [];
+    if (Array.isArray(src)) {
+      return src.map((d, i) => (d ? Object.assign({ _k: String(i) }, d) : null)).filter(Boolean);
+    }
+    return Object.keys(src).map((k) => (src[k] ? Object.assign({ _k: k }, src[k]) : null)).filter(Boolean);
+  }
+
+  /* Conversion tableau → nœud à clés, en UN PATCH atomique. Idempotente :
+     rend la carte des clés dans les deux cas, pour que l'appelant puisse
+     écrire par clé juste après. */
+  async function convertir(src) {
+    if (!Array.isArray(src)) return { converti: false };
+    const dst = {};
+    src.forEach((d) => { if (d) dst[B().nouvelleCle()] = d; });
+    await E().firebaseUpdate({ [NODE]: Object.keys(dst).length ? dst : null });
+    if (window.console) console.info("[fiche-staff] demandes_fiche converti en nœud à clés.");
+    return { converti: true };
+  }
+
+  async function lireDemandes() {
+    let src = await E().firebaseGet(NODE);
+    if (Array.isArray(src)) {
+      await convertir(src);
+      src = await E().firebaseGet(NODE);      // relu avec les vraies clés
+    }
+    return listerDemandes(src);
   }
 
   function creerCarte(d) {
@@ -145,13 +200,15 @@
   /* === CHARGEMENT === */
 
   async function chargerDemandes(listeEl) {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) { listeEl.textContent = T.ERR_DONNEES; return; }
+    /* [MAJ v2] une branche ciblée (~1 ko) au lieu des 189 ko de la racine */
+    let toutes;
+    try { toutes = await lireDemandes(); }
+    catch (e) { listeEl.textContent = T.ERR_DONNEES; if (window.console) console.error(e); return; }
 
     // Index reconstruit à chaque rendu : la page a pu être paginée entre-temps.
     AVATARS = indexAvatars();
 
-    const demandes = FI.versTableau(rec.demandes_fiche).filter((d) => d.statut === "en_attente");
+    const demandes = toutes.filter((d) => d.statut === "en_attente");
     const cpt = document.getElementById("fi-staff-nb");
     if (cpt) cpt.textContent = demandes.length;
 
@@ -217,8 +274,8 @@
   /* === VALIDATION === */
 
   async function valider(demande, msgPerso, listeEl, resultatEl) {
-    const topicId    = FI.extraireTopicId(demande.lien_fiche);
-    const staffPseudo = window.EcoCore.getPseudo();
+    const topicId     = FI.extraireTopicId(demande.lien_fiche);
+    const staffPseudo = E().getPseudo();
 
     const bbcode = FI.bbcodeValidation(demande, msgPerso, staffPseudo);
     try {
@@ -229,7 +286,7 @@
         // ForumActif injecte le formulaire via JS : le posting automatique est impossible.
         // On affiche le BBCode dans un textarea pour que le staff le colle manuellement.
         afficherFallbackPosting(resultatEl, bbcode, demande.lien_fiche);
-        // On continue quand même pour mettre à jour le statut dans le JSONBin
+        // On continue quand même pour mettre à jour le statut
       } else {
         FI.afficherResultat(resultatEl, "erreur",
           `${T.STAFF_ERR_POSTING}<br><small>${e.message}</small>`);
@@ -237,25 +294,28 @@
       }
     }
 
-    const rec = await window.EcoCore.readBin();
-    // Normalisation avant findIndex : si Firebase a converti en objet {0:…, 6:…},
-    // l'index retourné par findIndex ne correspond pas aux clés de l'objet original.
-    // On réécrit rec.demandes_fiche comme vrai tableau pour que rec.demandes_fiche[idx] fonctionne.
-    rec.demandes_fiche = FI.versTableau(rec.demandes_fiche);
-    const idx = rec.demandes_fiche.findIndex((d) => d.id === demande.id);
-    if (idx !== -1) {
-      Object.assign(rec.demandes_fiche[idx], {
-        statut:    "validee",
-        traite_par: staffPseudo,
-        traite_le: new Date().toISOString(),
+    /* [MAJ v2] trois champs de LA demande visée, par sa clé. */
+    try {
+      await E().firebaseUpdate({
+        [`${NODE}/${demande._k}/statut`]:     "validee",
+        [`${NODE}/${demande._k}/traite_par`]: staffPseudo,
+        [`${NODE}/${demande._k}/traite_le`]:  new Date().toISOString(),
       });
+    } catch (e) {
+      FI.afficherResultat(resultatEl, "erreur",
+        `${T.ERR_DONNEES}<br><small>${(e && e.message) || e}</small>`);
+      return false;
     }
 
-appliquerActions(rec, demande);
-    await window.EcoCore.writeBin(rec);
+    /* [MAJ v2] actions sur le membre : écritures ciblées, jamais la branche. */
+    let avertAct = "";
+    try { await appliquerActions(demande); }
+    catch (e) {
+      avertAct = `<br><small>⚠️ Une action automatique a échoué — vérifiez le solde et l'affiliation.</small>`;
+      if (window.console) console.error("[fiche-staff] appliquerActions", e);
+    }
 
-    // Bascule la carte faceclaim en « pris » par transaction ciblée, HORS du writeBin,
-    // pour ne jamais écraser une réservation concurrente posée via le bottin.
+    // Bascule la carte faceclaim en « pris » par transaction ciblée.
     let avertFC = "";
     try {
       const r = await reclamerFaceclaim(demande);
@@ -277,7 +337,8 @@ appliquerActions(rec, demande);
       if (window.console) console.error("[fiche-staff] metierAppliquer", e);
     }
 
-    FI.afficherResultat(resultatEl, "succes", T.STAFF_OK(demande.pseudo) + avertFC + avertMet);
+    FI.afficherResultat(resultatEl, "succes",
+      T.STAFF_OK(demande.pseudo) + avertAct + avertFC + avertMet);
     setTimeout(() => chargerDemandes(listeEl), 2000);
     return true;
   }
@@ -285,18 +346,19 @@ appliquerActions(rec, demande);
   /* === REFUS ===
      Aucun message posté : le refus se règle en MP. La demande est effacée de
      la base, et surtout le poste réservé est libéré — sans ça il resterait
-     bloqué indéfiniment dans le bottin des métiers. */
+     bloqué indéfiniment dans le bottin des métiers.
+     [MAJ v2] l'ordre n'est plus contraint : il n'y a plus de writeBin pour
+     écraser quoi que ce soit, et la demande part par sa clé — refuser pendant
+     qu'un collègue valide ne déplace plus sa cible. */
 
   async function refuser(demande, carteEl, listeEl) {
     if (!confirm(T.STAFF_CONFIRM_REFUS(demande.pseudo))) return;
     const resultatEl = carteEl.querySelector(".fi-resultat");
 
-    // Libération d'abord : writeBin réécrit toute la racine et effacerait
-    // cette écriture si elle venait après.
     let avert = "";
     try {
       const r = await FI.metierLiberer(demande);
-      if (r && r.supprime)    avert = `<br><small>${T.STAFF_REFUS_ACTIVITE}</small>`;
+      if (r && r.supprime)         avert = `<br><small>${T.STAFF_REFUS_ACTIVITE}</small>`;
       else if (r && r.introuvable) avert = `<br><small>${T.STAFF_REFUS_INTROUVABLE}</small>`;
     } catch (e) {
       avert = `<br><small>${T.STAFF_REFUS_METIER_ECHEC}</small>`;
@@ -304,12 +366,7 @@ appliquerActions(rec, demande);
     }
 
     try {
-      if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
-      const rec = await window.EcoCore.readBin();
-      if (!rec) { FI.afficherResultat(resultatEl, "erreur", T.ERR_DONNEES); return; }
-      rec.demandes_fiche = FI.versTableau(rec.demandes_fiche)
-        .filter((x) => x.id !== demande.id);
-      await window.EcoCore.writeBin(rec);
+      await E().firebaseUpdate({ [`${NODE}/${demande._k}`]: null });
     } catch (e) {
       FI.afficherResultat(resultatEl, "erreur",
         `${T.STAFF_REFUS_ECHEC}<br><small>${(e && e.message) || e}</small>`);
@@ -319,77 +376,84 @@ appliquerActions(rec, demande);
     FI.afficherResultat(resultatEl, "succes", T.STAFF_REFUS_OK(demande.pseudo) + avert);
     setTimeout(() => chargerDemandes(listeEl), 2000);
   }
-  
-  /* === ACTIONS === */
 
-  // Centralise toutes les mutations du JSONBin post-validation dans une seule fonction.
-  // Aucun writeBin ici : on mutue `rec` en place, le writeBin est fait dans valider().
-  function appliquerActions(rec, d) {
-  rec.membres   = rec.membres   || {};
-  rec.cagnottes = rec.cagnottes || {};
+  /* === ACTIONS CIBLÉES =====================
+     Chaque effet part seul. Les montants passent par une transaction : deux
+     validations simultanées s'additionnent au lieu de s'écraser. */
 
-  crediterMembre(rec, d);
-  crediterParrain(rec, d);
-  affecterGroupe(rec, d);
-  affecterBande(rec, d);        // ← AJOUT
-  affecterHabitation(rec, d);   // ← AJOUT
-  completerGroupeDC(rec, d);
-}
+  async function appliquerActions(d) {
+    await crediterMembre(d);
+    await crediterParrain(d);
+    await affecterProfil(d);      // groupe + bande + habitation, un seul PATCH
+    await affecterLien(d);
+    await completerGroupeDC(d);
+  }
 
-  function crediterMembre(rec, d) {
+  /* Le membre peut ne pas exister encore (eco-ui jamais chargé) : on pose
+     l'entrée minimale AVANT de créditer, et seulement si elle manque — un
+     PATCH inconditionnel écraserait un solde déjà constitué. */
+  async function assurerMembre(d) {
+    const cur = await E().firebaseGet(`membres/${enc(d.pseudo)}`);
+    if (cur && typeof cur === "object") return;
+    await E().firebaseUpdate({
+      [`membres/${d.pseudo}`]: {
+        uid: d.uid || null, dollars: 0, group: null,
+        messages: 0, lastMessageThresholdAwarded: 0,
+      },
+    });
+  }
+
+  async function crediterMembre(d) {
     if (!d.pre_lien) return;
-    // Crée une entrée minimale si le membre n'a pas encore chargé eco-ui.js
-    if (!rec.membres[d.pseudo]) {
-      rec.membres[d.pseudo] = { uid: d.uid || null, dollars: 0, group: null, messages: 0, lastMessageThresholdAwarded: 0 };
-    }
-    rec.membres[d.pseudo].dollars = (rec.membres[d.pseudo].dollars || 0) + CFG.PRIME_PRE_LIEN;
+    await assurerMembre(d);
+    await E().crediterDollars(d.pseudo, CFG.PRIME_PRE_LIEN);
   }
 
-  function crediterParrain(rec, d) {
+  async function crediterParrain(d) {
     if (!d.parrain || d.parrain === "Personne") return;
-    // Les 10$ sont versés directement au membre parrain, pas à sa cagnotte de groupe
-    if (!rec.membres[d.parrain]) return;
-    rec.membres[d.parrain].dollars = (rec.membres[d.parrain].dollars || 0) + CFG.PRIME_PARRAIN;
+    // Les 10 $ vont directement au membre parrain, pas à sa cagnotte de groupe.
+    const cur = await E().firebaseGet(`membres/${enc(d.parrain)}`);
+    if (!cur || typeof cur !== "object") return;      // parrain inconnu : on ne crée rien
+    await E().crediterDollars(d.parrain, CFG.PRIME_PARRAIN);
   }
 
-  function affecterGroupe(rec, d) {
-    if (!rec.membres[d.pseudo]) return;
-    rec.membres[d.pseudo].group = d.groupe;
+  /* Groupe, affiliation hors-la-loi et habitation : trois feuilles distinctes
+     du même membre, donc un seul PATCH — atomique, et sans toucher au solde. */
+  async function affecterProfil(d) {
+    const u = {};
+    u[`membres/${d.pseudo}/group`] = d.groupe;
+    if (d.hll) u[`membres/${d.pseudo}/hors_la_loi`] = d.hll;   // clés identiques aux onglets du bottin
+    u[`membres/${d.pseudo}/habitation`] = {
+      quartier: d.lieu_habitation,   // nom d'affichage — le bottin le résout en clé
+      numero:   d.numero,
+      type:     d.type_logement,
+      depuis:   d.date || new Date().toISOString(),
+    };
+    await E().firebaseUpdate(u);
   }
-  
-  // ← AJOUT, à côté de affecterGroupe
-function affecterHabitation(rec, d) {
-  if (!rec.membres[d.pseudo]) return;
-  rec.membres[d.pseudo].habitation = {
-    quartier: d.lieu_habitation,   // nom d'affichage — le bottin le résout en clé
-    numero:   d.numero,
-    type:     d.type_logement,
-    depuis:   d.date || new Date().toISOString(),
-  };
-}
 
-  // ← AJOUT : écrit l'affiliation pleine + ajoute le lien (réseau/pilier), cumulable.
-function affecterBande(rec, d) {
-  const m = rec.membres[d.pseudo];
-  if (!m) return;
-  if (d.hll)  m.hors_la_loi = d.hll;                       // clés identiques aux onglets du bottin
-  if (d.lien) {
-    const liens = FI.versTableau(m.liens);
-    liens.push(d.lien);                                    // statut:null — la dette reste au staff
-    m.liens = liens;
+  /* [MAJ v2] le lien de réseau passe par le socle : un seul chemin, sous sa
+     propre clé. L'ancien push réécrivait la branche en tableau et annulait la
+     conversion pour tout le forum. */
+  async function affecterLien(d) {
+    if (!d.lien) return;
+    const ok = await B().ecrireLien(d.pseudo, B().nouvelleCle(), d.lien);  // statut:null — la dette reste au staff
+    if (!ok) throw new Error("écriture du lien refusée : " + d.pseudo);
   }
-}
 
-  // Complète la 2e étape de la demande DC : ajoute le nouveau pseudo au groupe et supprime le slot.
-  function completerGroupeDC(rec, d) {
+  /* Complète la 2e étape de la demande DC : ajoute le nouveau pseudo au groupe
+     et supprime le slot. La liste des comptes reste un tableau — elle n'est
+     lue et réécrite que par ce chemin, dans le même geste. */
+  async function completerGroupeDC(d) {
     if (!d.multicompte || !d.premier_compte) return;
-    const groupe = rec.doubles_comptes?.[d.premier_compte];
-    if (!groupe?.slot_en_attente) return;
-    // Normalisation Firebase : comptes peut être un objet {0:…, 1:…}
+    const groupe = await E().firebaseGet(`doubles_comptes/${enc(d.premier_compte)}`);
+    if (!groupe || !groupe.slot_en_attente) return;
     const comptes = FI.versTableau(groupe.comptes);
     if (!comptes.includes(d.pseudo)) comptes.push(d.pseudo);
-    groupe.comptes = comptes;
-    delete groupe.slot_en_attente;
+    await E().firebaseUpdate({
+      [`doubles_comptes/${d.premier_compte}/comptes`]:         comptes,
+      [`doubles_comptes/${d.premier_compte}/slot_en_attente`]: null,
+    });
   }
 
   /* === FACECLAIM (bascule en « pris ») === */
@@ -415,18 +479,17 @@ function affecterBande(rec, d) {
   }
 
   // Bascule la carte de l'acteur en « pris » : UID du compte validé, avatar capturé,
-  // réattribution d'UID pour un multicompte. Écritures ciblées uniquement (pas de PUT global).
+  // réattribution d'UID pour un multicompte. Écritures ciblées uniquement.
   // Retourne { conflit } si la carte écrasée appartenait à un autre membre (hors transfert MC).
   async function reclamerFaceclaim(d) {
     const cle = normaliserCleFC(d.faceclaim);
     if (!cle) return { conflit: false };
-    const E = window.EcoCore;
-    if (!E || typeof E.firebaseTransaction !== "function") return { conflit: false };
+    if (!E() || typeof E().firebaseTransaction !== "function") return { conflit: false };
 
     const image = d.uid ? await recupererAvatarFC(d.uid) : null;
 
     let ancienUid = null, ancienType = null;
-    await E.firebaseTransaction("faceclaims/" + cle, (current) => {
+    await E().firebaseTransaction("faceclaims/" + cle, (current) => {
       if (current && typeof current === "object") {
         ancienUid = (current.uid != null) ? current.uid : null;
         ancienType = current.type || null;
@@ -438,7 +501,7 @@ function affecterBande(rec, d) {
 
     // Index inverse : ajout sous le nouvel UID.
     if (d.uid != null) {
-      await E.firebaseTransaction("faceclaims_uid/" + d.uid, (cur) => {
+      await E().firebaseTransaction("faceclaims_uid/" + d.uid, (cur) => {
         const l = FI.versTableau(cur);
         if (!l.includes(cle)) l.push(cle);
         return l;
@@ -446,7 +509,7 @@ function affecterBande(rec, d) {
     }
     // Multicompte : retrait de l'ancien UID (compte principal → compte validé).
     if (ancienUid != null && String(ancienUid) !== String(d.uid)) {
-      await E.firebaseTransaction("faceclaims_uid/" + ancienUid, (cur) =>
+      await E().firebaseTransaction("faceclaims_uid/" + ancienUid, (cur) =>
         FI.versTableau(cur).filter((k) => k !== cle));
     }
 
@@ -454,7 +517,7 @@ function affecterBande(rec, d) {
     const conflit = ancienUid != null && String(ancienUid) !== String(d.uid) && !transfertMC;
     return { conflit };
   }
-  
+
   /* === FALLBACK POSTING === */
 
   // Affiché quand le posting automatique échoue (form introuvable).
@@ -477,12 +540,16 @@ function affecterBande(rec, d) {
   FI.initStaff = function (ancrage) {
     if (document.getElementById("fi-staff-panel")) return;
     // Vérification staff en double sécurité (initStaff est aussi conditionnel dans fiche-init.js)
-    const pseudo = window.EcoCore.getPseudo();
-    const estStaff = (window.EcoCore.ADMIN_USERS || []).includes(pseudo)
+    const pseudo = E().getPseudo();
+    const estStaff = (E().ADMIN_USERS || []).includes(pseudo)
       || CFG.STAFF_USERS.includes(pseudo);
     if (!estStaff) return;
+    if (!B() || typeof B().ecrireLien !== "function") {
+      if (window.console) console.error("[fiche-staff] tdl-base.js doit être chargé avant ce script.");
+      return;
+    }
 
-   const panel = creerPanel();
+    const panel = creerPanel();
     ancrage.prepend(panel);
     ancrage.prepend(creerEntete());
     chargerDemandes(panel.querySelector("#fi-staff-liste"))
