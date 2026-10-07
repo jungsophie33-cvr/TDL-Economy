@@ -171,7 +171,7 @@ window.BMC = window.BMC || {};
   }
 
   /* ===================== DONNÉES (lecture + jointures) ===================== */
-  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.safeReadBin==="function"); }
+  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.firebaseGet==="function"); }}
   function attendreEco(ms){
     return new Promise(function(res){
       var n=0, t=setInterval(function(){ if(ecoPret()||++n>ms/100){ clearInterval(t); res(ecoPret()); } },100);
@@ -237,14 +237,27 @@ window.BMC = window.BMC || {};
     });
   }
 
+    /* [MAJ] Les sept branches réellement jointes par construireJoueurs, au lieu
+     de la racine. Le gain de volume est modeste (lieux et quartiers pèsent
+     l'essentiel), mais firebaseGet ignore le cache de session : un compte
+     validé apparaît dans son groupe sans attendre les 60 s. */
+  var BRANCHES = ["membres","doubles_comptes","faceclaims","emplois","lieux",
+                  "demandes_fiche","bandes","logements/quartiers"];
+
   var JOUEURS = [];
   var DONNEES = {
     chargerTout: function(){
       return attendreEco(8000).then(function(ok){
         if(!ok){ if(window.console) console.warn("[TDL registre] EcoCore introuvable."); return; }
-        return window.EcoCore.safeReadBin().then(function(rec){
-          JOUEURS = construireJoueurs(rec || {});
-        }).catch(function(e){ if(window.console) console.error("[TDL registre] lecture", e); });
+        return Promise.all(BRANCHES.map(function(b){ return window.EcoCore.firebaseGet(b); }))
+          .then(function(v){
+            var rec = {};
+            BRANCHES.forEach(function(b,i){ if(b.indexOf("/") === -1) rec[b] = v[i] || {}; });
+            /* quartierNom lit rec.logements.quartiers : on reconstruit ce seul niveau */
+            rec.logements = { quartiers: v[BRANCHES.indexOf("logements/quartiers")] || {} };
+            JOUEURS = construireJoueurs(rec);
+          })
+          .catch(function(e){ if(window.console) console.error("[TDL registre] lecture", e); });
       });
     }
   };
