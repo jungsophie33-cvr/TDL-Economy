@@ -6,11 +6,11 @@
  * CE QU'IL NE FAIT PAS : aucun rendu de formulaire, aucune logique staff.
  *
  * CARTE DES BLOCS :
- *   MEMBRES      — chargement des listes depuis le JSONBin
+ *   MEMBRES      — chargement des listes depuis firebase
  *   COMMUNAUTES  — options du select groupe + résolution court→long
  *   DOM          — helpers d'affichage et pré-remplissage de SCEditor
  *   POSTING      — fetch + POST vers un sujet ForumActif
- *   BBCODE       — génération des messages membre et staff
+ *   MESSAGE       — génération des messages membre et staff
  *
  * Dépend de : fiche-config.js, window.EcoCore
  */
@@ -21,18 +21,22 @@
   /* === MEMBRES === */
 
   FI.chargerMembres = async function () {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec?.membres) return [];
-    return Object.keys(rec.membres).sort((a, b) => a.localeCompare(b, "fr"));
+    /* [MAJ] la branche membres (~1,7 ko) au lieu des 172 ko de la racine.
+       Seules les CLÉS sont utilisées ici — Firebase ne sait pas ne renvoyer
+       que celles-ci, mais la branche reste cent fois plus légère. */
+    const membres = await window.EcoCore.firebaseGet("membres");
+    if (!membres) return [];
+    return Object.keys(membres).sort((a, b) => a.localeCompare(b, "fr"));
   };
 
   // Retourne uniquement les racines de groupes DC dont le slot est en attente,
   // car ce sont les seuls groupes auxquels un nouveau personnage peut être rattaché.
   FI.chargerRacinesDCEnAttente = async function () {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec?.doubles_comptes) return [];
-    return Object.entries(rec.doubles_comptes)
-      .filter(([, g]) => g.slot_en_attente)
+    /* [MAJ] une branche de 100 octets. */
+    const groupes = await window.EcoCore.firebaseGet("doubles_comptes");
+    if (!groupes) return [];
+    return Object.entries(groupes)
+      .filter(([, g]) => g && g.slot_en_attente)
       .map(([racine]) => racine)
       .sort((a, b) => a.localeCompare(b, "fr"));
   };
