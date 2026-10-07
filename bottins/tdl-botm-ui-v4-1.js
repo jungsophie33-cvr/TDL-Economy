@@ -2,6 +2,22 @@
    TDL — BOTTIN DES MÉTIERS · actions & interface (3/3)
    Blocs : ACTIONS · EVENTS · INIT
    Requiert tdl-botm-core puis tdl-botm-render (window.BM).
+
+   [MAJ v2] ÉCRITURES CIBLÉES. Chaque geste passait par BM.patch(e,{roles:arr})
+     ou {postes:arr} : une copie complète de la liste, reconstruite depuis
+     l'instantané en mémoire. Deux conséquences, toutes deux silencieuses —
+     un rôle inscrit entre-temps par une validation de fiche disparaissait, et
+     les retraits par splice(indice) visaient la mauvaise ligne, l'ordre
+     affiché n'étant pas l'ordre stocké.
+     On n'écrit plus que emplois/{id}/{liste}/{clé}.
+
+   [MAJ v2] LE FORMULAIRE D'ENTREPRISE N'ÉCRIT PLUS LES LISTES.
+     enregistrer() faisait Object.keys(draft) → champs, donc renvoyait roles,
+     postes et étiquettes en bloc depuis une copie figée à l'ouverture du
+     formulaire. C'était le défaut qu'on supprime, réintroduit par la porte de
+     derrière : éditer la description d'une entreprise pouvait effacer un rôle
+     inscrit pendant qu'on remplissait le formulaire. Ces champs sont exclus
+     du patch — ce formulaire ne les édite pas.
    ============================================================ */
 (function(){
 "use strict";
@@ -9,11 +25,11 @@
    garanti par le navigateur, mais si elles se retrouvent réparties entre le
    template et le message (cas fréquent sur ForumActif), l'ordre peut être
    rompu : on patiente plutôt que d'échouer définitivement. */
-let BM, T, S, CFG, $, vt;
+let BM, T, S, CFG, $;
 function attendreNoyau(n){
   n = n || 0;
   if(window.BM && window.BM.detailHTML){
-    BM = window.BM; T = BM.T; S = BM.S; CFG = BM.CFG; $ = BM.$; vt = BM.versTableau;
+    BM = window.BM; T = BM.T; S = BM.S; CFG = BM.CFG; $ = BM.$;
     demarrer(); return;
   }
   if(n > 40){
@@ -26,62 +42,93 @@ const val = id => (($(id)||{}).value||'');
 const coche = id => !!(($(id)||{}).checked);
 function reset(){ S.inline=null; S.roleEdit=null; S.posteEdit=null; S.confirmDel=null; }
 
-/* ===================== ACTIONS — tags ===================== */
+/* ===================== ACTIONS — étiquettes =====================
+   Une étiquette est une simple chaîne : la clé lui donne une identité, et le
+   ✕ ne peut plus emporter la voisine. */
 function ajouterTag(id, champ){
   const e = BM.ent(id), v = val('bm-tagin').trim();
   if(!v) return;
-  const arr = vt(e[champ]).slice(); arr.push(v);
-  const o = {}; o[champ] = arr;
-  BM.patch(e,o).then(()=>{ S.inline=null; BM.renderDetail(); BM.toast(T.okTag); }).catch(()=>{});
+  if(!BM.exigeV2(e)) return;
+  BM.ecrireItem(e, champ, BM.cle(), v)
+    .then(()=>{ S.inline=null; BM.renderDetail(); BM.toast(T.okTag); }).catch(()=>{});
 }
-function retirerTag(id, champ, i){
-  const e = BM.ent(id), arr = vt(e[champ]).slice(); arr.splice(i,1);
-  const o = {}; o[champ] = arr;
-  BM.patch(e,o).then(()=>BM.renderDetail()).catch(()=>{});
+function retirerTag(id, champ, k){
+  const e = BM.ent(id);
+  if(!k || !BM.exigeV2(e)) return;
+  BM.supprimerItem(e, champ, k).then(()=>BM.renderDetail()).catch(()=>{});
 }
 
 /* ===================== ACTIONS — rôles & postes ===================== */
-function enregistrerRole(id, i){
+function enregistrerRole(id, k){
   const e = BM.ent(id), n = val('bm-rnom').trim();
   if(!n){ BM.toast(T.errNom, true); return; }
+  if(!BM.exigeV2(e)) return;
+  const cle = k || BM.cle();
   /* pas de champ avatar : il est résolu à la lecture depuis le bottin des avatars */
-  const r = {nom:n, poste:val('bm-rposte').trim(), depuis:val('bm-rdepuis').trim(),
+  const r = {k:cle, nom:n, poste:val('bm-rposte').trim(), depuis:val('bm-rdepuis').trim(),
     type:val('bm-rtype')||'pj', lien:val('bm-rlien').trim(), dir:coche('bm-rdir')};
   /* uid : identité stable d'un compte joué. Capté depuis le lien saisi ou la
-     carte faceclaim ; c'est lui qui permettra à la suppression d'un membre de
-     libérer son poste. Sans objet pour un PNJ ou un pré-lien. */
+     carte faceclaim ; il survit à un changement de pseudo. Sans objet pour un
+     PNJ ou un pré-lien. */
   const uid = BM.uidDe(r);
   if(uid != null) r.uid = uid;
-  const arr = vt(e.roles).slice();
-  if(i>=0) arr[i]=r; else arr.push(r);
-  BM.patch(e,{roles:arr}).then(()=>{ S.roleEdit=null; BM.renderDetail(); BM.toast(T.okRole); }).catch(()=>{});
+  /* une modification ne doit pas effacer les champs que ce formulaire n'expose
+     pas — le drapeau « attente » posé par une réservation de fiche, notamment */
+  const anc = k ? (e.roles||{})[k] : null;
+  const fusion = anc ? Object.assign({}, anc, r) : r;
+  BM.ecrireItem(e, 'roles', cle, fusion)
+    .then(()=>{ S.roleEdit=null; BM.renderDetail(); BM.toast(T.okRole); }).catch(()=>{});
 }
-function retirerRole(id, i){
-  const e = BM.ent(id), arr = vt(e.roles).slice(); arr.splice(i,1);
-  BM.patch(e,{roles:arr}).then(()=>{ BM.renderDetail(); BM.toast(T.okRoleDel); }).catch(()=>{});
+function retirerRole(id, k){
+  const e = BM.ent(id);
+  if(!k || !BM.exigeV2(e)) return;
+  BM.supprimerItem(e, 'roles', k)
+    .then(()=>{ BM.renderDetail(); BM.toast(T.okRoleDel); }).catch(()=>{});
 }
-function enregistrerPoste(id, i){
+function enregistrerPoste(id, k){
   const e = BM.ent(id), t = val('bm-pt').trim();
   if(!t){ BM.toast(T.errPoste, true); return; }
-  const p = {t:t, c:val('bm-pc').trim(), ic:val('bm-pic').trim()||'fi-tr-briefcase',
+  if(!BM.exigeV2(e)) return;
+  const cle = k || BM.cle();
+  const p = {k:cle, t:t, c:val('bm-pc').trim(), ic:val('bm-pic').trim()||'fi-tr-briefcase',
     dir:coche('bm-pdir'), n:Math.max(1,Number(val('bm-pn'))||1), d:val('bm-pd').trim()};
-  const arr = vt(e.postes).slice();
-  if(i>=0) arr[i]=p; else arr.push(p);
-  BM.patch(e,{postes:arr}).then(()=>{ S.posteEdit=null; BM.renderDetail(); BM.toast(T.okPoste); }).catch(()=>{});
+  BM.ecrireItem(e, 'postes', cle, p)
+    .then(()=>{ S.posteEdit=null; BM.renderDetail(); BM.toast(T.okPoste); }).catch(()=>{});
 }
-function retirerPoste(id, i){
-  const e = BM.ent(id), arr = vt(e.postes).slice(); arr.splice(i,1);
-  BM.patch(e,{postes:arr}).then(()=>BM.renderDetail()).catch(()=>{});
+function retirerPoste(id, k){
+  const e = BM.ent(id);
+  if(!k || !BM.exigeV2(e)) return;
+  BM.supprimerItem(e, 'postes', k).then(()=>BM.renderDetail()).catch(()=>{});
+}
+
+/* ===================== ACTIONS — conversion ===================== */
+function convertir(btn){
+  const n = BM.aMigrer();
+  if(!n) return;
+  if(!window.confirm('Convertir '+n+' fiche(s) au nouveau format ?\n\n'
+    + 'Rôles, postes et étiquettes reçoivent chacun une clé propre. Aucun champ\n'
+    + "n'est ajouté ni réinterprété, et le décompte des places libres ne change pas.\n"
+    + "L'opération peut être relancée sans risque.")) return;
+  if(btn){ btn.disabled = true; btn.textContent = T.migCours; }
+  BM.migrer().then(r=>{
+    BM.toast(T.migFait(r.faits));
+    BM.charger(()=>{ BM.renderBarre(); BM.renderStage(true); });
+  }).catch(err=>{
+    if(window.console) console.error('[TDL bottin] migration', err);
+    BM.toast(T.migEchec, true);
+    BM.renderStage();
+  });
 }
 
 /* ===================== ACTIONS — fiche ===================== */
 function ouvrirEdition(id){ S.draft = BM.clone(BM.ent(id)); S.mode='edition'; BM.renderDetail(true); }
 function ouvrirNouveau(){
+  /* aucune liste dans le brouillon : elles naissent vides côté Firebase et se
+     remplissent une clé à la fois */
   S.draft = {id:'lieu_'+Date.now().toString(36), nom:'', type:'', rue:'—',
     zone:S.zone, cat:(S.cat!=='tous'?S.cat:'services'), ic:'', img:'', facs:[], emploi:true, amb:'—',
     effectif:'', fondee:'', rayonnement:'', desc:'', accroche:'',
-    culture:[], partenaires:[], rivaux:[], verrou:false, complet:false, referent:null, brouillon:false,
-    roles:[], postes:[]};
+    verrou:false, complet:false, referent:null, brouillon:false};
   S.mode='nouveau'; S.vue='panneau'; S.mob='detail'; BM.renderBarre(); BM.renderStage(true);
 }
 function lireFormulaire(d){
@@ -111,7 +158,13 @@ function enregistrer(){
       .catch(err=>BM.toast(T.errSave+((err&&err.message)||err), true));
   } else {
     const e = BM.ent(d.id), champs = {};
-    Object.keys(d).forEach(k=>{ if(k!=='id') champs[k]=d[k]; });
+    Object.keys(d).forEach(k=>{
+      if(k==='id' || k==='schema') return;
+      /* [MAJ v2] les listes sont exclues : ce formulaire ne les édite pas, et
+         les renvoyer en bloc écraserait ce qui a été inscrit entre-temps */
+      if(BM.LISTES.indexOf(k)>=0) return;
+      champs[k]=d[k];
+    });
     BM.patch(e, champs).then(fin).catch(()=>{});
   }
 }
@@ -139,20 +192,21 @@ function retirer(id){
 
 /* ===================== EVENTS ===================== */
 function actionDo(d){
-  const k = d.dataset.do, id = d.dataset.id, i = Number(d.dataset.i);
+  const k = d.dataset.do, id = d.dataset.id, cle = d.dataset.k || '';
+  if(k==='migrer') return convertir(d);
   if(k==='retour'){ S.mob='liste'; BM.renderStage(); return; }
   if(k==='cancel'){
     if(S.mode==='edition'||S.mode==='nouveau'){ S.mode='lecture'; S.draft=null; }
     reset(); BM.renderDetail(); return;
   }
   if(k==='tagok')   return ajouterTag(id, d.dataset.champ);
-  if(k==='roleok')  return enregistrerRole(id, i);
-  if(k==='posteok') return enregistrerPoste(id, i);
+  if(k==='roleok')  return enregistrerRole(id, cle);
+  if(k==='posteok') return enregistrerPoste(id, cle);
   if(k==='togroles'){ S.editRoles=!S.editRoles; S.roleEdit=null; BM.renderDetail(); return; }
   if(k==='togpostes'){ S.editPostes=!S.editPostes; S.posteEdit=null; BM.renderDetail(); return; }
   if(k==='voir'){
-    const dej = S.ouvertPoste && S.ouvertPoste.id===id && S.ouvertPoste.i===i;
-    S.ouvertPoste = dej?null:{id:id,i:i}; BM.renderDetail(); return;
+    const dej = S.ouvertPoste && S.ouvertPoste.id===id && S.ouvertPoste.k===cle;
+    S.ouvertPoste = dej?null:{id:id,k:cle}; BM.renderDetail(); return;
   }
   if(k==='plusroles'){ S.plusRoles=true; BM.renderDetail(); return; }
   if(k==='moinsroles'){ S.plusRoles=false; BM.renderDetail(); return; }
@@ -183,18 +237,19 @@ function brancherScene(){
     if(cat && !cat.disabled){ S.cat=cat.dataset.c; S.sel=null; reset(); BM.renderBarre(); BM.renderStage(true); return; }
     if(ev.target.closest('.bm-plink')) return;   /* laisser le lien s'ouvrir */
 
+    /* [MAJ v2] les retraits lisent une CLÉ (data-k) et non plus un indice */
     const rmt = ev.target.closest('[data-rmtag]');
-    if(rmt) return retirerTag(rmt.dataset.id, rmt.dataset.rmtag, Number(rmt.dataset.i));
+    if(rmt) return retirerTag(rmt.dataset.id, rmt.dataset.rmtag, rmt.dataset.k);
     const rmr = ev.target.closest('[data-rmrole]');
-    if(rmr) return retirerRole(rmr.dataset.id, Number(rmr.dataset.rmrole));
+    if(rmr) return retirerRole(rmr.dataset.id, rmr.dataset.rmrole);
     const rmp = ev.target.closest('[data-rmposte]');
-    if(rmp) return retirerPoste(rmp.dataset.id, Number(rmp.dataset.rmposte));
+    if(rmp) return retirerPoste(rmp.dataset.id, rmp.dataset.rmposte);
 
     const add = ev.target.closest('[data-add]');
     if(add){
       const k = add.dataset.add;
-      if(k==='role'){ S.posteEdit=null; S.roleEdit={id:add.dataset.id,i:-1}; BM.renderDetail(); return; }
-      if(k==='poste'){ S.roleEdit=null; S.posteEdit={id:add.dataset.id,i:-1}; BM.renderDetail(); return; }
+      if(k==='role'){ S.posteEdit=null; S.roleEdit={id:add.dataset.id,k:''}; BM.renderDetail(); return; }
+      if(k==='poste'){ S.roleEdit=null; S.posteEdit={id:add.dataset.id,k:''}; BM.renderDetail(); return; }
       S.inline={champ:k,id:add.dataset.id}; BM.renderDetail(); return;
     }
 
@@ -202,9 +257,9 @@ function brancherScene(){
     if(d) return actionDo(d);
 
     const er = ev.target.closest('[data-editrole]');
-    if(er){ S.posteEdit=null; S.roleEdit={id:er.dataset.id,i:Number(er.dataset.editrole)}; BM.renderDetail(); return; }
+    if(er){ S.posteEdit=null; S.roleEdit={id:er.dataset.id,k:er.dataset.editrole}; BM.renderDetail(); return; }
     const ep = ev.target.closest('[data-editposte]');
-    if(ep){ S.roleEdit=null; S.posteEdit={id:ep.dataset.id,i:Number(ep.dataset.editposte)}; BM.renderDetail(); return; }
+    if(ep){ S.roleEdit=null; S.posteEdit={id:ep.dataset.id,k:ep.dataset.editposte}; BM.renderDetail(); return; }
 
     const open = ev.target.closest('[data-open]');
     if(open){
@@ -244,6 +299,11 @@ function init(){
   if(!BM.ZC){
     $('bm-stage').innerHTML = '<div class="bm-erreur">'+T.errCfg+'</div>';
     if(window.console) console.error('[TDL bottin] '+T.errCfg);
+    BM.demarre = true; return;
+  }
+  if(!window.TDLBase || typeof window.TDLBase.nouvelleCle!=='function'){
+    $('bm-stage').innerHTML = '<div class="bm-erreur">'+T.errBase+'</div>';
+    if(window.console) console.error('[TDL bottin] '+T.errBase);
     BM.demarre = true; return;
   }
   BM.demarre = true;
