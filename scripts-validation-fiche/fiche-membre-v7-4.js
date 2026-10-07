@@ -1,29 +1,42 @@
 /*
  * fiche-membre.js — Formulaire de demande de validation de fiche · TDL
  *
- * CE QUE CE FICHIER FAIT : bouton déclencheur, modale avec les 14 champs de la demande,
+ * CE QUE CE FICHIER FAIT : bouton déclencheur, modale avec les champs de la demande,
  * toggles conditionnels, vérification de doublon, validation des champs,
- * écriture JSONBin et pré-remplissage du textarea.
+ * écriture de la demande et pré-remplissage du textarea.
  * CE QU'IL NE FAIT PAS : aucune logique staff, aucune action post-validation.
  *
- * CARTE DES BLOCS :
- *   RENDER BOUTON    — bouton déclencheur
- *   RENDER OPTIONS   — helpers pour les balises <option>
- *   RENDER SECTIONS  — HTML des deux sections du formulaire
- *   RENDER MODAL     — assemblage complet de la modale
- *   EVENTS FERMETURE — binding fermeture (✕, Annuler, Échap, overlay)
- *   EVENTS TOGGLES   — affichage conditionnel des sous-champs
- *   CHARGEMENT       — vérification doublon + chargement des listes membres
- *   LECTURE          — extraction des valeurs du formulaire
- *   VALIDATION       — vérification des champs obligatoires
- *   SOUMISSION       — écriture JSONBin et pré-remplissage
- *   INIT             — point d'entrée exposé sur window.FI
+ * [MAJ v2] PLUS DE readBin / writeBin.
+ *   soumettre() lisait la racine entière, poussait la demande dans le tableau
+ *   et réécrivait la branche demandes_fiche en bloc. Deux membres soumettant
+ *   dans la même fenêtre : la seconde écriture effaçait la première.
+ *   La demande part maintenant sous sa propre clé, en un seul chemin.
  *
- * Dépend de : fiche-config.js, fiche-utils.js, window.EcoCore
+ * [MAJ v2] demandes_fiche DEVIENT UN NŒUD À CLÉS, et la conversion se fait
+ *   d'elle-même, atomiquement, au premier écrit qui rencontre un tableau : le
+ *   tableau converti ET la nouvelle demande partent dans le MÊME PATCH, donc
+ *   rien ne peut se perdre entre les deux.
+ *   C'est ce qui permet à fiche-staff de viser une demande par sa clé — son
+ *   refus filtrait le tableau, ce qui réindexait tout et déplaçait la cible
+ *   d'une validation concurrente.
+ *
+ * [MAJ v2] LECTURES CIBLÉES : demandes_fiche pour le doublon, membres +
+ *   faceclaims pour les listes, au lieu de la racine à chaque fois.
+ *
+ * CARTE DES BLOCS :
+ *   RENDER BOUTON · RENDER OPTIONS · RENDER SECTIONS · RENDER MODAL
+ *   EVENTS FERMETURE · EVENTS TOGGLES · CHARGEMENT · FACECLAIM
+ *   LECTURE · VALIDATION · SOUMISSION · INIT
+ *
+ * Dépend de : fiche-config.js, fiche-utils.js, window.EcoCore, window.TDLBase.
  */
 
 (function (FI, CFG, T) {
   "use strict";
+
+  const NODE = "demandes_fiche";
+  const E = () => window.EcoCore;
+  const B = () => window.TDLBase;
 
   /* === RENDER BOUTON === */
 
@@ -194,11 +207,12 @@ function htmlSectionPrincipale() {
 
   // Vérifie si une demande existe déjà pour ce membre (en_attente ou validee).
   // Retourne un message HTML ou null.
+  // [MAJ v2] une branche ciblée, et une lecture bi-schéma : le tableau et le
+  // nœud à clés se lisent de la même façon.
   async function verifierDoublon(pseudo) {
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) return null;
-    const demande = FI.versTableau(rec.demandes_fiche).find(
-      (d) => d.pseudo === pseudo && (d.statut === "en_attente" || d.statut === "validee")
+    const src = await E().firebaseGet(NODE);
+    const demande = FI.versTableau(src).find(
+      (d) => d && d.pseudo === pseudo && (d.statut === "en_attente" || d.statut === "validee")
     );
     if (!demande) return null;
     return demande.statut === "en_attente"
@@ -232,14 +246,18 @@ function htmlSectionPrincipale() {
       `<option value="">${msgVide}</option>` +
       racinesDC.map((m) => `<option value="${m}">${m}</option>`).join("");
 
-    const recFC = await window.EcoCore.safeReadBin();
-    chargerFaceclaims(recFC);
+    /* [MAJ v2] deux branches ciblées au lieu de la racine */
+    const [recMembres, recFC] = await Promise.all([
+      E().firebaseGet("membres"),
+      E().firebaseGet("faceclaims"),
+    ]);
+    chargerFaceclaims({ membres: recMembres, faceclaims: recFC });
   }
 
   /* === FACECLAIM (modes de réservation) === */
 
   let _fcCartes = [];   // cartes du bottin faceclaims (lecture)
-  let _fcMembres = {};  // rec.membres, pour résoudre premier_compte → uid
+  let _fcMembres = {};  // membres, pour résoudre premier_compte → uid
 
   function chargerFaceclaims(rec) {
     _fcMembres = (rec && rec.membres) || {};
@@ -352,13 +370,32 @@ function htmlSectionPrincipale() {
     return null;
   }
 
-  /* === SOUMISSION === */
+  /* === SOUMISSION =====================
+     [MAJ v2] un seul chemin : demandes_fiche/{clé}.
+     Si la branche est encore un tableau, la conversion et la nouvelle demande
+     partent dans le MÊME PATCH — Firebase l'applique en tout ou rien, donc
+     aucune demande ne peut se perdre entre les deux. */
+
+  async function ecrireDemande(demande) {
+    const src = await E().firebaseGet(NODE);
+    const k = B().nouvelleCle();
+    if (Array.isArray(src)) {
+      const dst = {};
+      src.forEach((x) => { if (x) dst[B().nouvelleCle()] = x; });
+      dst[k] = demande;
+      await E().firebaseUpdate({ [NODE]: dst });
+      if (window.console) console.info("[fiche-membre] demandes_fiche converti en nœud à clés.");
+    } else {
+      await E().firebaseUpdate({ [`${NODE}/${k}`]: demande });
+    }
+    return k;
+  }
 
   async function soumettre(overlay, pseudo) {
-    const d       = lireDemande(overlay);
-    const erreur  = verifierChamps(d);
+    const d        = lireDemande(overlay);
+    const erreur   = verifierChamps(d);
     const resultat = overlay.querySelector("#fi-resultat");
-    const btn     = overlay.querySelector("#fi-btn-soumettre");
+    const btn      = overlay.querySelector("#fi-btn-soumettre");
 
     if (erreur) { FI.afficherResultat(resultat, "erreur", erreur); return; }
 
@@ -366,9 +403,6 @@ function htmlSectionPrincipale() {
     btn.textContent = T.ENVOI_EN_COURS;
 
     try {
-      const rec = await window.EcoCore.readBin();
-      rec.demandes_fiche = FI.versTableau(rec.demandes_fiche);
-
       const demande = {
         id:     FI.genId(),
         date:   new Date().toISOString(),
@@ -377,11 +411,9 @@ function htmlSectionPrincipale() {
         statut: "en_attente",
         ...d,
       };
-     rec.demandes_fiche.push(demande);
-      await window.EcoCore.writeBin(rec);
+      await ecrireDemande(demande);
 
       // Réserve le poste : rôle inscrit avec attente:true, visible dans le bottin.
-      // Hors writeBin, qui écraserait l'écriture.
       let avertMetier = "";
       try {
         const r = await FI.metierReserver(demande, pseudo, demande.uid);
@@ -395,7 +427,8 @@ function htmlSectionPrincipale() {
       FI.afficherResultat(resultat, "succes", T.CONFIRMATION + avertMetier);
       overlay.querySelector("#fi-champs").style.display = "none";
 
-    } catch (_) {
+    } catch (e) {
+      if (window.console) console.error("[fiche-membre] soumettre", e);
       FI.afficherResultat(resultat, "erreur", T.ERR_ENVOI);
       btn.disabled = false;
       btn.textContent = T.BTN_SOUMETTRE;
@@ -406,6 +439,10 @@ function htmlSectionPrincipale() {
 
   FI.initMembre = function (ancrage, pseudo) {
     if (document.getElementById("fi-overlay")) return;
+    if (!B() || typeof B().nouvelleCle !== "function") {
+      if (window.console) console.error("[fiche-membre] tdl-base.js doit être chargé avant ce script.");
+      return;
+    }
 
     const bouton  = creerBouton();
     const overlay = creerModal();
