@@ -201,11 +201,16 @@
       } else if (bande === "maringouins") {
         var ce = v("#fi-hll-mar-cellule"), rm = v("#fi-hll-mar-role");
         hll = { bande: bande, cellule: ce, role: rm, depuis: depuis };
-        nom_bande = B.maringouins.nom; role_bande = rm + (ce ? " — " + B.maringouins.cellules[ce].nom : "");
+        /* [MAJ] le libellé vient de la liste ENRICHIE, pas du seed : une cellule
+           créée par le staff n'existe pas dans BHL_CONFIG. */
+        nom_bande = B.maringouins.nom;
+        role_bande = rm + (ce ? " — " + (FI.hllNoms.cellules[ce] || ce) : "");
       } else if (bande === "flottille") {
         var nv = v("#fi-hll-flo-navire"), rf = v("#fi-hll-flo-role"), cap = v("#fi-hll-flo-cap");
         hll = { bande: bande, navire: nv, capitaine: !!cap, role: rf, depuis: depuis };
-        nom_bande = B.flottille.nom; role_bande = (cap ? "Capitaine — " : "") + rf + (nv ? " — " + B.flottille.navires[nv].nom : "");
+        nom_bande = B.flottille.nom;
+        role_bande = (cap ? "Capitaine — " : "") + rf + (nv ? " — " + (FI.hllNoms.navires[nv] || nv) : "");
+      }
       } else if (bande === "main") {
         var ty = v("#fi-hll-main-type");
         if (ty === "doigt") {
