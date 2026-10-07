@@ -350,40 +350,39 @@ window.BottinFC = window.BottinFC || {};
   }
 
   /* === PURGE (paresseuse, best-effort, en lecture fraîche) === */
-  function purgerExpires(clesExpirees) {
+    function purgerExpires(clesExpirees) {
     var E = window.EcoCore;
-    if (!E || typeof E.firebaseUpdate !== "function" || typeof E.readBin !== "function") return;
+    if (!E || typeof E.firebaseUpdate !== "function" || typeof E.firebaseGet !== "function") return;
 
-    // Lecture FRAÎCHE : on ne supprime jamais une carte renouvelée dans la fenêtre de cache 60 s.
-    if (typeof E.invalidateCache === "function") E.invalidateCache();
+    /* [MAJ] Lecture ciblée et fraîche par construction : firebaseGet ignore le
+       cache de session. L'invalidateCache() qui servait à forcer la fraîcheur
+       jetait le cache de toute la page — il n'est plus nécessaire. */
+    Promise.all([E.firebaseGet("faceclaims"), E.firebaseGet("faceclaims_uid")])
+      .then(function (r) {
+        var fc = r[0] || {}, idx = r[1] || {};
+        var now = Date.now();
+        var updates = {};
+        var touche = false;
 
-    E.readBin().then(function (rec) {
-      if (!rec) return;
-      var fc = rec.faceclaims || {};
-      var idx = rec.faceclaims_uid || {};
-      var now = Date.now();
-      var updates = {};
-      var touche = false;
-
-      clesExpirees.forEach(function (e) {
-        var cle = e[0];
-        var c = fc[cle];
-        if (!c || !estExpire(c, now)) return;        // déjà partie ou renouvelée → on ne touche pas
-        updates["faceclaims/" + cle] = null;
-        touche = true;
-        if (c.uid != null) {                          // retrait de l'index inverse
-          var u = String(c.uid);
-          var liste = versTableau(idx[u]).filter(function (k) { return k !== cle; });
-          updates["faceclaims_uid/" + u] = liste.length ? liste : null;
-        }
-      });
-
-      if (touche) {
-        E.firebaseUpdate(updates).catch(function (err) {
-          if (window.console) console.warn("[BottinFC] purge expirés échouée (sans gravité)", err);
+        clesExpirees.forEach(function (e) {
+          var cle = e[0];
+          var c = fc[cle];
+          if (!c || !estExpire(c, now)) return;        // déjà partie ou renouvelée → on ne touche pas
+          updates["faceclaims/" + cle] = null;
+          touche = true;
+          if (c.uid != null) {                          // retrait de l'index inverse
+            var u = String(c.uid);
+            var liste = versTableau(idx[u]).filter(function (k) { return k !== cle; });
+            updates["faceclaims_uid/" + u] = liste.length ? liste : null;
+          }
         });
-      }
-    }).catch(function () { /* lecture échouée → on réessaiera au prochain chargement */ });
+
+        if (touche) {
+          E.firebaseUpdate(updates).catch(function (err) {
+            if (window.console) console.warn("[BottinFC] purge expirés échouée (sans gravité)", err);
+          });
+        }
+      }).catch(function () { /* lecture échouée → on réessaiera au prochain chargement */ });
   }
 
   /* === EVENTS ===
@@ -436,7 +435,7 @@ window.BottinFC = window.BottinFC || {};
   function quandPret(cb, n) {
     n = n || 0;
     var ancre = document.querySelector(CFG.SEL_ANCRE);
-    var coeurPret = window.EcoCore && typeof EcoCore.safeReadBin === "function";
+    var coeurPret = window.EcoCore && typeof EcoCore.firebaseGet === "function";
     if (ancre && coeurPret) { cb(ancre); return; }
     if (n > CFG.ATTENTE_MAX) {
       if (window.console) console.warn("[BottinFC] ancre ou EcoCore introuvable — vérifier l'ordre de chargement (après eco-core).");
@@ -473,9 +472,15 @@ window.BottinFC = window.BottinFC || {};
     quandPret(function () {
       monterOverlay();
       message(TEXTES.CHARGEMENT);
-      EcoCore.safeReadBin().then(function (rec) {
-        if (!rec) { message(TEXTES.ERREUR, "bfc-erreur"); return; }
-        rendre(rec);
+      /* [MAJ] deux branches ciblées (~1,7 ko) au lieu des 172 ko de la racine.
+         firebaseGet ne passe pas par le cache de session : une carte créée à
+         la validation d'une fiche apparaît immédiatement, au lieu d'attendre
+         l'expiration des 60 s dans l'onglet qui affiche le bottin. */
+      Promise.all([
+        EcoCore.firebaseGet("faceclaims"),
+        EcoCore.firebaseGet("uid_index")
+      ]).then(function (r) {
+        rendre({ faceclaims: r[0] || {}, uid_index: r[1] || {} });
       }).catch(function (err) {
         message(TEXTES.ERREUR, "bfc-erreur");
         if (window.console) console.error("[BottinFC]", err);
