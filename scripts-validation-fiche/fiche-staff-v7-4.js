@@ -309,9 +309,11 @@
 
     /* [MAJ v2] actions sur le membre : écritures ciblées, jamais la branche. */
     let avertAct = "";
-    try { await appliquerActions(demande); }
-    catch (e) {
-      avertAct = `<br><small>⚠️ Une action automatique a échoué — vérifiez le solde et l'affiliation.</small>`;
+    try {
+      const echecs = await appliquerActions(demande);
+      if (echecs.length) avertAct = `<br><small>⚠️ Échec : ${echecs.join(", ")}. Le reste est appliqué.</small>`;
+    } catch (e) {
+      avertAct = `<br><small>⚠️ Actions automatiques échouées.</small>`;
       if (window.console) console.error("[fiche-staff] appliquerActions", e);
     }
 
@@ -377,16 +379,25 @@
     setTimeout(() => chargerDemandes(listeEl), 2000);
   }
 
-  /* === ACTIONS CIBLÉES =====================
-     Chaque effet part seul. Les montants passent par une transaction : deux
-     validations simultanées s'additionnent au lieu de s'écraser. */
-
+    /* [CORRECTIF] Cinq effets INDÉPENDANTS. Les enchaîner par await dans un seul
+     try faisait qu'un échec abandonnait tous les suivants : un lien refusé
+     (branche liens encore au format tableau) empêchait le rattachement du
+     multicompte, sans que rien ne le dise. Chacun est isolé, tous sont tentés,
+     et les échecs sont nommés. */
   async function appliquerActions(d) {
-    await crediterMembre(d);
-    await crediterParrain(d);
-    await affecterProfil(d);      // groupe + bande + habitation, un seul PATCH
-    await affecterLien(d);
-    await completerGroupeDC(d);
+    const etapes = [
+      ["prime de pré-lien", () => crediterMembre(d)],
+      ["prime de parrainage", () => crediterParrain(d)],
+      ["groupe, bande et habitation", () => affecterProfil(d)],
+      ["lien de réseau", () => affecterLien(d)],
+      ["rattachement multicompte", () => completerGroupeDC(d)],
+    ];
+    const echecs = [];
+    for (const [nom, action] of etapes) {
+      try { await action(); }
+      catch (e) { echecs.push(nom); if (window.console) console.error("[fiche-staff] " + nom, e); }
+    }
+    return echecs;
   }
 
   /* Le membre peut ne pas exister encore (eco-ui jamais chargé) : on pose
