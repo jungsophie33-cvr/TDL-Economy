@@ -400,8 +400,7 @@
      Évite la ligne « — — Sans emploi — — » qu'un simple assemblage produirait. */
   FI.metierResume = function (d) {
     if (d.sans_emploi) return T.MET_SANS_EMPLOI;
-    const bouts = [d.lieu_metier, d.societe, d.emploi].filter((x) => x && x !== "—");
-    return bouts.join(" — ") || T.MET_HORS_BOTTIN;
+    return `<span>${esc(d.lieu_metier)}</span> <span>${esc(d.societe)}</span> <span>${esc(d.emploi)}</span>` || T.MET_HORS_BOTTIN;
   };
 
   /* === LIBÉRATION (refus ou abandon de la demande) ===
