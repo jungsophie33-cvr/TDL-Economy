@@ -5,6 +5,21 @@
  * conditions d'éligibilité en lisant le profil FA et la base, soumet la demande.
  * CE QU'IL NE FAIT PAS : validation staff, gestion des groupes.
  *
+ * [MAJ v2] PLUS DE readBin / writeBin.
+ *   soumettre() poussait la demande dans un tableau et réécrivait les branches
+ *   demandes_dc ET doubles_comptes en bloc. Deux membres soumettant dans la
+ *   même fenêtre : la seconde écriture effaçait la première. Et réécrire
+ *   doubles_comptes entier pouvait annuler un retrait de compte fait au même
+ *   moment depuis le panneau staff.
+ *   La demande part sous sa propre clé, le verrou de groupe en un champ.
+ *
+ * [MAJ v2] demandes_dc DEVIENT UN NŒUD À CLÉS, converti de lui-même au premier
+ *   écrit : le tableau converti ET la nouvelle demande partent dans le MÊME
+ *   PATCH, donc rien ne peut se perdre entre les deux.
+ *
+ * [MAJ v2] LECTURES CIBLÉES : doubles_comptes, demandes_dc et la seule feuille
+ *   du membre, au lieu de la racine à chaque ouverture de la modale.
+ *
  * CARTE DES BLOCS :
  *   RENDER     — bouton d'appel et structure DOM de la modale
  *   EVENTS     — ouverture / fermeture / Échap
@@ -16,11 +31,16 @@
  * chiffrées plutôt qu'en liste ✅/❌, séparateur tdl-separator, modale 800 px.
  * Les identifiants d'éléments sont inchangés pour ne rien casser ailleurs.
  *
- * Dépend de : eco-dc-config.js, eco-dc-utils.js, window.EcoCore
+ * Dépend de : eco-dc-config.js, eco-dc-utils.js, window.EcoCore, window.TDLBase
  */
 
 (function (DC, CFG, T) {
   "use strict";
+
+  const NODE = "demandes_dc";
+  const E = () => window.EcoCore;
+  const B = () => window.TDLBase;
+  const enc = (s) => encodeURIComponent(s);
 
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -112,12 +132,18 @@
     const zone = overlay.querySelector("#dc-zone-info");
     zone.innerHTML = `<p class="mc-vide">${T.CHARGEMENT_PROFIL}</p>`;
 
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) { blocage(overlay, T.ERR_DONNEES); return; }
-
-    rec.doubles_comptes = rec.doubles_comptes || {};
-    // Firebase retourne les tableaux comme objets {0:{…}, 1:{…}} — normalisation obligatoire
-    rec.demandes_dc = DC.versTableau(rec.demandes_dc);
+    /* [MAJ v2] trois lectures ciblées (~1 ko) au lieu de la racine. Le « rec »
+       partiel garde la forme attendue par DC.infosGroupe et DC.versTableau. */
+    let rec;
+    try {
+      const r = await Promise.all([
+        E().firebaseGet("doubles_comptes"),
+        E().firebaseGet(NODE),
+        E().firebaseGet("membres/" + enc(pseudo)),
+      ]);
+      rec = { doubles_comptes: r[0] || {}, demandes_dc: DC.versTableau(r[1]) };
+      rec.membres = {}; if (r[2]) rec.membres[pseudo] = r[2];
+    } catch (e) { blocage(overlay, T.ERR_DONNEES); return; }
 
     const { racine, comptes, estNouveau } = DC.infosGroupe(rec, pseudo);
     const empeche = verifierEligibilite(pseudo, rec, racine, comptes, estNouveau);
@@ -150,7 +176,7 @@
     if (!estNouveau && pseudo !== dernier) return T.ERR_COMPTE_RECENT(dernier);
     if (comptes.length >= CFG.MAX_COMPTES) return T.ERR_MAX_COMPTES(CFG.MAX_COMPTES);
     const enCours = rec.demandes_dc.find(
-      (d) => d.compte_racine === racine && d.statut === "en_attente"
+      (d) => d && d.compte_racine === racine && d.statut === "en_attente"
     );
     if (enCours) return T.ERR_DEMANDE_EN_COURS(new Date(enCours.date).toLocaleDateString("fr-FR"));
     return null;
@@ -201,7 +227,32 @@
     return ok;
   }
 
-  /* === SOUMISSION === */
+  /* === SOUMISSION =====================
+     [MAJ v2] un seul chemin pour la demande, un seul champ pour le verrou.
+     Si demandes_dc est encore un tableau, la conversion et la nouvelle demande
+     partent dans le MÊME PATCH — Firebase l'applique en tout ou rien. */
+
+  async function ecrireDemande(demande, racine, groupeExiste) {
+    const src = await E().firebaseGet(NODE);
+    const k = B().nouvelleCle();
+    const u = {};
+    if (Array.isArray(src)) {
+      const dst = {};
+      src.forEach((x) => { if (x) dst[B().nouvelleCle()] = x; });
+      dst[k] = demande;
+      u[NODE] = dst;
+      if (window.console) console.info("[eco-dc-membre] demandes_dc converti en nœud à clés.");
+    } else {
+      u[`${NODE}/${k}`] = demande;
+    }
+    /* le groupe naît avec son seul compte si personne ne l'a encore créé ;
+       sinon on ne touche QUE le verrou, pour ne pas écraser la liste des
+       comptes qu'un admin pourrait modifier au même moment. */
+    if (!groupeExiste) u[`doubles_comptes/${racine}/comptes`] = [racine];
+    u[`doubles_comptes/${racine}/demande_en_cours`] = true;
+    await E().firebaseUpdate(u);
+    return k;
+  }
 
   async function soumettre(overlay, pseudo, racine, numeroDC, paiementRequis) {
     const resume   = overlay.querySelector("#dc-resume").value.trim();
@@ -217,39 +268,32 @@
     btn.textContent = T.ENVOI_EN_COURS;
 
     try {
-      const rec = await window.EcoCore.readBin();
-      rec.doubles_comptes = rec.doubles_comptes || {};
-      rec.demandes_dc     = DC.versTableau(rec.demandes_dc);
-
-      const solde = rec.membres?.[pseudo]?.dollars ?? 0;
+      /* contrôle refait sur les valeurs FRAÎCHES : le solde a pu changer
+         depuis l'affichage des conditions. */
+      const solde = (await E().firebaseGet("membres/" + enc(pseudo) + "/dollars")) ?? 0;
       if (paiementRequis && solde < CFG.COUT_DC) {
         DC.afficherResultat(resultat, "erreur", T.ERR_SOLDE(solde));
         btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
         return;
       }
-      if (avatar && avatarIndisponible(rec, avatar)) {
+      if (avatar && await avatarIndisponible(avatar)) {
         DC.afficherResultat(resultat, "erreur", T.ERR_AVATAR_PRIS(avatar));
         btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
         return;
       }
 
+      const groupe = await E().firebaseGet("doubles_comptes/" + enc(racine));
       const demande = construireDemande(pseudo, racine, numeroDC, paiementRequis, solde, resume, avatar);
-      rec.demandes_dc.push(demande);
+      await ecrireDemande(demande, racine, !!groupe);
 
-      if (!rec.doubles_comptes[racine]) {
-        rec.doubles_comptes[racine] = { comptes: [racine], demande_en_cours: false };
-      }
-      rec.doubles_comptes[racine].demande_en_cours = true;
-
-      await window.EcoCore.writeBin(rec);
-
-      const monnaie = window.EcoCore.MONNAIE_NAME;
+      const monnaie = E().MONNAIE_NAME;
       DC.preremplirReponse(DC.msgMembre(demande, monnaie));
       DC.afficherResultat(resultat, "succes",
         T.CONFIRMATION(numeroDC, paiementRequis, CFG.COUT_DC, monnaie));
       overlay.querySelector("#dc-champs").style.display = "none";
 
-    } catch (_) {
+    } catch (e) {
+      if (window.console) console.error("[eco-dc-membre] soumettre", e);
       DC.afficherResultat(resultat, "erreur", T.ERR_ENVOI);
       btn.disabled = false; btn.textContent = T.BTN_SOUMETTRE;
     }
@@ -257,9 +301,11 @@
 
   // Renvoie true si l'acteur est indisponible : carte « pris », ou « reserve »
   // non expirée. Une carte « libre » (pré-lien) ou une réservation expirée ne bloque pas.
-  function avatarIndisponible(rec, acteur) {
+  // [MAJ v2] une seule carte lue, pas tout le bottin des avatars.
+  async function avatarIndisponible(acteur) {
     const cle = DC.normaliserCleFC(acteur);
-    const c = rec.faceclaims?.[cle];
+    if (!cle) return false;
+    const c = await E().firebaseGet("faceclaims/" + enc(cle));
     if (!c) return false;
     if (c.statut === "pris") return true;
     if (c.statut === "reserve") return !(c.expiration && c.expiration < Date.now());
@@ -287,6 +333,10 @@
     if (document.getElementById("dc-overlay")) return;
     if (!DC.normaliserCleFC) {
       if (window.console) console.error("[eco-dc-membre] eco-dc-gestion.js doit être chargé avant ce fichier.");
+      return;
+    }
+    if (!B() || typeof B().nouvelleCle !== "function") {
+      if (window.console) console.error("[eco-dc-membre] tdl-base.js doit être chargé avant ce fichier.");
       return;
     }
     const wrapper = creerBouton();
