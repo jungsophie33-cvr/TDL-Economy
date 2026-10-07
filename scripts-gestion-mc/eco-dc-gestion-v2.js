@@ -4,6 +4,18 @@
  * Extrait de eco-dc-staff.js, qui dépassait les 500 lignes. Ce fichier porte
  * les deux sections du panneau staff qui touchent aux comptes existants.
  *
+ * [MAJ v2] LES RÔLES SE RETIRENT PAR CLÉ.
+ *   nettoyerRolesEmplois réécrivait emplois/{id}/roles EN TABLEAU pour chaque
+ *   entreprise où le membre figurait. Depuis que le bottin des métiers range
+ *   ses rôles en nœud à clés, cette écriture ANNULAIT la conversion — et
+ *   rouvrait, pour toutes ces entreprises, le défaut qu'on venait d'y fermer :
+ *   deux fiches validées coup sur coup dont l'une écrase le rôle de l'autre.
+ *   On efface maintenant chaque rôle visé à son propre chemin. Le repli
+ *   tableau reste là pour les fiches pas encore converties.
+ *
+ * [MAJ v2] LECTURES CIBLÉES et plus aucun invalidateCache — il vidait le
+ *   cache partagé de toute la page à chaque suppression.
+ *
  * CARTE DES BLOCS :
  *   UTILS       — échappement, clé de faceclaim, réattribution de racine
  *   GESTION     — tableau des groupes multicomptes
@@ -27,6 +39,9 @@
 
 (function (DC, CFG, T) {
   "use strict";
+
+  const E = () => window.EcoCore;
+  const enc = (s) => encodeURIComponent(s);
 
   /* === UTILS === */
 
@@ -69,15 +84,16 @@
     return section;
   };
 
-  // recExistant permet de réutiliser une lecture déjà faite par initStaff
-  // et d'éviter un appel Firebase supplémentaire.
-  DC.chargerGroupes = async function (corpsEl, recExistant) {
+  // groupesExistants permet de réutiliser une lecture déjà faite par initStaff.
+  // [MAJ v2] une seule branche (~1 ko) au lieu de la racine.
+  DC.chargerGroupes = async function (corpsEl, groupesExistants) {
     if (!corpsEl) return;
-    const rec = recExistant || await window.EcoCore.safeReadBin();
-    if (!rec) { corpsEl.innerHTML = `<tr><td colspan="3">${T.ERR_DONNEES}</td></tr>`; return; }
+    let groupes;
+    try { groupes = groupesExistants || await E().firebaseGet("doubles_comptes"); }
+    catch (e) { corpsEl.innerHTML = `<tr><td colspan="3">${T.ERR_DONNEES}</td></tr>`; return; }
 
     // doubles_comptes absent = aucun DC validé, pas une erreur
-    const entrees = Object.entries(rec.doubles_comptes || {})
+    const entrees = Object.entries(groupes || {})
       .sort(([a], [b]) => a.localeCompare(b, "fr"));
 
     if (!entrees.length) {
@@ -136,14 +152,13 @@
     if (!confirm(T.STAFF_CONFIRM_SUPPRESSION(pseudo))) return;
     const el = resultatGestion();
     try {
-      const rec = await window.EcoCore.safeReadBin();
-      const groupe = rec && rec.doubles_comptes && rec.doubles_comptes[racine];
+      /* [MAJ v2] le seul groupe concerné, pas la racine entière */
+      const groupe = await E().firebaseGet("doubles_comptes/" + enc(racine));
       if (!groupe) return;
 
       const updates = {};
       retirerDuGroupe(groupe, racine, pseudo, updates);
-      await window.EcoCore.firebaseUpdate(updates);
-      if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
+      await E().firebaseUpdate(updates);
 
       if (el) DC.afficherResultat(el, "succes", T.STAFF_SUPPR_OK(pseudo));
       window.DC.rafraichirBottin?.();
@@ -185,8 +200,7 @@
     try {
       const updates = {};
       updates["doubles_comptes/" + racine] = null;
-      await window.EcoCore.firebaseUpdate(updates);
-      if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
+      await E().firebaseUpdate(updates);
 
       if (el) DC.afficherResultat(el, "succes", T.STAFF_SUPPR_GROUPE_OK(racine));
       window.DC.rafraichirBottin?.();
@@ -240,24 +254,46 @@
     });
   }
 
+  /* Lecture bi-schéma des rôles d'une entreprise : rend [{k, r}].
+     En schéma 2 (nœud à clés), k est la clé Firebase ; en schéma 1 (tableau),
+     c'est l'indice, qui ne sert qu'au repli ci-dessous. */
+  function listerRoles(e) {
+    const r = e && e.roles;
+    if (!r) return [];
+    if (Array.isArray(r)) return r.map((x, i) => ({ k: i, r: x })).filter((o) => !!o.r);
+    return Object.keys(r).map((k) => ({ k: k, r: r[k] })).filter((o) => !!o.r);
+  }
+
   // Rôles à retirer dans emplois/* : on cible d'abord l'uid — identité stable,
   // insensible aux renommages — avec repli sur le pseudo pour les rôles saisis
   // avant l'introduction de l'uid. PNJ et pré-liens ne sont jamais touchés.
+  //
+  // [MAJ v2] En schéma 2, chaque rôle visé est effacé À SA CLÉ : les rôles
+  // voisins ne sont pas réécrits, et la fiche reste en nœud à clés. L'ancienne
+  // version réécrivait la liste entière en tableau, ce qui annulait la
+  // conversion du bottin des métiers pour chaque entreprise touchée.
   function nettoyerRolesEmplois(rec, pseudo, uid, updates) {
     const emplois = rec.emplois || {};
     let postes = 0, referents = 0;
     Object.keys(emplois).forEach((id) => {
       const e = emplois[id];
       if (!e) return;
-      const roles = DC.versTableau(e.roles);
-      const restants = roles.filter((r) => {
-        if (!r) return false;
-        if (uid != null && r.uid != null) return String(r.uid) !== String(uid);
-        return !(r.type === "pj" && r.nom === pseudo);
+      const tous = listerRoles(e);
+      const aRetirer = tous.filter((o) => {
+        const r = o.r;
+        if (uid != null && r.uid != null) return String(r.uid) === String(uid);
+        return r.type === "pj" && r.nom === pseudo;
       });
-      if (restants.length !== roles.length) {
-        updates["emplois/" + id + "/roles"] = restants;
-        postes += roles.length - restants.length;
+      if (aRetirer.length) {
+        if (e.schema === 2) {
+          aRetirer.forEach((o) => { updates["emplois/" + id + "/roles/" + o.k] = null; });
+        } else {
+          /* repli schéma 1 : la liste est un tableau, il n'y a pas de clé à
+             viser — on la réécrit, comme avant. */
+          const restants = tous.filter((o) => aRetirer.indexOf(o) === -1).map((o) => o.r);
+          updates["emplois/" + id + "/roles"] = restants.length ? restants : null;
+        }
+        postes += aRetirer.length;
       }
       if (e.referent === pseudo) {
         updates["emplois/" + id + "/referent"] = null;
@@ -284,18 +320,34 @@
     if (!pseudo) { DC.afficherResultat(resultatEl, "erreur", T.SUPPR_VIDE); return; }
     if (!confirm(T.SUPPR_CONFIRM(pseudo))) return;
 
-    if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) { DC.afficherResultat(resultatEl, "erreur", T.ERR_DONNEES); return; }
+    /* [MAJ v2] six branches ciblées (~15 ko) au lieu des 190 ko de la racine.
+       Ce sont réellement les six dont la suppression a besoin. */
+    let rec;
+    try {
+      const r = await Promise.all([
+        E().firebaseGet("membres"),
+        E().firebaseGet("uid_index"),
+        E().firebaseGet("doubles_comptes"),
+        E().firebaseGet("faceclaims"),
+        E().firebaseGet("faceclaims_uid"),
+        E().firebaseGet("emplois"),
+      ]);
+      rec = { membres: r[0] || {}, uid_index: r[1] || {}, doubles_comptes: r[2] || {},
+              faceclaims: r[3] || {}, faceclaims_uid: r[4] || {}, emplois: r[5] || {} };
+    } catch (e) {
+      DC.afficherResultat(resultatEl, "erreur", T.ERR_DONNEES);
+      if (window.console) console.error("[eco-dc-gestion] lecture", e);
+      return;
+    }
 
     const uid = DC.uidDepuisPseudo(rec, pseudo);
     const updates = {}, actions = [];
 
-    if (rec.membres && rec.membres[pseudo]) {
+    if (rec.membres[pseudo]) {
       updates["membres/" + pseudo] = null;
       actions.push("économie");
     }
-    if (uid != null && rec.uid_index && rec.uid_index[uid]) {
+    if (uid != null && rec.uid_index[uid]) {
       updates["uid_index/" + uid] = null;
       actions.push("index UID");
     }
@@ -303,7 +355,7 @@
 
     const cartes = cartesFCDuMembre(rec, pseudo, uid);
     cartes.forEach((cle) => { updates["faceclaims/" + cle] = null; });
-    if (uid != null && rec.faceclaims_uid && rec.faceclaims_uid[uid]) {
+    if (uid != null && rec.faceclaims_uid[uid]) {
       updates["faceclaims_uid/" + uid] = null;
     }
     if (cartes.length) actions.push(`faceclaim${cartes.length > 1 ? "s" : ""} (${cartes.length})`);
@@ -318,12 +370,11 @@
     }
 
     try {
-      await window.EcoCore.firebaseUpdate(updates);
+      await E().firebaseUpdate(updates);
     } catch (e) {
       DC.afficherResultat(resultatEl, "erreur", T.SUPPR_ERR + ((e && e.message) || e));
       return;
     }
-    if (window.EcoCore.invalidateCache) window.EcoCore.invalidateCache();
 
     window.DC.rafraichirBottin?.();
     DC.afficherResultat(resultatEl, "succes", T.SUPPR_OK(pseudo, actions.join(", ")));
