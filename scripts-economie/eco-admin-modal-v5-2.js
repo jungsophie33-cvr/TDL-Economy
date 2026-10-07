@@ -2,6 +2,27 @@
 // Auteur : Claude x THE DROWNED LANDS
 // Flaticon CDN déjà chargé dans <head> — aucun chargement dynamique ici.
 // HTML injecté immédiatement dans l'IIFE (pas de callback).
+//
+// [MAJ v2] PLUS AUCUN readBin / writeBin.
+//   Les six boutons de distribution et de réinitialisation faisaient tous
+//   readBin → muter rec.membres → writeBin. Or writeBin est un patch
+//   différentiel AU NIVEAU DES BRANCHES : membres repartait EN ENTIER, depuis
+//   un instantané vieux de quelques secondes.
+//   Deux conséquences, la seconde bien pire que la première :
+//     · tout mouvement d'argent survenu entre la lecture et l'écriture était
+//       annulé — un achat en boutique, un gain de post, une prime de mission ;
+//     · un membre INSCRIT pendant l'opération n'était pas dans l'instantané,
+//       et réécrire la branche le SUPPRIMAIT — solde, groupe, liens, habitation.
+//   Chaque solde passe maintenant par une transaction sur son propre chemin :
+//   les opérations concurrentes s'additionnent au lieu de s'écraser, et un
+//   membre absent de la liste n'est simplement pas touché.
+//
+// [MAJ v2] TOUT MOUVEMENT LAISSE UNE TRACE.
+//   Seuls les trois transferts écrivaient dans transactions_membres. Un
+//   ajustement de solde ou une remise à zéro ne laissait rien. Les six
+//   boutons journalisent désormais, du même geste que transferer().
+//
+// [MAJ v2] LECTURES CIBLÉES : membres et cagnottes, au lieu de la racine.
 
 (function () {
   "use strict";
@@ -9,6 +30,8 @@
   var MODULE     = "[EcoAdminModal]";
   var TRIGGER_ID = "eco-admin-modal-trigger";
   var OVERLAY_ID = "eco-admin-modal-overlay";
+  var J_MEMBRES   = "transactions_membres";
+  var J_CAGNOTTES = "transactions_cagnottes";
 
   // ── HTML DU MODAL ────────────────────────────────────────────────
   var ARR = '<i class="fi fi-rr-angle-double-small-right eam-arrow" aria-hidden="true"></i>';
@@ -152,35 +175,96 @@
   }
 
   // ── POPULATION DES SELECTS ────────────────────────────────────────
+  // [MAJ v2] deux branches ciblées (~3 ko) au lieu de la racine (~190 ko),
+  // et à chaque ouverture du panneau.
   function populerSelects() {
     var core = window.EcoCore;
-    if (!core || !core.safeReadBin) return;
-    core.safeReadBin().then(function (rec) {
-      if (!rec) return;
-      var membres = Object.keys(rec.membres || {}).sort();
-      var groupes = Object.keys(rec.cagnottes || {});
+    if (!core || !core.firebaseGet) return;
+    Promise.all([core.firebaseGet("membres"), core.firebaseGet("cagnottes")])
+      .then(function (r) {
+        var membres = Object.keys(r[0] || {}).sort();
+        var groupes = Object.keys(r[1] || {});
 
-      function remplir(id, items) {
-        var sel = document.getElementById(id);
-        if (!sel) return;
-        sel.innerHTML = items.map(function (v) {
-          return '<option value="' + v + '">' + v + '</option>';
-        }).join("");
-      }
+        function remplir(id, items) {
+          var sel = document.getElementById(id);
+          if (!sel) return;
+          sel.innerHTML = items.map(function (v) {
+            return '<option value="' + v + '">' + v + '</option>';
+          }).join("");
+        }
 
-      ["eco-adjust-member", "eco-member-select",
-       "eco-transfer-from-member", "eco-transfer-to-member",
-       "eco-transfer-cag-to-member-to"].forEach(function (id) { remplir(id, membres); });
+        ["eco-adjust-member", "eco-member-select",
+         "eco-transfer-from-member", "eco-transfer-to-member",
+         "eco-transfer-cag-to-member-to"].forEach(function (id) { remplir(id, membres); });
 
-      ["eco-cag-select", "eco-transfer-from",
-       "eco-transfer-to", "eco-transfer-cag-to-member-from"].forEach(function (id) { remplir(id, groupes); });
+        ["eco-cag-select", "eco-transfer-from",
+         "eco-transfer-to", "eco-transfer-cag-to-member-from"].forEach(function (id) { remplir(id, groupes); });
 
-    }).catch(function (e) { console.warn(MODULE, "populerSelects :", e); });
+      }).catch(function (e) { console.warn(MODULE, "populerSelects :", e); });
   }
 
   // ── LISTENERS BOUTONS ADMIN ───────────────────────────────────────
   function bindBoutonsAdmin() {
     var c = function () { return window.EcoCore; };
+
+    /* Journal : ne doit JAMAIS faire échouer l'opération qu'il décrit.
+       Même règle que dans transferer(). */
+    function journal(noeud, entree) {
+      var core = c(); if (!core || !core.firebasePush) return;
+      entree.date = new Date().toISOString();
+      entree["effectué_par"] = core.getPseudo ? core.getPseudo() : null;
+      core.firebasePush(noeud, entree).catch(function () {});
+    }
+
+    /* Ajustement d'UN solde, par transaction sur son seul chemin.
+       La fonction de mise à jour peut être rejouée en cas de conflit : on
+       mémorise à CHAQUE appel, la dernière valeur étant celle qui a été
+       retenue. Elle rend le delta RÉELLEMENT appliqué — qui diffère du
+       montant demandé quand le solde bute sur zéro. */
+    function ajusterSolde(pseudo, delta) {
+      var core = c();
+      var applique = 0;
+      return core.firebaseTransaction(
+        "membres/" + encodeURIComponent(pseudo) + "/dollars",
+        function (cur) {
+          var avant = cur || 0;
+          var apres = Math.max(0, avant + delta);
+          applique = apres - avant;
+          return apres;
+        }
+      ).then(function () { return applique; });
+    }
+
+    function mettreAZero(pseudo) {
+      var core = c();
+      var retire = 0;
+      return core.firebaseTransaction(
+        "membres/" + encodeURIComponent(pseudo) + "/dollars",
+        function (cur) { retire = cur || 0; return 0; }
+      ).then(function () { return retire; });
+    }
+
+    function rafraichirAffichage() {
+      if (window.EcoUI && window.EcoUI.updatePostDollars) window.EcoUI.updatePostDollars();
+    }
+
+    /* Enchaîne les membres un par un : une rafale de transactions parallèles
+       sur un gros effectif se fait étrangler par Firebase, et une erreur au
+       milieu laisserait un état à moitié appliqué sans qu'on sache lequel. */
+    function pourChaque(liste, action) {
+      var faits = 0, echecs = [];
+      return liste.reduce(function (chaine, p) {
+        return chaine.then(function () {
+          return action(p).then(function () { faits++; },
+                                function (e) { echecs.push(p); console.warn(MODULE, p, e); });
+        });
+      }, Promise.resolve()).then(function () { return { faits: faits, echecs: echecs }; });
+    }
+
+    function bilan(r, verbe) {
+      return r.faits + " membre(s) " + verbe
+        + (r.echecs.length ? "\n⚠️ Échec sur : " + r.echecs.join(", ") : "");
+    }
 
     var giveAll = document.getElementById("eco-giveall-btn");
     if (giveAll) {
@@ -189,13 +273,20 @@
         if (isNaN(val) || val <= 0) return alert("Montant invalide.");
         var core = c(); if (!core) return;
         if (!confirm("Ajouter " + val + " " + core.MONNAIE_NAME + " à tous ?")) return;
-        var rec = await core.readBin(); var count = 0;
-        for (var n in rec.membres) { rec.membres[n].dollars = (rec.membres[n].dollars || 0) + val; count++; }
-        await core.writeBin(rec);
-        core.invalidateCache();
-        if (core.showEcoGain) core.showEcoGain(val);
-        if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
-        alert(val + " " + core.MONNAIE_NAME + " ajoutés à " + count + " membres.");
+        giveAll.disabled = true;
+        try {
+          /* la liste est relue ICI : un membre inscrit entre-temps est servi,
+             et aucun n'est effacé puisqu'on n'écrit jamais la branche. */
+          var membres = Object.keys((await core.firebaseGet("membres")) || {});
+          var r = await pourChaque(membres, function (p) { return core.crediterDollars(p, val); });
+          journal(J_MEMBRES, { type: "distribution_globale", de: "Staff", vers: "tous",
+                               montant: val, nb: r.faits, motif: "Distribution globale" });
+          if (core.showEcoGain) core.showEcoGain(val);
+          rafraichirAffichage();
+          alert(val + " " + core.MONNAIE_NAME + " ajoutés à " + r.faits + " membres."
+                + (r.echecs.length ? "\n⚠️ Échec sur : " + r.echecs.join(", ") : ""));
+        } catch (e) { console.error(MODULE, e); alert("Distribution impossible."); }
+        finally { giveAll.disabled = false; }
       });
     }
 
@@ -208,12 +299,22 @@
         if (isNaN(montant) || montant === 0) return alert("Montant invalide.");
         if (!confirm((montant > 0 ? "Ajouter " : "Retirer ") + Math.abs(montant) + " à " + membre + " ?")) return;
         var core = c(); if (!core) return;
-        var rec = await core.readBin();
-        if (!rec.membres[membre]) return alert("Membre inconnu.");
-        rec.membres[membre].dollars = Math.max(0, (rec.membres[membre].dollars || 0) + montant);
-        await core.writeBin(rec);
-        core.invalidateCache();
-        alert("✅ Solde de " + membre + " mis à jour (" + (montant > 0 ? "+" : "") + montant + ").");
+        adjustBtn.disabled = true;
+        try {
+          /* le membre existe-t-il ? on le vérifie sur sa seule feuille, sinon
+             la transaction le CRÉERAIT avec un solde nu. */
+          var cur = await core.firebaseGet("membres/" + encodeURIComponent(membre));
+          if (!cur || typeof cur !== "object") { alert("Membre inconnu."); return; }
+          var applique = await ajusterSolde(membre, montant);
+          journal(J_MEMBRES, { type: "ajustement",
+                               de: montant > 0 ? "Staff" : membre,
+                               vers: montant > 0 ? membre : "Staff",
+                               montant: Math.abs(applique), motif: "Ajustement de solde" });
+          rafraichirAffichage();
+          alert("✅ Solde de " + membre + " mis à jour (" + (applique > 0 ? "+" : "") + applique + ")."
+                + (applique !== montant ? "\n(le solde a buté sur zéro)" : ""));
+        } catch (e) { console.error(MODULE, e); alert("Ajustement impossible."); }
+        finally { adjustBtn.disabled = false; }
       });
     }
 
@@ -222,22 +323,31 @@
       if (!choix) return alert("Aucun membre sélectionné.");
       if (!confirm("Remettre " + choix + " à 0 ?")) return;
       var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      if (!rec.membres[choix]) return alert("Membre inconnu.");
-      rec.membres[choix].dollars = 0;
-      await core.writeBin(rec);
-        core.invalidateCache();
-      alert(choix + " réinitialisé.");
+      try {
+        var cur = await core.firebaseGet("membres/" + encodeURIComponent(choix));
+        if (!cur || typeof cur !== "object") return alert("Membre inconnu.");
+        var retire = await mettreAZero(choix);
+        journal(J_MEMBRES, { type: "reinitialisation", de: choix, vers: "Staff",
+                             montant: retire, motif: "Remise à zéro du solde" });
+        rafraichirAffichage();
+        alert(choix + " réinitialisé (" + retire + " retirés).");
+      } catch (e) { console.error(MODULE, e); alert("Réinitialisation impossible."); }
     });
 
     document.getElementById("eco-reset-all-members")?.addEventListener("click", async function () {
       if (!confirm("⚠️ Réinitialiser TOUS les membres ?")) return;
       var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      for (var m in rec.membres) rec.membres[m].dollars = 0;
-      await core.writeBin(rec);
-        core.invalidateCache();
-      alert("Tous les membres remis à 0.");
+      try {
+        var membres = Object.keys((await core.firebaseGet("membres")) || {});
+        var total = 0;
+        var r = await pourChaque(membres, function (p) {
+          return mettreAZero(p).then(function (n) { total += n; });
+        });
+        journal(J_MEMBRES, { type: "reinitialisation_globale", de: "tous", vers: "Staff",
+                             montant: total, nb: r.faits, motif: "Remise à zéro de tous les soldes" });
+        rafraichirAffichage();
+        alert(bilan(r, "remis à 0") + "\nTotal retiré : " + total + ".");
+      } catch (e) { console.error(MODULE, e); alert("Réinitialisation impossible."); }
     });
 
     document.getElementById("eco-reset-cagnotte")?.addEventListener("click", async function () {
@@ -245,21 +355,35 @@
       if (!choix) return alert("Aucune cagnotte sélectionnée.");
       if (!confirm("Remettre " + choix + " à 0 ?")) return;
       var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      rec.cagnottes[choix] = 0;
-      await core.writeBin(rec);
-        core.invalidateCache();
-      alert("Cagnotte " + choix + " réinitialisée.");
+      try {
+        var retire = 0;
+        await core.firebaseTransaction("cagnottes/" + encodeURIComponent(choix),
+          function (cur) { retire = cur || 0; return 0; });
+        journal(J_CAGNOTTES, { type: "reinitialisation", de: choix, vers: "Staff",
+                               montant: retire, motif: "Remise à zéro de la cagnotte" });
+        majCagnotteAffichee(choix);
+        alert("Cagnotte " + choix + " réinitialisée (" + retire + " retirés).");
+      } catch (e) { console.error(MODULE, e); alert("Réinitialisation impossible."); }
     });
 
     document.getElementById("eco-reset-all-cagnottes")?.addEventListener("click", async function () {
       if (!confirm("⚠️ Remettre toutes les cagnottes à 0 ?")) return;
       var core = c(); if (!core) return;
-      var rec = await core.readBin();
-      for (var g in rec.cagnottes) rec.cagnottes[g] = 0;
-      await core.writeBin(rec);
-        core.invalidateCache();
-      alert("Toutes les cagnottes remises à 0.");
+      try {
+        var groupes = Object.keys((await core.firebaseGet("cagnottes")) || {});
+        var total = 0, faits = 0;
+        for (var i = 0; i < groupes.length; i++) {
+          var g = groupes[i], retire = 0;
+          /* eslint-disable no-loop-func */
+          await core.firebaseTransaction("cagnottes/" + encodeURIComponent(g),
+            function (cur) { retire = cur || 0; return 0; });
+          total += retire; faits++;
+          majCagnotteAffichee(g);
+        }
+        journal(J_CAGNOTTES, { type: "reinitialisation_globale", de: "toutes", vers: "Staff",
+                               montant: total, nb: faits, motif: "Remise à zéro de toutes les cagnottes" });
+        alert(faits + " cagnotte(s) remises à 0.\nTotal retiré : " + total + ".");
+      } catch (e) { console.error(MODULE, e); alert("Réinitialisation impossible."); }
     });
 
       /* Transfert atomique entre deux chemins numériques, puis journal.
@@ -300,7 +424,7 @@
       if (el) el.textContent = v || 0;
     }).catch(function () {});
   }
-    
+
     document.getElementById("eco-transfer-btn")?.addEventListener("click", async function () {
       var from = document.getElementById("eco-transfer-from")?.value;
       var to   = document.getElementById("eco-transfer-to")?.value;
@@ -312,7 +436,7 @@
         await transferer({
           cheminDe:   "cagnottes/" + encodeURIComponent(from),
           cheminVers: "cagnottes/" + encodeURIComponent(to),
-          montant: montant, de: from, vers: to, journal: "transactions_cagnottes"
+          montant: montant, de: from, vers: to, journal: J_CAGNOTTES
         });
       } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
       alert("✅ " + montant + " transférés de " + from + " vers " + to + ".");
@@ -330,11 +454,11 @@
         await transferer({
           cheminDe:   "membres/" + encodeURIComponent(from) + "/dollars",
           cheminVers: "membres/" + encodeURIComponent(to)   + "/dollars",
-          montant: montant, de: from, vers: to, journal: "transactions_membres"
+          montant: montant, de: from, vers: to, journal: J_MEMBRES
         });
       } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
       alert("✅ " + montant + " transférés de " + from + " à " + to + ".");
-      if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
+      rafraichirAffichage();
     });
 
     document.getElementById("eco-transfer-cag-to-member-btn")?.addEventListener("click", async function () {
@@ -353,7 +477,7 @@
       } catch (e) { console.error(e); return alert(messageErreur(e, from)); }
       alert("✅ " + montant + " transférés de la cagnotte " + from + " à " + to + ".");
       majCagnotteAffichee(from);
-      if (window.EcoUI?.updatePostDollars) window.EcoUI.updatePostDollars();
+      rafraichirAffichage();
     });
 
     console.log(MODULE, "Boutons admin câblés.");
