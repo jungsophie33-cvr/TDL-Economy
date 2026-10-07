@@ -237,7 +237,7 @@
     modal.id = "fi-modal-validation";
     modal.className = "dc-overlay actif";
     modal.innerHTML = `
-      <div class="dc-boite" style="max-width:540px;">
+      <div class="dc-boite fi-boite" style="max-width:540px;">
         <button class="dc-btn-fermer">✕</button>
         <div class="dc-titre">${T.STAFF_TITRE_MODAL(demande.pseudo)}</div>
         <label class="fi-label">${T.STAFF_LABEL_MSG}</label>
