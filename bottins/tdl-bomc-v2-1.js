@@ -171,7 +171,7 @@ window.BMC = window.BMC || {};
   }
 
   /* ===================== DONNÉES (lecture + jointures) ===================== */
-  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.firebaseGet==="function"); }}
+  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.firebaseGet==="function"); }
   function attendreEco(ms){
     return new Promise(function(res){
       var n=0, t=setInterval(function(){ if(ecoPret()||++n>ms/100){ clearInterval(t); res(ecoPret()); } },100);
