@@ -31,7 +31,7 @@
   // pour ne pas bloquer si un fichier module a une erreur silencieuse.
   function toutPret() {
     return !!(
-      window.EcoCore?.readBin   &&
+      window.EcoCore?.firebaseGet &&
       window.EcoCore?.getPseudo &&
       window.RC?.CFG?.SEL       &&
       window.RC?.Calcul
