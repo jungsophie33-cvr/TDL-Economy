@@ -25,6 +25,7 @@
   /* ===================== CONFIG ===================== */
   var CFG = {
     MONTAGE:        "#quais-app",          /* [MAJ] conteneur sur la page dédiée */
+    TOPIC:          89,                    /* [MAJ] numéro du sujet de la boutique ; 0 = aucune garde d'URL */
     NODE_BOUTIQUE:  "boutique",            /* [MAJ] racine catalogue */
     NODE_DEMANDES:  "boutique_demandes",   /* [MAJ] file des demandes pour le staff */
     NODE_MEMBRES:   "membres",             /* [MAJ] membres/<pseudo>/dollars | /dettes */
@@ -72,10 +73,18 @@
   function pseudo(){ try { return E().getPseudo(); } catch(e){ return null; } }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
 
+    /* [MAJ] Sans garde, quandPret boucle 15 s sur CHAQUE page du forum avant
+     d'abandonner. Les URL d'un sujet FA varient : /t89-slug, /t89p25-slug.
+     On filtre sur le NUMÉRO, jamais sur le slug complet. */
+  function surLeSujet(){
+    if (!CFG.TOPIC) return true;
+    return new RegExp("/t" + CFG.TOPIC + "(p\\d+)?[-/]").test(location.pathname);
+  }
+
   function quandPret(cb, n){
     n = n||0;
     var mount = document.querySelector(CFG.MONTAGE);
-    var eco = window.EcoCore && typeof EcoCore.safeReadBin==="function" && typeof EcoCore.firebaseTransaction==="function";
+    var eco = window.EcoCore && typeof EcoCore.firebaseGet==="function" && typeof EcoCore.firebaseTransaction==="function";
     if (mount && eco && registre.length) { cb(mount); return; }
     if (n > CFG.RETRY_MAX) {
       if (window.console) console.warn("[Quais] démarrage impossible — eco:"+!!eco+" conteneur:"+!!mount+" modules:"+registre.length);
@@ -93,10 +102,11 @@
      "marina", "barge/main"… Semis au premier chargement si le nœud est vide. */
   var catalogue = {
     async lire(sousChemin, defaut){
-      var root = await E().safeReadBin();
-      var node = root && root[CFG.NODE_BOUTIQUE];
-      var cur = node;
-      sousChemin.split("/").forEach(function(seg){ cur = cur && cur[seg]; });
+      /* [MAJ] la seule sous-branche du module (~12 ko) au lieu des 172 ko de
+         la racine. Les segments sont encodés pour l'URL de lecture ; le chemin
+         d'écriture plus bas reste BRUT — firebaseUpdate est un PATCH racine. */
+      var cur = await E().firebaseGet(CFG.NODE_BOUTIQUE + "/" +
+        sousChemin.split("/").map(encodeURIComponent).join("/"));
       if (cur && Object.keys(cur).length) return cur;
       if (defaut && Object.keys(defaut).length) {
         try { await E().writeField(CFG.NODE_BOUTIQUE + "/" + sousChemin, defaut); } catch(e){ if(window.console) console.warn("[Quais] semis échoué", e); }
@@ -118,8 +128,10 @@
   var membre = {
     async lire(){
       var p = pseudo(); if (!p) return { pseudo:null, solde:0, dettes:[] };
-      var root = await E().safeReadBin();
-      var m = root && root[CFG.NODE_MEMBRES] && root[CFG.NODE_MEMBRES][p];
+      /* [MAJ] la seule feuille du membre (~230 o). Et firebaseGet ignore le
+         cache de session : le solde affiché après un achat est le vrai, au
+         lieu d'être celui d'il y a une minute. refresh() repasse ici. */
+      var m = await E().firebaseGet(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p));
       return { pseudo:p, solde:(m && m.dollars)||0, dettes: versTableau(m && m.dettes), cooldowns:(m && m.nego_cd)||{} };
     },
     dettesLourdesActives(dettes){
@@ -607,14 +619,30 @@
     if (window.console) console.log("[Quais] migration "+chemin+" : "+ids.length+" item(s) corrigé(s).");
   }
   async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
-  async function chargerAnnexes(){
+    async function chargerAnnexes(){
     try {
-      var root = await E().safeReadBin();     
-      PSEUDOS = Object.keys((root && root[CFG.NODE_MEMBRES]) || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
-      BANDES_INFO = (root && root[CFG.NODE_BANDES]) || {};
-      ENQUETES = lireEnquetes(root);
-      DUS = lireDus(root);
-      GELE = calculerGel(root);
+      /* [MAJ] quatre branches ciblées (~61 ko) au lieu des 172 ko de la racine.
+         enquetes en pèse 54 à lui seul, pour trois champs par affaire : si
+         l'ouverture de la boutique devient lente, c'est là qu'il faudra
+         différer le chargement.
+         La variable locale ne s'appelle plus « root » : c'était le nom du
+         conteneur monté, à portée juste au-dessus. */
+      var r = await Promise.all([
+        E().firebaseGet(CFG.NODE_MEMBRES),
+        E().firebaseGet(CFG.NODE_BANDES),
+        E().firebaseGet(CFG.NODE_ENQUETES),
+        E().firebaseGet(CFG.NODE_DOSSIERS)
+      ]);
+      var partiel = {};
+      partiel[CFG.NODE_MEMBRES]  = r[0] || {};
+      partiel[CFG.NODE_BANDES]   = r[1] || {};
+      partiel[CFG.NODE_ENQUETES] = r[2] || {};
+      partiel[CFG.NODE_DOSSIERS] = r[3] || {};
+      PSEUDOS = Object.keys(partiel[CFG.NODE_MEMBRES]).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
+      BANDES_INFO = partiel[CFG.NODE_BANDES];
+      ENQUETES = lireEnquetes(partiel);
+      DUS = lireDus(partiel);
+      GELE = calculerGel(partiel);
     } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; DUS = []; GELE = 0; }
   }
   async function refresh(){
@@ -630,6 +658,7 @@
   }
 
   function boot(){
+    if (!surLeSujet()) return;
     quandPret(async function(mount){
       if (mounted) return;
       monter(mount); mounted = true;
