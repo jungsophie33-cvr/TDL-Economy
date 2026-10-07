@@ -8,21 +8,30 @@
  * Il réserve le poste au dépôt de la demande et crée le rôle à la validation.
  * CE QU'IL NE FAIT PAS : rendu de la modale, logique staff générale.
  *
+ * [MAJ v2] ÉCRITURES CIBLÉES SUR LES RÔLES.
+ *   Les trois écritures de ce fichier — réservation, libération, attribution —
+ *   réécrivaient emplois/{id}/roles EN BLOC, depuis une copie relue juste
+ *   avant. Deux fiches validées à quelques secondes d'écart sur la même
+ *   entreprise, et le rôle de l'une écrasait celui de l'autre : un membre
+ *   sans poste, sans erreur, sans trace. C'est le cas le plus probable du
+ *   forum, puisque les validations se font par lots.
+ *   On n'écrit plus que emplois/{id}/roles/{clé}.
+ *
+ *   COMPATIBILITÉ : une entreprise encore au format v1 (tableau) continue
+ *   d'être servie par l'ancien chemin. Une fiche déposée avant que le staff
+ *   n'ait converti le bottin ne doit pas échouer — c'est un formulaire de
+ *   membre, pas un panneau d'administration.
+ *
  * CARTE DES BLOCS :
- *   TEXTES     — chaînes ajoutées à FI.TEXTES
- *   DONNÉES    — lecture du bottin (lieux + emplois)
- *   RENDER     — HTML du fieldset
- *   EVENTS     — cascade des listes et bascules
- *   LECTURE    — extraction des valeurs
- *   VALIDATION — champs obligatoires
- *   RÉSERVATION — écriture au dépôt de la demande
- *   ATTRIBUTION — écriture à la validation de la fiche
+ *   TEXTES · DONNÉES · RENDER · EVENTS · LECTURE · VALIDATION
+ *   · RÉSERVATION · LIBÉRATION · ATTRIBUTION
  *
  * COMPATIBILITÉ : la demande continue de porter lieu_metier / societe / emploi
  * pour que le BBCode et la carte staff restent inchangés. Les champs
  * structurés (metier_*) s'y ajoutent.
  *
- * Dépend de : fiche-config.js, fiche-utils.js, tdl-zcats.js, window.EcoCore
+ * Dépend de : fiche-config.js, fiche-utils.js, tdl-zcats.js, window.EcoCore,
+ *   window.TDLBase (génération des clés).
  * À charger APRÈS fiche-utils.js et AVANT fiche-membre.js.
  */
 
@@ -34,6 +43,8 @@
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   const vt = (v) => FI.versTableau(v);
   const anneeCourante = () => String(new Date().getFullYear());
+  const SCHEMA = 2;
+  const cle = () => window.TDLBase.nouvelleCle();
 
   /* === TEXTES === */
   Object.assign(T, {
@@ -78,8 +89,8 @@
     return Math.max(0, (Number(p.n) || 0) - pris);
   }
 
-   FI.metierCharger = async function () {
-    /* [MAJ] deux branches ciblées : 16,7 ko au lieu de 126. */
+  FI.metierCharger = async function () {
+    /* [MAJ] deux branches ciblées : ~17 ko au lieu de 126. */
     const [lieux, emplois] = await Promise.all([
       window.EcoCore.firebaseGet("lieux"),
       window.EcoCore.firebaseGet("emplois")
@@ -88,6 +99,8 @@
       .filter((id) => lieux[id] && lieux[id].emploi === true && !lieux[id].masque)
       .map((id) => {
         const e = Object.assign({ id }, lieux[id], (emplois || {})[id] || {});
+        /* vt() aplatit pour la LECTURE (comptage des places). Les écritures,
+           elles, visent une clé — voir ecrireRole ci-dessous. */
         e.roles  = vt(e.roles);
         e.postes = vt(e.postes);
         return e;
@@ -108,6 +121,33 @@
   const postesLibres = (e) => vt(e.postes)
     .filter((p) => libresPoste(e, p) > 0)
     .sort((a, b) => (b.dir ? 1 : 0) - (a.dir ? 1 : 0));
+
+  /* ---------- ACCÈS AUX RÔLES, DEUX FORMATS ----------
+     v2 : emplois/{id}/roles/{clé}  → écriture d'un seul chemin.
+     v1 : emplois/{id}/roles[]      → l'ancien bloc, conservé pour qu'une fiche
+          déposée avant la conversion du bottin n'échoue pas. */
+  const estV2 = (src) => !!src && src.schema === SCHEMA;
+  /* rend [{k, r}] : k est une clé en v2, un indice en v1 */
+  function listerRoles(src) {
+    const r = src && src.roles;
+    if (!r) return [];
+    if (Array.isArray(r)) return r.map((x, i) => ({ k: i, r: x })).filter((o) => !!o.r);
+    return Object.keys(r).map((k) => ({ k: k, r: r[k] })).filter((o) => !!o.r);
+  }
+  /* le rôle réservé par CETTE demande : uid d'abord, pseudo en repli */
+  function trouverRole(src, d, attenteSeulement) {
+    const l = listerRoles(src);
+    for (const o of l) {
+      const r = o.r;
+      const cible = (d.uid != null && r.uid != null)
+        ? String(r.uid) === String(d.uid)
+        : r.nom === d.pseudo;
+      if (!cible || r.poste !== d.metier_poste) continue;
+      if (attenteSeulement && !r.attente) continue;
+      return o;
+    }
+    return null;
+  }
 
   /* === RENDER === */
 
@@ -192,6 +232,8 @@
       : vide(T.MET_AUCUNE_ENT));
     majPostes(overlay);
   }
+  /* l'intitulé du poste est RECOPIÉ depuis la liste, jamais saisi : la
+     correspondance rôle → poste est donc garantie par construction. */
   function majPostes(overlay) {
     const e   = entParId($(overlay, "#fi-met-entreprise").value);
     const sel = $(overlay, "#fi-met-poste");
@@ -296,7 +338,7 @@
   /* === RÉSERVATION (au dépôt de la demande) ===
      Le rôle est inscrit immédiatement avec attente:true. Le poste est donc
      bloqué dans le bottin, et la réservation y est VISIBLE : le staff peut la
-     retirer d'un clic si la fiche n'aboutit pas.  */
+     retirer d'un clic si la fiche n'aboutit pas. */
   FI.metierReserver = async function (d, pseudo, uid) {
     if (d.sans_emploi) return { ok: true };
     const E = window.EcoCore;
@@ -309,7 +351,8 @@
     if (d.metier_mode === "activite") {
       const a  = d.metier_activite || {};
       const id = "lieu_" + Date.now().toString(36);
-      role.dir = true;
+      const k  = cle();
+      role.dir = true; role.k = k;
       const u = {};
       // Le lieu porte « masque » et non « brouillon » : les deux nœuds sont
       // fusionnés à la lecture du bottin (Object.assign), et deux champs de même
@@ -318,11 +361,14 @@
       // publiquement dans le Répertoire des lieux avant validation du staff.
       u["lieux/" + id] = { nom: a.nom, type: a.type, rue: "—", zone: d.metier_zone,
         cat: a.cat || "services", ic: "", img: "", facs: [], emploi: true, amb: "—", masque: true };
-      u["emplois/" + id] = { effectif: "", fondee: "", rayonnement: "", desc: "", accroche: "",
-        culture: [], partenaires: [], rivaux: [], verrou: false, complet: false,
-        referent: pseudo, brouillon: true, roles: [role], postes: [] };
+      /* [MAJ v2] naissance directe en schéma 2 : roles est un nœud à clés, et
+         les listes vides ne s'écrivent pas du tout. */
+      u["emplois/" + id] = { schema: SCHEMA,
+        effectif: "", fondee: "", rayonnement: "", desc: "", accroche: "",
+        verrou: false, complet: false, referent: pseudo, brouillon: true,
+        roles: { [k]: role } };
       await E.firebaseUpdate(u);
-      return { ok: true, entreprise: id };
+      return { ok: true, entreprise: id, role: k };
     }
 
     await FI.metierCharger();
@@ -334,9 +380,18 @@
       if (!p || libresPoste(e, p) <= 0) return { ok: false, complet: true };
       role.dir = !!p.dir;
     }
+    const u = {};
+    if (estV2(e)) {
+      /* [MAJ v2] un seul chemin : aucune réservation concurrente n'est écrasée */
+      const k = cle(); role.k = k;
+      u["emplois/" + e.id + "/roles/" + k] = role;
+      await E.firebaseUpdate(u);
+      return { ok: true, entreprise: e.id, role: k };
+    }
+    /* repli v1 : entreprise non encore convertie par le staff */
     const roles = vt(e.roles).slice();
     roles.push(role);
-    const u = {}; u["emplois/" + e.id + "/roles"] = roles;
+    u["emplois/" + e.id + "/roles"] = roles;
     await E.firebaseUpdate(u);
     return { ok: true, entreprise: e.id };
   };
@@ -359,39 +414,41 @@
     if (!E || typeof E.firebaseUpdate !== "function") return { ok: false };
 
     const [lieux, emplois] = await Promise.all([
-    E.firebaseGet("lieux"), E.firebaseGet("emplois")
+      E.firebaseGet("lieux"), E.firebaseGet("emplois")
     ]);
+    const L = lieux || {}, M = emplois || {};
 
     let id = d.metier_entreprise;
     if (!id && d.metier_mode === "activite") {
-      id = Object.keys(emplois).find((k) => emplois[k].referent === d.pseudo
-        && vt(emplois[k].roles).some((x) => x && x.nom === d.pseudo && x.attente));
+      id = Object.keys(M).find((k) => M[k].referent === d.pseudo
+        && listerRoles(M[k]).some((o) => o.r.nom === d.pseudo && o.r.attente));
     }
-    if (!id || !emplois[id]) return { ok: false, introuvable: true };
+    if (!id || !M[id]) return { ok: false, introuvable: true };
 
     const u = {};
-    if (d.metier_mode === "activite" && lieux[id] && lieux[id].masque) {
+    if (d.metier_mode === "activite" && L[id] && L[id].masque) {
       u["lieux/" + id]   = null;
       u["emplois/" + id] = null;
       await E.firebaseUpdate(u);
       return { ok: true, supprime: true };
     }
-    const roles = vt(emplois[id].roles).filter((r) => {
-      if (!r) return false;
-      const cible = (d.uid != null && r.uid != null)
-        ? String(r.uid) === String(d.uid)
-        : r.nom === d.pseudo;
-      return !(cible && r.poste === d.metier_poste && r.attente);
-    });
-    u["emplois/" + id + "/roles"] = roles;
+    const cible = trouverRole(M[id], d, true);
+    if (!cible) return { ok: false, introuvable: true };
+
+    if (estV2(M[id])) {
+      /* [MAJ v2] on n'efface QUE la réservation visée */
+      u["emplois/" + id + "/roles/" + cible.k] = null;
+    } else {
+      const roles = vt(M[id].roles).filter((r, i) => i !== cible.k);
+      u["emplois/" + id + "/roles"] = roles.length ? roles : null;
+    }
     await E.firebaseUpdate(u);
     return { ok: true };
   };
 
   /* === ATTRIBUTION (à la validation de la fiche) ===
      Le rôle réservé perd son drapeau attente. Le poste de direction confère le
-     statut de référent, sauf entreprise verrouillée ou référent déjà en place.
-     Appelé APRÈS le writeBin de valider(), comme reclamerFaceclaim. */
+     statut de référent, sauf entreprise verrouillée ou référent déjà en place. */
   FI.metierAppliquer = async function (d) {
     const E = window.EcoCore;
     if (!E || typeof E.firebaseUpdate !== "function") return { ok: false };
@@ -403,47 +460,56 @@
       return { ok: true, sansEmploi: true };
     }
 
-    const emplois = (await E.firebaseGet("emplois")) || {};
+    const M = (await E.firebaseGet("emplois")) || {};
 
     // L'activité créée porte son id ; sinon on retrouve l'entreprise choisie.
     let id = d.metier_entreprise;
     if (!id && d.metier_mode === "activite") {
-      id = Object.keys(emplois).find((k) => {
-        const r = vt(emplois[k].roles);
-        return emplois[k].referent === d.pseudo
-          && r.some((x) => x && x.nom === d.pseudo && x.poste === d.metier_poste);
-      });
+      id = Object.keys(M).find((k) => M[k].referent === d.pseudo
+        && listerRoles(M[k]).some((o) => o.r.nom === d.pseudo && o.r.poste === d.metier_poste));
     }
-    if (!id || !emplois[id]) return { ok: false, introuvable: true };
+    if (!id || !M[id]) return { ok: false, introuvable: true };
 
-    const e = emplois[id];
-    const roles = vt(e.roles).map((r) => {
-      if (!r) return r;
-      const cible = (d.uid != null && r.uid != null)
-        ? String(r.uid) === String(d.uid)
-        : r.nom === d.pseudo;
-      if (!cible || r.poste !== d.metier_poste) return r;
-      const copie = Object.assign({}, r);
-      delete copie.attente;
-      return copie;
-    });
-    u["emplois/" + id + "/roles"] = roles;
+    const src = M[id];
+    const cible = trouverRole(src, d, false);
+    if (!cible) return { ok: false, introuvable: true };
+    const monRole = cible.r;
+
+    if (estV2(src)) {
+      /* [MAJ v2] un seul champ : le drapeau de CETTE réservation */
+      u["emplois/" + id + "/roles/" + cible.k + "/attente"] = null;
+    } else {
+      const roles = vt(src.roles).map((r, i) => {
+        if (i !== cible.k || !r) return r;
+        const copie = Object.assign({}, r);
+        delete copie.attente;
+        return copie;
+      });
+      u["emplois/" + id + "/roles"] = roles;
+    }
 
     // Référent : poste de direction, entreprise non verrouillée, place vacante.
-    const monRole = roles.find((r) => r && r.poste === d.metier_poste
-      && (r.nom === d.pseudo || (d.uid != null && String(r.uid) === String(d.uid))));
     let referent = false;
-    if (monRole && monRole.dir && !e.verrou && !e.referent) {
+    if (monRole && monRole.dir && !src.verrou && !src.referent) {
       u["emplois/" + id + "/referent"] = d.pseudo;
       referent = true;
     }
     // Un poste inventé est ajouté à la liste des postes, sinon il n'existerait
     // que par le rôle et le bottin afficherait une entreprise sans ce métier.
     if (d.metier_mode === "poste_neuf") {
-      const postes = vt(e.postes).slice();
-      if (!postes.some((p) => p && p.t === d.metier_poste)) {
-        postes.push({ t: d.metier_poste, c: "", ic: "fi-tr-briefcase", dir: false, n: 1, d: "" });
-        u["emplois/" + id + "/postes"] = postes;
+      const dejaLa = (src.postes && !Array.isArray(src.postes))
+        ? Object.keys(src.postes).some((k) => src.postes[k] && src.postes[k].t === d.metier_poste)
+        : vt(src.postes).some((p) => p && p.t === d.metier_poste);
+      if (!dejaLa) {
+        const neuf = { t: d.metier_poste, c: "", ic: "fi-tr-briefcase", dir: false, n: 1, d: "" };
+        if (estV2(src)) {
+          const k = cle(); neuf.k = k;
+          u["emplois/" + id + "/postes/" + k] = neuf;
+        } else {
+          const postes = vt(src.postes).slice();
+          postes.push(neuf);
+          u["emplois/" + id + "/postes"] = postes;
+        }
       }
     }
     // Un brouillon d'activité reste brouillon jusqu'à sa publication par le staff
