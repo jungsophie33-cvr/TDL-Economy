@@ -175,7 +175,7 @@
 <d>Groupe</d> <span>${esc(d.groupe)}</span></div>
 <div class="sj-formcol"><f4>Personnage & bottins</f4>
 <d>Bande hors-la-loi</d> ${FI.hllResume(d)}
-<d>Métier</d> <span>${FI.metierResume(d)}</span>
+<d>Métier</d> ${FI.metierResume(d)}
 <d>Habitation</d> ${FI.habitationResume(d)}
 </div></div></div>`;
   };
