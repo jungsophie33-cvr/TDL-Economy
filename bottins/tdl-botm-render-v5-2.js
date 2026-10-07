@@ -246,7 +246,7 @@ function blocRoles(e, ed){
 function blocPostes(e, ed){
   const all = BM.postes(e).slice().sort(BM.dirDabord);
   /* en lecture, un poste entièrement pourvu disparaît de la liste */
-  const dispo = ed ? all : all.filter(p=>BM.libresPoste(e,p)>0);
+  const dispo = all.filter(p => BM.libresPoste(e,p) > 0 || (ed && S.editPostes));
   const open = ed||S.plusPostes, vus = open?dispo:dispo.slice(0,CFG.MAX_POSTES);
   const enEdit = S.posteEdit && S.posteEdit.id===e.id;
   let h = '<p class="bm-hsec">'+T.postes+' ('+dispo.length+')'
