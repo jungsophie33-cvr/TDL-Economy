@@ -8,8 +8,8 @@
      eco-notes attend EcoCore, donc tolérant à un léger désordre.
    - Règle Firebase sur le nœud "notes" (voir message).
 
-   Stockage : notes/<uid> = { text, maj }
-   Lecture  : via EcoCore.safeReadBin() (racine, avec cache 60s).
+    Stockage : notes/<uid> = { text, maj }
+   Lecture  : via EcoCore.firebaseGet('notes/<uid>') — feuille ciblée, hors cache.
    Écriture : via EcoCore.writeField('notes/<uid>', {…}).
    ============================================================ */
 
@@ -23,7 +23,7 @@
     n = n || 0;
     if (window.EcoCore &&
         typeof EcoCore.writeField === 'function' &&
-        typeof EcoCore.safeReadBin === 'function') { cb(); return; }
+        typeof EcoCore.firebaseGet === 'function') { cb(); return; }
     if (n > 40) {
       if (window.console && console.warn) {
         console.warn('[TDL todo] EcoCore introuvable — charger eco-notes.js après eco-core2.js');
@@ -68,9 +68,10 @@
 
     function majCompteur() { $count.text($area.val().length + ' / ' + MAX); }
 
-    /* lecture initiale : réutilise le cache 60s d'EcoCore (lit la racine) */
-    EcoCore.safeReadBin().then(function (root) {
-      var note = (root && root.notes) ? root.notes[uid] : null;
+       /* [MAJ] la seule feuille du membre, au lieu des 172 ko de la racine lus
+       sur CHAQUE page du forum. firebaseGet ignore le cache de session : une
+       note écrite dans un autre onglet est relue telle quelle. */
+    EcoCore.firebaseGet(chemin).then(function (note) {
       if (note && typeof note.text === 'string') { $area.val(note.text); }
       majCompteur();
     }).catch(function (e) { EcoCore.warn && EcoCore.warn('[TDL todo] lecture', e); majCompteur(); });
