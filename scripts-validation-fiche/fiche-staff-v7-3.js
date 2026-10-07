@@ -237,13 +237,13 @@
     modal.id = "fi-modal-validation";
     modal.className = "dc-overlay actif";
     modal.innerHTML = `
-      <div class="dc-boite fi-boite" style="max-width:540px;">
+      <div class="dc-boite fi-boite">
         <button class="dc-btn-fermer">✕</button>
         <div class="dc-titre">${T.STAFF_TITRE_MODAL(demande.pseudo)}</div>
         <label class="fi-label">${T.STAFF_LABEL_MSG}</label>
         <textarea id="fi-msg-perso" class="fi-textarea" rows="6"
           placeholder="Votre message personnalisé…"></textarea>
-        <div class="dc-actions" style="margin-top:12px;">
+        <div class="dc-actions">
           <button id="fi-btn-confirmer" class="dc-btn-soumettre">${T.STAFF_BTN_CONFIRMER}</button>
           <button class="fi-btn-annuler-validation dc-btn-annuler">${T.STAFF_BTN_ANNULER}</button>
         </div>
