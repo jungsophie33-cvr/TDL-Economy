@@ -12,7 +12,7 @@
    Seul store net-new : logements/maisons/{quartier}/{numero} = {description,image}
    Config quartiers (staff) : logements/quartiers/{cle}.
 
-   Dépend de window.EcoCore : safeReadBin, firebaseUpdate, getPseudo,
+   Dépend de window.EcoCore : firebaseUpdate, getPseudo,
    ADMIN_USERS. [MAJ] à charger après eco-core*.js.
    ============================================================ */
 window.BH = window.BH || {};
@@ -163,7 +163,7 @@ window.BH = window.BH || {};
   };
 
   /* ===================== DONNÉES (lecture) ===================== */
-  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.safeReadBin==="function"); }
+  function ecoPret(){ return !!(window.EcoCore && typeof window.EcoCore.firebaseGet==="function"); }
   async function attendreEco(ms){ let n=0; while(!ecoPret() && n<ms/100){ await new Promise(r=>setTimeout(r,100)); n++; } return ecoPret(); }
   function normQuartier(q){ const o=Object.assign({},q); o.amb=BH.versTableau(o.amb); o.com=BH.versTableau(o.com); o.types=BH.versTableau(o.types); return o; }
 
@@ -187,20 +187,30 @@ window.BH = window.BH || {};
     return out;
   }
 
-  BH.DONNEES = {
+    BH.DONNEES = {
     async chargerTout(){
       if(!await attendreEco(8000)){ if(window.console) console.warn("[TDL habitations] EcoCore introuvable."); return; }
-      let rec;
-      try{ rec = await window.EcoCore.safeReadBin() || {}; }
+      /* [MAJ] trois branches ciblées (~17 ko) au lieu des 189 ko de la racine.
+         Ce chargement sert AUSSI au formulaire de validation de fiche
+         (fiche-habitation), donc à chaque ouverture de la modale. */
+      let membres, demandes, logements;
+      try{
+        [membres, demandes, logements] = await Promise.all([
+          window.EcoCore.firebaseGet("membres"),
+          window.EcoCore.firebaseGet("demandes_fiche"),
+          window.EcoCore.firebaseGet("logements")
+        ]);
+      }
       catch(e){ if(window.console) console.error("[TDL habitations] lecture", e); return; }
+      const rec = { membres: membres||{}, demandes_fiche: demandes||[], logements: logements||{} };
       // quartiers (config staff) — écrase / complète le seed
-      const qs = rec.logements && rec.logements.quartiers;
+      const qs = rec.logements.quartiers;
       if(qs && Object.keys(qs).length){
         Object.entries(qs).forEach(([k,q])=>{ BH.QUARTIERS[k]=normQuartier(q); if(!BH.ORDRE.includes(k)) BH.ORDRE.push(k); });
       }
       // maisons
       BH.MAISONS = {};
-      const ms = rec.logements && rec.logements.maisons;
+      const ms = rec.logements.maisons;
       if(ms) Object.entries(ms).forEach(([qk,byNum])=> Object.entries(byNum||{}).forEach(([nk,v])=>{ BH.MAISONS[qk+"/"+nk]=v; }));
       // habitants
       BH.HABITANTS = construireHabitants(rec);
