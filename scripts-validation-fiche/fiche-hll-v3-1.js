@@ -9,6 +9,20 @@
  * { type, …, statut:null } — la dette restant posée par le staff plus tard.
  * CE QU'IL NE FAIT PAS : rendu de la modale, logique staff.
  *
+ * [MAJ v2] LES LIBELLÉS VIENNENT DE LA LISTE AFFICHÉE, PAS DU SEED.
+ *   hllBrancher enrichit les menus « Navire » et « Cellule » avec les créations
+ *   du staff lues dans Firebase. Mais hllLecture relisait le nom dans
+ *   BHL_CONFIG : choisir un navire créé par le staff levait un TypeError sur
+ *   B.flottille.navires[nv].nom, et la fiche ne partait pas. Le piège s'armait
+ *   à la première utilisation du bouton « Créer un navire » du bottin.
+ *   Les deux tables construites par hllBrancher sont désormais mémorisées dans
+ *   FI.hllNoms et relues à la soumission, avec la clé elle-même en dernier
+ *   repli — ainsi, même si l'enrichissement a échoué, rien ne lève.
+ *
+ * [MAJ v2] LECTURE CIBLÉE : firebaseGet("bandes") au lieu de safeReadBin(),
+ *   qui tirait toute la racine à chaque ouverture de la modale pour deux
+ *   sous-branches.
+ *
  * COMPATIBILITÉ : la demande porte toujours `bande` (booléen) + `nom_bande`/`role_bande`
  * (récap lisible pour la carte staff et le post de demande) ; s'y ajoutent les objets
  * structurés `hll` et `lien`, consommés par fiche-staff (affecterBande).
@@ -27,6 +41,10 @@
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;"); };
   var C = function () { return window.BHL_CONFIG; };
   var anneeCourante = function () { return String(new Date().getFullYear()); };
+
+  /* [MAJ v2] libellés tels qu'AFFICHÉS dans les menus : seed + créations staff.
+     Remplis par hllBrancher, relus par hllLecture. */
+  FI.hllNoms = { navires: {}, cellules: {} };
 
   /* === TEXTES === */
   Object.assign(T, {
@@ -151,31 +169,43 @@
       overlay.querySelector("#fi-hll-lien-pilier").classList.toggle("fi-visible", selL.value === "pilier_flottille");
     });
 
-    // Enrichit la liste des navires avec ceux créés par le staff (Firebase bandes/flottille/navires).
-    // La création de navires reste staff-only : le joueur ne peut que sélectionner un navire existant.
+    /* Les libellés résolus ici font foi jusqu'à la soumission : le seed seul ne
+       connaît pas les navires ni les cellules créés par le staff.
+       La création reste staff-only : le joueur ne peut que sélectionner. */
+    FI.hllNoms.navires  = {};
+    FI.hllNoms.cellules = {};
+    var seed = C().bandes.flottille.navires;
+    Object.keys(seed).forEach(function (k) { FI.hllNoms.navires[k] = seed[k].nom; });
+    var seedC = C().bandes.maringouins.cellules;
+    Object.keys(seedC).forEach(function (k) { FI.hllNoms.cellules[k] = seedC[k].nom; });
+
     try {
-      var rec = await window.EcoCore.safeReadBin();
-      var seed = C().bandes.flottille.navires, noms = {};
-      Object.keys(seed).forEach(function (k) { noms[k] = seed[k].nom; });
-      var ov = rec && rec.bandes && rec.bandes.flottille && rec.bandes.flottille.navires;
-      if (ov) Object.keys(ov).forEach(function (k) { noms[k] = (ov[k] && ov[k].nom) || noms[k] || k; });
+      /* [MAJ v2] une branche ciblée au lieu de la racine entière */
+      var bandes = (await window.EcoCore.firebaseGet("bandes")) || {};
+
+      var ov = bandes.flottille && bandes.flottille.navires;
+      if (ov) Object.keys(ov).forEach(function (k) {
+        FI.hllNoms.navires[k] = (ov[k] && ov[k].nom) || FI.hllNoms.navires[k] || k;
+      });
       var selN = overlay.querySelector("#fi-hll-flo-navire");
       if (selN) {
         var cur = selN.value;
-        selN.innerHTML = Object.keys(noms).map(function (k) { return '<option value="' + k + '">' + esc(noms[k]) + '</option>'; }).join("");
-        if (cur && noms[cur]) selN.value = cur;
+        selN.innerHTML = Object.keys(FI.hllNoms.navires).map(function (k) {
+          return '<option value="' + k + '">' + esc(FI.hllNoms.navires[k]) + '</option>'; }).join("");
+        if (cur && FI.hllNoms.navires[cur]) selN.value = cur;
       }
 
       // Cellules Maringouins : canon + créées par le staff (même logique).
-      var seedC = C().bandes.maringouins.cellules, nomsC = {};
-      Object.keys(seedC).forEach(function (k) { nomsC[k] = seedC[k].nom; });
-      var ovC = rec && rec.bandes && rec.bandes.maringouins && rec.bandes.maringouins.cellules;
-      if (ovC) Object.keys(ovC).forEach(function (k) { nomsC[k] = (ovC[k] && ovC[k].nom) || nomsC[k] || k; });
+      var ovC = bandes.maringouins && bandes.maringouins.cellules;
+      if (ovC) Object.keys(ovC).forEach(function (k) {
+        FI.hllNoms.cellules[k] = (ovC[k] && ovC[k].nom) || FI.hllNoms.cellules[k] || k;
+      });
       var selC = overlay.querySelector("#fi-hll-mar-cellule");
       if (selC) {
         var curC = selC.value;
-        selC.innerHTML = Object.keys(nomsC).map(function (k) { return '<option value="' + k + '">' + esc(nomsC[k]) + '</option>'; }).join("");
-        if (curC && nomsC[curC]) selC.value = curC;
+        selC.innerHTML = Object.keys(FI.hllNoms.cellules).map(function (k) {
+          return '<option value="' + k + '">' + esc(FI.hllNoms.cellules[k]) + '</option>'; }).join("");
+        if (curC && FI.hllNoms.cellules[curC]) selC.value = curC;
       }
     } catch (e) { if (window.console) console.warn("[fiche-hll] navires/cellules staff", e); }
   };
@@ -184,6 +214,13 @@
   FI.hllLecture = function (overlay) {
     var B = C().bandes;
     var v = function (id) { var e = overlay.querySelector(id); return e ? (e.type === "checkbox" ? e.checked : e.value.trim()) : ""; };
+    /* [MAJ v2] libellé TEL QU'AFFICHÉ ; la clé en dernier repli, pour ne jamais
+       lever si l'enrichissement n'a pas eu lieu. */
+    var nomNavire  = function (k) { return FI.hllNoms.navires[k]
+      || ((B.flottille.navires[k] || {}).nom) || k; };
+    var nomCellule = function (k) { return FI.hllNoms.cellules[k]
+      || ((B.maringouins.cellules[k] || {}).nom) || k; };
+
     var membre = ((overlay.querySelector('[name="fi-hll-membre"]:checked') || {}).value === "oui");
     var hll = null, nom_bande = "", role_bande = "";
 
@@ -197,26 +234,25 @@
       } else if (bande === "braconneurs") {
         var sp = v("#fi-hll-bra-spec"), rb = v("#fi-hll-bra-role");
         hll = { bande: bande, spec: sp, role: rb, depuis: depuis };
-        nom_bande = B.braconneurs.nom; role_bande = rb + (sp ? " — " + B.braconneurs.specialites[sp].nom : "");
+        nom_bande = B.braconneurs.nom;
+        role_bande = rb + (sp ? " — " + ((B.braconneurs.specialites[sp] || {}).nom || sp) : "");
       } else if (bande === "maringouins") {
         var ce = v("#fi-hll-mar-cellule"), rm = v("#fi-hll-mar-role");
         hll = { bande: bande, cellule: ce, role: rm, depuis: depuis };
-        /* [MAJ] le libellé vient de la liste ENRICHIE, pas du seed : une cellule
-           créée par le staff n'existe pas dans BHL_CONFIG. */
         nom_bande = B.maringouins.nom;
-        role_bande = rm + (ce ? " — " + (FI.hllNoms.cellules[ce] || ce) : "");
+        role_bande = rm + (ce ? " — " + nomCellule(ce) : "");
       } else if (bande === "flottille") {
         var nv = v("#fi-hll-flo-navire"), rf = v("#fi-hll-flo-role"), cap = v("#fi-hll-flo-cap");
         hll = { bande: bande, navire: nv, capitaine: !!cap, role: rf, depuis: depuis };
         nom_bande = B.flottille.nom;
-        role_bande = (cap ? "Capitaine — " : "") + rf + (nv ? " — " + (FI.hllNoms.navires[nv] || nv) : "");
-      }
+        role_bande = (cap ? "Capitaine — " : "") + rf + (nv ? " — " + nomNavire(nv) : "");
       } else if (bande === "main") {
         var ty = v("#fi-hll-main-type");
         if (ty === "doigt") {
           var dg = v("#fi-hll-main-doigt"), rmn = v("#fi-hll-main-role"), chef = v("#fi-hll-main-chef");
           hll = { bande: bande, type: "doigt", doigt: dg, role: rmn, chef: !!chef, depuis: depuis };
-          nom_bande = B.main.nom; role_bande = (B.main.doigts[dg] ? B.main.doigts[dg].nom : "") + " — " + rmn + (chef ? " (Porteur)" : "");
+          nom_bande = B.main.nom;
+          role_bande = ((B.main.doigts[dg] || {}).nom || dg) + " — " + rmn + (chef ? " (Porteur)" : "");
         } else {
           hll = { bande: bande, type: "cavalier", depuis: depuis };
           nom_bande = B.main.nom; role_bande = "Cavalier";
@@ -224,7 +260,8 @@
       } else if (bande === "sorcieres") {
         var ro = v("#fi-hll-sor-role"), li = v("#fi-hll-sor-lieu");
         hll = { bande: bande, role: ro, lieu: li, depuis: depuis };
-        nom_bande = B.sorcieres.nom; role_bande = (B.sorcieres.roles[ro] ? B.sorcieres.roles[ro].nom : "") + (li ? " — " + li : "");
+        nom_bande = B.sorcieres.nom;
+        role_bande = ((B.sorcieres.roles[ro] || {}).nom || ro) + (li ? " — " + li : "");
       } else {
         membre = false;   // « Oui » coché mais aucune bande choisie
       }
