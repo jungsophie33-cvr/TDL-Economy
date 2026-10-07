@@ -2,12 +2,23 @@
    TDL — BOTTIN DES MÉTIERS · rendu (2/3)
    Blocs : BARRES · SCÈNE · DÉTAIL · BLOCS · FORMULAIRES
    Requiert tdl-botm-core (window.BM). Complété par tdl-botm-ui.
+
+   [MAJ v2] LES data-* PORTENT DES CLÉS, plus des indices.
+     data-rmrole, data-editrole, data-rmposte, data-editposte, data-rmtag et
+     data-i deviennent data-k. C'est le cœur du correctif : le rendu TRIE les
+     rôles par dirDabord avant de les afficher, alors que l'indice transporté
+     était celui du tableau SOURCE. Les deux ordres diffèrent, donc l'erreur
+     était invisible à l'œil — on cliquait sur une ligne, c'en était une autre
+     qui partait dès que le tableau avait bougé entre le rendu et le clic.
+
+   [MAJ v2] BANDEAU DE CONVERSION, en tête de scène, visible du seul staff
+     tant qu'une fiche reste au format ancien.
    ============================================================ */
 (function(){
 "use strict";
 const BM = window.BM;
 if(!BM){ if(window.console) console.error('[TDL bottin] tdl-botm-core.js doit être chargé avant.'); return; }
-const T = BM.T, S = BM.S, CFG = BM.CFG, $ = BM.$, esc = BM.esc, icone = BM.icone, vt = BM.versTableau;
+const T = BM.T, S = BM.S, CFG = BM.CFG, $ = BM.$, esc = BM.esc, icone = BM.icone;
 
 /* ===================== BARRES ===================== */
 BM.renderZones = function(){
@@ -35,6 +46,17 @@ BM.pastille = function(e){
   if(BM.directionLibre(e)) return '<span class="bm-dot libre" title="'+T.legDir+'"></span>';
   if(BM.estComplet(e)) return '<span class="bm-dot complet" title="'+T.legComplet+'"></span>';
   return '';
+};
+
+/* [MAJ v2] bandeau staff de conversion — disparaît de lui-même.
+   Les styles en ligne sont volontairement minimaux : si le bandeau doit
+   rester, déplace-les dans la feuille sous une classe .bm-migbar. */
+BM.bandeauMigration = function(){
+  if(!S.admin) return '';
+  const n = BM.aMigrer(); if(!n) return '';
+  return '<div class="bm-hint" style="display:flex;gap:12px;align-items:center;justify-content:space-between">'
+    + '<span><b>'+T.migTitre(n)+'</b> '+esc(T.migTexte)+'</span>'
+    + '<button class="bm-abtn" data-do="migrer">'+T.migBtn+'</button></div>';
 };
 
 /* ===================== SCÈNE ===================== */
@@ -73,7 +95,8 @@ function vuePanneau(){
 }
 BM.renderStage = function(reset){
   const m = BM.memScroll();
-  $('bm-stage').innerHTML = (S.vue==='mur') ? vueMur() : vuePanneau();
+  $('bm-stage').innerHTML = BM.bandeauMigration()
+    + ((S.vue==='mur') ? vueMur() : vuePanneau());
   if(S.vue==='panneau') BM.detailHTML();
   BM.poseScroll(m, !!reset);
 };
@@ -131,11 +154,9 @@ function formTag(e, champ){
     +'<div class="acts"><button class="go" data-do="tagok" data-champ="'+champ+'" data-id="'+e.id+'">'+T.ajouter+'</button>'
     +'<button class="no" data-do="cancel">'+T.annuler+'</button></div></div>';
 }
-/* Bloc identité : masqué entièrement si rien n'est renseigné. En vue staff
-   il reste affiché, sinon les boutons « + » seraient inatteignables et une
-   fiche vierge ne pourrait jamais être complétée. */
 function identite(e, ed){
-  const rempli = !!e.accroche || vt(e.culture).length || vt(e.partenaires).length || vt(e.rivaux).length;
+  const rempli = !!e.accroche || BM.tags(e,'culture').length
+    || BM.tags(e,'partenaires').length || BM.tags(e,'rivaux').length;
   if(!ed && !rempli) return '';
   return '<div class="bm-ident">'
     + '<div class="bm-ident-cult">'+blocCulture(e,ed)+'</div>'
@@ -143,32 +164,32 @@ function identite(e, ed){
       +blocTags(e,'rivaux',T.tensions,ed)+'</div>'
     + '</div>';
 }
+/* [MAJ v2] data-k porte la clé de l'étiquette */
 function blocCulture(e, ed){
-  const arr = vt(e.culture);
+  const arr = BM.tags(e,'culture');
   const add = S.inline && S.inline.champ==='culture' && S.inline.id===e.id;
   let h = '<p class="bm-hsec">'+T.culture
     + (ed?'<button class="bm-mini" data-add="culture" data-id="'+e.id+'" title="Ajouter">+</button>':'') + '</p>';
   if(e.accroche) h += '<p class="bm-accroche">'+esc(e.accroche)+'</p>';
   h += arr.length
-    ? '<div class="bm-tags">'+arr.map((t,i)=>'<span class="bm-tag bm-cult">'+esc(t)
-        +(ed?'<span class="rm" data-rmtag="culture" data-id="'+e.id+'" data-i="'+i+'">✕</span>':'')+'</span>').join('')+'</div>'
+    ? '<div class="bm-tags">'+arr.map(o=>'<span class="bm-tag bm-cult">'+esc(o.t)
+        +(ed?'<span class="rm" data-rmtag="culture" data-id="'+e.id+'" data-k="'+esc(o.k)+'">✕</span>':'')+'</span>').join('')+'</div>'
     : '<p class="bm-vide">'+T.nonRenseigne+'</p>';
   if(add) h += formTag(e,'culture');
   return h;
 }
 function blocTags(e, champ, titre, ed){
-  const arr = vt(e[champ]);
+  const arr = BM.tags(e,champ);
   const add = S.inline && S.inline.champ===champ && S.inline.id===e.id;
   let h = '<div><p class="bm-hsec">'+esc(titre)
     + (ed?'<button class="bm-mini" data-add="'+champ+'" data-id="'+e.id+'" title="Ajouter">+</button>':'') + '</p>';
   h += arr.length
-    ? '<div class="bm-tags">'+arr.map((t,i)=>'<span class="bm-tag">'+esc(t)
-        +(ed?'<span class="rm" data-rmtag="'+champ+'" data-id="'+e.id+'" data-i="'+i+'">✕</span>':'')+'</span>').join('')+'</div>'
+    ? '<div class="bm-tags">'+arr.map(o=>'<span class="bm-tag">'+esc(o.t)
+        +(ed?'<span class="rm" data-rmtag="'+champ+'" data-id="'+e.id+'" data-k="'+esc(o.k)+'">✕</span>':'')+'</span>').join('')+'</div>'
     : '<p class="bm-vide">'+T.aucunTag+'</p>';
   if(add) h += formTag(e,champ);
   return h+'</div>';
 }
-/* l'avatar vient du bottin des avatars, sauf URL saisie à la main */
 function avatarRole(r){
   const src = BM.avatarDe(r);
   return src
@@ -180,13 +201,9 @@ function tagType(r){
   if(r.type==='pl')  return '<span class="bm-minitag pl">PL</span>';
   return '';
 }
-/* Rôle réservé par une demande de validation de fiche encore en attente.
-   La place est bel et bien bloquée : le tag rend la réservation visible pour
-   que le staff puisse la retirer si la fiche n'aboutit pas. */
 function tagAttente(r){
   return r.attente ? '<span class="bm-minitag att">'+T.enAttente+'</span>' : '';
 }
-/* lien saisi à la main, sinon /u{uid} déduit de la carte faceclaim */
 function lienRole(r){
   const href = BM.lienDe(r);
   if(!href) return '';
@@ -194,8 +211,10 @@ function lienRole(r){
   return '<a class="bm-plink" href="'+esc(href)+'" title="'+t+'" target="_blank" rel="noopener">'
     +'<i class="fi fi-tr-link-alt"></i></a>';
 }
+/* [MAJ v2] le tri par dirDabord ne fausse plus rien : chaque ligne porte SA
+   clé, et non sa position dans la liste source. */
 function blocRoles(e, ed){
-  const all = vt(e.roles).map((r,i)=>({r:r,i:i})).sort((a,b)=>BM.dirDabord(a.r,b.r));
+  const all = BM.roles(e).slice().sort(BM.dirDabord);
   const open = ed||S.plusRoles, vus = open?all:all.slice(0,CFG.MAX_ROLES);
   const enEdit = S.roleEdit && S.roleEdit.id===e.id;
   let h = '<p class="bm-hsec">'+T.roles+' ('+all.length+')'
@@ -203,12 +222,11 @@ function blocRoles(e, ed){
         +'<button class="bm-mini" data-do="togroles" aria-pressed="'+(S.editRoles?'true':'false')
         +'" title="Modifier les rôles"><i class="fi fi-tr-pencil"></i></button>':'')
     + '</p>';
-  if(enEdit && S.roleEdit.i===-1) h += BM.formRole(e, null, -1);
-  h += vus.length ? '<ul class="bm-people">'+vus.map(o=>{
-      const r=o.r, i=o.i;
-      if(enEdit && S.roleEdit.i===i) return '<li>'+BM.formRole(e, r, i)+'</li>';
+  if(enEdit && !S.roleEdit.k) h += BM.formRole(e, null, '');
+  h += vus.length ? '<ul class="bm-people">'+vus.map(r=>{
+      if(enEdit && S.roleEdit.k===r.k) return '<li>'+BM.formRole(e, r, r.k)+'</li>';
       return '<li class="bm-person'+(r.dir?' bm-dir':'')+'"'
-        +(ed&&S.editRoles?' data-editrole="'+i+'" data-id="'+e.id+'"':'')+'>'
+        +(ed&&S.editRoles?' data-editrole="'+esc(r.k)+'" data-id="'+e.id+'"':'')+'>'
         +avatarRole(r)
         +'<span class="bm-pinfo">'
           +'<span class="bm-pligne"><span class="bm-pnom">'+esc(BM.nomDe(r))+'</span>'+lienRole(r)
@@ -216,7 +234,7 @@ function blocRoles(e, ed){
           +'<span class="bm-pfonc"><span class="bm-prole">'+esc(r.poste)+'</span>'
             +(r.depuis?'<span class="bm-pdepuis">'+T.depuis+esc(r.depuis)+'</span>':'')+'</span>'
         +'</span>'
-        +(ed?'<button class="bm-rmabs" data-rmrole="'+i+'" data-id="'+e.id+'" title="Retirer">✕</button>':'')
+        +(ed?'<button class="bm-rmabs" data-rmrole="'+esc(r.k)+'" data-id="'+e.id+'" title="Retirer">✕</button>':'')
         +'</li>';
     }).join('')+'</ul>'
     : '<p class="bm-vide">'+T.aucunRole+'</p>';
@@ -226,9 +244,9 @@ function blocRoles(e, ed){
   return h;
 }
 function blocPostes(e, ed){
-  const all = vt(e.postes).map((p,i)=>({p:p,i:i})).sort((a,b)=>BM.dirDabord(a.p,b.p));
+  const all = BM.postes(e).slice().sort(BM.dirDabord);
   /* en lecture, un poste entièrement pourvu disparaît de la liste */
-  const dispo = ed ? all : all.filter(o=>BM.libresPoste(e,o.p)>0);
+  const dispo = ed ? all : all.filter(p=>BM.libresPoste(e,p)>0);
   const open = ed||S.plusPostes, vus = open?dispo:dispo.slice(0,CFG.MAX_POSTES);
   const enEdit = S.posteEdit && S.posteEdit.id===e.id;
   let h = '<p class="bm-hsec">'+T.postes+' ('+dispo.length+')'
@@ -236,23 +254,22 @@ function blocPostes(e, ed){
         +'<button class="bm-mini" data-do="togpostes" aria-pressed="'+(S.editPostes?'true':'false')
         +'" title="Modifier les postes"><i class="fi fi-tr-pencil"></i></button>':'')
     + '</p>';
-  if(enEdit && S.posteEdit.i===-1) h += BM.formPoste(e, null, -1);
-  if(!vus.length && !(enEdit&&S.posteEdit.i===-1))
+  if(enEdit && !S.posteEdit.k) h += BM.formPoste(e, null, '');
+  if(!vus.length && !(enEdit && !S.posteEdit.k))
     h += '<p class="bm-vide">'+(BM.estComplet(e)?T.aucunPoste:T.ouvertProp)+'</p>';
-  vus.forEach(o=>{
-    const p=o.p, i=o.i;
-    if(enEdit && S.posteEdit.i===i){ h += BM.formPoste(e, p, i); return; }
+  vus.forEach(p=>{
+    if(enEdit && S.posteEdit.k===p.k){ h += BM.formPoste(e, p, p.k); return; }
     const l = BM.libresPoste(e,p);
-    const ouvert = S.ouvertPoste && S.ouvertPoste.id===e.id && S.ouvertPoste.i===i;
+    const ouvert = S.ouvertPoste && S.ouvertPoste.id===e.id && S.ouvertPoste.k===p.k;
     h += '<div class="bm-pcard'+(p.dir?' bm-dir':'')+(ouvert?' bm-ouvert':'')+'"'
-      +(ed&&S.editPostes?' data-editposte="'+i+'" data-id="'+e.id+'"':'')+'>'
-      +'<div class="bm-pcard-head"'+(!(ed&&S.editPostes)?' data-do="voir" data-id="'+e.id+'" data-i="'+i+'"':'')+'>'
+      +(ed&&S.editPostes?' data-editposte="'+esc(p.k)+'" data-id="'+e.id+'"':'')+'>'
+      +'<div class="bm-pcard-head"'+(!(ed&&S.editPostes)?' data-do="voir" data-id="'+e.id+'" data-k="'+esc(p.k)+'"':'')+'>'
       +icone(p.ic)
       +'<span class="bm-pcard-txt"><span class="bm-pcard-nom">'+esc(p.t)+'</span>'
       +'<span class="bm-pcard-cat">'+esc(p.c||'')+'</span></span>'
       +'<span class="bm-pcard-libres">'+l+'/'+(Number(p.n)||0)+' libre'+(l>1?'s':'')+'</span>'
       +'</div>'
-      + (ed?'<button class="bm-rmabs" data-rmposte="'+i+'" data-id="'+e.id+'" title="Retirer">✕</button>':'');
+      + (ed?'<button class="bm-rmabs" data-rmposte="'+esc(p.k)+'" data-id="'+e.id+'" title="Retirer">✕</button>':'');
     if(ouvert) h += '<div class="bm-pcard-body"><p>'+(p.d?esc(p.d):T.sansDesc)+'</p></div>';
     h += '</div>';
   });
@@ -264,7 +281,6 @@ function barreActions(e, ed){
   const conf = S.confirmDel===e.id;
   let b = '';
   if(ed) b += '<button class="bm-abtn" data-do="edit" data-id="'+e.id+'"><i class="fi fi-tr-pencil"></i> '+T.modifier+'</button>';
-  /* le référent signale que sa fiche est prête ; seul le staff publie */
   if(!S.admin && ed && e.brouillon) b += e.soumis
     ? '<span class="bm-ab-note">'+T.dejaSoumis+'</span>'
     : '<button class="bm-abtn" data-do="soumettre" data-id="'+e.id+'"><i class="fi fi-tr-paper-plane"></i> '+T.soumettre+'</button>';
@@ -273,12 +289,12 @@ function barreActions(e, ed){
     ? '<button class="bm-abtn dgr" data-do="delok" data-id="'+e.id+'">'+T.confRetirer+'</button>'
       +'<button class="bm-abtn" data-do="cancel">'+T.annuler+'</button>'
     : '<button class="bm-abtn dgr" data-do="del" data-id="'+e.id+'">'+T.retirer+'</button>';
-  /* aucune action disponible (visiteur) : pas de barre du tout */
   return b ? '<div class="bm-actionbar">'+b+'</div>' : '';
 }
 
-/* ===================== FORMULAIRES ===================== */
-BM.formRole = function(e, r, i){
+/* ===================== FORMULAIRES =====================
+   data-k vide = création ; sinon, clé de l'élément modifié. */
+BM.formRole = function(e, r, k){
   const d = r||{nom:'',poste:'',depuis:'',type:'pj',lien:'',dir:false}, P = T.ph;
   const nomAffiche = r ? BM.nomDe(r) : '';
   return '<div class="bm-iform">'
@@ -290,10 +306,10 @@ BM.formRole = function(e, r, i){
     +'<input type="text" class="lg" id="bm-rlien" value="'+esc(d.lien)+'" placeholder="'+P.lien+'">'
     +'<p class="bm-hint lg">'+T.hintRole+'</p>'
     +'<label class="chk"><input type="checkbox" id="bm-rdir" '+(d.dir?'checked':'')+'> '+P.role+'</label>'
-    +'<div class="acts"><button class="go" data-do="roleok" data-id="'+e.id+'" data-i="'+i+'">'+T.enregistrer+'</button>'
+    +'<div class="acts"><button class="go" data-do="roleok" data-id="'+e.id+'" data-k="'+esc(k||'')+'">'+T.enregistrer+'</button>'
     +'<button class="no" data-do="cancel">'+T.annuler+'</button></div></div>';
 };
-BM.formPoste = function(e, p, i){
+BM.formPoste = function(e, p, k){
   const d = p||{t:'',c:'',ic:'fi-tr-briefcase',dir:false,n:1,d:''}, P = T.ph;
   return '<div class="bm-iform">'
     +'<input type="text" id="bm-pt" value="'+esc(d.t)+'" placeholder="'+P.intitule+'">'
@@ -302,7 +318,7 @@ BM.formPoste = function(e, p, i){
     +'<input type="number" id="bm-pn" min="1" value="'+(Number(d.n)||1)+'" placeholder="'+P.places+'">'
     +'<label class="chk"><input type="checkbox" id="bm-pdir" '+(d.dir?'checked':'')+'> '+P.posteDir+'</label>'
     +'<textarea class="lg" id="bm-pd" placeholder="'+P.resume+'">'+esc(d.d)+'</textarea>'
-    +'<div class="acts"><button class="go" data-do="posteok" data-id="'+e.id+'" data-i="'+i+'">'+T.enregistrer+'</button>'
+    +'<div class="acts"><button class="go" data-do="posteok" data-id="'+e.id+'" data-k="'+esc(k||'')+'">'+T.enregistrer+'</button>'
     +'<button class="no" data-do="cancel">'+T.annuler+'</button></div></div>';
 };
 function champ(id, label, valeur, full){
