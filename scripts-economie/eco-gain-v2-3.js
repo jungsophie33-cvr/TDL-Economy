@@ -4,9 +4,8 @@ console.log("[EcoV2] >>> eco-gain chargé");
 
 (function(){
 
-  const {
+    const {
     log, warn, err,
-    safeReadBin, writeBin,
     getPseudo, getMessagesCount, showEcoGain
   } = window.EcoCore;
 
@@ -265,13 +264,14 @@ function getWordCountBonus(words) {
         setTimeout(() => { obs.disconnect(); resolve(); }, 2000);
       });
 
-      const record = await safeReadBin();
-      if (!record) return;
-      const membres = record.membres || {};
-      if (!membres[pseudo]) return;
+            /* [MAJ] la SEULE feuille du membre (~300 o) au lieu des 190 ko de la
+         racine. Elle porte tout ce dont ce bloc a besoin : l'existence du
+         membre, son dernier palier, et son solde pour l'affichage optimiste. */
+      const P   = encodeURIComponent(pseudo);
+      const moi = await window.EcoCore.firebaseGet("membres/" + P);
+      if (!moi) return;
 
       // ====== ACCUMULATEURS (rien n'est écrit avant la fin) ======
-      const P          = encodeURIComponent(pseudo);  // segment d'URL ; FA décode -> clé brute
       let   deltaDollars = 0;                          // somme à appliquer en UNE transaction
       let   nouveauPalier = null;                      // seuil de message à enregistrer, si franchi
       const journaux   = [];                           // [ [noeud, entrée], … ] -> push (POST)
@@ -406,7 +406,7 @@ function getWordCountBonus(words) {
       // ---- PALIERS DE MESSAGES ----
       try {
         const msgCount = getMessagesCount();
-        const lastAward = membres[pseudo].lastMessageThresholdAwarded || 0;
+        const lastAward = moi.lastMessageThresholdAwarded || 0;
         const MESSAGE_REWARDS = [
           { threshold: 100, reward: 5 }, { threshold: 500, reward: 10 }, { threshold: 1000, reward: 15 },
           { threshold: 1500, reward: 20 }, { threshold: 2000, reward: 25 }, { threshold: 3000, reward: 30 },
@@ -442,7 +442,7 @@ function getWordCountBonus(words) {
           )
         );
         // affichage optimiste immédiat (le serveur calculera la même valeur)
-        const soldeAffiche = (membres[pseudo].dollars || 0) + deltaDollars;
+        const soldeAffiche = (moi.dollars || 0) + deltaDollars;
         const el1 = document.getElementById("sj-dollars");           if (el1) el1.textContent = soldeAffiche;
         const el2 = document.querySelector(".field-dollars span:not(.label)"); if (el2) el2.textContent = soldeAffiche;
       }
