@@ -1,14 +1,36 @@
 /*
  * recensement-render.js — Rendu du recensement et panel staff · TDL
  *
- * Résumé : Affiche 5 colonnes live sur /t66-. Overrides staff (↑↓),
- * colonne "Futurs repas du Doyen" (suppressions), snapshot du 25 avec
+ * Résumé : Affiche 5 colonnes live sur le sujet du recensement. Overrides staff
+ * (↑↓), colonne "Futurs repas du Doyen" (suppressions), snapshot du 25 avec
  * préremplissage SCEditor automatique. 0 CSS inline — voir recensement.css.
  *
+ * [MAJ v3] PLUS AUCUNE LECTURE DE RACINE NI D'invalidateCache.
+ *   lireFrais() appelait invalidateCache() puis readBin() : 172 ko tirés
+ *   TOUTES LES 5 MINUTES tant que la page restait ouverte, plus à chaque clic
+ *   sur ↻ et après chaque flèche d'override. Et l'invalidateCache vidait le
+ *   cache de session partagé, forçant tous les autres modules de la page à
+ *   relire la racine à leur tour.
+ *   Quatre branches ciblées suffisent (~6 ko), et firebaseGet ignore le cache :
+ *   la lecture est fraîche par construction.
+ *
+ * [MAJ v3] LES TROIS ÉCRITURES SONT CIBLÉES.
+ *   writeBin(rec) réécrivait la branche recensement ENTIÈRE depuis un
+ *   instantané. Le cas le plus visible : les flèches ↑↓ des overrides. Deux
+ *   admins cliquant dans la même minute s'annulaient l'un l'autre, en silence.
+ *   Un override ne touche plus que son propre chemin.
+ *
+ * [MAJ v3] GARDE D'URL. Sans elle, la boucle d'attente de recensement-init
+ *   tourne 30 s sur CHAQUE page du forum avant d'abandonner.
+ *
+ * [MAJ v3] LE BLOC PUBLIÉ EST EN HTML TDL, plus en BBCode.
+ *
  * CARTE DES BLOCS :
- *   UTILS    — estStaff, tri, moisLabel
+ *   GARDE    — restriction au sujet du recensement
+ *   UTILS    — estStaff, tri, moisLabel, échappement
  *   SCEDITOR — preremplirReponse (API SCEditor + fallback natif)
- *   BBCODE   — génération du bloc @mentions "menacés le 25"
+ *   BLOC     — génération du bloc "menacés le 25"
+ *   DONNÉES  — lecture ciblée, écritures ciblées
  *   RENDER   — colonnes, boutons overrides
  *   EVENTS   — snapshot du 25, liste finale du 1er
  *   AFFICHAGE — orchestration principale
@@ -23,6 +45,23 @@
   const T    = () => window.RC.T;
   const trier = arr => [...arr].sort((a, b) => a.localeCompare(b, "fr"));
 
+  /* === GARDE =====================
+     Les URL d'un sujet ForumActif varient : /t66-slug, /t66p25-slug, et la vue
+     impression. On filtre sur le NUMÉRO, jamais sur le slug complet.
+     Un permalien ?p=… n'est pas couvert : il redirige vers le sujet, donc le
+     script démarrera au chargement suivant.
+     Si TOPIC_SLUG n'est pas exploitable, on ne bloque rien — mieux vaut un
+     script qui tourne pour rien qu'un panneau qui ne s'affiche jamais. */
+  function surLeSujet() {
+    const slug = (window.RC.CFG && window.RC.CFG.TOPIC_SLUG) || "";
+    const m = /t(\d+)/.exec(slug);
+    if (!m) return true;                       // slug inexploitable : on ne bloque rien
+    return new RegExp("/t" + m[1] + "(p\\d+)?[-/]").test(location.pathname);
+  }
+  /* initRender reste indéfini hors du sujet : recensement-init ne l'appelle
+     que là-bas, personne ne s'en plaint ailleurs. */
+  if (!surLeSujet()) return;
+
   /* === UTILS === */
 
   function estStaff() {
@@ -31,6 +70,12 @@
 
   function moisLabel(date) {
     return date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+  }
+
+  /* Les pseudos partent dans du HTML publié : on les échappe. */
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
   /* === SCEDITOR === */
@@ -54,20 +99,43 @@
     ta.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
-  /* === BBCODE === */
+  /* === BLOC PUBLIÉ =====================
+     [MAJ v3] HTML TDL (.sj-fiche) au lieu du BBCode.
+     Les mentions gardent la forme @"pseudo" : c'est elle que ForumActif
+     reconnaît pour notifier le membre. */
 
-  function genBBCodeMenaces(pseudos, labelDate) {
-    const lignes = trier(pseudos).map(p => `  • @"${p}"`).join("\n");
-    return [
-      `[b]━━━ MENACÉS PAR LE DOYEN — snapshot du ${labelDate} ━━━[/b]`,
-      "",
-      "[color=#7b1f1f]Ces membres n'ont pas posté de RP entre le 1er et le 25 du mois.",
-      "Vous avez jusqu'au dernier jour du mois pour régulariser votre situation.[/color]",
-      "",
-      lignes || "  (aucun)",
-      "",
-      "[size=85][i]Liste définitive publiée le 1er du mois prochain.[/i][/size]",
-    ].join("\n");
+  function genBlocMenaces(pseudos, labelDate) {
+    const lignes = trier(pseudos).map(p => `@"${esc(p)}"`).join("\n");
+    return `<div id="tdl-snap" class="sj-fiche"><div class="h1"><h1>Recensement du ${esc(labelDate)}</h1></div>
+<tw>N'ayant pas posté de RP entre le 1er et le 25 du mois</tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>Paroissiens menacés par le Doyen</f4>
+Si vous êtes cités ci-après, vous avez jusqu'au dernier jour du mois pour régulariser votre situation.
+N'hésitez pas à contacter le staff au cas où votre rp n'aurait pas été détecté (envoyez-nous le lien), ou à nous communiquer tout empêchement exceptionnel.
+
+${lignes || "(aucun)"}
+
+La liste définitive des comptes disparus sera publiée le 1er du mois prochain.</div></div>
+</div>`;
+  }
+
+  /* === DONNÉES =====================
+     [MAJ v3] Quatre branches ciblées (~6 ko) au lieu des 172 ko de la racine.
+     firebaseGet ne passe pas par le cache de session : inutile de le jeter
+     pour obtenir une lecture fraîche. */
+
+  const BRANCHES = ["membres", "absences", "demandes_fiche", "recensement"];
+
+  async function lireFrais() {
+    const v = await Promise.all(BRANCHES.map(b => window.EcoCore.firebaseGet(b)));
+    const rec = {};
+    BRANCHES.forEach((b, i) => { rec[b] = v[i] || {}; });
+    return rec;
+  }
+
+  /* Toutes les écritures de ce fichier visent un chemin sous recensement/{mois}.
+     Aucune ne relit ni ne réécrit la branche. */
+  function ecrire(updates) {
+    return window.EcoCore.firebaseUpdate(updates);
   }
 
   /* === RENDER === */
@@ -99,11 +167,21 @@
       btn.className = "rc-btn-override";
       btn.textContent = label;
       btn.addEventListener("click", async () => {
-        const r   = await window.EcoCore.readBin();
-        const snp = (r.recensement = r.recensement || {})[moisKey] =
-          r.recensement[moisKey] || {};
-        (snp.overrides_staff = snp.overrides_staff || {})[item.dataset.pseudo] = cibleOverride;
-        await window.EcoCore.writeBin(r);
+        /* [MAJ v3] un seul chemin : l'override de CE membre, pour CE mois.
+           L'ancien readBin → mutation → writeBin réécrivait la branche
+           recensement entière depuis un instantané : deux admins cliquant dans
+           la même minute s'annulaient, sans rien afficher.
+           La clé est le pseudo brut, comme dans les données existantes. Un
+           pseudo contenant . # $ [ ] / ferait refuser le PATCH — aucun n'en
+           porte aujourd'hui. */
+        btn.disabled = true;
+        try {
+          await ecrire({
+            [`recensement/${moisKey}/overrides_staff/${item.dataset.pseudo}`]: cibleOverride
+          });
+        } catch (e) {
+          if (window.console) console.error("[recensement] override", e);
+        }
         afficherRecensement(zone);
       });
       item.appendChild(btn);
@@ -113,18 +191,17 @@
   /* === EVENTS === */
 
   async function genererSnapshot(rec, moisKey, zone) {
-    const snp = (rec.recensement = rec.recensement || {})[moisKey] =
-      rec.recensement[moisKey] || {};
+    const snp = Object.assign({}, rec.recensement?.[moisKey]);
     const now = new Date();
 
     // Le snapshot du 25 utilise un seuil d'absence réduit (≥ 10j) :
-    // absence déclarée depuis ≥ 10j → exclu du BBCode "menacés"
+    // absence déclarée depuis ≥ 10j → exclu du bloc "menacés"
     // absence < 10j → toujours dans "menacés" et tagué dans la notification
     // Le calcul final du 1er utilisera le seuil normal (15j) avec cas par cas staff.
     const listesSnap = window.RC.Calcul.calculerListes(
       rec, now, CFG().SEUIL_ABSENCE_SNAPSHOT
     );
-    if (snp?.overrides_staff) window.RC.Calcul.appliquerOverrides(listesSnap, snp.overrides_staff);
+    if (snp.overrides_staff) window.RC.Calcul.appliquerOverrides(listesSnap, snp.overrides_staff);
 
     Object.assign(snp, {
       genere_le:       now.toISOString(),
@@ -134,15 +211,31 @@
       absents:         [...listesSnap.absents],
       suppressions:    [...listesSnap.suppressions],
     });
-    await window.EcoCore.writeBin(rec);
-    preremplirReponse(genBBCodeMenaces(snp.menaces_25, snp.genere_le_label));
+
+    /* [MAJ v3] le seul mois concerné, en un PATCH. snp est une COPIE : les
+       overrides déjà posés y sont recopiés tels quels, jamais effacés. */
+    try { await ecrire({ [`recensement/${moisKey}`]: snp }); }
+    catch (e) {
+      if (window.console) console.error("[recensement] snapshot", e);
+      alert("Enregistrement du snapshot impossible — rien n'a été publié.");
+      return;
+    }
+    preremplirReponse(genBlocMenaces(snp.menaces_25, snp.genere_le_label));
     afficherRecensement(zone);
   }
 
   async function finaliserListe(rec, moisKey, listes, zone) {
-    rec.recensement[moisKey].liste_finale_1er = [...listes.menaces];
-    rec.recensement[moisKey].finalise_le      = new Date().toISOString();
-    await window.EcoCore.writeBin(rec);
+    /* [MAJ v3] deux feuilles, pas la branche */
+    try {
+      await ecrire({
+        [`recensement/${moisKey}/liste_finale_1er`]: [...listes.menaces],
+        [`recensement/${moisKey}/finalise_le`]:      new Date().toISOString(),
+      });
+    } catch (e) {
+      if (window.console) console.error("[recensement] finalisation", e);
+      alert("Enregistrement impossible — la liste n'a pas été figée.");
+      return;
+    }
     afficherRecensement(zone);
   }
 
@@ -165,7 +258,7 @@
       btn.addEventListener("click", () => genererSnapshot(rec, moisKey, zone));
       const note = document.createElement("p");
       note.className = "rc-staff-note";
-      note.textContent = "Le BBCode sera automatiquement inséré dans la réponse rapide.";
+      note.textContent = "Le bloc sera automatiquement inséré dans la réponse rapide.";
       panel.append(btn, note);
     } else if (snp?.genere_le) {
       const info = document.createElement("p");
@@ -191,20 +284,18 @@
 
   /* === AFFICHAGE === */
 
-  // Invalidate le cache avant une relecture pour avoir des données fraîches.
-  // safeReadBin() utilise un cache sessionStorage 60s — on le vide pour le polling.
-  function lireFrais() {
-    window.EcoCore.invalidateCache?.();
-    return window.EcoCore.readBin();
-  }
-
   async function afficherRecensement(zone) {
     // Préserver la barre de statut si elle existe déjà (évite le flash au refresh)
     const ancienStatut = zone.querySelector(".rc-statut");
     if (!ancienStatut) zone.innerHTML = "<p class='rc-chargement'>Chargement du recensement…</p>";
 
-    const rec = await lireFrais();
-    if (!rec) { zone.innerHTML = `<p class='rc-erreur'>${T().ERR_DONNEES}</p>`; return; }
+    let rec;
+    try { rec = await lireFrais(); }
+    catch (e) {
+      if (window.console) console.error("[recensement] lecture", e);
+      zone.innerHTML = `<p class='rc-erreur'>${T().ERR_DONNEES}</p>`;
+      return;
+    }
 
     const now     = new Date();
     const moisKey = window.RC.Calcul.cleMois(now);
