@@ -59,7 +59,6 @@
   if (!window.RC.surLeSujet(window.RC.CFG && window.RC.CFG.TOPIC_ABSENCE_SLUG)) return;
   /* initAbsence reste indéfini ailleurs : recensement-init ne l'appelle que
      sur ce sujet, personne ne s'en plaint. */
-  if (!surLeSujet()) return;
 
   /* === UTILS === */
 
