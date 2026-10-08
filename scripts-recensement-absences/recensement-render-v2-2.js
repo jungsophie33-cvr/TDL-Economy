@@ -45,19 +45,10 @@
   const T    = () => window.RC.T;
   const trier = arr => [...arr].sort((a, b) => a.localeCompare(b, "fr"));
 
-  /* === GARDE =====================
-     Les URL d'un sujet ForumActif varient : /t66-slug, /t66p25-slug, et la vue
-     impression. On filtre sur le NUMÉRO, jamais sur le slug complet.
-     Un permalien ?p=… n'est pas couvert : il redirige vers le sujet, donc le
-     script démarrera au chargement suivant.
-     Si TOPIC_SLUG n'est pas exploitable, on ne bloque rien — mieux vaut un
-     script qui tourne pour rien qu'un panneau qui ne s'affiche jamais. */
-  function surLeSujet() {
-    const slug = (window.RC.CFG && window.RC.CFG.TOPIC_SLUG) || "";
-    const m = /t(\d+)/.exec(slug);
-    if (!m) return true;                       // slug inexploitable : on ne bloque rien
-    return new RegExp("/t" + m[1] + "(p\\d+)?[-/]").test(location.pathname);
-  }
+    /* === GARDE =====================
+     Filtre partagé, défini dans recensement-config. initRender reste indéfini
+     ailleurs : recensement-init ne l'appelle que sur ce sujet. */
+  if (!window.RC.surLeSujet(window.RC.CFG && window.RC.CFG.TOPIC_SLUG)) return;
   /* initRender reste indéfini hors du sujet : recensement-init ne l'appelle
      que là-bas, personne ne s'en plaint ailleurs. */
   if (!surLeSujet()) return;
