@@ -396,7 +396,7 @@
     /* innerHTML est posé AVANT tout appendChild : « += » reconstruit tous les
        enfants et effacerait leurs écouteurs. Le titre est donc dans le gabarit. */
     form.innerHTML = `
-      <h3 class="abs-form-titre">Déclarer une absence</h3>
+      <div class="mc-head"><h1>Déclarer une absence</h1><p>Choisir son formulaire</p></div>
       <div class="abs-form-field">
         <label class="abs-form-label">${T().LABEL_TYPE}</label>
         <div class="abs-types">
