@@ -226,19 +226,14 @@
       [TYPES().REDUITE]:     "présence réduite",
       [TYPES().SUPPRESSION]: "demande de suppression",
     }[abs.type] || "absence";
-    const finInfo = abs.fin ? `le ${abs.fin}` : "à une date indéfinie";
-    return [
-      `@"${abs.pseudo}"`,
-      "",
-      `[b]The Drowned Lands — nouvelles de ton ${typeLabel}[/b]`,
-      "",
-      `Ton ${typeLabel} devait se terminer ${finInfo}. L'équipe de TDL vient aux nouvelles :`,
-      "es-tu de retour parmi nous, ou souhaites-tu prolonger ton absence ?",
-      "",
-      "Merci de nous tenir informés 🌿",
-      "",
-      "[size=85][i]— L'équipe de The Drowned Lands[/i][/size]",
-    ].join("\n");
+    const finInfo = abs.fin ? `le ${esc(abs.fin)}` : "à une date indéfinie";
+    return `<div class="sj-fiche"><div class="h1"><h1>À propos de ton ${esc(typeLabel)}</h1></div>
+    <tw><span>@"${abs.pseudo}"</span></tw>
+<div class="sj-formgen"><div class="sj-formcol"><f4>Nous venons aux nouvelles</f4>
+Ton ${esc(typeLabel)} devait se terminer ${finInfo}. L'équipe paroissiale vient aux nouvelles :
+es-tu de retour parmi nous, ou souhaites-tu prolonger ton absence ?
+Merci de nous tenir informés
+</div></div></div>`;
   }
 
   function messageDeclaration(data) {
@@ -377,13 +372,14 @@
     });
     const section = document.createElement("section");
     section.className = `abs-section abs-section--${modCss}`;
-    const h = document.createElement("h3");
-    h.className = "abs-section-titre";
-    h.textContent = `${titre} (${triees.length})`;
+    const head = document.createElement("div");
+    head.className = "mc-head";
+    head.innerHTML = `<h1>Toutes les ${titre}</h1>`
+                   + `<p>${triees.length} ${titre.toLowerCase()} recensées</p>`;
     const grille = document.createElement("div");
     grille.className = "abs-grille";
     triees.forEach(abs => grille.appendChild(creerCard(abs, zone, pseudo)));
-    section.append(h, grille);
+    section.append(head, grille);
     return section;
   }
 
