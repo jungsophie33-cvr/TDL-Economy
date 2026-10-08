@@ -297,9 +297,9 @@ La liste définitive des comptes disparus sera publiée le 1er du mois prochain.
     const entete = document.createElement("div");
     entete.className = "rc-entete";
 
-    const titre = document.createElement("h3");
-    titre.className = "rc-titre-mois";
-    titre.textContent = `Recensement — ${moisLabel(now)}`;
+    const titre = document.createElement("div");
+    titre.className = "mc-head";
+    titre.innerHTML = `<h3>Recensement automatique</h3><p>${moisLabel(now)}</p>`;
 
     const statut = document.createElement("span");
     statut.className = "rc-statut";
