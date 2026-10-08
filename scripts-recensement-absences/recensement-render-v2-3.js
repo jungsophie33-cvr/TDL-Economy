@@ -51,7 +51,6 @@
   if (!window.RC.surLeSujet(window.RC.CFG && window.RC.CFG.TOPIC_SLUG)) return;
   /* initRender reste indéfini hors du sujet : recensement-init ne l'appelle
      que là-bas, personne ne s'en plaint ailleurs. */
-  if (!surLeSujet()) return;
 
   /* === UTILS === */
 
