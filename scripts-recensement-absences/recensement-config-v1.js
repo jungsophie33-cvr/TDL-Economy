@@ -109,4 +109,18 @@
     PAS_LE_1ER:   "La liste finale est disponible uniquement le 1er du mois suivant.",
   };
 
+  /* === GARDE D'URL ===
+     Source unique partagée par init, render et absence. Les trois testaient
+     l'URL chacun à sa façon ; une divergence affichait « Module non chargé »
+     sur une page où tout allait bien.
+     On filtre sur le NUMÉRO du sujet, pas sur le slug : « /t66- » rate les
+     pages paginées, qui s'écrivent « /t66p25-le-recensement ».
+     Slug inexploitable → true : mieux vaut un script qui tourne pour rien
+     qu'un panneau qui ne s'affiche jamais. */
+  window.RC.surLeSujet = function (slug) {
+    const m = /t(\d+)/.exec(String(slug || ""));
+    if (!m) return true;
+    return new RegExp("/t" + m[1] + "(p\\d+)?[-/]").test(location.pathname);
+  };
+
 })();
