@@ -25,9 +25,6 @@
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--dark2opa4);
-  padding-bottom: 6px;
 }
 
 .rc-statut {
