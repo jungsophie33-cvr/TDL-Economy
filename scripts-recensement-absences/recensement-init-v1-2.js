@@ -52,9 +52,7 @@
     const cfg = window.RC?.CFG;
     if (!cfg) return;
 
-    const url = location.href;
-
-    if (url.includes(cfg.TOPIC_SLUG)) {
+    if (window.RC.surLeSujet(cfg.TOPIC_SLUG)) {
       // [MAJ] ZONE_RECENSEMENT défini dans recensement-config.js CFG.SEL
       const zone = document.querySelector(cfg.SEL.ZONE_RECENSEMENT);
       if (!zone) return;
@@ -67,7 +65,7 @@
       return;
     }
 
-    if (url.includes(cfg.TOPIC_ABSENCE_SLUG)) {
+    if (window.RC.surLeSujet(cfg.TOPIC_ABSENCE_SLUG)) {
       // [MAJ] ZONE_ABSENCE défini dans recensement-config.js CFG.SEL
       const zone = document.querySelector(cfg.SEL.ZONE_ABSENCE);
       if (!zone) return;
