@@ -53,15 +53,10 @@
   const E = () => window.EcoCore;
   const B = () => window.TDLBase;
 
-  /* === GARDE =====================
-     Les URL d'un sujet FA varient : /t68-slug, /t68p25-slug. On filtre sur le
-     NUMÉRO, jamais sur le slug complet. Slug inexploitable → on ne bloque rien. */
-  function surLeSujet() {
-    const slug = (window.RC.CFG && window.RC.CFG.TOPIC_ABSENCE_SLUG) || "";
-    const m = /t(\d+)/.exec(slug);
-    if (!m) return true;
-    return new RegExp("/t" + m[1] + "(p\\d+)?[-/]").test(location.pathname);
-  }
+    /* === GARDE =====================
+     Filtre partagé, défini dans recensement-config. initRender reste indéfini
+     ailleurs : recensement-init ne l'appelle que sur ce sujet. */
+  if (!window.RC.surLeSujet(window.RC.CFG && window.RC.CFG.TOPIC_ABSENCE_SLUG)) return;
   /* initAbsence reste indéfini ailleurs : recensement-init ne l'appelle que
      sur ce sujet, personne ne s'en plaint. */
   if (!surLeSujet()) return;
