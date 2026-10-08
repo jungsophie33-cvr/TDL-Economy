@@ -25,8 +25,13 @@
   var CFG = {
     // Corps d'un message sur TDL.
     selecteurPost: '.sj-post-msg > div',
-    // Contenus injectés par d'autres scripts, à retirer avant l'analyse.
-    aIgnorer: '.post-wordcount',
+    // Contenus à retirer avant l'analyse :
+    //  .post-wordcount → injecté par le compteur de mots
+    //  .codebox, .cont_code, code → les boîtes [code], où l'on documente le
+    //      format lui-même. Sans ça, un exemple-trame serait pris pour un
+    //      vrai bloc et le message serait remplacé.
+    //  blockquote, .quote → une citation reprenant un format ferait pareil.
+    aIgnorer: '.post-wordcount, .codebox, .cont_code, code, blockquote, .quote',
     // null = année réelle. Une année fixe fige le calendrier RP.
     anneeRef: null,
     // Statut d'une personne absente du bottin et sans statut écrit.
