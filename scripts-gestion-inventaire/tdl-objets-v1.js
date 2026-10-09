@@ -39,6 +39,17 @@
     NOTIF_DETTE:   102    /* l'acheteur : dette karmique inscrite */
   };
 
+    /* Table canonique des objets. tdl-inventaire, le module de post et le bloc
+     SOS la lisent tous ici : trois copies finiraient par diverger. */
+  var OBJETS = {
+    medaille:{n:"Médaille de Saint François", ic:"medal",           art:"Aide inattendue",           eff:"Une coïncidence heureuse survient."},
+    poupee:  {n:"Poupée vaudou",              ic:"needle",          art:"Effigie rituelle", subi:true, eff:"Un mauvais sort vous frappe."},
+    amulette:{n:"Amulette",                   ic:"clover-alt",      art:"Gri-gri",                   eff:"Relance d'un dé, ou annulation d'un petit échec."},
+    dollar:  {n:"Dollar porte-bonheur",       ic:"money-bill-wave", art:"Protection des ancêtres",   eff:"Une effigie ou un événement défavorable est écarté."},
+    bougie:  {n:"Bougie de neuvaine",         ic:"candle-holder",   art:"Bénédiction des ancêtres", collectif:true, eff:"Une coïncidence favorable pour tous les participants du sujet."},
+    brique:  {n:"Poudre de brique rouge",     ic:"block-brick",     art:"Purification du foyer", lieu:true, eff:"Le lieu est protégé d'un aléa climatique."}
+  };
+
   /* Durées de complication, en jours. Portée : ce que la cible doit tenir. */
   var EFFIGIE = {
     1: { lab:"Complication sérieuse", por:"tous",      jours:21, depose:true },
@@ -59,6 +70,7 @@
     NO_OBJET:   "Cet article ne dépose aucun objet : prévenez le staff.",
     NO_SOCLE:   "Socle indisponible : réessayez dans un instant.",
     FONDS:      "Fonds insuffisants.",
+    FONDS_GELE: function (g) { return "Fonds insuffisants : " + g + " $ de votre solde sont retenus par la Main."; },
     ECHEC:      "L'achat a échoué, votre solde est inchangé.",
     OK:         "Objet déposé dans votre inventaire.",
     OK_EFFIGIE: "Le sort est jeté. La poupée est chez sa destinataire.",
@@ -93,6 +105,20 @@
   }
 
   function d4() { return 1 + Math.floor(Math.random() * 4); }
+
+    /* Un recouvrement ouvert de la Main fige une partie du solde : elle reste
+     affichée mais n'est pas dépensable. quais-core la calcule déjà, on ne
+     recalcule rien ici — deux formules du gel finiraient par diverger.
+     Hors de la boutique (Quais absent), aucun achat n'est possible de toute
+     façon : le garde ne s'applique que là où il a les données. */
+  function gelBloquant(montant) {
+    try {
+      if (!window.Quais || !window.Quais.gele || !window.Quais.dispo) return 0;
+      var g = window.Quais.gele() | 0;
+      if (g > 0 && window.Quais.dispo() < montant) return g;
+    } catch (e) { /* socle boutique indisponible : on laisse la transaction trancher */ }
+    return 0;
+  }
 
   function echec(msg) { return Promise.reject(new Error(msg)); }
 
@@ -175,6 +201,9 @@
     var effigie = !!item.ciblePJ;
     var de = (effigie || item.obj === "brique") ? d4() : 0;
 
+    var gele = gelBloquant(montant);
+    if (gele) return echec(TEXTES.FONDS_GELE(gele));
+
     return debiter(p, montant)
       .catch(function (e) {
         throw new Error(e && e.message === "FONDS" ? TEXTES.FONDS : TEXTES.ECHEC);
@@ -240,6 +269,6 @@
 
   /* ===================== EXPOSITION ===================== */
 
-  window.TDLObjets = { acheter: acheter, EFFIGIE: EFFIGIE, PURIF: PURIF };
+  window.TDLObjets = { acheter: acheter, OBJETS: OBJETS, EFFIGIE: EFFIGIE, PURIF: PURIF };
 
 })();
