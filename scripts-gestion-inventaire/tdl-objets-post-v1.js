@@ -5,16 +5,26 @@
  * Le joueur choisit dans son inventaire ; un bloc SOS est inséré dans le
  * message, et l'objet n'est consommé QU'À L'ENVOI du formulaire.
  *
- * POURQUOI À L'ENVOI — insérer le bloc ne prouve rien : un message abandonné
- *   brûlerait l'objet. On intercepte donc le clic sur « Envoyer », on écrit,
- *   puis on relance l'envoi. L'écriture est bornée dans le temps : si Firebase
- *   traîne, le message part quand même et la trace reste dans consommations,
- *   où le staff peut rattraper. Bloquer un post sur une écriture est pire que
- *   laisser passer un usage à régulariser.
+ * [MAJ v2] ON N'ÉCRIT PLUS DANS LE TEXTAREA D'ORIGINE. sceditor le masque et
+ *   travaille dans .sceditor-container : une iframe en WYSIWYG, un textarea en
+ *   mode source. Écrire dans le champ masqué ne produisait rien à l'écran et
+ *   rien à l'envoi. Le bouton s'accroche désormais au conteneur de l'éditeur,
+ *   pas au textarea — c'est pourquoi il ne se montait pas sur la page pleine.
  *
- * BÉNÉDICTION — la liste des bénéficiaires est FIGÉE à l'insertion : elle est
- *   relevée sur le sujet à cet instant et écrite en clair dans le message.
- *   Un joueur qui arrive après n'en profite pas, et personne n'a à arbitrer.
+ * [MAJ v2] LE BLOC EXISTE EN DEUX SÉRIALISATIONS. En WYSIWYG les retours à la
+ *   ligne sont perdus, donc <br> ; en mode source, des \n. Le parseur SOS
+ *   normalise les deux de la même façon.
+ *
+ * POURQUOI CONSOMMER À L'ENVOI — insérer le bloc ne prouve rien : un message
+ *   abandonné brûlerait l'objet. On intercepte le clic sur « Envoyer », on
+ *   écrit, puis on relance l'envoi. L'écriture est bornée dans le temps : si
+ *   Firebase traîne, le message part quand même et la trace reste dans
+ *   consommations, où le staff rattrape. Bloquer un post sur une écriture est
+ *   pire que laisser passer un usage à régulariser.
+ *
+ * BÉNÉDICTION — la liste des bénéficiaires est FIGÉE à l'insertion : relevée
+ *   sur le sujet à cet instant et écrite en clair dans le message. Un joueur
+ *   qui arrive après n'en profite pas, et personne n'a à arbitrer.
  *
  * DÉPEND DE : window.EcoCore (lireFrais, firebaseUpdate), window.TDLBase
  *   (nouvelleCle) et window.TDLObjets (table OBJETS).
@@ -27,9 +37,11 @@
   /* ===================== CONFIG ===================== */
 
   var SEL = {
-    /* [MAJ] formulaire et champ de rédaction ForumActif */
-    FORM:     'form[name="post"]',
+    /* [MAJ] éditeur ForumActif : conteneur, et ses deux modes */
+    EDITEUR:  ".sceditor-container",
+    /* [MAJ] champ d'origine — secours seulement, si sceditor est absent */
     TEXTAREA: 'textarea[name="message"]',
+    /* [MAJ] bouton d'envoi : FA poste sa valeur, d'où l'interception du clic */
     ENVOI:    'input[name="post"]',
     /* [MAJ] gabarit TDL : un message et le lien profil de son auteur */
     POST:     ".sj-postmsg",
@@ -41,22 +53,24 @@
     SOUS_INV:     "inventaire",
     NODE_JOURNAL: "consommations",
     MAX_PAGES:    3,       /* 75 messages : au-delà, on s'en tient à ce qu'on a */
-    DELAI_MS:     4000     /* au-delà, le message part sans attendre l'écriture */
+    DELAI_MS:     4000,    /* au-delà, le message part sans attendre l'écriture */
+    SCANS:        20,      /* repasses à la recherche de l'éditeur */
+    SCAN_MS:      400
   };
 
   var TEXTES = {
-    BOUTON:    "Utiliser un objet",
-    TITRE:     "Votre inventaire",
-    VIDE:      "Aucun objet utilisable.",
-    FERMER:    "Fermer",
-    INSERE:    "Déclaration insérée dans le message. L'objet sera consommé à l'envoi.",
-    DEJA:      "Un objet est déjà déclaré dans ce message.",
-    ERREUR:    "Inventaire indisponible.",
-    PARTICIPE: "Bénéficiaires relevés sur le sujet",
-    SANS_LISTE:"participants du sujet au moment de l'usage"
+    BOUTON:     "Utiliser un objet",
+    TITRE:      "Votre inventaire",
+    VIDE:       "Aucun objet utilisable.",
+    FERMER:     "Fermer",
+    INSERE:     "Déclaration insérée dans le message. L'objet sera consommé à l'envoi.",
+    DEJA:       "Un objet est déjà déclaré dans ce message.",
+    ERREUR:     "Inventaire indisponible.",
+    ECHEC:      "Insertion impossible : cliquez d'abord dans le champ de rédaction.",
+    SANS_LISTE: "participants du sujet au moment de l'usage"
   };
 
-  var EN_ATTENTE = null;   /* { cle, o, src } — objet déclaré, pas encore consommé */
+  var EN_ATTENTE = null;   /* { cle, o, src, ch } — déclaré, pas encore consommé */
 
   /* ===================== UTILS ===================== */
 
@@ -71,9 +85,7 @@
     return (u && u.username) ? String(u.username) : "";
   }
 
-  function table() {
-    return (window.TDLObjets && window.TDLObjets.OBJETS) || {};
-  }
+  function table() { return (window.TDLObjets && window.TDLObjets.OBJETS) || {}; }
 
   function meta(o) { return table()[o] || { n: o, ic: "box-open", eff: "" }; }
 
@@ -129,31 +141,63 @@
 
   function bloc(e, benef) {
     var m = meta(e.o);
-    var l = ['<div class="tdl-bloc">', "--- BLOC objet ---",
-             "ARTICLE: " + m.art, "OBJET: " + e.o];
+    var l = ["--- BLOC objet ---", "ARTICLE: " + m.art, "OBJET: " + e.o];
     if (m.eff) l.push("EFFET: " + m.eff);
     if (e.lieu) l.push("LIEU: " + e.lieu);
     if (e.de) l.push("DE: " + e.de);
     if (m.collectif) l.push("BENEFICIAIRES: " + (benef && benef.length ? benef.join(" | ") : TEXTES.SANS_LISTE));
-    l.push("</div>");
-    return "\n" + l.join("\n") + "\n";
+    return l;
   }
 
-  function inserer(texte) {
-    var ta = document.querySelector(SEL.TEXTAREA);
-    if (!ta) return false;
-    /* sceditor tient sa propre copie : on passe par lui quand il est là,
-       sinon le texte inséré est perdu à l'envoi. */
-    if (window.sceditor && window.sceditor.instance) {
-      var inst = window.sceditor.instance(ta);
-      /* 3e argument à false : sans lui, l'éditeur WYSIWYG échappe les balises
-         et le bloc arriverait en texte visible au lieu d'être rendu. */
-      if (inst) { inst.insert(texte, "", false); return true; }
-    }
+  function blocHTML(l) { return '<div class="tdl-bloc">' + l.join("<br>") + "</div>"; }
+  function blocTexte(l) { return '\n<div class="tdl-bloc">\n' + l.join("\n") + "\n</div>\n"; }
+
+  /* ===================== INSERTION ===================== */
+
+  /* Plusieurs éditeurs peuvent coexister sur une page de sujet (réponse rapide
+     + revue des messages) : on prend celui qui est visible. */
+  function editeur() {
+    var c = document.querySelectorAll(SEL.EDITEUR);
+    for (var i = 0; i < c.length; i++) if (c[i].offsetHeight > 0) return c[i];
+    return c[0] || null;
+  }
+
+  function dansTextarea(ta, texte) {
     var p = ta.selectionStart == null ? ta.value.length : ta.selectionStart;
     ta.value = ta.value.slice(0, p) + texte + ta.value.slice(p);
     ta.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
+  }
+
+  function dansIframe(ifr, lignes) {
+    var doc = ifr.contentDocument || (ifr.contentWindow && ifr.contentWindow.document);
+    if (!doc || !doc.body) return false;
+    doc.body.focus();
+    var sel = doc.getSelection();
+    /* sans sélection dans l'iframe, insertHTML n'a nulle part où écrire :
+       on se place en fin de contenu plutôt que d'échouer. */
+    if (!sel.rangeCount || !doc.body.contains(sel.anchorNode)) {
+      var r = doc.createRange();
+      r.selectNodeContents(doc.body);
+      r.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    if (doc.execCommand("insertHTML", false, blocHTML(lignes) + "<br>")) return true;
+    doc.body.insertAdjacentHTML("beforeend", blocHTML(lignes));
+    return true;
+  }
+
+  function inserer(lignes) {
+    var c = editeur();
+    if (c) {
+      var src = c.querySelector("textarea");
+      if (src && src.offsetHeight > 0) return dansTextarea(src, blocTexte(lignes));
+      var ifr = c.querySelector("iframe");
+      if (ifr && dansIframe(ifr, lignes)) return true;
+    }
+    var ta = document.querySelector(SEL.TEXTAREA);
+    return ta ? dansTextarea(ta, blocTexte(lignes)) : false;
   }
 
   /* ===================== CONSOMMATION ===================== */
@@ -176,7 +220,6 @@
     return Promise.resolve(window.EcoCore.firebaseUpdate(patch));
   }
 
-  /* L'écriture ne doit jamais retenir le message plus que de raison. */
   function consommerBorne(e) {
     return Promise.race([
       consommer(e).catch(function (err) {
@@ -210,7 +253,7 @@
     var e = x.d, m = meta(e.o);
     var prepare = m.collectif ? beneficiaires() : Promise.resolve([]);
     prepare.then(function (benef) {
-      if (!inserer(bloc(e, benef))) return;
+      if (!inserer(bloc(e, benef))) { alert(TEXTES.ECHEC); return; }
       EN_ATTENTE = { cle: x._k, o: e.o, src: e.src, ch: e.ch };
       fermer();
       alert(TEXTES.INSERE);
@@ -244,23 +287,21 @@
       .catch(function () { corps.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.ERREUR) + '</p>'; });
   }
 
-  /* ===================== INIT ===================== */
+  /* ===================== MONTAGE ===================== */
 
-  function monter() {
-    var form = document.querySelector(SEL.FORM);
-    var ta = document.querySelector(SEL.TEXTAREA);
-    if (!form || !ta || !moi()) return;
+  function poser(ancrage) {
+    var prec = ancrage.previousElementSibling;
+    if (prec && prec.classList.contains("tdlo-btn")) return;   /* déjà posé */
+    var form = ancrage.closest ? ancrage.closest("form") : null;
+    if (!form) return;
 
     var b = document.createElement("button");
     b.type = "button";
     b.className = "tdlo-btn";
     b.innerHTML = '<i class="fi fi-sr-box-open"></i> ' + esc(TEXTES.BOUTON);
     b.addEventListener("click", function (ev) { ev.preventDefault(); ouvrir(b); });
-    ta.parentNode.insertBefore(b, ta);
+    ancrage.parentNode.insertBefore(b, ancrage);
 
-    /* On intercepte le CLIC du bouton d'envoi, pas le submit : FA poste la
-       valeur de ce bouton, et un form.submit() la perdrait — le message
-       partirait en prévisualisation. */
     var envoi = form.querySelector(SEL.ENVOI);
     if (!envoi) return;
     var relance = false;
@@ -279,9 +320,25 @@
     }, true);
   }
 
+  function monter() {
+    if (!moi()) return;
+    var cibles = document.querySelectorAll(SEL.EDITEUR);
+    if (cibles.length) { Array.prototype.forEach.call(cibles, poser); return; }
+    var ta = document.querySelector(SEL.TEXTAREA);
+    if (ta) poser(ta);
+  }
+
+  /* L'éditeur se monte parfois après le load : on repasse quelques secondes,
+     puis on s'arrête — pas de boucle permanente sur toutes les pages du forum.
+     poser() refuse de doubler le bouton, donc repasser est sans conséquence. */
+  function demarrer(n) {
+    monter();
+    if (n < CFG.SCANS) setTimeout(function () { demarrer(n + 1); }, CFG.SCAN_MS);
+  }
+
   document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") fermer(); });
 
-  if (document.readyState === "complete") monter();
-  else window.addEventListener("load", monter);
+  if (document.readyState === "complete") demarrer(0);
+  else window.addEventListener("load", function () { demarrer(0); });
 
 })();
