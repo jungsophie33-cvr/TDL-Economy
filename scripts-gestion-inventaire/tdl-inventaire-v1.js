@@ -35,23 +35,6 @@
   var NODE = "membres";
   var SOUS = "inventaire";
 
-  /* Catalogue d'affichage. La clé est le champ `o` de l'entrée Firebase ;
-     l'icône stockée dans l'entrée (ic) prime, ceci n'est que le repli. */
-  var OBJETS = {
-    medaille: { n: "Médaille de Saint François", ic: "medal",
-                amb: "Le saint des bêtes et des causes perdues, usé par le pouce." },
-    poupee:   { n: "Poupée vaudou", ic: "needle",
-                amb: "Elle vous ressemble d'un peu trop près." },
-    amulette: { n: "Amulette", ic: "clover-alt",
-                amb: "Nouée serré, et ce qu'elle contient ne vous regarde pas." },
-    dollar:   { n: "Dollar porte-bonheur", ic: "money-bill-wave",
-                amb: "Jamais dépensé. C'est tout l'intérêt." },
-    bougie:   { n: "Bougie de neuvaine", ic: "candle-holder",
-                amb: "Tant qu'elle brûle, la maison est couverte." },
-    brique:   { n: "Poudre de brique rouge", ic: "block-brick",
-                amb: "Répandue sur le seuil, elle dit qui peut entrer." }
-  };
-
   var FALLBACK_IC = "box-open";
 
   var PORTEES = {
