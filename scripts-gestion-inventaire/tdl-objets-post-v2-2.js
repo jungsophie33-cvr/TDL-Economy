@@ -43,8 +43,10 @@
   /* ===================== CONFIG ===================== */
 
   var SEL = {
-    /* [MAJ] page de post complète : conteneur de l'éditeur */
-    BOITE:    "#message-box",
+       /* [MAJ] page de post complète : #postingbox englobe barre d'outils,
+       #message-box et boutons. On pose le bouton DEDANS, en tête — l'insérer
+       comme frère de #message-box le plaçait hors du bloc visible. */
+    BOITE:    "#postingbox",
     /* [MAJ] réponse rapide : conteneur sceditor */
     EDITEUR:  ".sceditor-container",
     /* [MAJ] champ d'origine — secours, et repli si sceditor est absent */
@@ -398,17 +400,22 @@
         || (el.form || null);
   }
 
-  function poser(ancrage) {
-    var prec = ancrage.previousElementSibling;
-    if (prec && prec.classList && prec.classList.contains("tdlo-btn")) return;   /* déjà posé */
-    if (!ancrage.parentNode) return;
+ /* dedans = true : le bouton devient le premier enfant de l'ancrage.
+     dedans = false : il se glisse juste avant lui, chez son parent. */
+  function poser(ancrage, dedans) {
+    var hote = dedans ? ancrage : ancrage.parentNode;
+    if (!hote) return;
+    var k = hote.children;
+    for (var i = 0; i < k.length; i++) {
+      if (k[i].classList && k[i].classList.contains("tdlo-btn")) return;   /* déjà posé */
+    }
 
     var b = document.createElement("button");
     b.type = "button";
     b.className = "tdlo-btn";
     b.innerHTML = '<i class="fi fi-sr-box-open"></i> ' + esc(TEXTES.BOUTON);
     b.addEventListener("click", function (ev) { ev.preventDefault(); ouvrir(b); });
-    ancrage.parentNode.insertBefore(b, ancrage);
+    hote.insertBefore(b, dedans ? hote.firstChild : ancrage);
 
     var form = formulaireDe(ancrage);
     var envoi = form ? form.querySelector(SEL.ENVOI) : document.querySelector(SEL.ENVOI);
@@ -431,25 +438,26 @@
     }, true);
   }
 
-  /* Page pleine : #message-box. Réponse rapide : .sceditor-container.
-     Sans sceditor : le textarea nu. */
+  /* Page pleine : dans #postingbox. Réponse rapide : avant .sceditor-container.
+     Sans sceditor : avant le textarea nu. Un éditeur déjà couvert par la boîte
+     n'est pas repris — sinon deux boutons sur la même page. */
   function ancrages() {
     var out = [];
     var boite = document.querySelector(SEL.BOITE);
-    if (boite) out.push(boite);
+    if (boite) out.push({ el: boite, dedans: true });
     Array.prototype.forEach.call(document.querySelectorAll(SEL.EDITEUR), function (c) {
-      if (!boite || !boite.contains(c)) out.push(c);
+      if (!boite || !boite.contains(c)) out.push({ el: c, dedans: false });
     });
     if (!out.length) {
       var ta = document.querySelector(SEL.TEXTAREA);
-      if (ta) out.push(ta);
+      if (ta) out.push({ el: ta, dedans: false });
     }
     return out;
   }
 
   function monter() {
     if (!moi()) return;
-    ancrages().forEach(poser);
+    ancrages().forEach(function (a) { poser(a.el, a.dedans); });
   }
 
   /* L'éditeur se monte parfois après le load : on repasse quelques secondes,
