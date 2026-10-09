@@ -31,7 +31,8 @@
     EYEBROW: 'Objet utilisé',
     LIEU:    'Lieu protégé',
     DE:      'Résultat du dé',
-    BENEF:   'Bénéficiaires'
+    BENEF:   'Bénéficiaires',
+    LEVE: 'Sort levé'
   };
 
   /* Libellés du d4 de la purification — seul dé qu'un bloc affiche.
@@ -54,6 +55,8 @@
     var lieu    = nu(bloc, 'LIEU');
     var de      = parseInt(nu(bloc, 'DE'), 10) || 0;
     var benef   = U.pipe(nu(bloc, 'BENEFICIAIRES')).filter(Boolean);
+    var leve    = nu(bloc, 'LEVE');
+    var note    = nu(bloc, 'NOTE');
 
     var d = h('div', 'tdlob');
     d.appendChild(h('i', 'fi fi-sr-' + icone(objet) + ' tdlob-ic'));
@@ -67,6 +70,8 @@
     if (lieu) lignes.push([TXT.LIEU, lieu]);
     if (de)   lignes.push([TXT.DE, (PURIF[de] || String(de))]);
     if (benef.length) lignes.push([TXT.BENEF, benef.join(', ')]);
+    if (benef.length) lignes.push([TXT.BENEF, benef.join(', ')]);
+    if (leve) lignes.push([TXT.LEVE, leve]);
 
     if (lignes.length) {
       var g = h('div', 'tdlob-grid');
@@ -76,7 +81,7 @@
       });
       corps.appendChild(g);
     }
-
+    if (note) corps.appendChild(h('p', 'tdlob-note', note));
     d.appendChild(corps);
     return d;
   }
