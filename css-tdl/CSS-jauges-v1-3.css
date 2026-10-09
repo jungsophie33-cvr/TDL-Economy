@@ -9,30 +9,7 @@
    ──────────────────────────────────────────────────────────────── */
 
 .tdl-js-panel {
-  background    : var(--cntr3);
-  border        : 1px solid var(--cntr5);
-  border-radius : 10px;
-  padding       : 20px 25px;
-  max-width     : 580px;
-  margin        : 0 auto;
-  font-family   : var(--font2);
-}
 
-.tdl-js-title {
-  color       : var(--dark2);
-  font-family:var(--font2)!important;
-  font-size   : 1.15em;
-  margin      : 0 0 4px;
-  letter-spacing:1px!important;
-}
-.tdl-js-title {
-   letter-spacing:1px!iportant;
-}
-
-.tdl-js-subtitle {
-  color     : var(--cntr);
-  font-size : 0.9em;
-  margin    : 0 0 20px;
 }
 
 .tdl-js-access-denied {
