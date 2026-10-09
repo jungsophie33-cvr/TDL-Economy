@@ -66,7 +66,8 @@ var NOTIFS = {
   103:{n:C.BOUT, ic:"inbox-in",       url:U.STAFF,     txt:function(d){return "Nouvelle demande d'achat de "+esc(d.pseudo)+" : &laquo;&nbsp;"+esc(d.nom)+"&nbsp;&raquo;.";}},
   104:{n:C.BOUT, ic:"hand-holding-dollar", url:"", txt:function(d){return "Votre prêt de "+(+d.montant||0)+" $ a été accordé : la somme est sur votre compte.";}},
   105:{n:C.BOUT, ic:"receipt",             url:U.DETTES, txt:function(d){return "Un remboursement de "+(+d.montant||0)+" $ sera attendu de vous.";}},
-
+  106:{n:C.BOUT, ic:"needle",         url:"",          txt:function(d){return "Un mauvais sort vous frappe : un objet est apparu dans votre inventaire. Il agit jusqu'au "+esc(d.jusqu)+", sur "+esc(d.portee)+".";}},
+   
   /* --- Missions des Maringouins --- */
   110:{n:C.MIS,  ic:"mosquito",       url:U.MISSIONS,  txt:function(d){return "Nouvelle mission ouverte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
   111:{n:C.MIS,  ic:"user-check",     url:U.MISSIONS,  txt:function(d){return esc(d.chef)+" prend la tête de votre mission &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
