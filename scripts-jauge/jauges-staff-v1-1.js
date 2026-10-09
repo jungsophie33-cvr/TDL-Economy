@@ -22,7 +22,7 @@
   function toutPret() {
     return !!(
       window.EcoCore &&
-      window.EcoCore.safeReadBin &&
+      window.EcoCore.firebaseGet &&
       window.EcoCore.writeField &&
       window.EcoCore.getPseudo &&
       window.TDLJauges &&
@@ -30,7 +30,12 @@
     );
   }
 
+   /* [MAJ] Sans garde, le poll tourne 20 s sur chaque page. Renseigne le NUMÉRO
+     du sujet du panneau staff ; 0 = aucune garde. */
+  var TOPIC = 73;                        // ← à renseigner
   function demarrerPoll() {
+    if (TOPIC && !new RegExp("/t" + TOPIC + "(p\\d+)?[-/]").test(location.pathname)) return;
+    
     var tentatives = 0;
     var MAX = 100;
 
@@ -75,29 +80,39 @@
 
   // ---------- FIREBASE ----------
 
-  function chargerDonnees(container) {
-    window.EcoCore.safeReadBin()
-      .then(function (rec) {
-        _data = (rec && rec.jauges) ? rec.jauges : {};
+      function chargerDonnees(container) {
+    /* [MAJ] la seule branche jauges (~400 o) au lieu de la racine. */
+    window.EcoCore.firebaseGet("jauges")
+      .then(function (j) {
+        _data = j || {};
         mettreAJourAffichage();
       })
       .catch(function (e) {
         console.error(MODULE, "Lecture Firebase :", e);
-        container.querySelector(".tdl-js-loading") &&
-          (container.querySelector(".tdl-js-loading").textContent = "Erreur de chargement.");
+        var el = container.querySelector(".tdl-js-loading");
+        if (el) el.textContent = "Erreur de chargement.";
       });
   }
-
-  function ecrireNiveau(key, nouveau) {
-    const payload = {
-      niveau    : nouveau,
-      updated_at: new Date().toISOString()
-    };
-    window.EcoCore.writeField("jauges/" + key, payload)
+    /* [MAJ] Transaction sur le delta, pas écriture d'une valeur absolue.
+     _data est un instantané du chargement de page, et la confirmation peut
+     rester ouverte plusieurs minutes : écrire « niveau 3 » écrasait sans
+     bruit un passage à 4 décidé entre-temps par un collègue.
+     On applique ±1 à la valeur SERVEUR, bornée à 1–5. */
+  function ecrireNiveau(key, delta, annonce) {
+    var obtenu = null;
+    window.EcoCore.firebaseTransaction("jauges/" + key, function (cur) {
+      var actuel = Math.min(5, Math.max(1, parseInt(cur && cur.niveau) || 1));
+      obtenu = Math.min(5, Math.max(1, actuel + delta));
+      return { niveau: obtenu, updated_at: new Date().toISOString() };
+    })
       .then(function () {
-        _data[key] = payload;
+        _data[key] = { niveau: obtenu, updated_at: new Date().toISOString() };
         mettreAJourAffichage();
-        console.log(MODULE, "Jauge mise à jour :", key, "→", nouveau);
+        console.log(MODULE, "Jauge mise à jour :", key, "→", obtenu);
+        if (annonce != null && obtenu !== annonce) {
+          alert("La jauge était déjà à un autre niveau : elle est maintenant à "
+              + obtenu + " (et non " + annonce + ").");
+        }
       })
       .catch(function (e) {
         console.error(MODULE, "Écriture Firebase :", e);
@@ -214,7 +229,7 @@
                 + " (" + cfg.niveaux[suivant - 1].label + ")";
 
     afficherConfirmation(texte, function () {
-      ecrireNiveau(key, suivant);
+      ecrireNiveau(key, delta, suivant);
     });
   }
 
