@@ -5,31 +5,33 @@
  * Le joueur choisit dans son inventaire ; un bloc SOS est inséré dans le
  * message, et l'objet n'est consommé QU'À L'ENVOI du formulaire.
  *
+ * [MAJ v4] LE SCRIPT N'ABANDONNE PLUS SI EcoCore MANQUE AU DÉMARRAGE. Sur la
+ *   page /post, l'ordre de chargement n'est pas celui d'une page de sujet :
+ *   un return sec en tête de fichier tuait le module avant même qu'il cherche
+ *   l'éditeur. Le bouton se monte maintenant quoi qu'il arrive, et c'est à
+ *   l'ouverture du panneau qu'on attend le socle — avec un message clair s'il
+ *   ne vient jamais, au lieu d'un bouton muet.
+ *
+ * [MAJ v4] POINTS D'ACCROCHE. Page pleine (nouveau sujet, réponse complète) :
+ *   l'éditeur vit dans #message-box. Réponse rapide : .sceditor-container.
+ *   Sans sceditor : le textarea nu. On essaie les trois dans cet ordre, et le
+ *   formulaire est retrouvé par closest(), puis par le document, puis par la
+ *   propriété form du champ — FA ne nomme pas toujours son formulaire pareil.
+ *
  * [MAJ v3] LEVÉE D'EFFIGIE. Un objet marqué  leve:true  (le dollar porte-
  *   bonheur) ouvre une étape de plus quand le joueur porte une effigie subie :
- *   lever ce sort, ou se protéger d'autre chose. Sans ce choix, la protection
- *   ne servait qu'à des événements à venir et la poupée restait indélogeable.
- *   La levée efface l'effigie dans le MÊME PATCH que la consommation de la
- *   protection : les deux partent ensemble ou aucune ne bouge.
+ *   lever ce sort, ou se protéger d'autre chose. La levée efface l'effigie
+ *   dans le MÊME PATCH que la consommation de la protection.
  *   Ce n'est pas rétroactif : ce qui a déjà été joué reste joué, le bloc le dit.
  *
- * [MAJ v2] ON N'ÉCRIT PLUS DANS LE TEXTAREA D'ORIGINE. sceditor le masque et
- *   travaille dans .sceditor-container : une iframe en WYSIWYG, un textarea en
- *   mode source. Le bouton s'accroche au conteneur de l'éditeur, pas au
- *   textarea — c'est pourquoi il ne se montait pas sur la page pleine.
- *
- * [MAJ v2] LE BLOC EXISTE EN DEUX SÉRIALISATIONS. En WYSIWYG les retours à la
- *   ligne sont perdus, donc <br> ; en mode source, des \n. Le parseur SOS
- *   normalise les deux de la même façon.
+ * [MAJ v2] ON N'ÉCRIT PLUS DANS LE TEXTAREA D'ORIGINE : sceditor le masque et
+ *   travaille dans une iframe (WYSIWYG) ou son propre textarea (mode source).
+ *   Le bloc existe donc en deux sérialisations, <br> et \n, que le parseur SOS
+ *   normalise de la même façon.
  *
  * POURQUOI CONSOMMER À L'ENVOI — insérer le bloc ne prouve rien : un message
  *   abandonné brûlerait l'objet. On intercepte le clic sur « Envoyer », on
- *   écrit, puis on relance l'envoi. L'écriture est bornée dans le temps : si
- *   Firebase traîne, le message part quand même et la trace reste dans
- *   consommations, où le staff rattrape.
- *
- * BÉNÉDICTION — la liste des bénéficiaires est FIGÉE à l'insertion : relevée
- *   sur le sujet à cet instant et écrite en clair dans le message.
+ *   écrit, puis on relance l'envoi, en bornant l'attente.
  *
  * DÉPEND DE : window.EcoCore (lireFrais, firebaseUpdate), window.TDLBase
  *   (nouvelleCle) et window.TDLObjets (table OBJETS).
@@ -37,16 +39,18 @@
  */
 (function () {
   "use strict";
-  if (!window.EcoCore) { if (window.console) console.warn("[tdl-objets-post] eco-core absent."); return; }
 
   /* ===================== CONFIG ===================== */
 
   var SEL = {
-    /* [MAJ] éditeur ForumActif : conteneur, et ses deux modes */
+    /* [MAJ] page de post complète : conteneur de l'éditeur */
+    BOITE:    "#message-box",
+    /* [MAJ] réponse rapide : conteneur sceditor */
     EDITEUR:  ".sceditor-container",
-    /* [MAJ] champ d'origine — secours seulement, si sceditor est absent */
+    /* [MAJ] champ d'origine — secours, et repli si sceditor est absent */
     TEXTAREA: 'textarea[name="message"]',
-    /* [MAJ] bouton d'envoi : FA poste sa valeur, d'où l'interception du clic */
+    /* [MAJ] formulaire et bouton d'envoi : FA poste la valeur du bouton */
+    FORM:     'form[name="post"]',
     ENVOI:    'input[name="post"]',
     /* [MAJ] gabarit TDL : un message et le lien profil de son auteur */
     POST:     ".sj-postmsg",
@@ -60,7 +64,9 @@
     MAX_PAGES:    3,       /* 75 messages : au-delà, on s'en tient à ce qu'on a */
     DELAI_MS:     4000,    /* au-delà, le message part sans attendre l'écriture */
     SCANS:        20,      /* repasses à la recherche de l'éditeur */
-    SCAN_MS:      400
+    SCAN_MS:      400,
+    SOCLE_MS:     300,     /* cadence d'attente d'EcoCore */
+    SOCLE_MAX:    20       /* 6 s, puis on le dit */
   };
 
   var TEXTES = {
@@ -68,9 +74,11 @@
     TITRE:      "Votre inventaire",
     VIDE:       "Aucun objet utilisable.",
     FERMER:     "Fermer",
+    CHARGE:     "Lecture de l'inventaire…",
     INSERE:     "Déclaration insérée dans le message. L'objet sera consommé à l'envoi.",
     DEJA:       "Un objet est déjà déclaré dans ce message.",
     ERREUR:     "Inventaire indisponible.",
+    SANS_SOCLE: "Inventaire injoignable sur cette page. Rechargez, ou passez par la réponse rapide.",
     ECHEC:      "Insertion impossible : cliquez d'abord dans le champ de rédaction.",
     SANS_LISTE: "participants du sujet au moment de l'usage",
     USAGE:      "À quoi sert cette protection ?",
@@ -98,6 +106,18 @@
     return (u && u.username) ? String(u.username) : "";
   }
 
+  function E() { return window.EcoCore; }
+
+  /* Le socle peut arriver après nous sur /post : on l'attend au lieu de
+     désactiver le module pour toute la page. */
+  function socle(n) {
+    n = n || 0;
+    if (E() && E().lireFrais && E().firebaseUpdate) return Promise.resolve(E());
+    if (n > CFG.SOCLE_MAX) return Promise.reject(new Error("ECO"));
+    return new Promise(function (r) { setTimeout(r, CFG.SOCLE_MS); })
+      .then(function () { return socle(n + 1); });
+  }
+
   function table() { return (window.TDLObjets && window.TDLObjets.OBJETS) || {}; }
 
   function meta(o) { return table()[o] || { n: o, ic: "box-open", eff: "" }; }
@@ -123,6 +143,10 @@
 
   function subis() {
     return INVENTAIRE.filter(function (x) { return x.d && x.d.st === "subi"; });
+  }
+
+  function utilisable(x) {
+    return x.d && x.d.st !== "subi" && table()[x.d.o];
   }
 
   /* ===================== BÉNÉFICIAIRES ===================== */
@@ -181,8 +205,7 @@
 
   /* ===================== INSERTION ===================== */
 
-  /* Plusieurs éditeurs peuvent coexister sur une page de sujet : on prend
-     celui qui est visible. */
+  /* Plusieurs éditeurs peuvent coexister sur une page : on prend le visible. */
   function editeur() {
     var c = document.querySelectorAll(SEL.EDITEUR);
     for (var i = 0; i < c.length; i++) if (c[i].offsetHeight > 0) return c[i];
@@ -231,7 +254,7 @@
 
   function consommer(e) {
     var p = moi();
-    if (!p || !window.TDLBase) return Promise.resolve();
+    if (!p || !window.TDLBase || !E()) return Promise.resolve();
     var base = CFG.NODE_MEMBRES + "/" + p + "/" + CFG.SOUS_INV + "/";   /* RAW : PATCH racine */
     var chemin = base + e.cle;
     var reste = (parseInt(e.ch, 10) || 1) - 1;
@@ -248,7 +271,7 @@
       s: sujetId() ? "t" + sujetId() : "",
       t: new Date().toISOString()
     };
-    return Promise.resolve(window.EcoCore.firebaseUpdate(patch));
+    return Promise.resolve(E().firebaseUpdate(patch));
   }
 
   function consommerBorne(e) {
@@ -268,6 +291,11 @@
 
   function corps() { return panneau ? panneau.querySelector(".tdlo-corps") : null; }
 
+  function dire(txt) {
+    var c = corps();
+    if (c) c.innerHTML = '<p class="tdlo-vide">' + esc(txt) + '</p>';
+  }
+
   function bouton(ic, nom, detail, badge) {
     var b = document.createElement("button");
     b.type = "button";
@@ -282,7 +310,7 @@
   function listerInventaire(liste) {
     var c = corps(); if (!c) return;
     c.innerHTML = "";
-    if (!liste.length) { c.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.VIDE) + '</p>'; return; }
+    if (!liste.length) { dire(TEXTES.VIDE); return; }
     liste.forEach(function (x) {
       var m = meta(x.d.o);
       var b = bouton(m.ic, m.n, x.d.lieu || m.eff || "", (x.d.ch > 1) ? String(x.d.ch) : "");
@@ -330,10 +358,6 @@
     });
   }
 
-  function utilisable(x) {
-    return x.d && x.d.st !== "subi" && table()[x.d.o];
-  }
-
   function ouvrir(ancre) {
     if (panneau) { fermer(); return; }
     var p = document.createElement("div");
@@ -348,25 +372,36 @@
     p.style.left = Math.round(Math.min(r.left, window.innerWidth - p.offsetWidth - 8)) + "px";
     p.style.top = Math.round(r.bottom + 6) + "px";
     p.querySelector(".tdlo-x").addEventListener("click", fermer);
+    dire(TEXTES.CHARGE);
 
-    Promise.resolve(window.EcoCore.lireFrais(CFG.NODE_MEMBRES + "/" + encodeURIComponent(moi()) + "/" + CFG.SOUS_INV))
+    socle()
+      .then(function (eco) {
+        return eco.lireFrais(CFG.NODE_MEMBRES + "/" + encodeURIComponent(moi()) + "/" + CFG.SOUS_INV);
+      })
       .then(function (src) {
         INVENTAIRE = versListe(src);
         listerInventaire(INVENTAIRE.filter(utilisable));
       })
-      .catch(function () {
-        var c = corps();
-        if (c) c.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.ERREUR) + '</p>';
+      .catch(function (err) {
+        dire(err && err.message === "ECO" ? TEXTES.SANS_SOCLE : TEXTES.ERREUR);
+        if (window.console) console.warn("[tdl-objets-post] inventaire :", err);
       });
   }
 
   /* ===================== MONTAGE ===================== */
 
+  /* FA ne nomme pas toujours son formulaire de la même façon selon la page :
+     trois tentatives plutôt qu'un sélecteur unique qui échoue en silence. */
+  function formulaireDe(el) {
+    return (el.closest && el.closest("form"))
+        || document.querySelector(SEL.FORM)
+        || (el.form || null);
+  }
+
   function poser(ancrage) {
     var prec = ancrage.previousElementSibling;
-    if (prec && prec.classList.contains("tdlo-btn")) return;   /* déjà posé */
-    var form = ancrage.closest ? ancrage.closest("form") : null;
-    if (!form) return;
+    if (prec && prec.classList && prec.classList.contains("tdlo-btn")) return;   /* déjà posé */
+    if (!ancrage.parentNode) return;
 
     var b = document.createElement("button");
     b.type = "button";
@@ -375,8 +410,11 @@
     b.addEventListener("click", function (ev) { ev.preventDefault(); ouvrir(b); });
     ancrage.parentNode.insertBefore(b, ancrage);
 
-    var envoi = form.querySelector(SEL.ENVOI);
-    if (!envoi) return;
+    var form = formulaireDe(ancrage);
+    var envoi = form ? form.querySelector(SEL.ENVOI) : document.querySelector(SEL.ENVOI);
+    if (!envoi || envoi.dataset.tdlo) return;
+    envoi.dataset.tdlo = "1";           /* une seule interception par bouton */
+
     var relance = false;
     envoi.addEventListener("click", function (ev) {
       if (relance || !EN_ATTENTE) return;
@@ -393,12 +431,25 @@
     }, true);
   }
 
+  /* Page pleine : #message-box. Réponse rapide : .sceditor-container.
+     Sans sceditor : le textarea nu. */
+  function ancrages() {
+    var out = [];
+    var boite = document.querySelector(SEL.BOITE);
+    if (boite) out.push(boite);
+    Array.prototype.forEach.call(document.querySelectorAll(SEL.EDITEUR), function (c) {
+      if (!boite || !boite.contains(c)) out.push(c);
+    });
+    if (!out.length) {
+      var ta = document.querySelector(SEL.TEXTAREA);
+      if (ta) out.push(ta);
+    }
+    return out;
+  }
+
   function monter() {
     if (!moi()) return;
-    var cibles = document.querySelectorAll(SEL.EDITEUR);
-    if (cibles.length) { Array.prototype.forEach.call(cibles, poser); return; }
-    var ta = document.querySelector(SEL.TEXTAREA);
-    if (ta) poser(ta);
+    ancrages().forEach(poser);
   }
 
   /* L'éditeur se monte parfois après le load : on repasse quelques secondes,
