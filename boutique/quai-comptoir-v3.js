@@ -142,6 +142,7 @@
 
     html += a.direct ? commandeDirecte(a, api) : commandeStaff(a, api);
     html += '<div class="qb-opts">' + options(a) + '</div>';
+    if (a.direct) html += '<div class="qb-helper" id="qb-msg"></div>';
     return html;
   }
 
@@ -157,7 +158,7 @@
     if (a.pick) sels += ui.fld(a.pick.l, ui.sel("boutique", a.pick.o));
     if (!sels) return "";
     return '<div class="qb-sec">'+ui.lab("Passer commande")+'<div class="qb-selrow">'+sels+'</div>'
-         + '<div class="qb-helper" id="qb-msg"></div></div><div class="qb-rule"></div>';
+         + '</div><div class="qb-rule"></div>';
   }
 
   function commandeStaff(a, api){
@@ -182,9 +183,15 @@
      moteur du core l'ignore et aucune demande n'est créée. */
   function options(a){
     if (a.direct) {
-      return '<div class="qb-asbox qb-directbox">'+ui.lab("Achat immédiat")
-           + '<p>L\'objet rejoint l\'inventaire dès le paiement, sans passer par le staff.</p>'
-           + '<button class="qb-optbtn qb-pay" id="qb-buy" type="button">'+esc(TEXTES.BUY)+' ⟡ '+money(a.p)+'</button></div>';
+      /* carte identique à « Payer comptant ». L'act "direct" est inconnu du
+         core : si la neutralisation du bouton échouait, l'achat casserait au
+         lieu de partir silencieusement en demande staff. */
+      return '<div id="qb-directwrap" style="display:contents">'
+           + ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant",
+                          desc:"Réglez le montant total en dollars. L'objet rejoint votre inventaire aussitôt.",
+                          prix:money(a.p), btn:"Payer maintenant", act:"direct", montant:a.p, pay:true,
+                          note:"Achat immédiat, sans validation du staff." })
+           + '</div>';
     }
     if (a.dette==="main") {
       return ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant", desc:"Réglez le montant total en dollars.", prix:money(a.p), btn:"Payer maintenant", act:"comptant", montant:a.p, pay:true, note:"Débloque le badge « Service demandé »." })
@@ -247,8 +254,14 @@
     var ct = det.querySelector("#qb-cibletype"), pw = det.querySelector("#qb-pjwrap"), pnw = det.querySelector("#qb-pnjwrap");
     if (ct) ct.onchange = function(){ var pj = /Choisir/.test(ct.value); if (pw) pw.style.display = pj ? "" : "none"; if (pnw) pnw.style.display = pj ? "none" : ""; };
 
-    var buy = det.querySelector("#qb-buy");
+    var wrap = det.querySelector("#qb-directwrap");
+    var buy = wrap ? wrap.querySelector("button") : null;
     if (!buy) return;
+    /* Le core câble les boutons .qb-act / [data-act] : on les retire d'abord,
+       sinon un seul clic paierait ET créerait une demande dans boutique_demandes. */
+    buy.classList.remove("qb-act");
+    ["act","montant","dette","pay"].forEach(function(k){ buy.removeAttribute("data-"+k); });
+    buy.onclick = null;
     var msg = det.querySelector("#qb-msg");
     var idEl = det.querySelector("#qb-itemid");
     var id = idEl ? idEl.value : "";
@@ -275,7 +288,7 @@
             msg.innerHTML += '<div class="qb-rolls" style="margin-top:10px"><div class="qb-rollrow">'
               + '<span class="qb-rolldie">'+esc(String(res.de))+'</span><span>'+esc(res.deLabel)+'</span></div></div>';
           }
-          buy.remove();
+          wrap.remove();
         })
         .catch(function(e){
           dire((e && e.message) || "Achat impossible.", true);
