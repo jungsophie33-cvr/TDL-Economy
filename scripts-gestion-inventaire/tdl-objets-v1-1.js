@@ -45,7 +45,7 @@
     medaille:{n:"Médaille de Saint François", ic:"medal",           art:"Aide inattendue",           eff:"Une coïncidence heureuse survient."},
     poupee:  {n:"Poupée vaudou",              ic:"needle",          art:"Effigie rituelle", subi:true, eff:"Un mauvais sort vous frappe."},
     amulette:{n:"Amulette",                   ic:"clover-alt",      art:"Gri-gri",                   eff:"Relance d'un dé, ou annulation d'un petit échec."},
-    dollar:  {n:"Dollar porte-bonheur",       ic:"money-bill-wave", art:"Protection des ancêtres",   eff:"Une effigie ou un événement défavorable est écarté."},
+    dollar:  {n:"Dollar porte-bonheur", ic:"money-bill-wave", art:"Protection des ancêtres", leve:true, eff:"Une effigie ou un événement défavorable est écarté."},
     bougie:  {n:"Bougie de neuvaine",         ic:"candle-holder",   art:"Bénédiction des ancêtres", collectif:true, eff:"Une coïncidence favorable pour tous les participants du sujet."},
     brique:  {n:"Poudre de brique rouge",     ic:"block-brick",     art:"Purification du foyer", lieu:true, eff:"Le lieu est protégé d'un aléa climatique."}
   };
