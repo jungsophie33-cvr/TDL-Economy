@@ -151,6 +151,55 @@
 .qb-optbtn.qb-pay{background:var(--dark2);color:var(--clair1);border:none}
 .qb-optbtn[disabled]{opacity:.5;cursor:default}
 
+/* ==========================================================================
+   CSS-comptoir-direct.css — Achat direct au Comptoir · TDL
+   À ajouter à la feuille de la boutique (classes .qb- sous .qb).
+   ========================================================================== */
+
+/* Carte d'achat immédiat : reprend le cadre .qb-asbox, occupe toute la largeur
+   puisqu'elle est seule — il n'y a pas d'alternative de paiement. */
+.qb .qb-directbox {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb .qb-directbox p {
+  margin: 0;
+  color: var(--darkopa7);
+  font-family: var(--font0);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.qb .qb-directbox .qb-optbtn {
+  align-self: flex-start;
+  flex: none;
+}
+
+.qb .qb-directbox .qb-optbtn[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Retours d'achat : le message remplace le bouton une fois l'objet déposé. */
+.qb .qb-msg-ok {
+  color: var(--gr2-color);
+  font-family: var(--txt3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qb .qb-msg-ko {
+  color: var(--dark2);
+  font-family: var(--txt3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* ---------- HERO (marché noir) ---------- */
 .qb-hero{position:relative;overflow:hidden;padding:70px 26px 30px;background:linear-gradient(120deg,var(--dark),var(--dark2))}
 .qb-heroin{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
