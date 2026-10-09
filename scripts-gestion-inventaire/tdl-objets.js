@@ -34,8 +34,9 @@
     SOUS_INV:     "inventaire",
     SOUS_DETTES:  "dettes",
     NODE_JOURNAL: "consommations",
-    /* [MAJ] identifiant de notification « vous êtes la cible d'une effigie » */
-    NOTIF_EFFIGIE: 150
+        /* notifications de la plage boutique (sos-emi-notif) */
+    NOTIF_EFFIGIE: 106,   /* la cible : un sort la frappe, sans sa source */
+    NOTIF_DETTE:   102    /* l'acheteur : dette karmique inscrite */
   };
 
   /* Durées de complication, en jours. Portée : ce que la cible doit tenir. */
@@ -85,6 +86,10 @@
     var d = new Date();
     if (decalage) d.setDate(d.getDate() + decalage);
     return d.toISOString().slice(0, 10);
+  }
+  function jourFR(iso) {
+    var p = String(iso).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
   }
 
   function d4() { return 1 + Math.floor(Math.random() * 4); }
@@ -197,7 +202,7 @@
         return recrediter(p, montant).then(function () { throw new Error(TEXTES.ECHEC); });
       })
       .then(function () {
-        if (effigie && EFFIGIE[de].depose) notifier(cible);
+        if (effigie) notifier(p, EFFIGIE[de].depose ? cible : "", de, item);
         return resultat(item, de, effigie);
       });
   }
@@ -215,14 +220,19 @@
     return out;
   }
 
-  /* [MAJ] signature de la notification à confirmer contre eco-notif : si elle
-     diffère, l'appel échoue en silence et la cible découvre l'objet dans son
-     inventaire — dégradé acceptable, jamais bloquant pour l'achat. */
-  function notifier(cible) {
+    /* La source reste anonyme : la cible apprend qu'elle est visée, jamais par qui.
+     L'échec d'une notification ne remonte pas — l'achat, lui, a eu lieu. */
+  function notifier(acheteur, cible, de, item) {
+    if (!window.EcoNotif) return;
     try {
-      if (window.EcoNotif && window.EcoNotif.membre) {
-        window.EcoNotif.membre(CFG.NOTIF_EFFIGIE, cible, { texte: TEXTES.NOTIF });
+      if (cible) {
+        var r = EFFIGIE[de];
+        window.EcoNotif.a(cible, CFG.NOTIF_EFFIGIE, {
+          jusqu: jourFR(jour(r.jours)),
+          portee: r.por === "tous" ? "tous vos sujets" : "vos sujets en cours, hors intrigue et événement"
+        });
       }
+      window.EcoNotif.a(acheteur, CFG.NOTIF_DETTE, { motif: dette(item, "").motif });
     } catch (e) {
       if (window.console) console.warn("[tdl-objets] notification impossible :", e);
     }
