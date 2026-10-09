@@ -111,9 +111,9 @@
     const keys = window.TDLJauges.KEYS;
     const cfg  = window.TDLJauges.CFG;
 
-    let html    += '<div class="mc-head"><h1>Équilibres de Terrebonne</h1>';
-    html    += '<p>Panneau staff – mise à jour des jauges collectives</p></div>';
-    html    += 'div class="sj-fiche">';
+    let html  = '<div class="mc-head"><h1>Équilibres de Terrebonne</h1>'
+              + '<p>Panneau staff – mise à jour des jauges collectives</p></div>';
+    html     += '<div class="sj-fiche tdl-js-panel">';
 
     keys.forEach(function (key) {
       const c = cfg[key];
