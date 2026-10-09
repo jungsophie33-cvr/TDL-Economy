@@ -167,8 +167,26 @@ window.BH = window.BH || {};
   async function attendreEco(ms){ let n=0; while(!ecoPret() && n<ms/100){ await new Promise(r=>setTimeout(r,100)); n++; } return ecoPret(); }
   function normQuartier(q){ const o=Object.assign({},q); o.amb=BH.versTableau(o.amb); o.com=BH.versTableau(o.com); o.types=BH.versTableau(o.types); return o; }
 
+     /* Avatar : meilleure carte du bottin des avatars pour un pseudo donné.
+     Un même pseudo peut porter plusieurs cartes — une réservation multicompte
+     posée au nom du compte racine coexiste avec la carte du personnage validé.
+     On départage au lieu de laisser la dernière lue l'emporter : Firebase rend
+     les clés par ordre alphabétique, ce qui n'a aucun sens ici.
+     Même barème que le bottin des métiers et le registre paroissial. */
+  function indexAvatars(faceclaims){
+    const fc = faceclaims || {}, idx = {};
+    const score = c => (c.statut==="pris" ? 4 : c.statut==="reserve" ? 1 : 0) + (c.image ? 2 : 0);
+    Object.keys(fc).forEach(cle=>{
+      const c = fc[cle];
+      if(!c || !c.pseudo) return;
+      const a = idx[c.pseudo];
+      if(!a || score(c) > score(a)) idx[c.pseudo] = c;
+    });
+    return idx;
+  }
+   
   // Construit les habitants : membres présents, logés (habitation ou demande validée).
-  function construireHabitants(rec){
+  function construireHabitants(rec, avatars){
     const membres = rec.membres || {};
     const parPseudo = {};
     BH.versTableau(rec.demandes_fiche).forEach(d=>{ if(d && d.statut==="validee") parPseudo[d.pseudo]=d; });
@@ -182,7 +200,9 @@ window.BH = window.BH || {};
       const quartier = BH.QUARTIERS[src.q] ? src.q : BH.quartierParNom(src.q);   // clé OU nom d'affichage
       if(!quartier) return;
       const court = m.group || (d && d.groupe) || null;
-      out.push({ pseudo, nom:pseudo, commu:court, quartier, numero:String(src.n), type:src.t, ordre:src.o||pseudo });
+            out.push({ pseudo, nom:pseudo, commu:court, quartier, numero:String(src.n), type:src.t,
+                 ordre:src.o||pseudo,
+                 avatar:(avatars[pseudo] && avatars[pseudo].image) || "" });
     });
     return out;
   }
@@ -193,12 +213,13 @@ window.BH = window.BH || {};
       /* [MAJ] trois branches ciblées (~17 ko) au lieu des 189 ko de la racine.
          Ce chargement sert AUSSI au formulaire de validation de fiche
          (fiche-habitation), donc à chaque ouverture de la modale. */
-      let membres, demandes, logements;
+      let membres, demandes, logements, faceclaims;
       try{
-        [membres, demandes, logements] = await Promise.all([
+        [membres, demandes, logements, faceclaims] = await Promise.all([
           window.EcoCore.firebaseGet("membres"),
           window.EcoCore.firebaseGet("demandes_fiche"),
-          window.EcoCore.firebaseGet("logements")
+          window.EcoCore.firebaseGet("logements"),
+          window.EcoCore.firebaseGet("faceclaims")
         ]);
       }
       catch(e){ if(window.console) console.error("[TDL habitations] lecture", e); return; }
@@ -213,7 +234,7 @@ window.BH = window.BH || {};
       const ms = rec.logements.maisons;
       if(ms) Object.entries(ms).forEach(([qk,byNum])=> Object.entries(byNum||{}).forEach(([nk,v])=>{ BH.MAISONS[qk+"/"+nk]=v; }));
       // habitants
-      BH.HABITANTS = construireHabitants(rec);
+      BH.HABITANTS = construireHabitants(rec, indexAvatars(faceclaims));
     },
   };
 
