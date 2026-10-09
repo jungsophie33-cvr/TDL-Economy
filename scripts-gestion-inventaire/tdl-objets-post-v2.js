@@ -5,11 +5,18 @@
  * Le joueur choisit dans son inventaire ; un bloc SOS est inséré dans le
  * message, et l'objet n'est consommé QU'À L'ENVOI du formulaire.
  *
+ * [MAJ v3] LEVÉE D'EFFIGIE. Un objet marqué  leve:true  (le dollar porte-
+ *   bonheur) ouvre une étape de plus quand le joueur porte une effigie subie :
+ *   lever ce sort, ou se protéger d'autre chose. Sans ce choix, la protection
+ *   ne servait qu'à des événements à venir et la poupée restait indélogeable.
+ *   La levée efface l'effigie dans le MÊME PATCH que la consommation de la
+ *   protection : les deux partent ensemble ou aucune ne bouge.
+ *   Ce n'est pas rétroactif : ce qui a déjà été joué reste joué, le bloc le dit.
+ *
  * [MAJ v2] ON N'ÉCRIT PLUS DANS LE TEXTAREA D'ORIGINE. sceditor le masque et
  *   travaille dans .sceditor-container : une iframe en WYSIWYG, un textarea en
- *   mode source. Écrire dans le champ masqué ne produisait rien à l'écran et
- *   rien à l'envoi. Le bouton s'accroche désormais au conteneur de l'éditeur,
- *   pas au textarea — c'est pourquoi il ne se montait pas sur la page pleine.
+ *   mode source. Le bouton s'accroche au conteneur de l'éditeur, pas au
+ *   textarea — c'est pourquoi il ne se montait pas sur la page pleine.
  *
  * [MAJ v2] LE BLOC EXISTE EN DEUX SÉRIALISATIONS. En WYSIWYG les retours à la
  *   ligne sont perdus, donc <br> ; en mode source, des \n. Le parseur SOS
@@ -19,12 +26,10 @@
  *   abandonné brûlerait l'objet. On intercepte le clic sur « Envoyer », on
  *   écrit, puis on relance l'envoi. L'écriture est bornée dans le temps : si
  *   Firebase traîne, le message part quand même et la trace reste dans
- *   consommations, où le staff rattrape. Bloquer un post sur une écriture est
- *   pire que laisser passer un usage à régulariser.
+ *   consommations, où le staff rattrape.
  *
  * BÉNÉDICTION — la liste des bénéficiaires est FIGÉE à l'insertion : relevée
- *   sur le sujet à cet instant et écrite en clair dans le message. Un joueur
- *   qui arrive après n'en profite pas, et personne n'a à arbitrer.
+ *   sur le sujet à cet instant et écrite en clair dans le message.
  *
  * DÉPEND DE : window.EcoCore (lireFrais, firebaseUpdate), window.TDLBase
  *   (nouvelleCle) et window.TDLObjets (table OBJETS).
@@ -67,10 +72,18 @@
     DEJA:       "Un objet est déjà déclaré dans ce message.",
     ERREUR:     "Inventaire indisponible.",
     ECHEC:      "Insertion impossible : cliquez d'abord dans le champ de rédaction.",
-    SANS_LISTE: "participants du sujet au moment de l'usage"
+    SANS_LISTE: "participants du sujet au moment de l'usage",
+    USAGE:      "À quoi sert cette protection ?",
+    LEVER:      "Lever ce sort",
+    AUTRE:      "Protéger d'autre chose",
+    AUTRE_D:    "Un événement défavorable que vous annoncez dans ce message.",
+    RECUE:      "reçue le",
+    RETOUR:     "Retour",
+    NON_RETRO:  "Le sort est levé à compter de ce message ; ce qui a déjà été joué reste joué."
   };
 
-  var EN_ATTENTE = null;   /* { cle, o, src, ch } — déclaré, pas encore consommé */
+  var EN_ATTENTE = null;   /* { cle, o, src, ch, leveCle } — déclaré, pas consommé */
+  var INVENTAIRE = [];     /* dernier inventaire lu, objets subis compris */
 
   /* ===================== UTILS ===================== */
 
@@ -89,6 +102,12 @@
 
   function meta(o) { return table()[o] || { n: o, ic: "box-open", eff: "" }; }
 
+  function jourFR(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+  }
+
   function versListe(src) {
     if (!src) return [];
     var out = [];
@@ -100,6 +119,10 @@
   function sujetId() {
     var m = location.search.match(/[?&]t=(\d+)/);
     return m ? m[1] : "";
+  }
+
+  function subis() {
+    return INVENTAIRE.filter(function (x) { return x.d && x.d.st === "subi"; });
   }
 
   /* ===================== BÉNÉFICIAIRES ===================== */
@@ -139,13 +162,17 @@
 
   /* ===================== BLOC SOS ===================== */
 
-  function bloc(e, benef) {
+  function bloc(e, benef, leve) {
     var m = meta(e.o);
     var l = ["--- BLOC objet ---", "ARTICLE: " + m.art, "OBJET: " + e.o];
     if (m.eff) l.push("EFFET: " + m.eff);
     if (e.lieu) l.push("LIEU: " + e.lieu);
     if (e.de) l.push("DE: " + e.de);
     if (m.collectif) l.push("BENEFICIAIRES: " + (benef && benef.length ? benef.join(" | ") : TEXTES.SANS_LISTE));
+    if (leve) {
+      l.push("LEVE: " + meta(leve.d.o).n + " (" + TEXTES.RECUE + " " + jourFR(leve.d.t) + ")");
+      l.push("NOTE: " + TEXTES.NON_RETRO);
+    }
     return l;
   }
 
@@ -154,8 +181,8 @@
 
   /* ===================== INSERTION ===================== */
 
-  /* Plusieurs éditeurs peuvent coexister sur une page de sujet (réponse rapide
-     + revue des messages) : on prend celui qui est visible. */
+  /* Plusieurs éditeurs peuvent coexister sur une page de sujet : on prend
+     celui qui est visible. */
   function editeur() {
     var c = document.querySelectorAll(SEL.EDITEUR);
     for (var i = 0; i < c.length; i++) if (c[i].offsetHeight > 0) return c[i];
@@ -205,15 +232,19 @@
   function consommer(e) {
     var p = moi();
     if (!p || !window.TDLBase) return Promise.resolve();
-    var chemin = CFG.NODE_MEMBRES + "/" + p + "/" + CFG.SOUS_INV + "/" + e.cle;  /* RAW : PATCH racine */
+    var base = CFG.NODE_MEMBRES + "/" + p + "/" + CFG.SOUS_INV + "/";   /* RAW : PATCH racine */
+    var chemin = base + e.cle;
     var reste = (parseInt(e.ch, 10) || 1) - 1;
     var patch = {};
     /* une charge restante : on ne touche QUE le compteur, pas l'entrée.
        Plus aucune : l'objet quitte l'inventaire. */
     if (reste > 0) patch[chemin + "/ch"] = reste;
     else patch[chemin] = null;
+    /* la levée part dans le même PATCH : jamais une protection dépensée sans
+       que le sort tombe, jamais un sort levé sans qu'elle soit dépensée. */
+    if (e.leveCle) patch[base + e.leveCle] = null;
     patch[CFG.NODE_JOURNAL + "/" + window.TDLBase.nouvelleCle()] = {
-      p: p, o: e.o, src: e.src, r: "use",
+      p: p, o: e.o, src: e.src, r: e.leveCle ? "leve" : "use",
       s: sujetId() ? "t" + sujetId() : "",
       t: new Date().toISOString()
     };
@@ -235,29 +266,72 @@
 
   function fermer() { if (panneau) { panneau.remove(); panneau = null; } }
 
-  function ligne(x) {
-    var e = x.d, m = meta(e.o);
+  function corps() { return panneau ? panneau.querySelector(".tdlo-corps") : null; }
+
+  function bouton(ic, nom, detail, badge) {
     var b = document.createElement("button");
     b.type = "button";
     b.className = "tdlo-ligne";
-    b.innerHTML = '<i class="fi fi-sr-' + esc(m.ic) + '"></i>'
-                + '<span class="tdlo-n">' + esc(m.n) + '</span>'
-                + '<span class="tdlo-e">' + esc(e.lieu || m.eff || "") + '</span>'
-                + ((e.ch > 1) ? '<span class="tdlo-ch">' + e.ch + '</span>' : "");
-    b.addEventListener("click", function () { choisir(x); });
+    b.innerHTML = '<i class="fi fi-sr-' + esc(ic) + '"></i>'
+                + '<span class="tdlo-n">' + esc(nom) + '</span>'
+                + '<span class="tdlo-e">' + esc(detail || "") + '</span>'
+                + (badge ? '<span class="tdlo-ch">' + esc(badge) + '</span>' : "");
     return b;
+  }
+
+  function listerInventaire(liste) {
+    var c = corps(); if (!c) return;
+    c.innerHTML = "";
+    if (!liste.length) { c.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.VIDE) + '</p>'; return; }
+    liste.forEach(function (x) {
+      var m = meta(x.d.o);
+      var b = bouton(m.ic, m.n, x.d.lieu || m.eff || "", (x.d.ch > 1) ? String(x.d.ch) : "");
+      b.addEventListener("click", function () { choisir(x); });
+      c.appendChild(b);
+    });
+  }
+
+  /* Deuxième écran : la protection peut lever un sort subi, ou servir ailleurs. */
+  function listerUsages(x, sorts) {
+    var c = corps(); if (!c) return;
+    c.innerHTML = '<p class="tdlo-sous">' + esc(TEXTES.USAGE) + '</p>';
+    sorts.forEach(function (s) {
+      var m = meta(s.d.o);
+      var b = bouton(m.ic, TEXTES.LEVER, m.n + " — " + TEXTES.RECUE + " " + jourFR(s.d.t));
+      b.addEventListener("click", function () { finaliser(x, s); });
+      c.appendChild(b);
+    });
+    var autre = bouton("shield-check", TEXTES.AUTRE, TEXTES.AUTRE_D);
+    autre.addEventListener("click", function () { finaliser(x, null); });
+    c.appendChild(autre);
+
+    var retour = bouton("arrow-left", TEXTES.RETOUR, "");
+    retour.addEventListener("click", function () {
+      listerInventaire(INVENTAIRE.filter(utilisable));
+    });
+    c.appendChild(retour);
   }
 
   function choisir(x) {
     if (EN_ATTENTE) { alert(TEXTES.DEJA); return; }
+    var sorts = subis();
+    if (meta(x.d.o).leve && sorts.length) { listerUsages(x, sorts); return; }
+    finaliser(x, null);
+  }
+
+  function finaliser(x, leve) {
     var e = x.d, m = meta(e.o);
     var prepare = m.collectif ? beneficiaires() : Promise.resolve([]);
     prepare.then(function (benef) {
-      if (!inserer(bloc(e, benef))) { alert(TEXTES.ECHEC); return; }
-      EN_ATTENTE = { cle: x._k, o: e.o, src: e.src, ch: e.ch };
+      if (!inserer(bloc(e, benef, leve))) { alert(TEXTES.ECHEC); return; }
+      EN_ATTENTE = { cle: x._k, o: e.o, src: e.src, ch: e.ch, leveCle: leve ? leve._k : "" };
       fermer();
       alert(TEXTES.INSERE);
     });
+  }
+
+  function utilisable(x) {
+    return x.d && x.d.st !== "subi" && table()[x.d.o];
   }
 
   function ouvrir(ancre) {
@@ -275,16 +349,15 @@
     p.style.top = Math.round(r.bottom + 6) + "px";
     p.querySelector(".tdlo-x").addEventListener("click", fermer);
 
-    var corps = p.querySelector(".tdlo-corps");
     Promise.resolve(window.EcoCore.lireFrais(CFG.NODE_MEMBRES + "/" + encodeURIComponent(moi()) + "/" + CFG.SOUS_INV))
       .then(function (src) {
-        var liste = versListe(src).filter(function (x) {
-          return x.d && x.d.st !== "subi" && table()[x.d.o];
-        });
-        if (!liste.length) { corps.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.VIDE) + '</p>'; return; }
-        liste.forEach(function (x) { corps.appendChild(ligne(x)); });
+        INVENTAIRE = versListe(src);
+        listerInventaire(INVENTAIRE.filter(utilisable));
       })
-      .catch(function () { corps.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.ERREUR) + '</p>'; });
+      .catch(function () {
+        var c = corps();
+        if (c) c.innerHTML = '<p class="tdlo-vide">' + esc(TEXTES.ERREUR) + '</p>';
+      });
   }
 
   /* ===================== MONTAGE ===================== */
