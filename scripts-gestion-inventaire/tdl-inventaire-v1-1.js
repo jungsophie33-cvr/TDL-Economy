@@ -32,6 +32,8 @@
     VALEUR: ".field_uneditable"
   };
 
+  var OBJETS = (window.TDLObjets && window.TDLObjets.OBJETS) || {};
+
   var NODE = "membres";
   var SOUS = "inventaire";
 
