@@ -68,6 +68,8 @@
     OK_RETOUCHE:"Retouche demandée. L'auteur est prévenu.", OK_MARBRE:"Mis au marbre.", OK_REFUS:"Soumission refusée.",
     OK_REMB:function(n){ return " " + n + " $ rendus."; }, OK_RESSORTI:"Ressorti : de retour dans À relire.",
     LIBELLE:function(t, titre){ return t + " · " + titre; },
+    UNE_DOM:"Mettre en dominant à la une",
+    UNE_AIDE:"Un seul article dominant à la fois : le dernier publié avec cette case prend la place.",
     CHRONO:"Entrée dans la chronologie",
     CHRONO_AIDE:"Réservé aux piges. Une correspondance ne rejoint jamais la chronologie de la paroisse.",
     CHRONO_NIV:[["aucun","N'entre pas"],["mineur","Mineur : entre dans la timeline"],
@@ -133,13 +135,21 @@
   function enveloppe(champs, corps){
     return '<div class="tdlhc-data">\n' + champs.map(function(c){ return cle(c[0], c[1]); }).join("") + "CORPS:\n" + corps + "\n</div>";
   }
-  function dossierDe(c){ return c.affaire==="new" ? slug(c.affaire_nom) : (c.affaire || ""); }
-  function genererPost(id, chrono){
+    function dossierDe(c){ return c.affaire==="new" ? slug(c.affaire_nom) : (c.affaire || ""); }
+  /* Un article acheté paraît sous une mention, pas sous un statut de rédaction :
+     « commande » pour un communiqué, « tribune » pour une prise de position.
+     L'une et l'autre sont rendues par tdlhc-rendu ; la signature reste celle de
+     l'acheteur, puisque tout l'intérêt est qu'on sache qui a payé. */
+  function statutPost(m){
+    if (m.sous_type!=="commande" && m.sous_type!=="commande-une") return m.sous_type;
+    return m.mention==="tribune" ? "tribune" : "commande";
+  }
+  function genererPost(id, chrono, une){
     var m = Bu.meta(id), c = Bu.corps(id), cites = m.cites ? Object.keys(m.cites).join(", ") : "";
-    if (m.type==="article") return enveloppe([["TYPE","article"],["DATE",c.date],["RUBRIQUE",c.rubrique],["STATUT",m.sous_type],
+    if (m.type==="article") return enveloppe([["TYPE","article"],["DATE",c.date],["RUBRIQUE",c.rubrique],["STATUT",statutPost(m)],
       ["SIGNATURE",m.auteur],["TITRE",c.titre],["CHAPO",c.chapo],["IMAGE",c.image],["DOSSIER",dossierDe(c)],["RP",c.rp],
       ["ENQUETE",c.enquete],["CITES",cites],["CHRONO",chrono==="aucun" ? "" : (chrono || "")],
-      ["SOUMISSION",id]], corpsPost(c.texte, c.citations));
+      ["UNE",une ? "dominant" : ""],["SOUMISSION",id]], corpsPost(c.texte, c.citations));
     if (m.type==="lettre") return enveloppe([["TYPE","lettre"],["DATE",jour(Date.now())],["SIGNATURE",c.signature],["LIEU",c.lieu],
       ["REPONSE_A",c.reponse_a],["TITRE",c.titre],["SOUMISSION",id]], corpsPost(c.texte));
     var titre = (TXT.TITRE_CIVIL[c.nature] || TXT.TITRE_CIVIL.deces)(c);
@@ -174,8 +184,17 @@
           return '<option value="' + x[0] + '"' + (x[0]===defaut ? " selected" : "") + '>' + esc(x[1]) + '</option>'; }).join("")
       + '</select></div></div><p class="tdlhc-aide">' + esc(TXT.CHRONO_AIDE) + '</p>';
   }
+    /* La une n'a qu'un dominant. Le bureau tranche : deux commandes majeures la
+     même semaine, c'est la plus chère qui passe et l'autre au marbre. */
+  function champUne(m){
+    if (m.type!=="article") return "";
+    return '<label class="tdlhc-coche tdlhc-une-chk"><input type="checkbox" data-zone="une"'
+      + (m.sous_type==="commande-une" ? " checked" : "") + '><span>'
+      + esc(TXT.UNE_DOM) + '</span></label><p class="tdlhc-aide">' + esc(TXT.UNE_AIDE) + '</p>';
+  }
   function panneaux(id, m, c){
-    var pub = SUJET[m.type] ? champsChrono(m, c) + panneauPost(genererPost(id, "aucun"), id)
+        var pub = SUJET[m.type] ? champsChrono(m, c) + champUne(m)
+              + panneauPost(genererPost(id, "aucun", m.sous_type==="commande-une"), id)
       : '<p class="tdlhc-act-txt">' + esc(TXT.FB_TEXTE(TXT.FB_OU[m.type], m.type==="annonce" ? (c.duree||14) : CFG.DUREE_J[m.type])) + '</p>'
         + '<button class="tdlhc-btn" type="button" data-b="publierFb"><i class="fi fi-tr-check"></i> ' + esc(TXT.PUBLIER_FB) + '</button>';
     return '<div class="tdlhc-act" data-act="publier" hidden>' + tete(TXT.PUBLIER) + pub + '</div>'
@@ -337,13 +356,17 @@
     Bu.actions.retouche = retouche; Bu.actions.marbre = marbre;
     Bu.actions.refus = function(id){ var f = fiche(); refuser(id, f.querySelector('[data-zone="f-motif"]').value, f.querySelector('[data-zone="f-texte"]').value.trim()); };
     Bu.actions.ressortir = function(id, x){ ressortir(x.getAttribute("data-id")); };
-    document.addEventListener("change", function(e){
-      var sel = e.target;
-      if (!sel.getAttribute || sel.getAttribute("data-zone")!=="chrono" || !sel.closest(".tdlhc-bureau")) return;
-      var acte = sel.closest(".tdlhc-act"), cat = acte.querySelector('[data-zone="chrono-cat-champ"]');
-      if (cat) cat.hidden = sel.value==="aucun";
-      var ta = acte.querySelector('[data-zone="post"]');                 /* le post reflète le choix */
-      if (ta) ta.value = genererPost(Bu.etat.sel, sel.value);
+        document.addEventListener("change", function(e){
+      var sel = e.target, z = sel.getAttribute && sel.getAttribute("data-zone");
+      if ((z!=="chrono" && z!=="une") || !sel.closest(".tdlhc-bureau")) return;
+      var acte = sel.closest(".tdlhc-act");
+      if (z==="chrono") {
+        var cat = acte.querySelector('[data-zone="chrono-cat-champ"]');
+        if (cat) cat.hidden = sel.value==="aucun";
+      }
+      var niv = acte.querySelector('[data-zone="chrono"]'), une = acte.querySelector('[data-zone="une"]');
+      var ta = acte.querySelector('[data-zone="post"]');                 /* le post reflète les deux choix */
+      if (ta) ta.value = genererPost(Bu.etat.sel, niv ? niv.value : "aucun", !!(une && une.checked));
     });
     document.addEventListener("input", function(e){
       if (e.target.getAttribute && e.target.getAttribute("data-zone")==="lien" && e.target.closest(".tdlhc-bureau")) {
