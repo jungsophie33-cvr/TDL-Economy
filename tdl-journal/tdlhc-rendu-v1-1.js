@@ -27,10 +27,16 @@
     "culture":              { l:"Culture",              c:"--gr5-color" },
     "nouvelles-des-bayous": { l:"Nouvelles des bayous", c:"--gr6-color" }
   };
-  var STATUT = {
+    var STATUT = {
     "redaction":     { sceau:"Rédaction",      court:"Rédaction",      plein:true, sig:"par {n}, The Houma Courier" },
     "pigiste":       { sceau:"Pige",           court:"Pige",                       sig:"par {n}, pour The Houma Courier" },
-    "correspondant": { sceau:"Correspondance", court:"Correspondance",             sig:"Correspondance particulière de {n}" }
+    "correspondant": { sceau:"Correspondance", court:"Correspondance",             sig:"Correspondance particulière de {n}" },
+    /* Espace payé. Le journal le dit, comme le faisaient les quotidiens de
+       l'époque : un lecteur doit pouvoir distinguer une nouvelle d'un encart. */
+    "commande":      { sceau:"Communiqué",     court:"Communiqué",                 sig:"Publié à la demande de {n}",
+                       note:"Communiqué — publié à la demande d'un tiers. La rédaction en relaie le contenu sans le reprendre à son compte." },
+    "tribune":       { sceau:"Tribune libre",  court:"Tribune",                    sig:"par {n}",
+                       note:"Tribune libre — les opinions exprimées n'engagent que leur auteur." }
   };
   var NATURE_AVIS = { succession:"Succession", sherif:"Vente du shérif", licence:"Licence de débit",
                       societe:"Société", assignation:"Assignation", expropriation:"Expropriation" };
@@ -129,7 +135,10 @@
       return A.contenus("article").length >= cfg.UNE_ARTICLES && A.contenus("avis-legal").length >= cfg.UNE_AVIS;
     }); });
     var root = await A.fb(), arts = A.contenus("article");
-    var dom = arts.filter(function(a){ return a.cles.IMAGE || a.cles.CHRONO==="majeur"; })[0] || arts[0];
+        /* Une une posée par le bureau prime sur tout le reste : c'est un arbitrage
+       humain, il ne doit pas se faire déloger par l'article suivant. */
+    var dom = arts.filter(function(a){ return a.cles.UNE==="dominant"; })[0]
+           || arts.filter(function(a){ return a.cles.IMAGE || a.cles.CHRONO==="majeur"; })[0] || arts[0];
     var secs = arts.filter(function(a){ return a!==dom; }).slice(0, 3);
     sec.innerHTML = '<div class="tdlhc-une">'
       + (dom ? htmlDominant(dom) : '<div class="tdlhc-chargement">' + esc(TXT.UNE_VIDE) + '</div>')
@@ -172,6 +181,7 @@
       + '<h2>' + esc(a.cles.TITRE) + '</h2>'
       + (a.cles.CHAPO ? '<p class="tdlhc-chapo">' + esc(a.cles.CHAPO) + '</p>' : "")
       + '<div class="tdlhc-attrib">' + sceau(a) + '<span>' + signature(a) + '</span><span>·</span><span>' + date(a) + '</span></div>'
+      + (statut(a).note ? '<p class="tdlhc-mention">' + esc(statut(a).note) + '</p>' : "")
       + corpsHtml(a) + htmlEnquete(a, root) + htmlReponses(a)
       + '</div>' + htmlFil(a, arts, root);
   }
