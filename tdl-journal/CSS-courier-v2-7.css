@@ -651,3 +651,18 @@ a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
 /* bureau : champs d'entrée dans la chronologie */
 .tdlhc-chrono{margin-top:14px}
 .tdlhc-act .tdlhc-aide{margin-top:4px}
+
+.tdlhc-mention {
+  margin: 0 0 18px;
+  padding: 8px 12px;
+  background: var(--cntr2);
+  border-left: 2px solid var(--dark2);
+  color: var(--darkopa7);
+  font-family: var(--txt3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.tdlhc-une-chk { margin: 10px 0 0; }
