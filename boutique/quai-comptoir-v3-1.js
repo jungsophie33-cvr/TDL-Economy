@@ -7,26 +7,33 @@
  *   - le formulaire staff éditant TOUT le contenu de l'item, prix compris.
  * Achats délégués au moteur du core (comptant / dette lourde / petite faveur).
  *
+ * [MAJ v2-8] ARTICLES DE PRESSE — trois items mondains (coup de projecteur,
+ *   sponsoring local, attirer l'attention) portent  presse:true . Le joueur
+ *   rédige son article ICI, à l'achat, et la soumission part directement dans
+ *   le bureau de rédaction du Courier via window.TDLArticle. Pas de demande
+ *   staff : la validation, c'est la relecture au bureau.
+ *   Deux mentions selon l'item : « communiqué » (le journal relaie, signé La
+ *   rédaction) ou « tribune libre » (le personnage signe sa position).
+ *   Sponsoring local garde une alternative : article OU post MJ en évent, au
+ *   choix dans une liste. En post MJ, on repasse par le circuit staff normal,
+ *   puisqu'il n'y a rien à publier.
+ *
  * [MAJ v2-7] ACHAT DIRECT — six items du Bayou (aide, grigri, effigie,
  *   protection, benediction, purif) portent  direct:true  et  obj:"<clé objet>".
- *   Ils NE passent plus par boutique_demandes : pas de validation staff, débit
- *   définitif immédiat, objet déposé dans un inventaire, d4 tiré à l'achat pour
- *   effigie et purif. Tout cela est exécuté par window.TDLObjets (tdl-objets.js),
- *   pas ici : ce fichier ne fait que rendre la commande et appeler le moteur.
- *   Sans TDLObjets chargé, la carte d'achat affiche une erreur au lieu de
- *   retomber silencieusement sur le circuit staff — un achat qui part dans le
+ *   Ils NE passent plus par boutique_demandes : débit définitif immédiat, objet
+ *   déposé dans un inventaire, d4 tiré à l'achat pour effigie et purif. Exécuté
+ *   par window.TDLObjets, pas ici. Sans moteur chargé, la carte affiche une
+ *   erreur au lieu de retomber sur le circuit staff — un achat qui part dans le
  *   mauvais circuit est plus coûteux qu'un achat refusé.
  *
  * [MAJ v2-7] EFFIGIE — cible obligatoirement un PJ, jamais un PNJ, jamais
- *   soi-même : la liste est la seule saisie possible (plus de champ libre).
+ *   soi-même : la liste est la seule saisie possible.
  *
- * ICÔNES : chaque item porte un NOM DE BASE Flaticon (item.ic, ex. "crystal-ball").
- *   La carte de gauche l'affiche en solide (fi-sr-…), la fiche de droite en thin (fi-tr-…).
- *   Catégories, informations clés et cartes d'option utilisent des classes fi-tr complètes.
+ * ICÔNES : chaque item porte un NOM DE BASE Flaticon (item.ic). La carte de
+ *   gauche l'affiche en solide (fi-sr-…), la fiche de droite en thin (fi-tr-…).
  *
- * DÉPEND DE : window.Quais (register, ui, enregistrer, annulerForm, nouvelId)
- *   et, pour les items directs, window.TDLObjets.
- * À CHARGER : après quais-core.js et après tdl-objets.js.
+ * DÉPEND DE : window.Quais, et des moteurs window.TDLObjets / window.TDLArticle.
+ * À CHARGER : après quais-core.js, tdl-objets.js et tdl-article-achat.js.
  */
 (function () {
   "use strict";
@@ -37,6 +44,8 @@
   var FAV  = "La version « petite faveur » (60 $) permet d'obtenir ce service à moindre coût, contre une dette narrative légère, notée par le staff et rappelée au moment opportun.";
   var MAINAS = "Payer comptant débloque le badge « Service demandé ». Contracter la dette lourde débloque « Rien n'est gratuit » — elle se règle lors d'un prochain service, ou selon la décision de la Main.";
   var DIRECT_AS = "Aucune validation du staff : l'objet rejoint votre inventaire dès le paiement. Vous l'utilisez quand vous le décidez, depuis le formulaire de réponse, et la déclaration apparaît dans votre message.";
+  var COMM_AS = "Votre texte part directement au bureau de rédaction du Houma Courier. Il paraîtra sous la mention « Communiqué — publié à la demande de… », signé par la rédaction : le journal relaie, il ne prend pas parti.";
+  var TRIB_AS = "Votre texte part directement au bureau de rédaction du Houma Courier. Il paraîtra en tribune libre, signé de votre personnage, sous la mention « les opinions exprimées n'engagent que leur auteur ». Tout le monde saura qui a payé pour cette place.";
 
   var DEFAUT = {
     pres:{cat:"presages",n:"Présage",ic:"crystal-ball",p:80,desc:"Rêve, signe, intuition : une interprétation, jamais une réponse absolue.",na:"Expérience narrative",fo:"MP ou post MJ dans le sujet",us:"Unique",li:"N'offre qu'une interprétation, pas une réponse absolue.",rp:true},
@@ -59,11 +68,11 @@
     maindisc:{cat:"rendre",n:"Main : discrétion assurée",ic:"eye-crossed",gd:true,p:350,desc:"La Main étouffe un incident : un témoin se tait, un dossier s'égare, une rumeur naissante se détourne.",na:"Incident étouffé dans l'œuf",fo:"Post MJ",us:"Utilisable 1 fois",li:"N'efface pas une enquête vous concernant ni vos problèmes avec d'autres bandes.",badge:"Porte entrouverte",targetPJ:true,rp:"ctx",dette:"main",cagnotte:"Providence",creancier:"La Main de la Providence",as:MAINAS},
     mainint:{cat:"rendre",n:"Main : intervention rapide",ic:"bolt",gd:true,p:350,desc:"La Main sait agir vite quand la situation est urgente mais sans gravité (non criminelle).",na:"Action urgente",fo:"Post MJ",us:"Utilisable 1 fois",li:"Gravité minime : un délit possible, jamais un crime.",badge:"Porte entrouverte",rp:"ctx",dette:"main",cagnotte:"Providence",creancier:"La Main de la Providence",as:MAINAS},
 
-    sponl:{cat:"mondaine",n:"Sponsoring local",ic:"donate",p:400,desc:"Participer financièrement à une initiative locale visible.",na:"Renforcement de réputation",fo:"Article dans le journal / post MJ",ja:"Climat social",po:"Communauté",rp:"ctx"},
+    sponl:{cat:"mondaine",n:"Sponsoring local",ic:"donate",p:400,desc:"Participer financièrement à une initiative locale visible.",na:"Renforcement de réputation",fo:"Communiqué en une du Houma Courier, ou post MJ en évent",us:"Unique ⟡ 3 000 signes minimum pour l'article",ja:"Climat social",po:"Communauté",rp:"ctx",presse:true,une:true,formePick:true,as:COMM_AS},
     initiative:{cat:"mondaine",n:"Initiative régionale",ic:"confetti",p:800,desc:"Participer financièrement à une initiative de la paroisse : foire, festival, grand projet de Terrebonne. Ouvre un évent membre important.",na:"Renforcement de réputation",fo:"Évent membre",ja:"Climat social (selon l'issue de l'évent)",po:"Paroisse",note:"Si l'évent est réussi, fait gagner un niveau de réputation.",rp:"ctx",ctxLabel:"Contexte de l'événement"},
     orga:{cat:"mondaine",n:"Organisateur",ic:"cocktail",p:300,desc:"Créateur d'un évent membre léger et social.",na:"Renforcement de réputation",fo:"Évent membre",ef:"PNJ ou événements inattendus injectés par le staff",li:"Initiative à petite échelle, pas d'impact sur les jauges.",rp:"ctx",ctxLabel:"Contexte de l'événement"},
-    projecteur:{cat:"mondaine",n:"Coup de projecteur",ic:"broadcast-tower",p:150,desc:"Une initiative, une réussite ou un engagement mérite d'être relayé au-delà de votre cercle habituel. Une telle mise en lumière peut ouvrir de nouvelles rencontres, créer des opportunités… ou des oppositions.",na:"Mise en lumière publique",fo:"Article de presse rédigé par l'acheteur",us:"Unique",li:"L'article doit rester cohérent avec les faits joués en RP. Le staff peut demander des ajustements avant publication. La démarche ne garantit ni adhésion ni succès.",as:"Rédigez un article de presse racontant l'événement. Après validation du staff, il sera publié dans le Journal et deviendra une information officielle de la vie locale.",rp:"ctxlink",article:true,linkLabel:"Lien (RP, événement créé, publication Insta)"},
-    attention:{cat:"mondaine",n:"Attirer l'attention",ic:"bullhorn",p:800,desc:"Aide individuelle / contrer un projet communautaire de votre choix (d'une communauté différente de la vôtre).",na:"Position publique forte",fo:"Article journal",ja:"Activité clandestine",po:"Paroisse",ef:"Peut contribuer aux objectifs d'étape d'un grand projet, ou lui mettre des bâtons dans les roues. Attention aux problèmes qui en découleront…",pick:{l:"Projet communautaire visé",o:["— Sélectionner un projet —"]},rp:"ctxlink",linkLabel:"Lien d'un RP terminé (obligatoire)"}
+    projecteur:{cat:"mondaine",n:"Coup de projecteur",ic:"broadcast-tower",p:150,desc:"Une initiative, une réussite ou un engagement mérite d'être relayé au-delà de votre cercle habituel. Une telle mise en lumière peut ouvrir de nouvelles rencontres, créer des opportunités… ou des oppositions.",na:"Mise en lumière publique",fo:"Communiqué dans le Houma Courier",us:"Unique ⟡ 2 000 signes minimum",li:"L'article doit rester cohérent avec les faits joués en RP. La rédaction peut demander des ajustements avant parution. La démarche ne garantit ni adhésion ni succès.",rp:false,presse:true,une:false,as:COMM_AS},
+    attention:{cat:"mondaine",n:"Attirer l'attention",ic:"bullhorn",p:800,desc:"Aide individuelle / contrer un projet communautaire de votre choix (d'une communauté différente de la vôtre).",na:"Position publique forte",fo:"Tribune libre en une du Houma Courier",us:"Unique ⟡ 3 000 signes minimum ⟡ lien RP obligatoire",ja:"Activité clandestine",po:"Paroisse",ef:"Peut contribuer aux objectifs d'étape d'un grand projet, ou lui mettre des bâtons dans les roues. Attention aux problèmes qui en découleront…",pick:{l:"Projet communautaire visé",o:["— Sélectionner un projet —"]},rp:false,presse:true,une:true,tribune:true,rpObligatoire:true,affaire:true,as:TRIB_AS}
   };
 
   var CATS = [
@@ -80,17 +89,39 @@
     ["badge","Badge requis","fi fi-tr-badge"]
   ];
 
+  var FORMES = [["article","Un article dans le Houma Courier"],["mj","Un post MJ dans un évent"]];
+
   var TEXTES = {
-    BUY:        "Payer et recevoir l'objet",
-    BUY_WAIT:   "Paiement en cours…",
-    NO_ENGINE:  "Achat indisponible : le moteur des objets n'est pas chargé. Signalez-le au staff.",
-    NO_CIBLE:   "Désignez le personnage visé.",
-    NO_SELF:    "On ne s'envoûte pas soi-même.",
-    NO_LIEU:    "Précisez le lieu à protéger.",
-    CIBLE_LAB:  "Personnage visé",
-    CIBLE_VIDE: "— Sélectionner —",
-    OK:         "Objet déposé dans l'inventaire.",
-    OK_CIBLE:   "Le sort est jeté. La poupée est chez sa destinataire."
+    BUY:         "Payer et recevoir l'objet",
+    BUY_PRESSE:  "Payer et transmettre à la rédaction",
+    BUY_WAIT:    "Paiement en cours…",
+    NO_ENGINE:   "Achat indisponible : le moteur des objets n'est pas chargé. Signalez-le au staff.",
+    NO_PRESSE:   "Envoi indisponible : le moteur des articles n'est pas chargé. Signalez-le au staff.",
+    NO_CIBLE:    "Désignez le personnage visé.",
+    NO_SELF:     "On ne s'envoûte pas soi-même.",
+    NO_LIEU:     "Précisez le lieu à protéger.",
+    CIBLE_LAB:   "Personnage visé",
+    CIBLE_VIDE:  "— Sélectionner —",
+    OK:          "Objet déposé dans l'inventaire.",
+    OK_CIBLE:    "Le sort est jeté. La poupée est chez sa destinataire.",
+    OK_PRESSE:   "Article transmis à la rédaction.",
+    L_FORME:     "Forme de la contrepartie",
+    L_TITRE:     "Titre de l'article",
+    L_RUBRIQUE:  "Rubrique",
+    L_DATE:      "Date de parution souhaitée",
+    L_CHAPO:     "Chapô",
+    L_IMAGE:     "Image",
+    L_RP:        "Lien du sujet RP concerné",
+    L_TEXTE:     "Votre article",
+    L_AFFAIRE:   "Rattacher à une affaire du journal",
+    PH_TITRE:    "Le souper des Dames de Sainte-Anne a nourri cent quatre-vingts personnes",
+    PH_CHAPO:    "Deux ou trois phrases qui résument l'article.",
+    PH_IMAGE:    "https://zupimages.net/…",
+    PH_RP:       "https://…/t000-sujet",
+    PH_TEXTE:    "Écrivez comme un journal : les faits d'abord, les noms ensuite. Une ligne vide sépare deux paragraphes.",
+    PH_AFFAIRE:  "Nom de l'affaire, si l'article s'y rattache",
+    AIDE_PRESSE: "La rédaction relit avant parution et peut vous renvoyer le texte pour retouche.",
+    SIGNES:      function(n){ return n + " signes"; }
   };
 
   /* ===================== UTILS ===================== */
@@ -110,7 +141,24 @@
     return out;
   }
 
-  /* Refus AVANT tout débit : un achat mal ciblé coûte un remboursement manuel. */
+  function rubriques(){
+    var r = window.TDLArticle && window.TDLArticle.RUBRIQUES;
+    return r && r.length ? r : [["nouvelles-des-bayous","Nouvelles des bayous"]];
+  }
+
+  function plancher(a){
+    var p = window.TDLArticle && window.TDLArticle.PLANCHER;
+    if (!p) return 0;
+    return p[a.une ? "commande-une" : "commande"] || 0;
+  }
+
+  function aujourdhui(){ return new Date().toISOString().slice(0,10); }
+
+  /* un article en post MJ n'en est pas un : il repart au circuit staff */
+  function enArticle(a, c){ return !a.formePick || (c.forme || "article") === "article"; }
+
+  /* Refus AVANT tout débit : un achat mal ciblé coûte un remboursement manuel.
+     Les contrôles propres à l'article vivent dans TDLArticle, pas ici. */
   function valider(a, c){
     if (a.ciblePJ) {
       var cible = String(c.cible_pj || "").trim();
@@ -140,9 +188,11 @@
     if (a.roll) html += '<div class="qb-sec">'+ui.lab("Résultat au lancer de dé")+'<div class="qb-rolls">'+a.roll.map(function(r){ return '<div class="qb-rollrow"><span class="qb-rolldie">'+esc(r[0])+'</span><span>'+esc(r[1])+'</span></div>'; }).join("")+'</div></div>';
     if (a.note) html += '<div class="qb-helper" style="margin-top:14px">'+esc(a.note)+'</div>';
 
-    html += a.direct ? commandeDirecte(a, api) : commandeStaff(a, api);
+    html += a.presse ? commandePresse(a, api)
+          : a.direct ? commandeDirecte(a, api)
+          :            commandeStaff(a, api);
     html += '<div class="qb-opts">' + options(a) + '</div>';
-    if (a.direct) html += '<div class="qb-helper" id="qb-msg"></div>';
+    if (a.direct || a.presse) html += '<div class="qb-helper" id="qb-msg"></div>';
     return html;
   }
 
@@ -159,6 +209,48 @@
     if (!sels) return "";
     return '<div class="qb-sec">'+ui.lab("Passer commande")+'<div class="qb-selrow">'+sels+'</div>'
          + '</div><div class="qb-rule"></div>';
+  }
+
+  /* Commande d'un ARTICLE : le texte est rédigé ici et part au bureau de
+     rédaction. Les champs reprennent ceux du volet du Courier, pour que la
+     soumission soit indiscernable d'une correspondance ordinaire. */
+  function commandePresse(a, api){
+    var html = '<div class="qb-sec">'+ui.lab("Passer commande");
+
+    if (a.formePick) {
+      html += '<div class="qb-selrow">'
+            + ui.fld(TEXTES.L_FORME, '<select data-champ="forme" id="qb-forme">'
+              + FORMES.map(function(f){ return '<option value="'+f[0]+'">'+esc(f[1])+'</option>'; }).join("")
+              + '</select>') + '</div>';
+    }
+
+    /* bloc « post MJ » : contexte libre, circuit staff classique */
+    html += '<div id="qb-mjwrap" style="display:none">'
+          + ui.fld("Contexte de l'évent *", ui.ta("contexte","Quelle initiative soutenez-vous, et qu'attendez-vous du post MJ ?"))
+          + '</div>';
+
+    html += '<div id="qb-preswrap">';
+    html += ui.fld(TEXTES.L_TITRE+" *", ui.inp("titre", TEXTES.PH_TITRE));
+
+    var rubs = rubriques().map(function(r){ return '<option value="'+esc(r[0])+'">'+esc(r[1])+'</option>'; }).join("");
+    html += '<div class="qb-selrow">'
+          + ui.fld(TEXTES.L_RUBRIQUE, '<select data-champ="rubrique">'+rubs+'</select>')
+          + ui.fld(TEXTES.L_DATE, '<input type="date" data-champ="date" value="'+esc(aujourdhui())+'">')
+          + '</div>';
+
+    html += ui.fld(TEXTES.L_CHAPO, ui.ta("chapo", TEXTES.PH_CHAPO));
+    html += '<div class="qb-selrow">'
+          + ui.fld(TEXTES.L_IMAGE, ui.inp("image", TEXTES.PH_IMAGE))
+          + ui.fld(TEXTES.L_RP + (a.rpObligatoire ? " *" : ""), ui.inp("rp", TEXTES.PH_RP))
+          + '</div>';
+    if (a.pick) html += '<div class="qb-selrow">'+ui.fld(a.pick.l, ui.sel("projet", a.pick.o))+'</div>';
+    if (a.affaire) html += ui.fld(TEXTES.L_AFFAIRE, ui.inp("affaire_nom", TEXTES.PH_AFFAIRE));
+
+    html += ui.fld(TEXTES.L_TEXTE+" *", '<textarea data-champ="texte" id="qb-texte" rows="14" placeholder="'+esc(TEXTES.PH_TEXTE)+'"></textarea>');
+    html += '<div class="qb-helper"><span id="qb-compte">'+esc(TEXTES.SIGNES(0))+'</span> ⟡ minimum '+plancher(a)+' ⟡ '+esc(TEXTES.AIDE_PRESSE)+'</div>';
+    html += '</div>';
+
+    return html + '</div><div class="qb-rule"></div>';
   }
 
   function commandeStaff(a, api){
@@ -179,18 +271,16 @@
          + '<div class="qb-helper">Merci d\'être précis. Cela aide le staff à valider votre demande.</div></div><div class="qb-rule"></div>';
   }
 
-  /* Bouton PROPRE pour les items directs : il ne porte pas .qb-act, donc le
-     moteur du core l'ignore et aucune demande n'est créée. */
+  /* Bouton PROPRE pour les items directs et de presse : le core câble les
+     boutons .qb-act, on le lui retire pour qu'aucune demande ne soit créée. */
   function options(a){
-    if (a.direct) {
-      /* carte identique à « Payer comptant ». L'act "direct" est inconnu du
-         core : si la neutralisation du bouton échouait, l'achat casserait au
-         lieu de partir silencieusement en demande staff. */
+    if (a.direct || a.presse) {
       return '<div id="qb-directwrap" style="display:contents">'
            + ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant",
-                          desc:"Réglez le montant total en dollars. L'objet rejoint votre inventaire aussitôt.",
+                          desc: a.presse ? "Réglez le montant total en dollars. Votre article part aussitôt au bureau de rédaction."
+                                         : "Réglez le montant total en dollars. L'objet rejoint votre inventaire aussitôt.",
                           prix:money(a.p), btn:"Payer maintenant", act:"direct", montant:a.p, pay:true,
-                          note:"Achat immédiat, sans validation du staff." })
+                          note: a.presse ? "Parution après relecture de la rédaction." : "Achat immédiat, sans validation du staff." })
            + '</div>';
     }
     if (a.dette==="main") {
@@ -222,12 +312,13 @@
     html += '</div>';
     html += ui.fld("Description", '<textarea data-champ="desc">'+esc(it.desc||"")+'</textarea>');
     if (it.direct) html += '<div class="qb-helper" style="margin-top:10px">Item à achat direct (objet « '+esc(it.obj||"?")+' »). Le circuit d\'achat et le dépôt en inventaire ne sont pas éditables ici.</div>';
+    if (it.presse) html += '<div class="qb-helper" style="margin-top:10px">Item de presse ('+(it.tribune?"tribune libre":"communiqué")+(it.une?", une":"")+'). Le circuit de soumission au journal n\'est pas éditable ici.</div>';
     html += '<div class="qb-opts" style="margin-top:14px"><button class="qb-optbtn qb-pay" id="qb-save" style="flex:none">Enregistrer</button><button class="qb-optbtn" id="qb-cancel" style="flex:none">Annuler</button></div>';
     return html;
   }
 
   /* sauvegarde : fusionne les champs édités avec l'item d'origine (préserve
-     roll / pick / rp / article / as / direct / obj… non exposés au formulaire) */
+     roll / pick / rp / presse / direct / obj… non exposés au formulaire) */
   function wireStaff(det, api){
     var save = det.querySelector("#qb-save"); if (save) save.onclick = function(){
       var c = champs(det);
@@ -254,6 +345,31 @@
     var ct = det.querySelector("#qb-cibletype"), pw = det.querySelector("#qb-pjwrap"), pnw = det.querySelector("#qb-pnjwrap");
     if (ct) ct.onchange = function(){ var pj = /Choisir/.test(ct.value); if (pw) pw.style.display = pj ? "" : "none"; if (pnw) pnw.style.display = pj ? "none" : ""; };
 
+    var idEl = det.querySelector("#qb-itemid");
+    var id = idEl ? idEl.value : "";
+    var a = api.item(id) || {};
+
+    /* bascule article / post MJ : les deux blocs ne coexistent jamais */
+    var forme = det.querySelector("#qb-forme");
+    var mjw = det.querySelector("#qb-mjwrap"), prw = det.querySelector("#qb-preswrap");
+    function bascule(){
+      var art = !forme || forme.value === "article";
+      if (mjw) mjw.style.display = art ? "none" : "";
+      if (prw) prw.style.display = art ? "" : "none";
+    }
+    if (forme) { forme.onchange = bascule; bascule(); }
+
+    /* compteur de signes : le plancher est dur, autant qu'il se voie */
+    var ta = det.querySelector("#qb-texte"), compte = det.querySelector("#qb-compte");
+    if (ta && compte) {
+      var min = plancher(a);
+      ta.oninput = function(){
+        var n = ta.value.trim().length;
+        compte.textContent = TEXTES.SIGNES(n);
+        compte.className = n >= min ? "qb-msg-ok" : "";
+      };
+    }
+
     var wrap = det.querySelector("#qb-directwrap");
     var buy = wrap ? wrap.querySelector("button") : null;
     if (!buy) return;
@@ -263,9 +379,6 @@
     ["act","montant","dette","pay"].forEach(function(k){ buy.removeAttribute("data-"+k); });
     buy.onclick = null;
     var msg = det.querySelector("#qb-msg");
-    var idEl = det.querySelector("#qb-itemid");
-    var id = idEl ? idEl.value : "";
-    var a = api.item(id) || {};
 
     function dire(txt, ko){
       if (!msg) { if (ko) alert(txt); return; }
@@ -274,16 +387,28 @@
     }
 
     buy.onclick = function(){
-      if (!window.TDLObjets) { dire(TEXTES.NO_ENGINE, true); return; }
       var c = champs(det);
+
+      /* sponsoring en post MJ : rien à publier, on repasse au circuit staff */
+      if (a.presse && !enArticle(a, c)) {
+        if (!String(c.contexte || "").trim()) { dire("Décrivez le contexte de l'évent.", true); return; }
+        api.acheter({ act:"comptant", montant:a.p });
+        return;
+      }
+
+      var moteur = a.presse ? window.TDLArticle : window.TDLObjets;
+      if (!moteur) { dire(a.presse ? TEXTES.NO_PRESSE : TEXTES.NO_ENGINE, true); return; }
       var err = valider(a, c);
       if (err) { dire(err, true); return; }
+      /* une affaire nommée à la main est forcément nouvelle pour le journal */
+      if (a.affaire && String(c.affaire_nom || "").trim()) c.affaire = "new";
+
       buy.disabled = true;
       var libelle = buy.textContent;
       buy.textContent = TEXTES.BUY_WAIT;
-      Promise.resolve(window.TDLObjets.acheter({ id:id, item:a, champs:c }))
+      Promise.resolve(moteur.acheter({ id:id, item:a, champs:c }))
         .then(function(res){
-          dire((res && res.message) || (a.ciblePJ ? TEXTES.OK_CIBLE : TEXTES.OK), false);
+          dire((res && res.message) || (a.presse ? TEXTES.OK_PRESSE : a.ciblePJ ? TEXTES.OK_CIBLE : TEXTES.OK), false);
           if (res && res.deLabel) {
             msg.innerHTML += '<div class="qb-rolls" style="margin-top:10px"><div class="qb-rollrow">'
               + '<span class="qb-rolldie">'+esc(String(res.de))+'</span><span>'+esc(res.deLabel)+'</span></div></div>';
@@ -300,12 +425,12 @@
 
   /* ===================== MIGRATION ===================== */
   /* Resynchronise les items semés avant un changement : l'icône (ti- → Flaticon)
-     et les champs de structure (detteAuto, creancier, dette, direct, obj…).
-     Le contenu édité (prix, description) est préservé — SAUF au premier passage
-     des items directs (vo absent), où les textes de fiche décrivaient encore
-     l'ancien circuit avec validation staff et sont donc faux. */
-  var STRUCT = ["direct","obj","ch","ciblePJ","lieuLibre","roll","pick"];
-  var TEXTUELS = ["desc","na","fo","us","li","co"];
+     et les champs de structure. Le contenu édité (prix, description) est
+     préservé — SAUF au premier passage des items directs et de presse (vo
+     absent), dont les textes décrivaient encore l'ancien circuit. */
+  var STRUCT = ["direct","obj","ch","ciblePJ","lieuLibre","roll","pick",
+                "presse","une","tribune","rpObligatoire","affaire","formePick"];
+  var TEXTUELS = ["desc","na","fo","us","li","co","as"];
 
   function migre(catalogue){
     var patch = null;
@@ -324,13 +449,15 @@
         STRUCT.forEach(function(k){
           if (def[k] !== undefined && JSON.stringify(it[k]) !== JSON.stringify(def[k])) set(k, def[k]);
         });
-        /* targetPJ laissait un champ libre PNJ sur l'effigie : il est remplacé
-           par ciblePJ, et doit disparaître ou les deux blocs s'afficheraient. */
+        /* targetPJ laissait un champ libre PNJ sur l'effigie ; article et
+           linkLabel appartenaient à l'ancien circuit de presse. */
         if (def.ciblePJ && it.targetPJ) del("targetPJ");
+        if (def.presse) { if (it.article) del("article"); if (it.linkLabel) del("linkLabel"); }
 
-        /* passage unique : textes de fiche remis à neuf pour les items directs */
-        if (def.direct && !it.vo) {
+        /* passage unique : textes de fiche remis à neuf */
+        if ((def.direct || def.presse) && it.vo !== 2) {
           TEXTUELS.forEach(function(k){ if (def[k] !== undefined) set(k, def[k]); });
+          if (def.rp !== undefined) set("rp", def.rp);
           set("vo", 2);
         }
       }
