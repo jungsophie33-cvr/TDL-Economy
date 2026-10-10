@@ -25,8 +25,8 @@
     NODE_EMPLOIS:  "emplois",           /* [MAJ] emplois/<lieu>/roles */
     LIEU_COURIER:  "lieu_muckgpoh",     /* [MAJ] The Houma Courier dans le bottin des métiers */
     PRIX:          { annonce:30, prelien:50 },
-    REMUNERATION:  { correspondant:50, pigiste:80 },
-    PLANCHER:      { correspondant:2500, pigiste:4000 },
+    REMUNERATION:  { correspondant:50, pigiste:80, commande:0, "commande-une":0 },
+    PLANCHER:      { correspondant:2500, pigiste:4000, commande:2000, "commande-une":3000 },
     QUOTAS:        { annonce:{ n:2, p:"mois" }, rumeur:{ n:1, p:"semaine" }, lettre:{ n:1, p:"mois" }, correspondant:{ n:2, p:"mois" } },
     TYPE_FB:       { annonce:"annonce", civil:"etat-civil", rumeur:"rumeur", lettre:"lettre", prelien:"prelien", article:"article" },
     NOTIFS:        true,                /* codes 190 à 200 inscrits dans sos-emi-notif */
