@@ -33,7 +33,7 @@
     "rumeur":     { l:"Rumeur",         c:"--gr6-color" }, "lettre":  { l:"Lettre",         c:"--gr4-color" },
     "etat-civil": { l:"État civil",     c:"--gr5-color" }, "prelien": { l:"Pré-lien",       c:"--gr3-color" }
   };
-  var SOUS = { correspondant:"Correspondance", pigiste:"Pige", naissance:"Naissance", mariage:"Mariage", deces:"Décès",
+  var SOUS = { correspondant:"Correspondance", pigiste:"Pige", commande:"Communiqué", "commande-une":"Communiqué : une", naissance:"Naissance", mariage:"Mariage", deces:"Décès",
                emploi:"Emploi", logement:"Logement", services:"Services", vendre:"À vendre", perso:"Avis personnels" };
 
   var TXT = {
@@ -48,6 +48,7 @@
     DUREE:"Durée", JOURS:function(n){ return n + " jours"; }, SECTEUR:"Secteur", LIEN:"Lien", NATURE:"Nature",
     FAMILLE:"Famille", PERSONNES:"Personnes", CEREMONIE:"Cérémonie", AFFAIRE:"Affaire", ENQUETE:"Enquête",
     PSEUDONYME:function(a){ return "pseudonyme — auteur réel : " + a; }, A_LA_PARUTION:function(n){ return n + " $ à la parution"; },
+    PAYE:"Payé à la boutique", PAYE_D:function(n){ return n + " $ — article de commande"; },
     NON_REMUNERE:"non rémunéré (sous le plancher)", NOUVELLE:function(n){ return "nouvelle : " + n; },
     VERIFS:"Vérifications", ECHANGES:"Échanges", AUCUN_ECHANGE:"Première relecture, aucun échange.",
     PLANCHER:"Plancher", PLANCHER_D:function(n, m){ return n + " signes pour " + m + " requis" + (n < m ? " — paraîtra sans rémunération" : "") + "."; },
@@ -171,8 +172,12 @@
   function metaGrille(m, c){
     var g = [[TXT.AUTEUR, esc(m.auteur)], [TXT.RECU, esc(date(m.cree))]], t = m.type;
     if (t==="article") {
-      g.push([TXT.PARUTION, esc(date(c.date))], [TXT.SUJET, lienRp(c.rp)],
-             [TXT.REMUNERATION, esc(m.remunere===false ? TXT.NON_REMUNERE : TXT.A_LA_PARUTION(m.montant))]);
+      g.push([TXT.PARUTION, esc(date(c.date))], [TXT.SUJET, lienRp(c.rp)]);
+      /* un article acheté n'est pas rémunéré : on montre ce qu'il a coûté,
+         c'est ce qui départage deux commandes pour la même une. */
+      if (m.prix) g.push([TXT.PAYE, esc(TXT.PAYE_D(m.prix))]);
+      else g.push([TXT.REMUNERATION, esc(m.remunere===false ? TXT.NON_REMUNERE : TXT.A_LA_PARUTION(m.montant))]);
+      if (c.projet) g.push(["Projet visé", esc(c.projet)]);
       if (c.affaire) g.push([TXT.AFFAIRE, esc(c.affaire==="new" ? TXT.NOUVELLE(c.affaire_nom||"") : ((J().affaires||{})[c.affaire]||{}).nom || c.affaire)]);
       if (c.enquete) g.push([TXT.ENQUETE, esc(((etat.db[A.CFG.NODE_ENQUETES]||{})[c.enquete]||{}).titre || c.enquete)]);
     }
