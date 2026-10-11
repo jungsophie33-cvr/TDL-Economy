@@ -252,9 +252,11 @@ window.TDLI = window.TDLI || {};
       h += '<span class="tdli-rub" style="color:' + couleur(une.groupe) + '">' +
            esc(une.rubrique) + "</span>";
     }
+    // title : le CSS coupe à deux lignes, l'infobulle rend le texte entier.
     h += '<div class="tdli-une-texte">' +
-         '<h2 class="tdli-titre-une">' + esc(une.titre) + "</h2>" +
-         (une.chapo ? '<p class="tdli-chapo">' + esc(une.chapo) + "</p>" : "") +
+         '<h2 class="tdli-titre-une" title="' + esc(une.titre) + '">' + esc(une.titre) + "</h2>" +
+         (une.chapo ? '<p class="tdli-chapo" title="' + esc(une.chapo) + '">' +
+                      esc(une.chapo) + "</p>" : "") +
          (une.lien ? '<a class="tdli-lien" href="' + esc(une.lien) + '">' + T.LIRE +
                      ' <span class="tdli-fleche">&rarr;</span></a>' : "") +
          "</div>";
@@ -265,7 +267,8 @@ window.TDLI = window.TDLI || {};
       if (!x || !x.titre) return;
       s += '<div class="tdli-sec" style="--tdli-rub:' + couleur(x.groupe) + '">' +
            (x.rubrique ? '<div class="tdli-sec-rub">' + esc(x.rubrique) + "</div>" : "") +
-           '<div class="tdli-sec-titre"' + (x.lien ? ' data-href="' + esc(x.lien) + '"' : "") +
+           '<div class="tdli-sec-titre" title="' + esc(x.titre) + '"' +
+           (x.lien ? ' data-href="' + esc(x.lien) + '"' : "") +
            ">" + esc(x.titre) + "</div></div>";
     });
     s += '<a class="tdli-lien" href="' + esc(CFG.SUJETS.courier) + '">' + T.TOUS +
