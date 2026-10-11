@@ -225,12 +225,12 @@ background-size: cover;}
 
 .tdlhc-lect{flex:1 1 auto;min-width:0;overflow-y:auto;padding:26px 32px 38px; -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px);
             display:grid;grid-template-columns:minmax(0,1fr) 248px;gap:34px;align-content:start}
-.tdlhc-lect-corps{min-width:0;max-width:74ch}
+.tdlhc-lect-corps{min-width:0}
 .tdlhc-lect img.hero{display:block;width:100%;aspect-ratio:21/9;object-fit:cover;margin-bottom:18px;
                      filter:saturate(.82) contrast(1.04)}
 .tdlhc-lect h2{margin:10px 0 0;font-family:var(--font2);font-size:33px;font-weight:500;line-height:1.14;
                letter-spacing:-.015em;color:var(--dark)}
-.tdlhc-lect-corps p{margin:15px 0 0;font-size:15px;line-height:1.72}
+.tdlhc-lect-corps p{margin:15px 0 0;font-size:15px;line-height:1.72;text-align:justify}
 .tdlhc-retour{display:none;margin-bottom:16px}
 .tdlhc-attrib{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:16px 0 0;padding:11px 0;
               border-top:1px solid var(--darkopa3);border-bottom:1px solid var(--darkopa3);
@@ -238,13 +238,13 @@ background-size: cover;}
 
 /* ---------- citation : séparateur pleine largeur entre deux paragraphes ---------- */
 .tdlhc-citation{position:relative;margin:28px 0 26px;padding:4px 0 0 56px}
-.tdlhc-citation::before{content:'\201C';position:absolute;left:0;top:-14px;
-                        font-family:var(--font2);font-size:82px;line-height:1;color:var(--c);opacity:.3}
-.tdlhc-cit-texte{font-family:var(--txt2);font-style:italic;font-size:18px;line-height:1.5;color:var(--dark)}
+.tdlhc-citation::before{content:'\201C';position:absolute;left:10px;top:-14px;
+                        font-family:var(--font2);font-size:100px;line-height:1;color:var(--c);opacity:.3}
+.tdlhc-cit-texte{font-family:var(--txt1);font-style:italic;font-size:18px;line-height:1.5;color:var(--dark)}
 .tdlhc-cit-source{margin-top:13px}
 .tdlhc-cit-source b{display:block;margin-bottom:3px;font-family:var(--txt3);font-size:12px;font-weight:600;
                     letter-spacing:.09em;text-transform:uppercase;color:var(--dark)}
-.tdlhc-cit-source span{display:block;font-family:var(--txt2);font-style:italic;font-size:14px;line-height:1.45;color:var(--darkopa5)}
+.tdlhc-cit-source span{display:block;font-family:var(--txt2);font-style:italic;font-size:16px;line-height:1.45;color:var(--darkopa5)}
 
 /* ---------- fil de l'affaire ---------- */
 .tdlhc-fil{align-self:start;position:sticky;top:0;padding-left:20px;border-left:1px solid var(--darkopa3)}
@@ -653,16 +653,15 @@ a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
 .tdlhc-act .tdlhc-aide{margin-top:4px}
 
 .tdlhc-mention {
-  margin: 0 0 18px;
   padding: 8px 12px;
   background: var(--cntr2);
-  border-left: 2px solid var(--dark2);
-  color: var(--darkopa7);
-  font-family: var(--txt3);
-  font-size: 12px;
+  border-left: 3px solid var(--dark2);
+  color: var(--darkopa8);
+  font-family: var(--txt1);
+  font-size: 13px!important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  line-height: 1.5;
+  letter-spacing: 0.5px;
+  font-weight:600;
 }
 
 .tdlhc-une-chk { margin: 10px 0 0; }
