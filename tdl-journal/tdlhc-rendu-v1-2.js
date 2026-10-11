@@ -145,6 +145,7 @@
       + (secs.length ? '<div class="tdlhc-sepeps"></div><div class="tdlhc-secs">' + secs.map(htmlSecondaire).join("") + '</div>' : "")
       + htmlLegaux(A.contenus("avis-legal").slice(0, cfg.UNE_AVIS))
       + '</div>' + htmlRail(rumeurs(root));
+    if (window.Courier.vitrine) window.Courier.vitrine.ecrire(dom, secs);
     sec.setAttribute("data-pret", "1");
   }
 
