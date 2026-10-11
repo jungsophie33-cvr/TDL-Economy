@@ -40,7 +40,8 @@
   var CFG = {
     NOEUD:     "accueil/une",
     SECS_MAX:  3,
-    CHAPO_MAX: 220              // au-delà, l'accueil tronque de toute façon
+    TITRE_MAX: 90,              // au-delà, l'accueil coupe de toute façon
+    CHAPO_MAX: 200              // deux lignes pleines dans la carte
   };
 
   var A = null;                 // api du cœur, posée au démarrage
@@ -69,10 +70,18 @@
     return "/t102-the-houma-courier#" + ancre;     /* [MAJ] filet si envoi n'est pas chargé */
   }
 
+  /* Coupe au dernier mot entier, jamais au milieu d'une syllabe. */
+  function couper(t, max) {
+    t = String(t || "").trim();
+    return t.length > max ? t.slice(0, max).replace(/\s+\S*$/, "") + "…" : t;
+  }
+
   /* Un article sans chapô en emprunte un à son premier paragraphe, exactement
-     comme le fait le journal — même fonction, pas une seconde implémentation. */
+     comme le fait le journal — même fonction, pas une seconde implémentation.
+     Le plafond évite de stocker mille signes dans une fiche qui n'en montre
+     que deux lignes ; le CSS de l'accueil coupe ce qui dépasse encore. */
   function chapoDe(a) {
-    if (a.cles.CHAPO) return a.cles.CHAPO;
+    if (a.cles.CHAPO) return couper(a.cles.CHAPO, CFG.CHAPO_MAX);
     var ext = (window.Courier.rendu || {}).extrait;
     return ext ? ext(a, CFG.CHAPO_MAX) : "";
   }
@@ -82,7 +91,7 @@
     return {
       rubrique: r.libelle,
       groupe:   r.groupe,
-      titre:    a.cles.TITRE || "",
+      titre:    couper(a.cles.TITRE, CFG.TITRE_MAX),
       chapo:    chapoDe(a),
       image:    a.cles.IMAGE || "",
       lien:     lienArticle(a.ancre),
@@ -93,7 +102,7 @@
   /* Un secondaire n'affiche ni chapô ni image : inutile de les stocker. */
   function ficheSecondaire(a) {
     var r = rubrique(a.cles.RUBRIQUE);
-    return { rubrique: r.libelle, groupe: r.groupe, titre: a.cles.TITRE || "",
+    return { rubrique: r.libelle, groupe: r.groupe, titre: couper(a.cles.TITRE, CFG.TITRE_MAX),
              lien: lienArticle(a.ancre), ancre: a.ancre };
   }
 
