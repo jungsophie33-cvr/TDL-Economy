@@ -86,6 +86,10 @@
                 ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
   var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
+    /* Point d'extension : un module tiers pousse son onglet et sa vue ici, avant
+     le premier render. Évite de faire grossir ce fichier à chaque tableau. */
+  var EXT = (window.QuaisStaff = window.QuaisStaff || { onglets:[], vues:{} });
+  function onglets(){ return ONGLETS.concat(EXT.onglets); }
 
   var st = { filtre:"en_attente" };
   var root, demandes = [], dettesList = [], CATALOGUE = {}, catalogueLu = false;
@@ -171,13 +175,24 @@
   }
 
   function filtree(){ var f=st.filtre; return demandes.filter(function(d){ if(f==="toutes")return true; if(f==="en_attente")return d.statut==="en_attente"; return d.statut!=="en_attente"; }); }
-  function compte(f){ if (f==="dettes") return dettesList.length; return demandes.filter(function(d){ if(f==="toutes")return true; if(f==="en_attente")return d.statut==="en_attente"; return d.statut!=="en_attente"; }).length; }
-
+  function compte(f){
+    if (EXT.vues[f]) return EXT.vues[f].compte ? EXT.vues[f].compte() : 0;
+    if (f==="dettes") return dettesList.length;
+    return demandes.filter(function(d){ if(f==="toutes")return true; if(f==="en_attente")return d.statut==="en_attente"; return d.statut!=="en_attente"; }).length;
+  }
+  
   function render(){
-    var titre = ONGLETS.filter(function(o){return o[0]===st.filtre;})[0][1];
+    var tous = onglets();
+    var titre = (tous.filter(function(o){return o[0]===st.filtre;})[0]||["",""])[1];
     var tabs = '<div class="mc-head"><h1>Demandes — Les Quais du Bayou</h1><p>Panel staff</p></div>'
-      + '<div class="qsd-tabs">'+ONGLETS.map(function(o){ return '<button class="qsd-tab'+(st.filtre===o[0]?" qsd-on":"")+'" data-f="'+o[0]+'">'+o[1]+'<span class="qsd-n">'+compte(o[0])+'</span></button>'; }).join("")+'</div>';
+      + '<div class="qsd-tabs">'+tous.map(function(o){ return '<button class="qsd-tab'+(st.filtre===o[0]?" qsd-on":"")+'" data-f="'+o[0]+'">'+o[1]+'<span class="qsd-n">'+compte(o[0])+'</span></button>'; }).join("")+'</div>';
 
+    if (EXT.vues[st.filtre]) {
+      root.innerHTML = tabs + EXT.vues[st.filtre].html(titre);
+      wire();
+      if (EXT.vues[st.filtre].wire) EXT.vues[st.filtre].wire(root);
+      return;
+    }
     if (st.filtre==="dettes") {
       var groupes = {}; dettesList.forEach(function(x){ (groupes[x.pseudo] = groupes[x.pseudo] || []).push(x); });
       var pseudos = Object.keys(groupes).sort(function(a,b){ return a.localeCompare(b,"fr"); });
@@ -479,6 +494,10 @@
       dettesList.sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
     } catch(e){ if (window.console) console.error("[quais-staff] chargement", e); demandes = []; dettesList = []; }
   }
+
+    /* Helpers partagés avec les modules d'extension : même rendu, mêmes formats. */
+  EXT.api = { esc:esc, money:money, dateFr:dateFr, isStaff:isStaff,
+              root:function(){ return root; }, render:render };
 
   function boot(){
     var n = 0;
