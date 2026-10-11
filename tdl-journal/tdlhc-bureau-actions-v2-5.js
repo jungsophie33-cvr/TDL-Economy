@@ -245,10 +245,6 @@
                                                     c, m.titre, ancre);
       msg += TXT.OK_CHRONO;
     }
-    if (m.type === "article") {
-      var chkUne = zone.querySelector('[data-zone="une"]');
-      Object.assign(maj, await majVitrine(c, ancre, !!(chkUne && chkUne.checked)));
-    }
     try { await ecrire(maj); }
     catch(e){ if (window.console) console.error("[Courier] parution", e); A.toast(TXT.ERR); bouton.disabled = false; return; }
     if (paye) {
@@ -269,39 +265,6 @@
     var texte = (c.chapo || "").trim() || Bu.paras(c.texte || "")[0] || "";
     return { periode:CFG.PERIODE_CHRONO, cat:cat, iso:c.date || "", d:A.dateLisible(c.date) || "",
              titre:titre, texte:texte, ancre:ancre || null, chrono:niveau, soum:id, publie:maintenant() };
-  }
-    /* ===================== VITRINE DE L'ACCUEIL =====================
-     La page d'accueil ne sait pas lire les posts du journal : on lui écrit
-     une fiche prête à afficher au moment de la parution. Une lecture de plus
-     ici — rare, et côté staff — évite une lecture à chaque visite de l'index.
-     La hiérarchie du journal est respectée : une une posée en dominant par le
-     bureau ne se fait pas déloger par l'article suivant, exactement comme
-     dans tdlhc-rendu. */
-  var RUB_SECOURS = { environnement:["Environnement","gr2"], securite:["Sécurité","gr3"],
-                      economie:["Économie","gr1"], paroisse:["Paroisse","gr4"],
-                      culture:["Culture","gr5"], "nouvelles-des-bayous":["Nouvelles des bayous","gr6"] };
-  function rubriqueVitrine(k){
-    var R = (window.Courier.rendu || {}).RUB;          /* source unique quand elle est là */
-    if (R && R[k]) return [R[k].l, R[k].c.replace("--", "").replace("-color", "")];
-    return RUB_SECOURS[k] || [k || "", "gr1"];          /* filet : le rendu n'est pas chargé sur toutes les pages */
-  }
-  function resumeUne(u){ return { rubrique:u.rubrique, groupe:u.groupe, titre:u.titre, lien:u.lien }; }
-  async function majVitrine(c, ancre, dominant){
-    var r = rubriqueVitrine(c.rubrique);
-    var neuf = { rubrique:r[0], groupe:r[1], titre:c.titre, chapo:c.chapo || "",
-                 image:c.image || "", lien:lienHc("art-" + ancre),
-                 dominant:!!dominant, publie:maintenant() };
-    var actuelle = null;
-    try { actuelle = await E().firebaseGet("accueil/une"); } catch(e){ actuelle = null; }
-    var secs = A.versTableau(actuelle && actuelle.secondaires);
-    if (actuelle && actuelle.titre && actuelle.dominant && !dominant) {
-      secs.unshift(resumeUne(neuf));                    /* le dominant reste, le neuf passe dessous */
-      actuelle.secondaires = secs.slice(0, 3);
-      return { "accueil/une": actuelle };
-    }
-    if (actuelle && actuelle.titre) secs.unshift(resumeUne(actuelle));
-    neuf.secondaires = secs.slice(0, 3);
-    return { "accueil/une": neuf };
   }
   async function publierFb(id){
     if (!window.confirm(TXT.CONFIRM_FB)) return;
