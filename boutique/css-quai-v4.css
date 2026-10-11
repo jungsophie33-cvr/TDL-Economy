@@ -259,6 +259,51 @@
 #quais-staff .qsd-restatut-lbl{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--dark2)}
 #quais-staff .qsd-restatut{font-family:var(--txt1);font-size:14px;padding:6px 10px;border:1px solid var(--cntr6);border-radius:5px;background:var(--cntr2);color:var(--txt)}
 
+/* ==========================================================================
+   CSS-staff-inventaire.css — Onglet « Inventaires » du panel staff · TDL
+   Préfixe : .qsi-   ·   le reste réutilise les classes .qsd- et .dc-
+   ========================================================================== */
+
+.qsi-barre {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.qsi-barre select {
+  min-width: 220px;
+  padding: 6px 10px;
+  background: var(--clair1);
+  border: 1px solid var(--darkopa3);
+  border-radius: 3px;
+  color: var(--txt);
+  font-family: var(--font0);
+  font-size: 14px;
+}
+
+/* La grille d'ajout reprend .fi-carte-grille : on n'ajuste que les champs. */
+.qsi-objet,
+.qsi-ch,
+.qsi-lieu {
+  width: 100%;
+  padding: 5px 8px;
+  background: var(--clair1);
+  border: 1px solid var(--darkopa3);
+  border-radius: 3px;
+  color: var(--txt);
+  font-family: var(--font0);
+  font-size: 14px;
+}
+
+.qsi-ch { max-width: 80px; }
+
+/* Les lignes d'objet portent une icône dans leur puce de statut. */
+.qsd-drow .qsd-st i {
+  margin-right: 5px;
+  font-size: 13px;
+  vertical-align: -1px;
+}
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1100px){
   .qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
