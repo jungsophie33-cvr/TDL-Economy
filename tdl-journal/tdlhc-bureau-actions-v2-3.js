@@ -310,15 +310,26 @@
   /* Refus : aussi appelé sans fiche par les échéances (délai de reprise dépassé) */
   async function refuser(id, motif, texte, silencieux){
     var m = Bu.meta(id); if (!m) return false;
-    var p = J() + "soum_meta/" + id + "/", maj = {}, now = maintenant(), rend = m.montant < 0 ? -m.montant : 0;
+        /* Un article acheté au Comptoir n'a pas de ligne de dépôt dans la caisse du
+       journal : l'argent est parti à la boutique, pas ici. On le rend quand
+       même — on refuse un texte, on ne garde pas la somme — mais la trace va
+       sur la soumission et non dans la caisse, qui n'a jamais rien encaissé. */
+    var p = J() + "soum_meta/" + id + "/", maj = {}, now = maintenant();
+    var rend = m.montant < 0 ? -m.montant : (m.prix | 0);
     maj[p + "statut"] = "refusee"; maj[p + "maj"] = now;
-    maj[p + "refus"] = { motif:motif, texte:texte || "", par:A.pseudo(), date:now };
-    if (rend) maj[J() + "caisse/" + id + "-depot/etat"] = "rembourse";
+    maj[p + "refus"] = { motif:motif, texte:texte || "", par:A.pseudo(), date:now, rembourse:rend };
+    if (m.montant < 0) maj[J() + "caisse/" + id + "-depot/etat"] = "rembourse";
     try { await ecrire(maj); } catch(e){ if (!silencieux) A.toast(TXT.ERR); return false; }
     var msg = TXT.OK_REFUS;
     if (rend) {
       try { await crediter(m.auteur, rend); msg += TXT.OK_REMB(rend); }
-      catch(e){ var r = {}; r[J() + "caisse/" + id + "-depot/etat"] = "a_rembourser"; ecrire(r).catch(function(){}); msg = TXT.ERR_REMB; }
+      catch(e){
+        var r = {};
+        /* pas de ligne de dépôt pour un achat boutique : on marque la soumission */
+        if (m.montant < 0) r[J() + "caisse/" + id + "-depot/etat"] = "a_rembourser";
+        else r[p + "refus/a_rembourser"] = rend;
+        ecrire(r).catch(function(){}); msg = TXT.ERR_REMB;
+      }
     }
     notifier(CFG.N.REFUS, m.auteur, { titre:m.titre, rendu:rend && msg!==TXT.ERR_REMB ? rend : 0, url:lienHc("soum-" + id) }, "hc-refus-" + id);
     if (!silencieux) { A.toast(msg); Bu.rafraichir({ traitee:true }); }
