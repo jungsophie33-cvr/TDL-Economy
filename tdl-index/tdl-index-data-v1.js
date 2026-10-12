@@ -57,9 +57,9 @@ ONGLET: familles
 NOM: Les Blackford
 CHAPO: Une lignée ancrée à Houma depuis plus d'un siècle. Transport, logistique, terminal portuaire. La famille la plus influente de Terrebonne dans les faits, sans occuper la moindre position officielle.
 LIEN: /t42-famille-blackford
-PL: Galaad Blackford ⟡ Sécurité logistique, le Majeur ⟡ /t42-famille-blackford#483
-PL: Gareth Blackford Jr. ⟡ Opérations fluviales, l'Auriculaire ⟡ /t42-famille-blackford#483
-PL: Arthur Dorian Blackford ⟡ Analyste chez Blackbyrd ⟡ /t42-famille-blackford#483
+PL: Galaad Blackford ⟡ Sécurité logistique ⟡ /t42-famille-blackford?fiche=galaad-blackford#483
+PL: Gareth Blackford ⟡ Opérations fluviales ⟡ /t42-famille-blackford?fiche=gareth-blackford-jr#483
+PL: Arthur Blackford ⟡ Analyste chez Blackbyrd ⟡ /t42-famille-blackford?fiche=arthur-dorian-blackford#483 ⟡ https://64.media.tumblr.com/a477a4300a95acc6e04978b9245b6eed/10f6b8c9b1b20ce7-9b/s250x400/865f2338b2afbc82f15bf0ee9975eeabe1ad82da.pnj
 PL: Cassandre Blackford ⟡ Chirurgienne, Doc ⟡ /t42-famille-blackford#483
 
 --- BLOC entite ---
