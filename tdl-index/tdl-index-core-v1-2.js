@@ -59,8 +59,8 @@ window.TDLI = window.TDLI || {};
       maringouins:  "/t90",
       main:         "/t92",
       faiseuses:    "/t91",
-      operations:   "/t95",
-      disparitions: "/t95",
+      hangar:       "/t95",
+      marees:       "/t95",
       enquetes:     "/t86",
       evenements:   "/calendar",
       projets:      "#",
@@ -69,12 +69,15 @@ window.TDLI = window.TDLI || {};
   };
 
   // Sous-tableaux agrégés par le compteur « missions ouvertes ».
+  /* Opérations et disparitions sont regroupées sous « hangar » : même public,
+     même engagement. Les marées gardent leur branche, parce qu'elles sont les
+     seules ouvertes à qui n'appartient à aucune bande. */
   var SOUS = [
-    { cle: "maringouins",  lib: "Missions",     ent: "Les Maringouins" },
-    { cle: "main",         lib: "Dettes",       ent: "La Main" },
-    { cle: "faiseuses",    lib: "Tâches",       ent: "Les Faiseuses" },
-    { cle: "operations",   lib: "Opérations",   ent: "Le hangar" },
-    { cle: "disparitions", lib: "Disparitions", ent: "Le hangar" }
+    { cle: "maringouins", lib: "Missions", ent: "Les Maringouins" },
+    { cle: "main",        lib: "Dettes",   ent: "La Main" },
+    { cle: "faiseuses",   lib: "Tâches",   ent: "Les Faiseuses" },
+    { cle: "hangar",      lib: "Hangar",   ent: "La Flottille" },
+    { cle: "marees",      lib: "Marées",   ent: "Ouvertes à tous" }
   ];
 
   var ICONES = {
