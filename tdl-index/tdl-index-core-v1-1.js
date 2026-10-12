@@ -128,9 +128,12 @@ window.TDLI = window.TDLI || {};
     return "var(--" + g + "-color)";
   }
 
+  /* ForumActif déclenche DOMContentLoaded avant d'avoir fini de bâtir la page :
+     on attend « load », avec le repli readyState si l'événement est déjà passé
+     quand ce fichier arrive. */
   function pret(fn) {
-    if (document.readyState !== "loading") fn();
-    else document.addEventListener("DOMContentLoaded", fn);
+    if (document.readyState === "complete") fn();
+    else window.addEventListener("load", fn);
   }
 
   /* === TEMPS (Houma) ===
@@ -415,12 +418,22 @@ window.TDLI = window.TDLI || {};
   }
 
   function init() {
+    if (typeof NS.monterShell === "function") NS.monterShell();   // idempotent
     var racine = el(CFG.SEL_RACINE);
     if (!racine) return;                       // page sans accueil : on ne fait rien
     nettoyerBr(racine);
 
-    var noeudData = el(CFG.SEL_DATA);
-    NS.DATA = noeudData ? parser(texteBrut(noeudData)) : {};
+    /* Les données viennent de tdl-index-data.js. L'élément #tdli-data du
+       message d'accueil reste accepté en second : ni l'éditeur ForumActif ni
+       un gabarit ne savent préserver un bloc de texte multiligne, mais une
+       installation ancienne doit continuer de tourner. */
+    var brut = (typeof window.TDLI_DATA === "string") ? window.TDLI_DATA : null;
+    if (!brut) {
+      var noeudData = el(CFG.SEL_DATA);
+      brut = noeudData ? texteBrut(noeudData) : "";
+    }
+    NS.DATA = parser(brut);
+    if (!NS.DATA.habitants) jrn("aucune donnée : tdl-index-data.js est-il chargé avant le core ?");
 
     var per = document.getElementById("tdli-periode");
     if (per) per.textContent = periodeTexte();
