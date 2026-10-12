@@ -56,12 +56,12 @@ window.TDLI = window.TDLI || {};
     ATTENTE_PAS: 250,
     // [MAJ] cibles des compteurs et du journal
     SUJETS: {
-      maringouins:  "/t90",
-      main:         "/t92",
-      faiseuses:    "/t91",
-      hangar:       "/t95",
-      marees:       "/t95",
-      enquetes:     "/t86",
+      maringouins:  "/t90-le-tableau-des-missions",
+      main:         "/t92-le-tableau-des-dettes",
+      faiseuses:    "/t91-le-tableau-des-taches",
+      hangar:       "/t96-le-tableau-du-hangar",
+      marees:       "/t96-le-tableau-du-hangar",
+      enquetes:     "/t86-le-panneau-des-enquetes",
       evenements:   "/calendar",
       projets:      "#",
       courier:      "/t102"
