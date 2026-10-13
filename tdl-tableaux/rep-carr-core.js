@@ -43,7 +43,7 @@ var CFG = {
   NODE_REV:    "carrefour_rev",
   NODE_MEMBRES:"membres",
   /* [MAJ] sujet porteur du tableau */
-  EDIT_URL:    "https://thedrownedlands.forumactif.com/post?p=000&mode=editpost",
+  EDIT_URL:    "https://thedrownedlands.forumactif.com/post?p=508&mode=editpost",
   /* [MAJ] valeur du champ communauté pour les Ashlanders — à confronter au
      champ réel de membres/{pseudo} (le seul certain ici est hors_la_loi). */
   CHAMP_COMM:  "communaute",
