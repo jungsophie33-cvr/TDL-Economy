@@ -44,10 +44,11 @@ var CFG = {
   NODE_MEMBRES:"membres",
   /* [MAJ] sujet porteur du tableau */
   EDIT_URL:    "https://thedrownedlands.forumactif.com/post?p=508&mode=editpost",
-  /* [MAJ] valeur du champ communauté pour les Ashlanders — à confronter au
-     champ réel de membres/{pseudo} (le seul certain ici est hors_la_loi). */
-  CHAMP_COMM:  "communaute",
-  COMM_BAYOU:  "ashlanders",
+  /* membres/{pseudo}.group porte le libellé complet du groupe FA
+     (« Les Goulipiats », « Les Ashlanders »…), d'où la comparaison par
+     inclusion : elle survit à l'article et au singulier. */
+  CHAMP_COMM:  "group",
+  COMM_BAYOU:  "ashlander",
   BANDE_BRAC:  "braconneurs"
 };
 var SCHEMA    = 2;
@@ -116,7 +117,7 @@ function bandeDe(p){var h=hll(p);return (h&&h.bande)||"";}
 function estBraconneur(p){return bandeDe(p)===CFG.BANDE_BRAC;}
 function estAshlander(p){
   var m=p&&MEMBRES[p]; if(!m)return false;
-  return String(m[CFG.CHAMP_COMM]||"").toLowerCase()===CFG.COMM_BAYOU;
+  return String(m[CFG.CHAMP_COMM]||"").toLowerCase().indexOf(CFG.COMM_BAYOU)>=0;
 }
 /* la condition structurelle du tableau : quelqu'un qui a vu le terrain */
 function estBayou(p){return estAshlander(p)||estBraconneur(p);}
