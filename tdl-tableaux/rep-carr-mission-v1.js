@@ -35,8 +35,8 @@ var S=F.S, patch=F.patch, toast=F.toast;
 var PART=50, PART_INIT=75, MAX_APPELS=4;
 
 var T={
-  REGLE:"Une mission n\u2019est pas une liste de tâches : c\u2019est une situation où plusieurs intérêts s\u2019opposent. Vous posez les faits et votre propre position. Ce que savent les autres, ce sont eux qui l\u2019écrivent.",
-  INFO:"Votre information est ce que votre personnage sait et que les autres ignorent. Elle ne vaut rien toute seule \u2014 c\u2019est en la recoupant que l\u2019affaire avance. Personne ne la voit, pas même l\u2019initiateur. Vous la lâchez en RP si vous voulez, quand vous voulez, ou jamais.",
+  REGLE:"Une mission est une situation où plusieurs intérêts s\u2019opposent. Vous posez les faits et votre propre position. Ce que savent les autres, ce sont eux qui l\u2019écrivent.",
+  INFO:"Une information est sur par votre personnage et inconnue des autres. L'affaire n'avance qu'en recoupant les informations du groupe. Vous la lâchez en RP si vous voulez, quand vous voulez, voire jamais.",
   GARDE:"Trois règles : elle ne contredit pas les faits acquis, elle reste plausible pour votre personnage, et elle n\u2019engage que lui \u2014 jamais sa famille ni sa bande entière.",
   BAYOU:"Cette mission attend encore quelqu\u2019un du bayou : un ashlander ou un braconneur, qui a vu les choses avant qu\u2019elles deviennent officielles.",
   OMBRE:"Cette mission attend encore quelqu\u2019un de l\u2019ombre."
@@ -223,7 +223,7 @@ function drawer(m,vu){
       +'<label class="tdlm-fl">Ce que ça déplace (jauge, projet, famille, relation)</label>'
       +'<textarea id="tdlc-mcons">'+esc(m.consequences)+'</textarea>'
       +'<label class="tdlm-fl">Qui a joué</label><div class="tdlm-row">'+(lignes||'<span class="tdlm-idle">Personne.</span>')+'</div>'
-      +'<div class="tdlm-prose tdlm-todo">Les informations que les joueurs ont choisi de garder pour eux restent privées : se taire est un choix de jeu, pas un oubli.</div>'
+      +'<div class="tdlm-prose tdlm-todo">Les informations que les joueurs ont choisi de garder pour eux restent privées : se taire est un choix de jeu.</div>'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="cloreok">Clore et payer</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
@@ -357,7 +357,7 @@ function formOuverture(){
   var appels="";
   for(var i=0;i<MAX_APPELS;i++){
     appels+='<label class="tdlm-fl">Appel '+(i+1)+(i<2?'':' (facultatif)')+'</label>'
-      +'<input type="text" id="tdlc-nap'+i+'" placeholder="Quelqu\u2019un qui utilisait ce quai et va le perdre\u2026">';
+      +'<input type="text" id="tdlc-nap'+i+'" placeholder="Une personne utilisant ce quai naguère et qui va le perdre\u2026">';
   }
   return '<div class="tdlm-dpanel">'
     +'<button class="tdlm-dret" data-mneuf="cancel">\u2190 Retour au tableau</button>'
@@ -367,7 +367,7 @@ function formOuverture(){
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlc-mtitre" placeholder="Ex. : Le quai des Trinh">'
       +'<label class="tdlm-fl">Zone (une zone, pas une adresse)</label>'
       +'<input type="text" id="tdlc-mzone" placeholder="Cocodrie et le bas de la route">'
-      +'<label class="tdlm-fl">Le contexte \u2014 la situation et sa problématique</label><textarea id="tdlc-mctx"></textarea>'
+      +'<label class="tdlm-fl">Le contexte : la situation et sa problématique</label><textarea id="tdlc-mctx"></textarea>'
       +'<label class="tdlm-fl">Les acteurs en présence</label><textarea id="tdlc-mact"></textarea>'
       +'<label class="tdlm-fl">Les faits connus de tous</label><textarea id="tdlc-mfaits"></textarea>'
       +'<label class="tdlm-fl">Les intérêts officiellement affichés par chacun</label><textarea id="tdlc-moff"></textarea>'
@@ -375,10 +375,10 @@ function formOuverture(){
       +'<div class="tdlm-prose">Votre propre intérêt dans l\u2019affaire. Vous le tenez comme les autres : vous ne possédez pas la mission.</div>'
       +'<label class="tdlm-fl">Votre position</label><input type="text" id="tdlc-mipos">'
       +'<label class="tdlm-fl">Votre enjeu</label><textarea id="tdlc-mienj"></textarea>'
-      +'<label class="tdlm-fl">Votre information (privée)</label><textarea id="tdlc-miinf"></textarea>'
-      +'<div class="tdlm-prose">L\u2019appel : les intérêts que vous savez concernés et que vous n\u2019écrivez pas. Il ne se ferme jamais.</div>'
+      +'<label class="tdlm-fl">Votre information (cachée)</label><textarea id="tdlc-miinf"></textarea>'
+      +'<div class="tdlm-prose">L\u2019appel : exemples d\u2019intérêts concernés par cette affaire. Les joueurs sont libres d\u2019en proposer d\u2019autres.</div>'
       +appels
-      +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-mombre"> Cette affaire a besoin de quelqu\u2019un de l\u2019ombre</label>'
+      +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-mombre"> Cette affaire a besoin d\u2019un hors-la-loi.</label>'
       +'<div class="tdlm-prose tdlm-todo">Un hors-la-loi qui ne soit pas braconneur. La mission attendra qu\u2019un tel intérêt soit tenu pour être lancée \u2014 en plus de l\u2019ashlander ou du braconneur, toujours requis.</div>'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-mneuf="ok">Afficher la mission</button>'
       +'<button class="tdlm-abtn" data-mneuf="cancel">Annuler</button></div>'
