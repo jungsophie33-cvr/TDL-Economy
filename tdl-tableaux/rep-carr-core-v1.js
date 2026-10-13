@@ -117,7 +117,7 @@ function bandeDe(p){var h=hll(p);return (h&&h.bande)||"";}
 function estBraconneur(p){return bandeDe(p)===CFG.BANDE_BRAC;}
 function estAshlander(p){
   var m=p&&MEMBRES[p]; if(!m)return false;
-  return String(m[CFG.CHAMP_COMM]||"").toLowerCase().indexOf(CFG.COMM_BAYOU)>=0;
+  return String(m[CFG.CHAMP_COMM]||"").toLowerCase()===CFG.COMM_BAYOU;
 }
 /* la condition structurelle du tableau : quelqu'un qui a vu le terrain */
 function estBayou(p){return estAshlander(p)||estBraconneur(p);}
