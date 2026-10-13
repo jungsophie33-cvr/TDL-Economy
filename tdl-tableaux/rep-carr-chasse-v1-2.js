@@ -113,10 +113,11 @@ function estReferent(m,me){return !!(me&&referent(m)===me);}
 function sub(m){
   return { sub:nomCommanditaire(m), qui:(m.affiche?null:m.auteur), quand:"affichée "+ilya(m.cree) };
 }
+/* la zone reste dans la fiche : en étiquette, elle allongeait la rangée sans
+   rien apprendre que le titre ne dise déjà */
 function tags(m){
   var n=parts(m).length, out=[money(m.prime)];
   if(m.statut==="ouverte")out.push(n+"/"+MAX_PART+" inscrits");
-  if(m.zone)out.push(m.zone);
   return out;
 }
 
