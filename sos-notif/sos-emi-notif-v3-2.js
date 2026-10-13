@@ -46,13 +46,14 @@ var U = {
   TACHES:   "/t91-le-tableau-des-taches",
   STAFF:    "/t73-gestion-systeme-de-jeu#466",
   HANGAR:   "/t96-le-tableau-du-hangar",
+  CARREFOUR: "/t107-le-tableau-du-carrefour#508",   /* [MAJ] */
   COURIER:  "/t102-the-houma-courier"
 };
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
           FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier",
-          FLOT:"tdl_flottille", COUR:"tdl_courier" };
+          FLOT:"tdl_flottille", CARR: "tdl_carrefour", COUR:"tdl_courier" };
 
 /* ===================== REGISTRE =====================
    n  = classe CSS de module · ic = icône Flaticon (préfixe fi-sr- ajouté au
@@ -156,7 +157,21 @@ var NOTIFS = {
   197:{n:C.COUR, ic:"user-slash",    url:U.COURIER, txt:function(d){return esc(d.pseudo)+" refuse d'être cité·e dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   198:{n:C.COUR, ic:"newspaper",     url:U.COURIER, txt:function(d){return "Votre personnage est cité dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, qui vient de paraître.";}},
   199:{n:C.COUR, ic:"megaphone",     url:U.COURIER, txt:function(d){return "À la une du Houma Courier : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
-  200:{n:C.COUR, ic:"hourglass-end", url:U.COURIER, txt:function(d){return "Votre "+esc(d.quoi||"annonce")+" &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; expire dans "+(+d.jours||0)+" jour"+((+d.jours||0)>1?"s":"")+".";}}
+  200:{n:C.COUR, ic:"hourglass-end", url:U.COURIER, txt:function(d){return "Votre "+esc(d.quoi||"annonce")+" &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; expire dans "+(+d.jours||0)+" jour"+((+d.jours||0)>1?"s":"")+".";}},
+
+     /* --- Le tableau du Carrefour (Braconneurs / Ashlanders) ---
+     Même règle qu'ailleurs : la notification annonce, elle ne raconte pas.
+     Rien de ce qui est privé ne passe par là — ni l'information d'un intérêt,
+     ni le contenu d'un indice fermé, ni, surtout, le rôle de qui que ce soit. */
+  201:{n:C.CARR, ic:"crosshairs",     url:U.CARREFOUR, txt:function(d){return "Une chasse à prime est affichée au Carrefour : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
+  202:{n:C.CARR, ic:"user-add",       url:U.CARREFOUR, txt:function(d){return esc(d.pseudo)+" s'inscrit à votre chasse &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  203:{n:C.CARR, ic:"lock",           url:U.CARREFOUR, txt:function(d){return "Les inscriptions sont closes sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. La chasse peut commencer.";}},
+  204:{n:C.CARR, ic:"eye-crossed",    url:U.CARREFOUR, txt:function(d){return "Sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, quelque chose vous attend que personne d'autre ne doit savoir. Ouvrez le tableau.";}},
+  205:{n:C.CARR, ic:"magnifying-glass-eye", url:U.CARREFOUR, txt:function(d){return "Vous avez trouvé quelque chose sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. C'est désormais public, à votre nom.";}},
+  206:{n:C.CARR, ic:"scale-balanced", url:U.CARREFOUR, txt:function(d){return "La chasse &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est réglée.";}},
+  207:{n:C.CARR, ic:"users-alt",      url:U.CARREFOUR, txt:function(d){return "Mission au Carrefour : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  208:{n:C.CARR, ic:"user-check",     url:U.CARREFOUR, txt:function(d){return esc(d.pseudo)+" tient un intérêt dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  209:{n:C.CARR, ic:"sack-dollar",    url:U.CARREFOUR, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close : "+(+d.montant||0)+" $ vous ont été versés.";}}
 };
 
 /* préfixes de titre → type de notification */
