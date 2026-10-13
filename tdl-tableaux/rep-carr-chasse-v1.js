@@ -21,6 +21,10 @@
    par un client STAFF — le commanditaire ne peut pas le faire lui-même puisqu'il
    n'a pas le droit de lire la liste des volontaires.
 
+   L'ARGENT et le RÈGLEMENT vivent dans tdlc-chasse-argent, qui garnit l'objet
+   window.TDLCarrChasse : séparés d'ici pour la seule raison que les deux
+   ensemble dépassaient les 500 lignes.
+
    LES ACCROCHES. Trois faits fermés, écrits à l'ouverture, invisibles de tous
    sauf du commanditaire et du staff. Il les ouvre au fil de la chasse quand
    quelqu'un remplit la condition dans le sujet : le fait est alors recopié dans
@@ -35,6 +39,20 @@ var S=F.S, patch=F.patch, toast=F.toast;
 /* ===================== CONFIG ===================== */
 var MIN_PART=3, MAX_PART=4, PRIME_MIN=300, ACCROCHES=3, OUVERTURES_MIN=2;
 var PART_ANTAGO=0.75;
+/* [MAJ] nom du nœud des cagnottes, aligné sur rep-det-main et quai-staff */
+var NODE_CAGNOTTES="cagnottes", CAGNOTTE_MAIN="Providence";
+
+/* QUI PAIE. « joueur » et « main » immobilisent réellement la somme — la poche
+   du commanditaire ou la cagnotte Providence — et la retrouvent si la chasse
+   échoue ou est retirée. Les deux autres créent l'argent : une institution ne
+   tient pas de compte sur le forum. Seules les deux premières donnent droit à
+   la moitié rendue, puisqu'il n'y a rien à rendre à qui n'a rien avancé. */
+var SOURCES={
+  joueur:{label:"Un particulier",            gel:true,  ref:true},
+  main:  {label:"La Main de la Providence",  gel:true,  ref:true},
+  sherif:{label:"Le bureau du shérif",       gel:false, ref:false},
+  autre: {label:"Une autre institution",     gel:false, ref:false}
+};
 
 var T={
   REGLE:"Une chasse à prime se joue en mode hardcore. Trois participants minimum, quatre maximum, et la prime est immobilisée dès l\u2019affichage : elle sera versée quoi qu\u2019il arrive, à ceux qui ramènent le résultat ou à celui qui l\u2019a fait échouer.",
@@ -58,7 +76,8 @@ function normaliser(o){
   o.cible=o.cible||"";
   o.prime=+o.prime||0;
   o.gel=+o.gel||0;
-  o.institution=o.institution||"";
+  o.source=SOURCES[o.source]?o.source:(o.institution?"autre":"joueur");
+  o.affiche=o.affiche||o.institution||"";
   o.affaire=o.affaire||"";
   o.aAccroches=!!o.aAccroches;
   o.ouvertes=+o.ouvertes||0;
@@ -73,12 +92,26 @@ function normaliser(o){
 }
 function parts(m){return lstPart(m.participants);}
 function estInscrit(m,me){return !!(me&&m.participants&&m.participants[F.cp(me)]);}
-function referent(m){return m.institution?null:m.auteur;}
+/* le référent est celui qui a avancé l'argent ; pour une chasse institutionnelle
+   ouverte par le staff, c'est le staff qui suit l'affaire */
+function referent(m){return SOURCES[m.source].ref?m.auteur:null;}
+function nomCommanditaire(m){return m.affiche||m.auteur||"\u2014";}
+/* rend la somme à qui l'avait avancée : la poche, ou la cagnotte */
+function rembourser(m,montant){
+  if(!montant)return Promise.resolve(0);
+  if(m.source==="main"){
+    return Promise.resolve(window.EcoCore.firebaseTransaction(
+      NODE_CAGNOTTES+"/"+encodeURIComponent(CAGNOTTE_MAIN),
+      function(cur){return (cur||0)+montant;}));
+  }
+  return F.crediter(m.auteur, montant);
+}
+function aQui(m){return (m.source==="main")?("la cagnotte "+CAGNOTTE_MAIN):nomCommanditaire(m);}
 function estReferent(m,me){return !!(me&&referent(m)===me);}
 
 /* ===================== RANGÉE ===================== */
 function sub(m){
-  return { sub:(m.institution||m.auteur||"\u2014"), qui:m.auteur, quand:"affichée "+ilya(m.cree) };
+  return { sub:nomCommanditaire(m), qui:(m.affiche?null:m.auteur), quand:"affichée "+ilya(m.cree) };
 }
 function tags(m){
   var n=parts(m).length, out=[money(m.prime)];
@@ -94,7 +127,7 @@ function panel(m){
   var vu={me:me, staff:staff, ref:ref};
 
   var meta=''
-    +'<div class="tdlm-m"><span class="tdlm-k">Commanditaire</span><span class="tdlm-v">'+esc(m.institution||m.auteur||"\u2014")+'</span></div>'
+    +'<div class="tdlm-m"><span class="tdlm-k">Commanditaire</span><span class="tdlm-v">'+esc(nomCommanditaire(m))+'</span></div>'
     +(m.affaire?'<div class="tdlm-m"><span class="tdlm-k">Affaire</span><span class="tdlm-v">'+esc(m.affaire)+'</span></div>':'')
     +'<div class="tdlm-m"><span class="tdlm-k">Zone</span><span class="tdlm-v">'+esc(m.zone||"\u2014")+'</span></div>'
     +'<div class="tdlm-m"><span class="tdlm-k">Recherché</span><span class="tdlm-v">'+esc(m.cible||"\u2014")+'</span></div>'
@@ -105,14 +138,14 @@ function panel(m){
   var ctx=(tx===null)
     ? '<span class="tdlm-todo">Chargement\u2026</span>'
     : (tx.contexte?esc(tx.contexte):'<span class="tdlm-todo">\u2014</span>');
-  var cond=(tx&&tx.conditions)?'<div class="tdlm-sec"><p class="tdlm-hsec">Conditions de résolution</p><div class="tdlm-prose">'+esc(tx.conditions)+'</div></div>':'';
+  var cond=(tx&&tx.conditions)?'<div class="tdlm-sec"><p class="tdlm-hsec">Ce que le commanditaire attend</p><div class="tdlm-prose">'+esc(tx.conditions)+'</div></div>':'';
 
   return ''
     +'<button class="tdlm-dret" data-back>\u2190 Retour au tableau</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">'+esc(m.titre)+'</span>'+F.stamp(m)+'</div>'
     +'<div class="tdlm-dp-body">'
       +'<div class="tdlm-dp-hd"><div class="tdlm-dp-meta">'+meta+'</div></div>'
-      +'<div class="tdlm-sec"><p class="tdlm-hsec">Ce qu\u2019on sait</p><div class="tdlm-prose">'+ctx+'</div></div>'
+      +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte connu</p><div class="tdlm-prose">'+ctx+'</div></div>'
       +cond
       +blocOuvertes(tx)
       +blocAccroches(m,pv,vu)
@@ -256,7 +289,7 @@ function drawer(m,pv,vu){
       +'<label class="tdlm-fl">Sur quoi vous vous appuyez</label><textarea id="tdlc-justif"></textarea>'
       +'<label class="tdlm-fl">Ce qui s\u2019est passé (public)</label><textarea id="tdlc-resume">'+esc(m.resume)+'</textarea>'
       +'<label class="tdlm-fl">Qui a joué</label><div class="tdlm-row">'+(lignes||'<span class="tdlm-idle">Personne.</span>')+'</div>'
-      +(m.gel?('<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-moitie"'+(m.aAccroches&&assez?' checked':'')+'> Le référent a tenu son rôle : lui rendre '+money(Math.floor(m.prime/2))+'</label>'
+      +(m.gel?('<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-moitie"'+(m.aAccroches&&assez?' checked':'')+'> Le référent a tenu son rôle : rendre '+money(Math.floor(m.prime/2))+'</label>'
         +'<div class="tdlm-prose tdlm-todo">'+(m.aAccroches?(m.ouvertes+' indice(s) ouvert(s) sur '+ACCROCHES+'.'):'Aucun indice n\u2019avait été préparé à l\u2019ouverture.')+'</div>'):'')
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="reglerok">Clore et payer</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
@@ -272,8 +305,9 @@ function act(k,m){
   if(k==="quitter"){quitter(m);return;}
   if(k==="clore"){clorelnscriptions(m);return;}
   if(k==="retirer"){
-    if(!window.confirm("Retirer cette chasse ?\nLa prime gelée est rendue au commanditaire."))return;
-    rendreGel(m).then(function(){
+    if(!window.confirm("Retirer cette chasse ?\nLa prime immobilisée est rendue à qui l\u2019avait avancée."))return;
+    var A=window.TDLCarrChasse||{};
+    Promise.resolve(A.rendreGel?A.rendreGel(m):false).then(function(){
       m.statut="retiree"; patch(m,{statut:"retiree"});
       toast("Chasse retirée."); F.renderAll();
     });
@@ -293,7 +327,11 @@ function doo(k,m){
     toast("Sujet enregistré."); F.renderStage(); return;
   }
   if(k&&k.indexOf("accok:")===0){ouvrirAccroche(m,k.slice(6));return;}
-  if(k==="reglerok"){regler(m);return;}
+  if(k==="reglerok"){
+    var A=window.TDLCarrChasse||{};
+    if(A.regler)A.regler(m); else toast("tdlc-chasse-argent n\u2019est pas chargé.");
+    return;
+  }
 }
 function brancher(stage){
   stage.querySelectorAll("[data-acc]").forEach(function(el){
@@ -402,89 +440,12 @@ function ouvrirAccroche(m,k){
   F.renderAll();
 }
 
-/* ---- règlement ----
-   Verrou AVANT tout mouvement. COMPROMIS ASSUMÉ, le même que partout ailleurs :
-   si un crédit échoue après la prise du verrou, la chasse reste marquée réglée
-   sans que l'argent ait bougé — c'est visible et le staff le reprend à la main,
-   alors qu'un double versement serait silencieux. */
-function rendreGel(m){
-  if(!m.gel||m.primeVersee)return Promise.resolve(false);
-  return F.verrou(F.cheminEntree(m)+"/primeVersee").then(function(){
-    m.primeVersee=true;
-    return F.crediter(m.auteur, m.gel);
-  }).then(function(){
-    patch(m,{primeVersee:true});
-    try{if(window.EcoNotif)EcoNotif.a(m.auteur,208,{titre:m.titre,montant:m.gel},"deg"+m.id);}catch(e){}
-    return true;
-  }).catch(function(e){
-    if(F.estDeja(e)){m.primeVersee=true;return false;}
-    toast("Le dégel a échoué \u2014 vérifiez le solde du commanditaire.");
-    return false;
-  });
-}
-
-function regler(m){
-  if(m.primeVersee){toast("Chasse déjà réglée.");return;}
-  if(!F.exigeV2(m))return;
-  var pv=F.prv(m);
-  if(pv===null){toast("Lecture du privé en cours, réessayez dans un instant.");return;}
-  var livree=!!($("#tdlc-livree")&&$("#tdlc-livree").checked);
-  var motif=($("#tdlc-motif")&&$("#tdlc-motif").value)||"";
-  var justif=($("#tdlc-justif")&&String($("#tdlc-justif").value||"").trim())||"";
-  var resume=($("#tdlc-resume")&&String($("#tdlc-resume").value||"").trim())||"";
-  var moitie=!!($("#tdlc-moitie")&&$("#tdlc-moitie").checked);
-  var demasque=!!motif;
-  if(demasque&&!justif){toast("Dites sur quoi vous vous appuyez pour le démasquage.");return;}
-
-  var joues=[];
-  document.querySelectorAll(".tdlc-joue").forEach(function(el){
-    if(el.checked)joues.push(el.getAttribute("data-p"));
-  });
-  var antago=pv.antago||"";
-  var benef=joues.filter(function(p){ return !(demasque&&antago&&p===antago); });
-  var part=benef.length?Math.floor(m.prime/benef.length):0;
-  var rendu=(m.gel&&moitie)?Math.floor(m.prime/2):0;
-  var gain75=Math.floor(m.prime*PART_ANTAGO);
-
-  var recap=livree
-    ? (benef.length+" participant(s) à "+money(part)+(rendu?(", "+money(rendu)+" rendus au référent"):"")+".")
-    : ((m.gel?money(m.gel)+" rendus au commanditaire. ":"")+((!demasque&&antago)?(money(gain75)+" à l\u2019antagoniste."):"Personne n\u2019est payé."));
-  if(!window.confirm("Clore et payer ?\n"+recap+"\nIrréversible."))return;
-
-  F.verrou(F.cheminEntree(m)+"/primeVersee").then(function(){
-    m.primeVersee=true;
-    var op=Promise.resolve();
-    if(livree){
-      benef.forEach(function(p){ op=op.then(function(){return F.crediter(p, part);}); });
-      if(rendu)op=op.then(function(){return F.crediter(m.auteur, rendu);});
-    }else{
-      if(m.gel)op=op.then(function(){return F.crediter(m.auteur, m.gel);});
-      if(!demasque&&antago)op=op.then(function(){return F.crediter(antago, gain75);});
-    }
-    return op;
-  }).then(function(){
-    var ch={statut:"close", primeVersee:true, livree:livree, demasque:demasque,
-            motif:motif, justif:justif, resume:resume};
-    joues.forEach(function(p){ ch["participants/"+F.cp(p)+"/joue"]=true; });
-    m.statut="close"; m.livree=livree; m.demasque=demasque; m.resume=resume;
-    patch(m,ch);
-    try{
-      if(window.EcoNotif)joues.forEach(function(p){
-        EcoNotif.a(p,206,{titre:m.titre},"reg"+m.id+F.cp(p));
-      });
-    }catch(e){}
-    S.drawer=null;
-    toast("Chasse close. "+recap);
-    F.renderAll();
-  }).catch(function(e){
-    if(F.estDeja(e)){m.primeVersee=true;toast("Chasse déjà réglée ailleurs \u2014 rien n\u2019a été versé deux fois.");F.renderAll();return;}
-    toast("Versement incomplet \u2014 la chasse est marquée réglée, vérifiez les soldes.");
-    F.renderAll();
-  });
-}
-
-/* ===================== EXPORT (pour tdlc-chasse-neuf) ===================== */
-window.TDLCarrChasse = { PRIME_MIN:PRIME_MIN, ACCROCHES:ACCROCHES, MIN_PART:MIN_PART, MAX_PART:MAX_PART, T:T };
+/* ===================== EXPORT (pour tdlc-chasse-argent) ===================== */
+window.TDLCarrChasse = { PRIME_MIN:PRIME_MIN, ACCROCHES:ACCROCHES, MIN_PART:MIN_PART,
+  MAX_PART:MAX_PART, OUVERTURES_MIN:OUVERTURES_MIN, PART_ANTAGO:PART_ANTAGO,
+  T:T, SOURCES:SOURCES, NODE_CAGNOTTES:NODE_CAGNOTTES, CAGNOTTE_MAIN:CAGNOTTE_MAIN,
+  parts:parts, rembourser:rembourser, aQui:aQui, nomCommanditaire:nomCommanditaire
+  /* rendreGel et regler sont garnis par tdlc-chasse-argent */ };
 
 /* ===================== DÉCLARATION ===================== */
 F.type({
