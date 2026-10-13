@@ -55,7 +55,7 @@ var SOURCES={
 };
 
 var T={
-  REGLE:"Une chasse à prime se joue en mode hardcore. Trois participants minimum, quatre maximum, et la prime est immobilisée dès l\u2019affichage : elle sera versée quoi qu\u2019il arrive, à ceux qui ramènent le résultat ou à celui qui l\u2019a fait échouer.",
+  REGLE:"Une chasse à prime se joue en mode hardcore. Trois participants minimum, quatre maximum, et la prime est immobilisée dès l\u2019affichage : elle sera versée quoi qu\u2019il arrive à ceux qui accomplissent l'objectif.",
   REFERENT:"Si vous préparez trois indices fermés et que vous suivez votre affaire en les ouvrant au fil du jeu, la moitié de la prime vous est rendue à la clôture. Sinon vous payez plein pot et le staff guide les joueurs à votre place.",
   CLOS:"Inscriptions closes. La chasse peut commencer.",
   SECRET:"Personne ne saura si un rôle secret a été attribué, ni à qui."
@@ -138,14 +138,14 @@ function panel(m){
   var ctx=(tx===null)
     ? '<span class="tdlm-todo">Chargement\u2026</span>'
     : (tx.contexte?esc(tx.contexte):'<span class="tdlm-todo">\u2014</span>');
-  var cond=(tx&&tx.conditions)?'<div class="tdlm-sec"><p class="tdlm-hsec">Ce que le commanditaire attend</p><div class="tdlm-prose">'+esc(tx.conditions)+'</div></div>':'';
+  var cond=(tx&&tx.conditions)?'<div class="tdlm-sec"><p class="tdlm-hsec">Les attentes du commanditaire</p><div class="tdlm-prose">'+esc(tx.conditions)+'</div></div>':'';
 
   return ''
     +'<button class="tdlm-dret" data-back>\u2190 Retour au tableau</button>'
     +'<div class="tdlm-dp-title"><span class="tdlm-type">'+esc(m.titre)+'</span>'+F.stamp(m)+'</div>'
     +'<div class="tdlm-dp-body">'
       +'<div class="tdlm-dp-hd"><div class="tdlm-dp-meta">'+meta+'</div></div>'
-      +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte connu</p><div class="tdlm-prose">'+ctx+'</div></div>'
+      +'<div class="tdlm-sec"><p class="tdlm-hsec">Contexte officiel</p><div class="tdlm-prose">'+ctx+'</div></div>'
       +cond
       +blocOuvertes(tx)
       +blocAccroches(m,pv,vu)
@@ -188,7 +188,7 @@ function blocAccroches(m,pv,vu){
   }).join("");
   if(!corps)return "";
   return '<div class="tdlm-sec"><p class="tdlm-hsec">Vos indices</p>'
-    +'<div class="tdlm-prose tdlm-todo">Ouvrez-en un quand quelqu\u2019un remplit sa condition dans le sujet. Il devient public, à son nom.</div></div>'+corps;
+    +'<div class="tdlm-prose tdlm-todo">Ouvrez-en un quand quelqu\u2019un remplit sa condition dans le rp. Il devient public, à son nom.</div></div>'+corps;
 }
 
 /* ---- participants ---- */
@@ -255,7 +255,7 @@ function drawer(m,pv,vu){
   if(S.drawer==="inscrire"){
     return '<div class="tdlm-drawer on"><h4>S\u2019inscrire à la chasse</h4>'
       +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-vol"> Je souhaite pouvoir jouer l\u2019antagoniste de cette chasse</label>'
-      +'<div class="tdlm-prose tdlm-todo">L\u2019antagoniste aide la cible à échapper au contrat sans se faire démasquer. Le rôle est tiré au sort à la clôture des inscriptions, parmi ceux qui ont coché. '+esc(T.SECRET)+'</div>'
+      +'<div class="tdlm-prose tdlm-todo">L\u2019antagoniste aide la cible à échapper au contrat sans se faire démasquer. Le rôle tire au sort un des volontaires à la clôture des inscriptions. '+esc(T.SECRET)+'</div>'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="inscrireok">Je m\u2019inscris</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
@@ -285,11 +285,11 @@ function drawer(m,pv,vu){
         +'<option value="faisceau">Faisceau d\u2019indices concordants</option>'
         +'<option value="confrontation">Confrontation : il s\u2019est trahi ou a avoué</option>'
       +'</select>'
-      +'<div class="tdlm-prose tdlm-todo">Une accusation lancée en RP ne suffit pas. Il faut du joué : un flagrant délit, plusieurs éléments concordants, ou une confrontation à laquelle ses explications ne résistent pas.</div>'
+      +'<div class="tdlm-prose tdlm-todo">Une accusation lancée en RP ne suffit pas. Il faut : un flagrant délit, plusieurs éléments concordants, ou une confrontation à laquelle ses explications ne résistent pas.</div>'
       +'<label class="tdlm-fl">Sur quoi vous vous appuyez</label><textarea id="tdlc-justif"></textarea>'
-      +'<label class="tdlm-fl">Ce qui s\u2019est passé (public)</label><textarea id="tdlc-resume">'+esc(m.resume)+'</textarea>'
+      +'<label class="tdlm-fl">Résumé (public)</label><textarea id="tdlc-resume">'+esc(m.resume)+'</textarea>'
       +'<label class="tdlm-fl">Qui a joué</label><div class="tdlm-row">'+(lignes||'<span class="tdlm-idle">Personne.</span>')+'</div>'
-      +(m.gel?('<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-moitie"'+(m.aAccroches&&assez?' checked':'')+'> Le référent a tenu son rôle : rendre '+money(Math.floor(m.prime/2))+'</label>'
+      +(m.gel?('<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-moitie"'+(m.aAccroches&&assez?' checked':'')+'> Le commanditaire a tenu son rôle : rendre '+money(Math.floor(m.prime/2))+'</label>'
         +'<div class="tdlm-prose tdlm-todo">'+(m.aAccroches?(m.ouvertes+' indice(s) ouvert(s) sur '+ACCROCHES+'.'):'Aucun indice n\u2019avait été préparé à l\u2019ouverture.')+'</div>'):'')
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="reglerok">Clore et payer</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
@@ -305,7 +305,7 @@ function act(k,m){
   if(k==="quitter"){quitter(m);return;}
   if(k==="clore"){clorelnscriptions(m);return;}
   if(k==="retirer"){
-    if(!window.confirm("Retirer cette chasse ?\nLa prime immobilisée est rendue à qui l\u2019avait avancée."))return;
+    if(!window.confirm("Retirer cette chasse ?\nLa prime immobilisée est rendue."))return;
     var A=window.TDLCarrChasse||{};
     Promise.resolve(A.rendreGel?A.rendreGel(m):false).then(function(){
       m.statut="retiree"; patch(m,{statut:"retiree"});
