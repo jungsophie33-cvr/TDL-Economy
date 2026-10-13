@@ -144,7 +144,14 @@ function patchPrv(m, champs){
 }
 /* Création : la fiche légère d'abord, puis le texte et le privé. Si l'une des
    deux secondes écritures rate, la file de réessai du socle la rejoue ; la
-   fiche existe déjà, donc rien n'est perdu de vue. */
+   fiche existe déjà, donc rien n'est perdu de vue.
+
+   L'ENTRÉE EST INSÉRÉE DANS LA LISTE À LA MAIN. Le socle cale la révision
+   localement au moment où il écrit — c'est ce qui évite de relire sa propre
+   écriture à chaque tick — donc la veille ne rapportera JAMAIS l'entrée qu'on
+   vient de créer, et elle n'apparaîtrait qu'au rechargement suivant. On absorbe
+   donc l'objet qu'on a écrit, qui est exactement ce que la veille aurait livré,
+   et on amorce les deux caches pour que le panneau s'affiche sans relecture. */
 function creerEntree(id, objet, texte, prive){
   objet.schema=SCHEMA;
   return TAB.ecrireEntree(id, objet, "ouverture de "+(objet.titre||id)).then(function(ok){
@@ -153,7 +160,12 @@ function creerEntree(id, objet, texte, prive){
     return Promise.resolve(suite).then(function(){
       if(!prive)return true;
       return PRV.ecrireEntree(id, prive, "privé de "+(objet.titre||id));
-    }).then(function(){ TXTC[id]=texte||{}; PRVC[id]=prive||{}; return true; });
+    }).then(function(){
+      TXTC[id]=texte||{}; PRVC[id]=prive||{};
+      absorber(id, objet);
+      L.sort(function(a,b){return (b.cree||"").localeCompare(a.cree||"");});
+      return true;
+    });
   });
 }
 function supprimerEntree(m){
