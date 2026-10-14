@@ -170,7 +170,7 @@ var NOTIFS = {
      Même règle qu'ailleurs : la notification annonce, elle ne raconte pas.
      Rien de ce qui est privé ne passe par là — ni l'information d'un intérêt,
      ni le contenu d'un indice fermé, ni, surtout, le rôle de qui que ce soit. */
-  201:{n:C.CARR, ic:"crosshairs",     url:U.CARREFOUR, txt:function(d){return "Une chasse à prime est affichée au Carrefour : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
+  201:{n:C.CARR, ic:"target",         url:U.CARREFOUR, txt:function(d){return "Une chasse à prime est affichée au Carrefour : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ; prime "+(+d.prime||0)+" $.";}},
   202:{n:C.CARR, ic:"user-add",       url:U.CARREFOUR, txt:function(d){return esc(d.pseudo)+" s'inscrit à votre chasse &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   203:{n:C.CARR, ic:"lock",           url:U.CARREFOUR, txt:function(d){return "Les inscriptions sont closes sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. La chasse peut commencer.";}},
   204:{n:C.CARR, ic:"eye-crossed",    url:U.CARREFOUR, txt:function(d){return "Sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, quelque chose vous attend que personne d'autre ne doit savoir. Ouvrez le tableau.";}},
