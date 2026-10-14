@@ -14,11 +14,12 @@
    qui ne joue pas ne touche rien. Le chef peut à tout moment ajouter des rôles
    ou compléter les informations.
 
-   L'INFILTRÉ. Même mécanique que l'antagoniste du Carrefour. Le volontariat
-   vit dans missions_prv, jamais dans l'entrée : ni le chef ni les autres ne
-   doivent savoir qui s'est proposé, ni même si le rôle a été attribué. Tirage
-   UNE SEULE FOIS à la clôture, sous verrou transactionnel, par un client STAFF
-   — le chef n'a pas le droit de lire les volontaires, et il est exclu du
+   L'INFILTRÉ. TOUT coup en admet un : ce n'est pas une option que le créateur
+   coche, sinon la seule présence de la case dirait déjà quelque chose. Le
+   volontariat vit dans missions_prv, jamais dans l'entrée : ni le chef ni les
+   autres ne doivent savoir qui s'est proposé, ni même si quelqu'un a été tiré.
+   Tirage UNE SEULE FOIS à la clôture, sous verrou transactionnel, par un client
+   STAFF — le chef n'a pas le droit de lire les volontaires, et il est exclu du
    tirage : un chef infiltré contrôlerait tout.
 
    ARGENT : rien n'est retenu, tout est créé à la validation. 50 $ par joueur
@@ -53,8 +54,8 @@ var CAMPS={
 function normaliser(o){
   o.createur=o.createur||null;
   o.cellule=o.cellule||"";          /* vide = toutes les cellules */
-  o.envergure=!!o.envergure;
-  o.infiltre=!!o.infiltre;
+  /* un coup adressé à toutes les cellules est d'envergure par construction */
+  o.envergure=!!o.envergure||!o.cellule;
   o.roles=o.roles||{};
   o.insCloses=!!o.insCloses;
   o.tirageFait=!!o.tirageFait;
@@ -90,7 +91,7 @@ function partChef(m){ return m.envergure?CHEF_ENV:CHEF; }
 function celluleOk(m,p){ return !m.cellule || F.celluleDe(p)===m.cellule; }
 
 function sub(m){
-  return { sub:(m.cellule?("cellule "+m.cellule):"toutes les cellules"), qui:m.chef };
+  return { sub:(m.cellule?F.celluleLabel(m.cellule):"toutes les cellules"), qui:m.chef };
 }
 function tags(m){
   var out=[];
@@ -128,7 +129,7 @@ function panel(m){
     +'<div class="tdlm-dp-body">'
       +'<div class="tdlm-dp-hd"><div class="tdlm-dp-meta">'
         +'<div class="tdlm-m"><span class="tdlm-k">Monté par</span><span class="tdlm-v">'+esc(m.createur||"\u2014")+'</span></div>'
-        +'<div class="tdlm-m"><span class="tdlm-k">S\u2019adresse à</span><span class="tdlm-v">'+(m.cellule?esc(m.cellule):"toutes les cellules")+'</span></div>'
+        +'<div class="tdlm-m"><span class="tdlm-k">S\u2019adresse à</span><span class="tdlm-v">'+(m.cellule?esc(F.celluleLabel(m.cellule)):"toutes les cellules")+'</span></div>'
         +'<div class="tdlm-m"><span class="tdlm-k">Nature</span><span class="tdlm-v"><i class="fi '+F.typeIcon(m.type)+'"></i> '+F.typeLabel(m.type)+(m.envergure?' <span class="tdlm-todo">(envergure)</span>':'')+'</span></div>'
         +'<div class="tdlm-m"><span class="tdlm-k">Chef</span><span class="tdlm-v">'+(m.chef?esc(m.chef):'<span class="tdlm-todo">à pourvoir</span>')+'</span></div>'
         +'<div class="tdlm-m"><span class="tdlm-k">Ouvert</span><span class="tdlm-v">'+ilya(m.cree)+'</span></div>'
@@ -181,7 +182,7 @@ function blocParticipants(m,me,staff){
     &&(m.statut==="en_attente"||m.statut==="acceptee")&&celluleOk(m,me));
   var btn=peut?'<button class="tdlm-abtn prim" data-act="join">Je participe</button>':'';
   var hors=(F.estMaringouin(me)&&!celluleOk(m,me))
-    ? '<div class="tdlm-prose tdlm-todo">Ce coup est réservé à la cellule '+esc(m.cellule)+'.</div>' : '';
+    ? '<div class="tdlm-prose tdlm-todo">Ce coup est réservé à '+esc(F.celluleLabel(m.cellule))+'.</div>' : '';
   return '<div class="tdlm-cadre"><div class="tdlm-cadre-hd">'
     +'<span class="tdlm-hsec" style="margin:0">Les Maringouins</span>'+btn+'</div>'+pList+hors+'</div>';
 }
@@ -261,7 +262,7 @@ function drawer(m,chef,staff){
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   if(S.drawer==="join"){
-    return '<div class="tdlm-drawer on"><h4>Participer au coup</h4>'+caseInfiltre(m)
+    return '<div class="tdlm-drawer on"><h4>Participer au coup</h4>'+caseInfiltre()
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="joinok">Je participe</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
@@ -270,14 +271,13 @@ function drawer(m,chef,staff){
     roles(m).forEach(function(x){if(x.k===k)r=x;});
     if(r)return '<div class="tdlm-drawer on"><h4>'+esc(r.intitule)+'</h4>'
       +(r.consigne?'<div class="tdlm-prose">'+esc(r.consigne)+'</div>':'')
-      +caseInfiltre(m)
+      +caseInfiltre()
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="roleok:'+escAttr(k)+'">Je prends ce rôle</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
   return "";
 }
-function caseInfiltre(m){
-  if(!m.infiltre)return "";
+function caseInfiltre(){
   return '<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-vol"> Je souhaite pouvoir jouer l\u2019infiltré</label>'
     +'<div class="tdlm-prose tdlm-todo">L\u2019infiltré travaille contre le coup pour ceux qui l\u2019emploient. Le rôle est tiré au sort à la clôture des inscriptions, parmi ceux qui ont coché. Personne ne saura si un rôle a été attribué, ni à qui.</div>';
 }
@@ -288,10 +288,9 @@ function act(k,m){
   var me=F.myPseudo();
   if(k==="join"){
     if(!F.estMaringouin(me)){toast("Réservé aux Maringouins.");return;}
-    if(!celluleOk(m,me)){toast("Ce coup est réservé à la cellule "+m.cellule+".");return;}
+    if(!celluleOk(m,me)){toast("Ce coup est réservé à "+F.celluleLabel(m.cellule)+".");return;}
     if(m.insCloses){toast("Les inscriptions sont closes.");return;}
-    if(m.infiltre){S.drawer="join";S.inline=null;F.renderStage();return;}
-    inscrire(m,false); return;
+    S.drawer="join"; S.inline=null; F.renderStage(); return;
   }
   if(k==="topic"){S.inline=(S.inline==="topic")?null:"topic";S.drawer=null;F.renderStage();return;}
   if(k==="bilan"){S.drawer=(S.drawer==="bilan")?null:"bilan";S.inline=null;F.renderStage();return;}
@@ -420,7 +419,7 @@ function clore(m){
 
 /* UNE SEULE FOIS : le verrou sur tirageFait ne laisse passer qu'un client. */
 function tirer(m){
-  if(m.tirageFait||!m.infiltre)return;
+  if(m.tirageFait)return;
   F.verrou(m,"tirageFait").then(function(){
     m.tirageFait=true;
     return Promise.resolve(window.EcoCore.firebaseGet(
@@ -432,7 +431,7 @@ function tirer(m){
     });
     if(!cles.length)return null;
     var c=cles[Math.floor(Math.random()*cles.length)], qui=inscrits[c];
-    var ch={}; ch["infiltre"]=qui; ch["role/"+c]="infiltre";
+    var ch={}; ch["secret"]=qui; ch["role/"+c]="infiltre";
     return F.patchPrv(m,ch).then(function(){
       try{ if(window.EcoNotif) EcoNotif.a(qui,N_SECRET,{titre:m.titre},"inf"+m.id); }catch(e){}
       return qui;
@@ -445,7 +444,7 @@ function tirer(m){
 function auto(list){
   if(!F.isStaff())return;
   list.forEach(function(m){
-    if(m.genre==="coup"&&m.infiltre&&m.insCloses&&!m.tirageFait)tirer(m);
+    if(m.genre==="coup"&&m.insCloses&&!m.tirageFait)tirer(m);
   });
 }
 
