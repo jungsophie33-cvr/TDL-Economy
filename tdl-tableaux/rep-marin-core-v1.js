@@ -120,13 +120,26 @@ function hll(p){var m=p&&MEMBRES[p];return (m&&m.hors_la_loi)||null;}
 function estMaringouin(p){var h=hll(p);return !!(h&&h.bande==="maringouins");}
 function celluleDe(p){var h=hll(p);return (h&&h.cellule)||"";}
 function solde(p){var m=MEMBRES[p];return (m&&+m.dollars)||0;}
-/* toutes les cellules connues, pour le sélecteur d'ouverture d'un coup */
+/* Les trois cellules du lore, plus celles que les joueurs créeront : la liste
+   affichée est l'union des deux, pour qu'une cellule existe au sélecteur avant
+   d'avoir son premier membre.
+   [MAJ] les CLÉS doivent être exactement ce qui est écrit dans
+   membres/{pseudo}/hors_la_loi.cellule — « salespattes » est confirmé, les deux
+   autres suivent la même convention (minuscules, sans accent ni espace). */
+var CELLULES = {
+  salespattes: "Les Sales Pattes",
+  cypresmorts: "Les Cyprès morts",
+  rouilles:    "Les Rouilles"
+};
+function celluleLabel(c){ return CELLULES[c]||c||""; }
 function cellules(){
   var out=[], vu={};
+  Object.keys(CELLULES).forEach(function(c){ vu[c]=1; out.push(c); });
   Object.keys(MEMBRES).forEach(function(p){
     var c=celluleDe(p); if(!c||vu[c])return; vu[c]=1; out.push(c);
   });
-  out.sort(); return out;
+  out.sort(function(a,b){return celluleLabel(a).localeCompare(celluleLabel(b));});
+  return out;
 }
 
 /* champs communs ; le reste est normalisé par le type */
@@ -449,6 +462,7 @@ window.TDLMis = {
   crediter:crediterDollars, verrou:verrou, estDeja:estDeja, rafraichir:rafraichir,
   solde:solde, membres:function(){return MEMBRES;},
   estMaringouin:estMaringouin, celluleDe:celluleDe, cellules:cellules,
+  CELLULES:CELLULES, celluleLabel:celluleLabel,
   isStaff:isStaff, estConnecte:estConnecte, myPseudo:myPseudo
 };
 
