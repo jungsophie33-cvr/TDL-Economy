@@ -20,7 +20,8 @@ function formOuverture(){
   var me=F.myPseudo();
   var ts=TYPES.map(function(t){return '<option value="'+t.id+'">'+esc(t.label)+'</option>';}).join("");
   var cs='<option value="">Toutes les cellules</option>'+F.cellules().map(function(c){
-    return '<option value="'+escAttr(c)+'"'+(c===F.celluleDe(me)?' selected':'')+'>'+esc(c)+'</option>';
+    return '<option value="'+escAttr(c)+'"'+(c===F.celluleDe(me)?' selected':'')+'>'
+      +esc(F.celluleLabel(c))+'</option>';
   }).join("");
   var rs=""; for(var i=0;i<NB_NEUF;i++)rs+=champRole(i,null);
   return '<div class="tdlm-dpanel">'
@@ -31,14 +32,14 @@ function formOuverture(){
       +'<label class="tdlm-fl">Titre</label><input type="text" id="tdlc-ntitre" placeholder="Ex. : Vider le hangar de la 57 avant l\u2019inventaire">'
       +'<div class="tdlm-row"><div style="flex:1"><label class="tdlm-fl">Nature</label><select id="tdlc-ntype">'+ts+'</select></div>'
       +'<div style="flex:1"><label class="tdlm-fl">S\u2019adresse à</label><select id="tdlc-ncell">'+cs+'</select></div></div>'
-      +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-nenv"> Coup d\u2019envergure (plusieurs cellules, deux rôles adverses minimum)</label>'
+      +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-nenv"> Coup d\u2019envergure \u2014 deux rôles adverses au minimum</label>'
+      +'<div class="tdlm-prose tdlm-todo">Un coup adressé à toutes les cellules est d\u2019envergure par construction : la case se coche alors toute seule et ne se décoche plus.</div>'
       +'<label class="tdlm-fl">Objectif</label><textarea id="tdlc-nobj"></textarea>'
       +'<label class="tdlm-fl">Contraintes (une par ligne)</label><textarea id="tdlc-ncontr"></textarea>'
       +'<label class="tdlm-fl">Contexte</label><textarea id="tdlc-nctx"></textarea>'
       +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-npc"> Je ne serai pas le chef du coup</label>'
       +'<div class="tdlm-prose tdlm-todo">Le rôle reviendra alors au premier Maringouin inscrit. Un créateur qui ne joue pas ne touche rien.</div>'
-      +'<label class="tdlm-fl tdlm-chkline"><input type="checkbox" id="tdlc-ninf"> Ce coup admet un infiltré</label>'
-      +'<div class="tdlm-prose tdlm-todo">Quelqu\u2019un travaillera contre vous de l\u2019intérieur, pour la Main, pour la police, pour qui l\u2019emploie. Ce peut être un extérieur comme un gars de la bande. Vous ne saurez jamais qui, ni même si le rôle a été attribué.</div>'
+      +'<div class="tdlm-prose tdlm-todo">Sachez que tout coup peut cacher un infiltré : quelqu\u2019un qui travaille contre vous de l\u2019intérieur, pour la Main, pour la police, pour qui l\u2019emploie. Un extérieur comme un gars de la bande. Vous ne saurez jamais qui, ni même si quelqu\u2019un a été tiré \u2014 et c\u2019est ce qui en fait tout le sel.</div>'
       +'<div id="tdlc-newroles">'+rs+'</div>'
       +'<div class="tdlm-row"><button class="tdlm-abtn" data-neuf="plus">+ Un rôle de plus</button></div>'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-neuf="ok">Afficher le coup</button>'
@@ -54,9 +55,10 @@ function creer(){
   if(!titre){toast("Donnez un titre au coup.");return;}
   var obj=g("#tdlc-nobj");
   if(!obj){toast("Écrivez l\u2019objectif : c\u2019est ce que les autres vont lire en premier.");return;}
-  var env=!!($("#tdlc-nenv")&&$("#tdlc-nenv").checked);
+  var cell=g("#tdlc-ncell");
+  /* toutes les cellules = envergure, quoi qu'ait fait la case */
+  var env=!cell||!!($("#tdlc-nenv")&&$("#tdlc-nenv").checked);
   var pasChef=!!($("#tdlc-npc")&&$("#tdlc-npc").checked);
-  var inf=!!($("#tdlc-ninf")&&$("#tdlc-ninf").checked);
 
   var rs={}, nadv=0, n=0, sceau=Date.now().toString(36).slice(-4);
   for(var i=0;i<NB_NEUF;i++){
@@ -77,7 +79,7 @@ function creer(){
 
   var id=F.newId("cp");
   var o={ genre:"coup", titre:titre, type:g("#tdlc-ntype")||"recuperation",
-    createur:me, cellule:g("#tdlc-ncell"), envergure:env, infiltre:inf,
+    createur:me, cellule:cell, envergure:env,
     objectif:obj, contexte:g("#tdlc-nctx"),
     contraintes:(($("#tdlc-ncontr")||{}).value||"").split("\n").map(function(x){return x.trim();}).filter(Boolean),
     roles:rs, chef:chef, statut:"en_attente",
@@ -100,6 +102,15 @@ F.vue({
   visible:function(){return F.isStaff()||F.estMaringouin(F.myPseudo());},
   render:formOuverture,
   brancher:function(stage){
+    var cel=stage.querySelector("#tdlc-ncell"), env=stage.querySelector("#tdlc-nenv");
+    if(cel&&env){
+      cel.onchange=function(){
+        var toutes=!cel.value;
+        if(toutes)env.checked=true;
+        env.disabled=toutes;
+      };
+      cel.onchange();
+    }
     stage.querySelectorAll("[data-neuf]").forEach(function(el){
       el.onclick=function(){
         var a=el.getAttribute("data-neuf");
