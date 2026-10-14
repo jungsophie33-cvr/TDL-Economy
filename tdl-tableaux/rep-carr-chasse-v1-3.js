@@ -111,14 +111,15 @@ function estReferent(m,me){return !!(me&&referent(m)===me);}
 
 /* ===================== RANGÉE ===================== */
 function sub(m){
-  return { sub:nomCommanditaire(m), qui:(m.affiche?null:m.auteur), quand:"affichée "+ilya(m.cree) };
+  return { sub:nomCommanditaire(m)+" \u00b7 "+money(m.prime),
+           qui:(m.affiche?null:m.auteur), quand:"affichée "+ilya(m.cree) };
 }
-/* la zone reste dans la fiche : en étiquette, elle allongeait la rangée sans
-   rien apprendre que le titre ne dise déjà */
+/* Le commanditaire et la prime tiennent dans le sous-titre, comme sur le
+   tableau des Maringouins ; la seule étiquette qui apprenne quelque chose est
+   le remplissage, et seulement tant qu'on peut encore s'inscrire. */
 function tags(m){
-  var n=parts(m).length, out=[money(m.prime)];
-  if(m.statut==="ouverte")out.push(n+"/"+MAX_PART+" inscrits");
-  return out;
+  if(m.statut!=="ouverte")return [];
+  return [parts(m).length+"/"+MAX_PART+" inscrits"];
 }
 
 /* ===================== PANNEAU ===================== */
