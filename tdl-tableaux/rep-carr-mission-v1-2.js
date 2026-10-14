@@ -69,12 +69,14 @@ function aOmbre(m){return ints(m).some(function(p){return F.estOmbre(p.pseudo);}
 function pretALancer(m){return aBayou(m)&&(!m.besoinOmbre||aOmbre(m));}
 
 /* ===================== RANGÉE ===================== */
-function sub(m){ return { sub:(m.zone||"Terrebonne"), qui:m.auteur, quand:"ouverte "+ilya(m.cree) }; }
-/* ce qui manque pour lancer reste dans le bandeau de la fiche : en étiquette,
-   ça désignait publiquement ce que la mission attend, et à qui le reprocher */
-function tags(m){
-  return [ints(m).length+" intérêt"+(ints(m).length>1?"s":"")];
+function sub(m){
+  var n=ints(m).length;
+  return { sub:"Mission \u00b7 "+n+" intérêt"+(n>1?"s":""),
+           qui:m.auteur, quand:"ouverte "+ilya(m.cree) };
 }
+/* tout tient dans le sous-titre ; ce qui manque pour lancer reste dans le
+   bandeau de la fiche, où on le lit avec le contexte sous les yeux */
+function tags(){ return []; }
 
 /* ===================== PANNEAU ===================== */
 function panel(m){
