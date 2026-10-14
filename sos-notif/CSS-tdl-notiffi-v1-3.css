@@ -6,13 +6,14 @@
 /* ---------- couleur par module ---------- */
 .notification.tdl_boutique   { --c: var(--dark); --c20: var(--darkopa2); }
 .notification.tdl_mission    { --c: var(--gr2-color); --c20: var(--gr2-20); }
-.notification.tdl_enquete    { --c: var(--gr3-color); --c20: var(--gr3-20); }
+.notification.tdl_enquete    { --c: var(--gr1-color); --c20: var(--gr1-20); }
 .notification.tdl_calendrier { --c: var(--dark);      --c20: var(--darkopa2); }
 .notification.tdl_faveur     { --c: var(--gr1-color); --c20: var(--gr1-20); }
 .notification.tdl_main       { --c: var(--gr6-color); --c20: var(--gr6-20); }
 .notification.tdl_autre      { --c: var(--cntr);      --c20: var(--cntr2); }
 .notification.tdl_flottille { --c: var(--gr5-color); --c20: var(--gr5-20); }
 .notification.tdl_courier    { --c: var(--gr4-color); --c20: var(--gr4-20); }
+.notification.tdl_carrefour    { --c: var(--gr3-color); --c20: var(--gr3-20); }
 
 /* ---------- le cadre ----------
    Aucune surcharge de background : le liseré suffit à distinguer. */
