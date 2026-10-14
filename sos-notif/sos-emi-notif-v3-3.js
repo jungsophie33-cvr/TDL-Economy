@@ -77,7 +77,14 @@ var NOTIFS = {
   114:{n:C.MIS,  ic:"inbox-in",       url:U.MISSIONS,  txt:function(d){return "La mission &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; demande votre validation.";}},
   115:{n:C.MIS,  ic:"sack-dollar",    url:U.MISSIONS,  txt:function(d){return "Mission &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; validée : "+(+d.montant||0)+" $ vous ont été versés.";}},
   116:{n:C.MIS,  ic:"rotate-left",    url:U.MISSIONS,  txt:function(d){return "Faute de cellule volontaire, &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close. Votre prime vous est rendue.";}},
-
+  /* --- Les coups montés par les Maringouins eux-mêmes ---
+     Même règle qu'ailleurs : la notification annonce, elle ne raconte pas.
+     Le 119 ne dit ni quoi ni pourquoi : il est lisible dans une liste,
+     parfois par-dessus l'épaule de quelqu'un. */
+  117:{n:C.MIS,  ic:"hand-fist",       url:U.MISSIONS,  txt:function(d){return "Un coup se monte : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; ("+esc(d.cellule)+").";}},
+  118:{n:C.MIS,  ic:"user-add",        url:U.MISSIONS,  txt:function(d){return esc(d.pseudo)+" prend un rôle sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  119:{n:C.MIS,  ic:"eye-crossed",     url:U.MISSIONS,  txt:function(d){return "Sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, quelque chose vous attend que personne d'autre ne doit savoir. Ouvrez le tableau.";}},
+   
   /* --- Dossiers de la Main de la Providence ---
      Règle : la notification annonce, elle ne raconte pas. Aucun montant,
      aucun doigt, aucun motif — le tableau filtre déjà ce que chacun peut voir. */
