@@ -280,7 +280,7 @@ function ligne(m){
   var tags=((t.tags?t.tags(m):[])||[]).filter(Boolean);
   var chips=tags.map(function(x){return '<span class="tdlm-req">'+esc(x)+'</span>';}).join("");
   var st=STATUTS[m.statut]||{c:"var(--cntr)"};
-  var sub=esc(t.label)+(o.sub?' \u27e1 '+esc(o.sub):'');
+  var sub=esc(o.sub||t.label);
   return '<div class="tdlm-drow" data-sel="'+escAttr(m.id)+'" aria-current="'+(m.id===S.sel)+'">'
     +'<span class="tdlm-ddot" style="--sc:'+st.c+'"></span>'
     +'<div style="min-width:0">'
