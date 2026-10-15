@@ -48,6 +48,11 @@ window.TDLI = window.TDLI || {};
   var CFG = {
     LAT: 29.5958, LON: -90.7195,          // Houma
     STATION: "8762075",                   // Port Fourchon
+    /* Station de repli. Cocodrie n'a plus d'observations depuis sa fermeture,
+       mais ses PRÉDICTIONS restent calculées et servies — et elle est au bout
+       du Houma Navigation Canal, donc bien plus proche des bayous de
+       Terrebonne que Port Fourchon, qui est en pleine côte. */
+    STATION_SECOURS: "8762928",           // Cocodrie
     TZ: "America/Chicago",
     CLE_CACHE: "tdli-meteo-v1",
     TTL_METEO: 2 * 3600 * 1000,           // 2 h
@@ -61,9 +66,28 @@ window.TDLI = window.TDLI || {};
     "precipitation_probability_max,precipitation_sum,dew_point_2m_mean" +
     "&forecast_days=1&timezone=" + encodeURIComponent(CFG.TZ);
 
-  var URL_MAREE = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter" +
-    "?product=predictions&interval=hilo&datum=MLLW&station=" + CFG.STATION +
-    "&date=today&time_zone=lst_ldt&units=metric&format=json&application=TDL";
+  /* Dates explicites plutôt que date=today : « today » est le jour du SERVEUR
+     NOAA, pas celui de Houma, et les deux divergent une partie de la soirée.
+     FENÊTRE DE DEUX JOURS, et c'est nécessaire : le cycle diurne dure 24 h 50,
+     il dérive donc de cinquante minutes par jour et fait régulièrement tomber
+     l'une des deux étales hors de la journée civile. Le 15 octobre 2026, Port
+     Fourchon ne renvoie qu'une basse mer à 11 h 41 et aucune pleine. En
+     demandant le lendemain, on peut compléter la paire manquante. */
+  function urlMaree(station, debut, fin) {
+    function fmt(j) { return String(j || "").replace(/-/g, ""); }
+    return "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter" +
+      "?product=predictions&interval=hilo&datum=MLLW&station=" + station +
+      "&begin_date=" + fmt(debut) + "&end_date=" + fmt(fin) +
+      "&time_zone=lst_ldt&units=metric&format=json&application=TDL";
+  }
+  /* « 2026-10-15 » → « 2026-10-16 ». Date nue traitée en UTC : aucun fuseau
+     n'intervient, donc aucun décalage possible. */
+  function jourSuivant(j) {
+    var p = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(j || ""));
+    if (!p) return j;
+    var d = new Date(Date.UTC(+p[1], +p[2] - 1, +p[3] + 1));
+    return d.toISOString().slice(0, 10);
+  }
 
   /* === TABLES === */
 
@@ -128,6 +152,7 @@ window.TDLI = window.TDLI || {};
     BASSE:  "Basse",
     PLEINE: "Pleine",
     NOTE:   "heures de Houma",
+    DEMAIN: "demain",
     MINI:   "mini",
     AIR:    "Air",
     INDISPO: "Relevé indisponible"
@@ -182,14 +207,33 @@ window.TDLI = window.TDLI || {};
 
   /* === RÉSEAU === */
 
+  /* NOAA répond HTTP 200 avec un objet { error: { message } } quand la station
+     ne sert pas le produit demandé : sans ce test, l'échec serait silencieux et
+     la carte afficherait un tiret sans la moindre trace en console. */
   function recuperer(url, nom) {
     return fetch(url).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
+    }).then(function (j) {
+      if (j && j.error) throw new Error(j.error.message || "réponse en erreur");
+      return j;
     }).catch(function (e) {
       jrn(nom + " : " + e.message);
       return null;
     });
+  }
+
+  /* Station principale, puis repli. Une marée approximative vaut mieux qu'un
+     tiret : les deux stations sont sur la même côte, à quelques dizaines de
+     minutes d'écart. */
+  function recupererMaree(jour) {
+    var fin = jourSuivant(jour);
+    return recuperer(urlMaree(CFG.STATION, jour, fin), "NOAA " + CFG.STATION)
+      .then(function (j) {
+        if (j && j.predictions && j.predictions.length) return j;
+        jrn("repli sur la station " + CFG.STATION_SECOURS + ".");
+        return recuperer(urlMaree(CFG.STATION_SECOURS, jour, fin), "NOAA " + CFG.STATION_SECOURS);
+      });
   }
 
   /* === CACHE ===
@@ -210,7 +254,7 @@ window.TDLI = window.TDLI || {};
     var fraisMaree = c.jour === jour && c.marees;
 
     var pM = fraisMeteo ? Promise.resolve(c.meteo) : recuperer(URL_METEO, "Open-Meteo");
-    var pT = fraisMaree ? Promise.resolve(c.marees) : recuperer(URL_MAREE, "NOAA");
+    var pT = fraisMaree ? Promise.resolve(c.marees) : recupererMaree(jour);
 
     return Promise.all([pM, pT]).then(function (r) {
       var o = {
@@ -226,28 +270,47 @@ window.TDLI = window.TDLI || {};
 
   /* === MARÉE === */
 
-  /* « 2026-10-11 23:37 » → { hm:"23 h 37", min:1417 }. Jamais de new Date. */
+  /* « 2026-10-11 23:37 » → { jour, hm:"23 h 37", min:1417 }. Jamais de new Date :
+     cette chaîne n'est pas de l'ISO 8601 et serait lue dans le fuseau du
+     LECTEUR, pas dans celui de Houma. */
   function heureNOAA(t) {
     var m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})/.exec(String(t || ""));
     if (!m) return null;
-    return { hm: m[2] + " h " + m[3], min: (+m[2]) * 60 + (+m[3]) };
+    return { jour: m[1], hm: m[2] + " h " + m[3], min: (+m[2]) * 60 + (+m[3]) };
   }
 
   /* Port Fourchon est en régime mixte : la plupart des jours une seule basse
      et une seule pleine mer, mais certaines quadratures en donnent deux de
      chaque. On retient les deux extrêmes principaux — la plus basse et la plus
      haute — et on liste l'ensemble au survol. */
-  function extraireMarees(json) {
+  function extraireMarees(json, jour) {
     var liste = (json && json.predictions) || [];
-    var bas = null, haut = null, tout = [];
+    var duJour = { H: null, L: null }, duLendemain = { H: null, L: null }, tout = [];
     liste.forEach(function (p) {
       var h = heureNOAA(p.t), v = parseFloat(p.v);
-      if (!h || isNaN(v)) return;
-      tout.push((p.type === "H" ? T.PLEINE : T.BASSE) + " " + h.hm + " · " + v.toFixed(2) + " m");
-      if (p.type === "H") { if (!haut || v > haut.v) haut = { h: h, v: v }; }
-      else                { if (!bas  || v < bas.v)  bas  = { h: h, v: v }; }
+      if (!h || isNaN(v) || (p.type !== "H" && p.type !== "L")) return;
+      var aujourdhui = (h.jour === jour);
+      if (aujourdhui) {
+        tout.push((p.type === "H" ? T.PLEINE : T.BASSE) + " " + h.hm + " · " + v.toFixed(2) + " m");
+      }
+      var cible = aujourdhui ? duJour : duLendemain;
+      var cur = cible[p.type];
+      // l'extrême le plus marqué du jour : la plus haute pleine, la plus basse basse
+      if (!cur || (p.type === "H" ? v > cur.v : v < cur.v)) {
+        cible[p.type] = { h: h, v: v, demain: !aujourdhui };
+      }
     });
-    return { bas: bas, haut: haut, tout: tout };
+    /* Le cycle diurne dérivant de 50 min par jour, une étale tombe
+       régulièrement hors de la journée civile. On la prend alors au lendemain
+       plutôt que de n'afficher aucune marée : le joueur a besoin de l'heure,
+       pas d'une leçon sur les bornes de minuit. */
+    function choisir(t) {
+      if (duJour[t]) return duJour[t];
+      if (duLendemain[t]) { tout.push("\u2192 " + (t === "H" ? T.PLEINE : T.BASSE) +
+        " " + duLendemain[t].h.hm + " le lendemain"); return duLendemain[t]; }
+      return null;
+    }
+    return { bas: choisir("L"), haut: choisir("H"), tout: tout };
   }
 
   /* Profil du jour tracé à partir des deux horaires réels : sinusoïde de
@@ -255,13 +318,16 @@ window.TDLI = window.TDLI || {};
      On lit ainsi d'un coup d'œil si l'étale tombe le matin ou le soir ; une
      courbe générique ne correspondrait à aucune journée. */
   function courbe(tb, th) {
-    if (tb == null || th == null) return "";
+    if (tb == null || th == null || tb === th) return "";
     var P = 2 * Math.abs(th - tb), d = [], x, niv;
     for (x = 0; x <= 1440; x += 30) {
       niv = 0.5 - 0.5 * Math.cos(2 * Math.PI * (x - tb) / P);   // 0 basse, 1 pleine
       d.push((x ? "L" : "M") + ((x / 1440) * 104).toFixed(1) + " " + (20 - niv * 16).toFixed(1));
     }
+    /* Un repère au-delà de minuit sort du cadre : on ne le dessine pas, la
+       courbe suffit à montrer que l'étale tombe après la fin du graphique. */
     function pt(t, y, cl) {
+      if (t < 0 || t > 1440) return "";
       return '<circle' + (cl ? ' class="' + cl + '"' : "") +
              ' cx="' + ((t / 1440) * 104).toFixed(1) + '" cy="' + y + '" r="2.6"/>';
     }
@@ -272,7 +338,7 @@ window.TDLI = window.TDLI || {};
 
   /* === RENDU === */
 
-  function rendre(meteo, marees, forcage) {
+  function rendre(meteo, marees, forcage, jour) {
     var hote = NS.el("#tdli-met-corps"), carte = NS.el("#tdli-met");
     if (!hote) return;
 
@@ -310,7 +376,7 @@ window.TDLI = window.TDLI || {};
               '<i class="fi ' + e.ic + '"></i>' + esc(libEau) + "</div>" +
             "</div>";
 
-    var m = extraireMarees(marees);
+    var m = extraireMarees(marees, jour);
     h += '<div class="tdli-met-stats">';
     if (vent != null) {
       h += '<div><div class="tdli-met-cle">' + T.VENT + "</div>" +
@@ -318,12 +384,19 @@ window.TDLI = window.TDLI || {};
            (cardinal(dir) ? " · " : "") + vent + " km/h</div></div>";
     }
     h += '<div><div class="tdli-met-cle">' + T.MAREE + "</div>";
-    if (m.bas && m.haut) {
-      h += '<span class="tdli-met-heure" title="' + esc(m.tout.join("\n")) + '">' +
-             "<b>" + T.BASSE + "</b>" + m.bas.h.hm + "</span>" +
-           '<span class="tdli-met-heure" title="' + esc(m.tout.join("\n")) + '">' +
-             "<b>" + T.PLEINE + "</b>" + m.haut.h.hm + "</span>" +
-           courbe(m.bas.h.min, m.haut.h.min) +
+    if (m.bas || m.haut) {
+      var bulle = esc(m.tout.join("\n"));
+      function ligne(e, lib) {
+        if (!e) return "";
+        return '<span class="tdli-met-heure" title="' + bulle + '"><b>' + lib + "</b>" +
+               e.h.hm + (e.demain ? '<span class="tdli-met-dem">' + T.DEMAIN + "</span>" : "") +
+               "</span>";
+      }
+      // une étale au lendemain se place au-delà de 1440 : la courbe reste juste
+      var tb = m.bas ? m.bas.h.min + (m.bas.demain ? 1440 : 0) : null;
+      var th = m.haut ? m.haut.h.min + (m.haut.demain ? 1440 : 0) : null;
+      h += ligne(m.bas, T.BASSE) + ligne(m.haut, T.PLEINE) +
+           courbe(tb, th) +
            '<div class="tdli-met-note">' + T.NOTE + "</div>";
     } else {
       h += '<div class="tdli-met-val">—</div>';
