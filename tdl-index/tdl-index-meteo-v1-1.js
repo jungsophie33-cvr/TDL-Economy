@@ -54,7 +54,10 @@ window.TDLI = window.TDLI || {};
        Terrebonne que Port Fourchon, qui est en pleine côte. */
     STATION_SECOURS: "8762928",           // Cocodrie
     TZ: "America/Chicago",
-    CLE_CACHE: "tdli-meteo-v1",
+    /* v2 : la fenêtre des marées est passée à deux jours. Changer la clé
+       jette les relevés d'une seule journée, qu'un cache encore frais
+       servirait sinon jusqu'au lendemain. */
+    CLE_CACHE: "tdli-meteo-v2",
     TTL_METEO: 2 * 3600 * 1000,           // 2 h
     NOEUD_ETAT: "accueil/meteo_etat"      // surcharge staff
   };
@@ -152,7 +155,7 @@ window.TDLI = window.TDLI || {};
     BASSE:  "Basse",
     PLEINE: "Pleine",
     NOTE:   "heures de Houma",
-    DEMAIN: "demain",
+    DEMAIN: "(demain)",
     MINI:   "mini",
     AIR:    "Air",
     INDISPO: "Relevé indisponible"
@@ -423,7 +426,7 @@ window.TDLI = window.TDLI || {};
     }).catch(function () { return null; });
 
     Promise.all([charger(jour), pEtat]).then(function (r) {
-      rendre(r[0].meteo, r[0].marees, r[1]);
+      rendre(r[0].meteo, r[0].marees, r[1], jour);
     });
   }
 
