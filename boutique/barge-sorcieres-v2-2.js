@@ -76,6 +76,8 @@
     ERR_SECRET:   "Un secret se raconte. Développez : les Sorcières refuseront une phrase en l\u2019air.",
     ERR_NATURE:   "Précisez la nature du service et ce que votre personnage offre.",
     ERR_PLAFOND:  "Vous avez déjà " + CFG.MAX_CREANCES + " services dus aux Sorcières. Acquittez-en un avant d\u2019en promettre un autre.",
+    OK_ARGENT:   "Offrande déposée. La somme est retenue jusqu\u2019à ce que les Sorcières se prononcent ; elle vous sera rendue si elles refusent.",
+    OK_OFFRANDE: "Votre requête est portée aux Sorcières. Elles délibéreront, et vous répondront en RP.",
     RESTE:        function (n) { return n + " service" + (n > 1 ? "s" : "") + " déjà dû" + (n > 1 ? "s" : "") + " sur " + CFG.MAX_CREANCES + "."; }
   };
 
@@ -246,7 +248,7 @@
       if (refus) { alert(refus); return; }
 
       var mode = item.sansMode ? "secret" : champ(det, "offrande_mode");
-      var opts = { champs:{ offrande_mode: mode } };
+      var opts = { champs:{ offrande_mode: mode }, silent:true };
 
       if (mode === "argent") {
         opts.act = "comptant";
@@ -257,8 +259,10 @@
       }
 
       btn.disabled = true;
-      try { await api.acheter(opts); }
-      finally { btn.disabled = false; }
+      try {
+        var res = await api.acheter(opts);
+        if (res && res.ok) alert(mode === "argent" ? TEXTES.OK_ARGENT : TEXTES.OK_OFFRANDE);
+      } finally { btn.disabled = false; }
     };
   }
 
