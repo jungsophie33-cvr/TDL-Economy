@@ -51,9 +51,10 @@
  */
 (function () {
   "use strict";
-  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", NODE_CATALOGUE:"boutique/barge", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+  var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes", NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", NODE_LOSTBAYOU:"lost_bayou", NODE_SECRETS:"secrets", NODE_CATALOGUE:"boutique/barge", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
   var SCHEMA_DOSSIER = 2;      /* doit suivre rep-det-main   */
   var SCHEMA_TACHE   = 2;      /* doit suivre rep-tac-fais    */
+  var SCHEMA_LB      = 2;      /* lost_bayou et secrets naissent en schéma 2 */
   var RACINE_FLOT_REV= "flottille_rev";   /* sentinelle du hangar, hors du nœud */
   function E(){ return window.EcoCore; }
   function B(){ return window.TDLBase; }
@@ -78,13 +79,19 @@
   var STATUT_RES = { du:"Service dû", prioritaire:"Dette prioritaire", longue:"Dette longue" };
   var DISPO_LIB = { disponible:"Disponible", ponctuel:"Ponctuel", indisponible:"Indisponible" };
   var CIBLE_LIB = { pj:"Un personnage joueur", pnj:"Un PNJ", famille:"Une famille", groupe:"Un groupe", entreprise:"Une entreprise" };
+  var OFFRANDE_MODE = { argent:"Argent", secret:"Un secret", creance:"Créance de service" };
+  var CREANCE_NATURE = { materiel:"Matériel ou fourniture", transport:"Transport ou passage", abri:"Abri",
+                         acces:"Accès à un lieu ou à un métier", silence:"Silence ou témoignage",
+                         mainoeuvre:"Main-d\u2019œuvre", info:"Information à ramener" };
   var FIELDS = [["lieu_vise","Lieu ou communauté visée"],["verrou_acces","Ce qui rend l'accès impossible"],["but_passage","Ce que le personnage va y faire"],["titre","Titre de l'opération"],["verrou_libelle","Pourquoi la Flottille"],["parties","Qui doit se retrouver là"],["objectif","Objectif"],
                   ["contraintes","Contraintes"],["mandtype_libelle","Commanditaire affiché"],["mand","Libellé du commanditaire"],["duree_libelle","Durée d'absence"],["destination","Destination"],["motif_libelle","Motif du départ"],["dette_libelle","Dette fuie"],["enquete_titre","Affaire fuie"],
                   ["restent","Reste derrière (PJ)"],["restent_pnj","Autres proches"],["contexte","Contexte RP"],["situation","Situation"],["attentes","Attentes"],["remuneration","Rémunération"],["prix_negocie","Prix négocié"],["prix_offert","Prix proposé"],["methode","Méthode"],
                   ["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
                 ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"],
-                ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]];
-  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" } };
+                ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"]
+                ["offrande_mode","Mode d\u2019offrande"],["offrande_secret","Secret confié"],
+                ["offrande_creance_type","Nature de la créance"],["offrande_creance_detail","Ce que le personnage offre"]];
+  var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" }, offrande_mode:OFFRANDE_MODE, offrande_creance_type:CREANCE_NATURE, };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
     /* Point d'extension : un module tiers pousse son onglet et sa vue ici, avant
      le premier render. Évite de faire grossir ce fichier à chaque tableau. */
@@ -119,6 +126,9 @@
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
     if (d.itemId==="flot_disparition") out += ligne("Entrée à créer", "Tableau du hangar \u00b7 disparition");
     if (d.itemId==="flot_operation")   out += ligne("Entrée à créer", "Tableau du hangar \u00b7 opération");
+    if (depotSecret(d))  out += ligne("Entrée à créer", "Tableau des secrets \u00b7 dépôt au pot commun");
+    if (creanceService(d)) out += ligne("Entrée à créer", "Tableau des secrets \u00b7 créance de service");
+    if (d.itemId==="secret") out += ligne("À inscrire", "Jeton de refus pour "+(d.pseudo||"?"));
     var pn = phaseNego(d), ps = phaseService(d);
     if (pn || ps) out += ligne("Dossier à ouvrir", "Tableau de la Main · " + (pn&&ps ? "négociation puis service" : (pn ? "négociation en RP" : "service à rendre")));
     var ri = reseauAInscrire(d);
@@ -307,6 +317,52 @@
       .then(function(ok){ if(!ok) throw new Error("écriture refusée : "+sous+"/"+id); return id; });
   }
 
+    /* L'article « Confier un secret » dépose toujours ; les trois autres ne
+     déposent que si le joueur a payé en secret. */
+  function depotSecret(d){ return d.itemId==="secret" || d.offrande_mode==="secret"; }
+  function creanceService(d){ return d.offrande_mode==="creance" && !!d.offrande_creance_type; }
+
+  /* Le secret entre au POT COMMUN : personne ne l'a recueilli, donc aucune
+     Sorcière ne le détient. L'intitulé public est laissé vide — c'est au
+     tableau que le staff l'écrit, en voyant le contenu. */
+  function creerSecret(d){
+    var now = new Date().toISOString();
+    var id = B().nouvelleCle();
+    return ecrireEntree(CFG.NODE_SECRETS, id, {
+      schema: SCHEMA_LB,
+      origine:"boutique", demandeId:d.id||"", deposant:d.pseudo||"",
+      article:d.itemId||"", intitule:"",
+      contenu:(d.offrande_secret || d.offrande || ""),
+      recueilliPar:null, etat:"pot", usage:"dormant",
+      deOuvert:false, fuite:null, rumeur:null,
+      cree:now
+    }, "secret déposé au pot commun").then(function(r){
+      try{ if(window.EcoNotif) EcoNotif.bande("sorcieres",214,{},"sec"+(d.id||"")); }catch(e){}
+      return r;
+    });
+  }
+
+  /* Créance PROPOSÉE par le joueur en paiement : même fiche et même cycle que
+     celle réclamée par les Sorcières, distinguée par origine. */
+  function creerCreanceService(d){
+    var now = new Date().toISOString();
+    var id = B().nouvelleCle();
+    return ecrireEntree(CFG.NODE_LOSTBAYOU, id, {
+      schema: SCHEMA_LB,
+      type:"creance", origine:"propose",
+      demandeId:d.id||"", debiteur:d.pseudo||"",
+      titre:(d.nom||"Service dû aux Sorcières"), article:d.itemId||"",
+      nature:d.offrande_creance_type||"", detail:d.offrande_creance_detail||"",
+      statut:"due", responsable:null,
+      sujet:"", resume:"", consequences:"",
+      demandeValidation:false,
+      cree:now, ouverte:now, clos:null
+    }, "créance de service ouverte").then(function(r){
+      try{ if(window.EcoNotif) EcoNotif.a(d.pseudo,210,{titre:d.nom||""},"cre"+(d.id||"")); }catch(e){}
+      return r;
+    });
+  }
+
   /* [MAJ v5] clé locale + sentinelle, et naissance directe en schema 2 :
      le dossier n'aura jamais à passer par la conversion de rep-det-main.
      participants et valides sont OMIS : en schema 2 ce sont des nœuds à clés,
@@ -402,6 +458,18 @@
         if (act==="valider" && !d.entreeFlottille && (d.itemId==="flot_disparition" || d.itemId==="flot_operation")) {
           try { await creerEntreeFlottille(d); o[base+"/entreeFlottille"] = true; }
           catch(e){ if (window.console) console.error("[quais-staff] entrée flottille", e); alert("Demande validée, mais l\u2019entrée du tableau du hangar n\u2019a pas pu être créée."); }
+        }
+        if (!d.entreeSecret && depotSecret(d)) {
+          try { await creerSecret(d); o[base+"/entreeSecret"] = true; }
+          catch(e){ if (window.console) console.error("[quais-staff] secret", e); alert("Demande validée, mais le secret n\u2019a pas pu être déposé."); }
+        }
+        if (!d.entreeCreance && creanceService(d)) {
+          try { await creerCreanceService(d); o[base+"/entreeCreance"] = true; }
+          catch(e){ if (window.console) console.error("[quais-staff] créance", e); alert("Demande validée, mais la créance de service n\u2019a pas pu être ouverte."); }
+        }
+        if (!d.jetonPose && d.itemId==="secret") {
+          try { await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/jeton_sorcieres", true); o[base+"/jetonPose"] = true; }
+          catch(e){ if (window.console) console.error("[quais-staff] jeton", e); }
         }
         if (!d.dossierCree) {
           var pn = phaseNego(d), ps = phaseService(d);
