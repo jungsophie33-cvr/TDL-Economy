@@ -134,19 +134,27 @@
   }
   function aide(t){ return '<div class="qb-helper">' + esc(t) + '</div>'; }
 
-  /* les trois branches, masquées tant qu'aucun mode n'est choisi */
-  function branches(api){
-    var n = creancesOuvertes(api), plein = n >= CFG.MAX_CREANCES;
+    /* colonne de droite : le premier champ du mode choisi */
+  function branchesDuo(api){
     return '<div data-zone="argent" style="display:none">'
       +   ui.fld(TEXTES.L_MONTANT, ui.inp("offrande_montant", String(CFG.MIN_ARGENT)))
-      +   aide(TEXTES.AIDE_MONTANT)
-      + '</div>'
-      + '<div data-zone="secret" style="display:none">'
-      +   ui.fld(TEXTES.L_SECRET, ui.ta("offrande_secret", TEXTES.PH_SECRET))
-      +   aide(TEXTES.AIDE_SECRET)
       + '</div>'
       + '<div data-zone="creance" style="display:none">'
       +   ui.fld(TEXTES.L_NATURE, selNature())
+      + '</div>';
+  }
+
+  /* pleine largeur : les textes longs et les aides */
+  function branchesFull(api){
+    var n = creancesOuvertes(api), plein = n >= CFG.MAX_CREANCES;
+    return '<div data-zone="argent2" class="qb-sorc-full" style="display:none">'
+      +   aide(TEXTES.AIDE_MONTANT)
+      + '</div>'
+      + '<div data-zone="secret" class="qb-sorc-full" style="display:none">'
+      +   ui.fld(TEXTES.L_SECRET, ui.ta("offrande_secret", TEXTES.PH_SECRET))
+      +   aide(TEXTES.AIDE_SECRET)
+      + '</div>'
+      + '<div data-zone="creance2" class="qb-sorc-full" style="display:none">'
       +   ui.fld(TEXTES.L_DETAIL, ui.ta("offrande_creance_detail", TEXTES.PH_DETAIL))
       +   aide(TEXTES.AIDE_CREANCE + (n ? " " + TEXTES.RESTE(n) : ""))
       +   (plein ? aide(TEXTES.ERR_PLAFOND) : "")
@@ -173,9 +181,12 @@
       b += ui.fld(TEXTES.L_SECRET_SEUL, ui.ta("offrande_secret", TEXTES.PH_SECRET))
         +  aide(TEXTES.AIDE_SECRET) + aide(TEXTES.AIDE_JETON);
     } else {
-      b += ui.fld(TEXTES.L_REQUETE, ui.ta("requete", TEXTES.PH_REQUETE))
-        +  ui.fld(TEXTES.L_MODE, selMode())
-        +  branches(api);
+            b += ui.fld(TEXTES.L_REQUETE, ui.ta("requete", TEXTES.PH_REQUETE))
+        +  '<div class="qb-sorc-duo">'
+        +    ui.fld(TEXTES.L_MODE, selMode())
+        +    branchesDuo(api)
+        +  '</div>'
+        +  branchesFull(api);
     }
     return b + '</div>' + bouton();
   }
@@ -210,13 +221,15 @@
   /* ===================== EVENTS ===================== */
   function wireDetail(det, api, item){
     var sel = det.querySelector('[data-champ="offrande_mode"]');
+    var ZONES = { argent:["argent","argent2"], secret:["secret"], creance:["creance","creance2"] };
     if (sel) sel.onchange = function(){
       var v = sel.value;
-      ["argent","secret","creance"].forEach(function(k){
-        var z = zone(det, k); if (z) z.style.display = (k === v) ? "" : "none";
+      ["argent","argent2","secret","creance","creance2"].forEach(function(k){
+        var z = zone(det, k); if (z) z.style.display = "none";
       });
-      /* collecterChamps ramasse TOUT le détail, branches masquées comprises :
-         sans ce nettoyage, un joueur qui change d'avis envoie les deux offrandes. */
+      (ZONES[v] || []).forEach(function(k){
+        var z = zone(det, k); if (z) z.style.display = "";
+      });
       if (v !== "argent")  vider(det, ["offrande_montant"]);
       if (v !== "secret")  vider(det, ["offrande_secret"]);
       if (v !== "creance") vider(det, ["offrande_creance_type", "offrande_creance_detail"]);
