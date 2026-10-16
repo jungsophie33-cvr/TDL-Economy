@@ -33,6 +33,7 @@
     NODE_BANDES:    "bandes",              /* [MAJ] bottin-voyou : bandes/<bande> (image/desc/motscles) */
     NODE_DOSSIERS:  "dossiers_main",       /* [MAJ] recouvrements de la Main : somme gelée */
     NODE_ENQUETES:  "enquetes",            /* [MAJ] panneau des enquêtes : affaires ouvertes */
+    NODE_LOSTBAYOU: "lost_bayou",          /* [MAJ] fiches du tableau des secrets (plafond des créances) */
     MAX_DETTES_LOURDES: 3,
     COOLDOWN_JOURS: 7,                     /* renégociation d'un service bloquée après un renoncement */
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
@@ -302,6 +303,7 @@
   var BANDES_INFO = {};    /* bottin-voyou : bandes/<bande> = { image, desc, motscles } */
   var ENQUETES = [];       /* affaires ouvertes (motif de disparition, boutique Flottille) */
   var GELE = 0;            /* somme retenue sur le membre courant par un recouvrement ouvert */
+  var CREANCES = [];       /* créances de service OUVERTES du membre courant (plafond boutique) */
 
   /* Un dossier de recouvrement ouvert fige sa somme : elle reste au solde mais
      devient indépensable. Le gel vit dans dossiers_main, pas chez le membre —
@@ -329,6 +331,24 @@
       out.push({ id:id, type:a.type||"", titre:a.titre||"(sans titre)" });
     });
     out.sort(function(x,y){ return String(x.titre).localeCompare(String(y.titre),"fr"); });
+    return out;
+  }
+
+    /* Créances de service du membre courant, pour le plafond de la boutique des
+     Sorcières. Seules comptent celles qu'il a PROPOSÉES en paiement : une
+     créance réclamée par les Sorcières ne bloque aucun achat.
+     Lu une fois au boot : une créance naît à la VALIDATION staff, jamais
+     pendant la session du joueur — refresh() n'a donc pas à repasser ici. */
+  var CREANCE_OUVERTE = { due:1, en_cours:1, en_validation:1 };
+  function lireCreances(root){
+    var p = moiPseudo(); if (!p) return [];
+    var n = (root && root[CFG.NODE_LOSTBAYOU]) || [], out = [];
+    Object.keys(n).forEach(function(id){
+      var f = n[id] || {};
+      if (f.type !== "creance" || f.origine !== "propose") return;
+      if (f.debiteur !== p || !CREANCE_OUVERTE[f.statut]) return;
+      out.push({ id:id, titre:f.titre||"", nature:f.nature||"", statut:f.statut });
+    });
     return out;
   }
 
@@ -445,6 +465,7 @@
       return out;
     },
     dus: function(){ return DUS; },
+    creances: function(){ return CREANCES; },
     enquetes: function(){ return ENQUETES; },
     bandeInfo: function(key){ return BANDES_INFO[key] || null; },
     staff: function(){ return st.staff; },
@@ -631,19 +652,22 @@
         E().firebaseGet(CFG.NODE_MEMBRES),
         E().firebaseGet(CFG.NODE_BANDES),
         E().firebaseGet(CFG.NODE_ENQUETES),
-        E().firebaseGet(CFG.NODE_DOSSIERS)
+        E().firebaseGet(CFG.NODE_DOSSIERS),
+        E().firebaseGet(CFG.NODE_LOSTBAYOU)
       ]);
       var partiel = {};
-      partiel[CFG.NODE_MEMBRES]  = r[0] || {};
-      partiel[CFG.NODE_BANDES]   = r[1] || {};
-      partiel[CFG.NODE_ENQUETES] = r[2] || {};
-      partiel[CFG.NODE_DOSSIERS] = r[3] || {};
+      partiel[CFG.NODE_MEMBRES]   = r[0] || {};
+      partiel[CFG.NODE_BANDES]    = r[1] || {};
+      partiel[CFG.NODE_ENQUETES]  = r[2] || {};
+      partiel[CFG.NODE_DOSSIERS]  = r[3] || {};
+      partiel[CFG.NODE_LOSTBAYOU] = r[4] || {};
       PSEUDOS = Object.keys(partiel[CFG.NODE_MEMBRES]).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
       BANDES_INFO = partiel[CFG.NODE_BANDES];
       ENQUETES = lireEnquetes(partiel);
       DUS = lireDus(partiel);
       GELE = calculerGel(partiel);
-    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; DUS = []; GELE = 0; }
+      CREANCES = lireCreances(partiel);
+    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; DUS = []; GELE = 0; CREANCES = []; }
   }
   async function refresh(){
     etatMembre = await membre.lire();
