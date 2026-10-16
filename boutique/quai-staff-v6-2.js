@@ -363,6 +363,33 @@
     });
   }
 
+    /* Le SERVICE acheté, distinct de l'offrande qui l'a payé. Un article payé
+     par une créance de service ouvre donc DEUX fiches : ce qu'on doit aux
+     Sorcières, et ce qu'elles doivent au demandeur. */
+  var FICHE_ARTICLE = { requete:"poste", prixlwas:"creance", empreinte:"seance" };
+
+  function creerFicheSorcieres(d){
+    var kind = FICHE_ARTICLE[d.itemId]; if (!kind) return Promise.resolve(null);
+    var now = new Date().toISOString();
+    var id = B().nouvelleCle();
+    var o = {
+      schema: SCHEMA_LB, type: kind, origine:"boutique",
+      demandeId:d.id||"", demandeur:d.pseudo||"",
+      titre:d.nom||"Service des Sorcières", article:d.itemId||"",
+      demande:d.requete||"",
+      offrandeMode:d.offrande_mode||"", offrandeMontant:(d.montant|0),
+      responsable:null, sujet:"", resume:"", consequences:"",
+      demandeValidation:false, cree:now, ouverte:now, clos:null
+    };
+    if (kind === "poste") { o.statut = "proposee"; o.votes = {}; o.repondant = null; }
+    else if (kind === "seance") { o.statut = "en_attente"; o.de = null; o.fait = ""; o.secretId = null; }
+    else { o.statut = "due"; o.debiteur = d.pseudo||""; o.nature = ""; o.detail = ""; }
+    return ecrireEntree(CFG.NODE_LOSTBAYOU, id, o, "fiche des Sorcières ouverte").then(function(r){
+      try{ if(window.EcoNotif) EcoNotif.bande("sorcieres", kind==="poste"?211:(kind==="seance"?212:213), {titre:o.titre}, "lb"+(d.id||"")); }catch(e){}
+      return r;
+    });
+  }
+
   /* [MAJ v5] clé locale + sentinelle, et naissance directe en schema 2 :
      le dossier n'aura jamais à passer par la conversion de rep-det-main.
      participants et valides sont OMIS : en schema 2 ce sont des nœuds à clés,
@@ -470,6 +497,10 @@
         if (!d.jetonPose && d.itemId==="secret") {
           try { await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/jeton_sorcieres", true); o[base+"/jetonPose"] = true; }
           catch(e){ if (window.console) console.error("[quais-staff] jeton", e); }
+        }
+        if (!d.ficheSorcieres && FICHE_ARTICLE[d.itemId]) {
+          try { await creerFicheSorcieres(d); o[base+"/ficheSorcieres"] = true; }
+          catch(e){ if (window.console) console.error("[quais-staff] fiche sorcières", e); alert("Demande validée, mais la fiche du tableau des secrets n\u2019a pas pu être créée."); }
         }
         if (!d.dossierCree) {
           var pn = phaseNego(d), ps = phaseService(d);
