@@ -39,7 +39,7 @@ var VEILLE_MS = 15000;
    vote ou acceptée sans répondant, créance refusée ou annulée au jeton — se lit
    dans les champs de la fiche, pas dans une septième couleur. */
 var STATUTS = {
-  reponse_attendue:{label:"Réponse attendue", c:"var(--clair2)"},
+  reponse_attendue:{label:"En attente",       c:"var(--clair2)"},
   ouverte:         {label:"Ouverte",          c:"var(--gr3-color)"},
   saisie:          {label:"Saisie",           c:"var(--gr1-color)"},
   en_validation:   {label:"En validation",    c:"var(--gr5-color)"},
@@ -48,12 +48,12 @@ var STATUTS = {
 };
 
 var TEXTES = {
-  REGISTRE:"Registre", CHARGE:"Chargement du tableau…", VIDE:"Aucune fiche pour ce filtre.",
+  REGISTRE:"Registre", CHARGE:"Chargement du tableau…", VIDE:"Aucune activité pour ce filtre.",
   RIEN:"—", TOUS:"Toutes", RETOUR:"‹ Retour", VOUS:"Vous : ", INVITE:"Connectez-vous.",
   ETRANGER:"Ce tableau ne vous concerne pas.", RIEN_FAIRE:"Rien à faire pour l\u2019instant.",
-  NEUF:"Ouvrir une fiche", CHOIX:"Qu\u2019ouvrez-vous ?",
-  PAS_TYPE:"Aucun module de fiche chargé \u2014 vérifiez l\u2019ordre de chargement des scripts.",
-  PAS_REG:"Le registre n\u2019est pas chargé.", BASE:"Connexion à la base…",
+  NEUF:"Ouvrir un secret", CHOIX:"Que souhaitez-vous faire ?",
+  PAS_TYPE:"Aucun module de mission chargé \u2014 vérifiez l\u2019ordre de chargement des scripts.",
+  PAS_REG:"Le registre des secrets n\u2019est pas chargé.", BASE:"Connexion à la base…",
   SOCLE:"EcoCore ou tdl-base introuvable \u2014 vérifiez l\u2019ordre de chargement des scripts.",
   ECHEC:"Impossible de charger le tableau.",
   NON_ECRIT:function(n){ var s=n>1?"s":""; return "⛔ "+n+" modification"+s+" non enregistrée"+s+". Ne rechargez pas la page."; }
