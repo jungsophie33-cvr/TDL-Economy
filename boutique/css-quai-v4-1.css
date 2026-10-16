@@ -259,6 +259,11 @@
 #quais-staff .qsd-restatut-lbl{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.05em;font-size:12px;color:var(--dark2)}
 #quais-staff .qsd-restatut{font-family:var(--txt1);font-size:14px;padding:6px 10px;border:1px solid var(--cntr6);border-radius:5px;background:var(--cntr2);color:var(--txt)}
 
+.qb .qb-sorc-duo{display:grid;grid-template-columns:1fr 1fr;gap:0 18px;align-items:start}
+.qb .qb-sorc-duo>.qb-fld{margin:0}
+.qb .qb-sorc-full{margin-top:2px}
+@media (max-width:820px){.qb .qb-sorc-duo{grid-template-columns:1fr}}
+
 /* ==========================================================================
    CSS-staff-inventaire.css — Onglet « Inventaires » du panel staff · TDL
    Préfixe : .qsi-   ·   le reste réutilise les classes .qsd- et .dc-
