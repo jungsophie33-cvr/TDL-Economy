@@ -33,8 +33,11 @@ var CFG = {
   FUITE_MIN:2, FUITE_MAX:4,   /* jours avant que l'avis ne parte */
   NODE_MAIN:"dossiers_main",
   SCHEMA_MAIN:2,        /* doit suivre rep-det-main            */
-  VEILLE_FUITE_MS:60000
+  VEILLE_FUITE_MS:60000,
+  URL_COURIER:"https://thedrownedlands.forumactif.com/t102-the-houma-courier#hc=rumeur-"
 };
+/* miroir de CFG.SECTEURS dans tdlhc-volet — [MAJ] si la liste y change */
+var SECTEURS = ["Houma","Bayou Cane","Bayou Blue","Bourg","Ashland","Montegut","Chauvin","Cocodrie"];
 var ACTES = {
   monnayer:{label:"Monnayer",  usage:"monnaye", desc:"Le céder à quelqu\u2019un de nommé, contre une offrande."},
   employer:{label:"Employer",  usage:"employe", desc:"S\u2019en servir contre quelqu\u2019un, sans le rendre public."},
@@ -54,6 +57,10 @@ var T = {
   RUMEUR_BTN:"Écrire la rumeur", RUMEUR_MOD:"Modifier la rumeur",
   RUMEUR_AIDE:"Écrivez-la comme on la répète au marché. Elle consomme votre rumeur de la semaine au Courier, et elle paraîtra après relecture de la rédaction.",
   RUMEUR_ATTENTE:"À soumettre au Courier",
+  RUMEUR_SECTEUR:"Où elle court",
+  COURIER:"Soumettre au Courier", COURIER_FAIT:"Soumise au Courier",
+  COURIER_AIDE:"Le volet du Courier s\u2019ouvrira sur la page du journal, déjà rempli. La rédaction relira avant parution.",
+  ERR_RUM_VIDE:"Écrivez la rumeur avant de la soumettre.",
   CLORE:"Clore", REFUSER:"Refuser", SUPPR:"Supprimer",
   RIEN_FAIRE:"Rien à faire pour l\u2019instant.",
   CONF_REF:"Refuser cette délibération ?\nLe secret retourne dormant.",
@@ -117,6 +124,8 @@ function normaliser(o){
   o.fuite=(o.fuite&&o.fuite.du)?o.fuite:null;   /* {du:ISO, faite:bool} */
   o.murmureId=o.murmureId||null;
   o.rumeur=o.rumeur||"";
+  o.secteur=o.secteur||"";
+  o.rumeurSoum=o.rumeurSoum||null;
 }
 
 /* ===================== VISIBILITÉ ===================== */
@@ -128,7 +137,7 @@ function visible(m, api){ return api.staff()||api.estSorciere()||api.estSpectre(
 function ligne(m, api){
   var tags=[{l:acteLbl(m.acte), c:"var(--gr4-color)"}];
   if(enVote(m))tags.push({l:compter(m, api, "oui")+"/"+CFG.QUORUM+" voix"});
-  if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"&&!m.rumeur)
+  if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"&&!m.rumeurSoum)
     tags.push({l:T.RUMEUR_ATTENTE, c:"var(--gr1-color)"});
   return { titre:m.titre, sous:(m.intitule||T.RIEN), tags:tags };
 }
@@ -185,7 +194,11 @@ function panel(m, api){
   corps+=blocVoix(m, api);
   if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"){
     corps+='<div class="tdlm-sec"><p class="tdlm-hsec">'+T.RUMEUR+'</p><div class="tdlm-prose">'
-      +(m.rumeur?esc(m.rumeur):'<span class="tdlm-todo">'+T.RUMEUR_VIDE+'</span>')+'</div></div>';
+      +(m.rumeur?esc(m.rumeur):'<span class="tdlm-todo">'+T.RUMEUR_VIDE+'</span>')+'</div>'
+      +(m.secteur?'<p class="tdlm-todo" style="margin:6px 0 0">'+T.RUMEUR_SECTEUR+' : '+esc(m.secteur)+'</p>':"")
+      +(m.rumeurSoum?'<p class="tdlm-todo" style="margin:4px 0 0">'+T.COURIER_FAIT+' \u00b7 '+esc(api.dateFr(m.rumeurSoum))+'</p>'
+                    :'<p class="tdlm-todo" style="margin:4px 0 0">'+esc(T.COURIER_AIDE)+'</p>')
+      +'</div>';
   }
   return meta+bandeaux+corps;
 }
@@ -195,8 +208,10 @@ function actionbar(m, api){
   var roles=[], btns="", mene=api.moi()&&api.moi()===m.responsable;
   if(api.estSorciere())roles.push("Sorcière");
   else if(api.estSpectre())roles.push("Spectre");
-  if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"&&(mene||api.staff()))
-    btns+='<button class="tdlm-abtn prim" data-act="rumeur">'+(m.rumeur?T.RUMEUR_MOD:T.RUMEUR_BTN)+'</button>';
+  if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"&&(mene||api.staff())&&!m.rumeurSoum){
+    btns+='<button class="tdlm-abtn" data-act="rumeur">'+(m.rumeur?T.RUMEUR_MOD:T.RUMEUR_BTN)+'</button>';
+    if(m.rumeur)btns+='<button class="tdlm-abtn prim" data-act="courier">'+T.COURIER+'</button>';
+  }
   if(api.staff()){
     roles.push("Staff");
     if(enVote(m))btns+='<button class="tdlm-abtn warn" data-act="refuser">'+T.REFUSER+'</button>';
@@ -216,7 +231,10 @@ function drawer(m, api){
   if(S.drawer==="rumeur"){
     return '<div class="tdlm-drawer on"><h4>'+T.RUMEUR+'</h4>'
       +'<p class="tdlm-todo" style="margin:0 0 8px">'+esc(T.RUMEUR_AIDE)+'</p>'
-      +'<textarea id="tdlb-del-rumeur">'+esc(m.rumeur)+'</textarea>'
+      +'<label class="tdlm-fl">'+T.RUMEUR_SECTEUR+'</label><select id="tdlb-del-secteur">'
+      +SECTEURS.map(function(x){return '<option'+(x===m.secteur?" selected":"")+'>'+esc(x)+'</option>';}).join("")
+      +'</select>'
+      +'<label class="tdlm-fl">'+T.RUMEUR+'</label><textarea id="tdlb-del-rumeur">'+esc(m.rumeur)+'</textarea>'
       +'<div class="tdlm-row"><button class="tdlm-abtn prim" data-do="rumeurok">Enregistrer</button>'
       +'<button class="tdlm-abtn" data-do="cancel">Annuler</button></div></div>';
   }
@@ -349,6 +367,12 @@ function acte(k, m, api){
   if(k==="oui"){voter(m, api, "oui");return;}
   if(k==="non"){voter(m, api, "non");return;}
   if(k==="rumeur"){api.tiroir("rumeur");return;}
+  if(k==="courier"){
+    if(!m.rumeur){api.toast(T.ERR_RUM_VIDE);return;}
+    /* FA intercepte les ancres et renvoie un 404 sur location.href : window.open */
+    window.open(CFG.URL_COURIER+encodeURIComponent(m.id), "_blank");
+    return;
+  }
   if(k==="refuser"){
     if(!window.confirm(T.CONF_REF))return;
     trancher(m, api, "refusee", compter(m, api, "non")); return;
@@ -362,9 +386,10 @@ function faire(k, m, api){
   if(k==="newok"){ouvrir(api);return;}
   if(!m)return;
   if(k==="rumeurok"){
-    var el=document.getElementById("tdlb-del-rumeur");
+    var el=document.getElementById("tdlb-del-rumeur"), se=document.getElementById("tdlb-del-secteur");
     m.rumeur=el?String(el.value||"").trim():"";
-    api.patch(m,{rumeur:m.rumeur});
+    m.secteur=se?String(se.value||"").trim():"";
+    api.patch(m,{rumeur:m.rumeur, secteur:m.secteur});
     var s=api.secret(m.secretId);
     if(s&&m.rumeur){ s.rumeur={texte:m.rumeur, date:new Date().toISOString()}; api.patchSecret(s,{rumeur:s.rumeur}); }
     api.fermer(); api.toast(T.OK_RUMEUR); api.rendre(); return;
