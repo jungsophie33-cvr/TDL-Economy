@@ -178,7 +178,7 @@ function acte(k, api){
     if(!window.confirm(T.CONF_VERSER))return;
     s.etat="pot";
     api.patchSecret(s,{etat:"pot"});
-    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",230,{},"pot"+id); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",212,{},"pot"+id); }catch(e){}
     api.toast(T.OK_VERSER); api.rendre(); return;
   }
 }
