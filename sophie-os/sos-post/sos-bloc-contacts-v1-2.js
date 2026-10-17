@@ -196,6 +196,7 @@
     }
 
     function rendre() {
+      placerCompteur();          // le panneau a pu être reconstruit entre-temps
       Array.prototype.forEach.call(train.children, function (b, i) {
         b.classList.toggle('ctc-on', i === courant);
       });
@@ -227,11 +228,18 @@
        au premier regard, le bloc est encore dans le message brut et aucun
        titre n'existe à proximité. On réessaie donc après coup, et le
        compteur migre de son emplacement de secours vers le titre dès qu'il
-       apparaît. */
+       apparaît.
+
+       Et surtout : un onglet inactif a ses nœuds DÉTACHÉS du document. Un
+       bloc posé dans le troisième onglet n'a donc aucun parent tant qu'on
+       n'a pas cliqué dessus, et aucune remontée ne peut aboutir. D'où
+       l'observateur de visibilité, qui rejoue le placement à chaque fois
+       que le bloc réapparaît — le titre étant reconstruit à chaque
+       changement d'onglet, le compteur doit s'y raccrocher chaque fois. */
     var cpt = null;
 
     function placerCompteur() {
-      if (!cpt) return;
+      if (!cpt || !racine.isConnected) return;
       var titre = titreProche(racine);
       if (titre && cpt.parentNode !== titre) titre.appendChild(cpt);
     }
@@ -251,6 +259,13 @@
       placerCompteur();
       window.addEventListener('load', placerCompteur);
       setTimeout(placerCompteur, 600);
+
+      if (window.IntersectionObserver) {
+        // Pas de disconnect : à chaque retour sur l'onglet, le titre est neuf.
+        new IntersectionObserver(function (entrees) {
+          entrees.forEach(function (e) { if (e.isIntersecting) placerCompteur(); });
+        }).observe(racine);
+      }
     });
 
     return racine;
