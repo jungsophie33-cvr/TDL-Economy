@@ -316,7 +316,7 @@ function ouvrirMurmure(api, m, secret){
   return Promise.resolve(window.TDLBase.ecrireEntree(CFG.NODE_MAIN, id, o, "murmure remonté à la Main"))
     .then(function(ok){
       if(!ok)return null;
-      try{ if(window.EcoNotif)EcoNotif.bande("main",227,{},"mur"+id); }catch(e){}
+      try{ if(window.EcoNotif)EcoNotif.bande("main",221,{},"mur"+id); }catch(e){}
       return id;
     });
 }
@@ -333,7 +333,7 @@ function echeances(api){
     }).then(function(idm){
       m.fuite.faite=true; m.murmureId=idm||null;
       api.patch(m,{fuite:m.fuite, murmureId:m.murmureId});
-      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",228,{},"fui"+m.id); }catch(e){}
+      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",222,{},"fui"+m.id); }catch(e){}
       api.rendre();
     }).catch(function(){ /* un autre onglet s'en est chargé, ou le réseau a lâché */ });
   });
@@ -429,7 +429,7 @@ function ouvrir(api){
   if(s){ s.usage="en_deliberation"; api.patchSecret(s,{usage:"en_deliberation"}); }
   api.creer(o,"délibération ouverte").then(function(id){
     if(!id){api.toast("Ouverture échouée.");return;}
-    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",229,{titre:o.titre},"del"+id); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une proposition est déposée à l\u2019avant-poste",titre:o.titre},"pos"+id); }catch(e){}
     api.fermer(); api.selectionner(id); api.toast(T.OK_NEUF); api.rendre();
   });
 }
