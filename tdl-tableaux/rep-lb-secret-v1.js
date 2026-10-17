@@ -72,6 +72,14 @@ function peutVerser(s, api){
   return s.etat!=="pot"&&!consomme(s)&&!!api.moi()&&s.recueilliPar===api.moi();
 }
 
+   /* Un secret « en délibération » dont plus aucune fiche ne s'occupe : reste
+   d'une suppression ou d'une écriture échouée. */
+function enDelib(api, id){
+  return api.fiches().some(function(f){
+    return f.type==="delib"&&f.secretId===id&&f.statut==="ouverte";
+  });
+}
+
 /* ===================== FILTRES ===================== */
 function liste(api){
   var me=api.moi();
@@ -120,6 +128,8 @@ function carte(s, api){
   if(lit)btns+='<button class="tdlm-abtn" data-act="v:'+api.escAttr(s.id)+'">'+(ouvert?T.MASQUER:T.VOIR)+'</button>';
   if(peutVerser(s, api))btns+='<button class="tdlm-abtn prim" data-act="p:'+api.escAttr(s.id)+'">'+T.VERSER+'</button>';
   if(api.staff())btns+='<button class="tdlm-abtn" data-act="i:'+api.escAttr(s.id)+'">'+T.INTIT_BTN+'</button>';
+  if(api.staff()&&s.usage==="en_deliberation"&&!enDelib(api, s.id))
+    btns+='<button class="tdlm-abtn warn" data-act="d:'+api.escAttr(s.id)+'">Débloquer</button>';
 
   var titre=s.intitule?esc(s.intitule)
     :(api.staff()?'<span class="tdlm-todo">'+T.INTITULE_VIDE+'</span>':'<span class="tdlm-todo">'+T.RIEN+'</span>');
@@ -180,6 +190,11 @@ function acte(k, api){
     api.patchSecret(s,{etat:"pot"});
     try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",212,{},"pot"+id); }catch(e){}
     api.toast(T.OK_VERSER); api.rendre(); return;
+  }
+  if(quoi==="d"){
+    if(!api.staff())return;
+    s.usage="dormant"; api.patchSecret(s,{usage:"dormant"});
+    api.toast("Secret rendu à l\u2019état dormant."); api.rendre(); return;
   }
 }
 function faire(k, api){
