@@ -429,7 +429,7 @@ function ouvrir(api){
   if(s){ s.usage="en_deliberation"; api.patchSecret(s,{usage:"en_deliberation"}); }
   api.creer(o,"délibération ouverte").then(function(id){
     if(!id){api.toast("Ouverture échouée.");return;}
-    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une proposition est déposée à l\u2019avant-poste",titre:o.titre},"pos"+id); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une délibération est ouverte",titre:o.titre},"del"+id); }catch(e){}
     api.fermer(); api.selectionner(id); api.toast(T.OK_NEUF); api.rendre();
   });
 }
