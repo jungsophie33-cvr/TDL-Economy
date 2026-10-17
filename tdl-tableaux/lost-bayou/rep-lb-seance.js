@@ -21,7 +21,12 @@
    le détient alors. Le demandeur ne peut pas s'y opposer : c'est annoncé sur
    la fiche boutique avant l'achat.
 
-   STATUTS : ceux du socle. À CHARGER après rep-lb-core. */
+   L’OFFRANDE RESTE EN SUSPENS jusqu’au dénouement (voir rep-lb-argent) : la
+   cagnotte des Spectres n’est créditée qu’à la clôture, et « Classer sans
+   suite » rend tout au demandeur. Sept jours sans volontaire et l’échéancier
+   fait de même, tout seul.
+
+   STATUTS : ceux du socle. À CHARGER après rep-lb-core et rep-lb-argent. */
 (function(){
 "use strict";
 var REG = (window.TDLBayou = window.TDLBayou || { types: [], registre: null });
@@ -56,7 +61,9 @@ var T = {
   ECRIRE:"Écrire le fait", ECRIRE_MOD:"Modifier le fait",
   SUJET_BTN:"Renseigner le sujet RP", SUJET_MOD:"Modifier le sujet RP",
   BILAN:"Bilan & validation", BILAN_MOD:"Modifier le bilan",
-  CLORE:"Clore la séance", SUPPR:"Supprimer",
+  CLORE:"Clore la séance", CLASSER:"Classer sans suite", SUPPR:"Supprimer",
+  CONF_CLASSER:"Classer cette séance sans suite ?\nL\u2019offrande est rendue au demandeur : la somme lui revient, le secret offert est effacé, la créance de service est fermée. La séance ne produira rien.",
+  OK_CLASSER:"Séance classée \u2014 l\u2019offrande est rendue.",
   RIEN_FAIRE:"Rien à faire pour l\u2019instant.",
   ATTEND:"Une Sorcière doit se saisir de la séance.",
   EST_PNJ:"Séance menée par une mambo PNJ.",
@@ -192,8 +199,10 @@ function actionbar(m, api){
   if(api.staff()){
     roles.push("Staff");
     if(m.de)btns+='<button class="tdlm-abtn" data-act="fait">'+(m.fait?T.ECRIRE_MOD:T.ECRIRE)+'</button>';
-    if(m.statut==="en_validation"||m.statut==="saisie")
-      btns+='<button class="tdlm-abtn prim" data-act="clore">'+T.CLORE+'</button>';
+    if(m.statut==="en_validation"||m.statut==="saisie"){
+      btns+='<button class="tdlm-abtn prim" data-act="clore">'+T.CLORE+'</button>'
+        +'<button class="tdlm-abtn warn" data-act="classer">'+T.CLASSER+'</button>';
+    }
     btns+='<button class="tdlm-abtn warn" data-act="supprimer">'+T.SUPPR+'</button>';
   }
   if(!btns){
@@ -315,6 +324,9 @@ function clore(m, api){
       try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,210,{},"cre"+idc); }catch(e){}
     });
   }).then(function(){
+    /* la séance a produit du jeu : l’offrande est acquise aux Sorcières */
+    return window.TDLBayou.argent.aboutir(api, m);
+  }).then(function(){
     m.statut="close"; m.demandeValidation=false; m.clos=new Date().toISOString();
     api.patch(m,{statut:"close", demandeValidation:false, clos:m.clos, versee:true,
                  secretId:m.secretId, secretAveuId:m.secretAveuId, creanceId:m.creanceId});
@@ -334,6 +346,20 @@ function acte(k, m, api){
   if(k==="fait"){api.tiroir("fait");return;}
   if(k==="bilan"){api.tiroir("bilan");return;}
   if(k==="clore"){api.tiroir("cloture");return;}
+  if(k==="classer"){
+    if(!api.staff())return;
+    if(!window.confirm(T.CONF_CLASSER))return;
+    /* Le secret recueilli PENDANT la séance, s’il y en a un, n’est pas touché :
+       il a été lu, il existe. Seule l’offrande qui a payé la séance est rendue. */
+    window.TDLBayou.argent.annuler(api, m).then(function(ok){
+      if(!ok)return;
+      m.statut="classee"; m.demandeValidation=false; m.clos=new Date().toISOString();
+      api.patch(m,{statut:"classee", demandeValidation:false, clos:m.clos});
+      try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,216,{},"cla"+m.id); }catch(e){}
+      api.toast(T.OK_CLASSER); api.rendre();
+    });
+    return;
+  }
   if(k==="supprimer"){
     if(!window.confirm(T.CONF_SUPPR))return;
     api.supprimer(m); api.toast("Séance supprimée."); api.rendre(); return;
