@@ -135,6 +135,32 @@
         return elements(m.postes).some(function (p) { return p && p.etat === "libre"; });
       }
     },
+        {
+      cle: "carrefour", chemin: "carrefour", groupe: "missions",
+      /* rep-carr-core : chasses et missions partagent le nœud et les statuts,
+         le type les distingue. Une chasse se ferme à la clôture des
+         inscriptions — c'est là que le rôle secret est tiré — et elle est
+         pleine à quatre. Une mission accueille toujours un intérêt de plus. */
+      garde: function (m) {
+        if (m.statut !== "ouverte" && m.statut !== "en_cours") return false;
+        if (m.type !== "chasse") return true;
+        if (m.inscriptionsCloses) return false;
+        return elements(m.participants).length < 4;
+      }
+    },
+    {
+      cle: "secrets", chemin: "lost_bayou", groupe: "missions",
+      /* rep-lb-* : quatre types de fiches, deux seulement se rejoignent.
+         « ouverte » couvre deux phases à l'avant-poste — le vote, puis
+         l'attente d'un répondant — et les deux sont des portes d'entrée.
+         Les créances ne regardent que le PJ visé, et une délibération se vote
+         sans qu'on y entre : ni l'une ni l'autre n'est « à rejoindre ». */
+      garde: function (m) {
+        if (m.type === "poste")  return m.statut === "ouverte";
+        if (m.type === "seance") return m.statut === "ouverte" && !m.responsable && !m.pnj;
+        return false;
+      }
+    },
     {
       cle: "enquetes", chemin: "enquetes", groupe: null,
       /* eco-rep-enquete : le statut est CALCULÉ, il n'est pas stocké.
