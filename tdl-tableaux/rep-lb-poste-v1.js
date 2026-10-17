@@ -290,7 +290,7 @@ function trancher(m, api, choix, voix){
     m.decide={choix:choix, date:new Date().toISOString(), oui:voix};
     if(choix==="refusee")m.clos=m.decide.date;
     api.patch(m,{statut:statut, decide:m.decide, clos:m.clos||null, tranche:true});
-    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.if(choix==="refusee")a(m.demandeur,216,{}); }catch(e){}
+    try{ if(window.EcoNotif&&m.demandeur&&choix==="refusee")EcoNotif.a(m.demandeur,216,{},"dec"+m.id); }catch(e){}
     api.toast(choix==="acceptee"?T.OK_ACC:T.OK_REF);
     api.rendre();
   }).catch(function(e){
@@ -314,7 +314,7 @@ function acte(k, m, api){
     var me=api.moi();
     m.repondant=me; m.statut="saisie";
     api.patch(m,{repondant:me, statut:"saisie"});
-    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,217,{}); }catch(e){}
+    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,217,{},"rep"+m.id); }catch(e){}
     api.toast(T.OK_REPOND); api.rendre(); return;
   }
   if(k==="sujet"){api.inline("sujet");return;}
@@ -350,7 +350,7 @@ function faire(k, m, api){
       champs.statut="en_validation"; champs.demandeValidation=true;
     }
     api.patch(m,champs);
-    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(215,{titre:m.titre}); }catch(e){}
+    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(215,{titre:m.titre},"val"+m.id); }catch(e){}
     api.fermer();
     api.toast(champs.statut?"Entrée envoyée en validation.":"Bilan enregistré."); return;
   }
@@ -375,7 +375,7 @@ function deposer(api){
   };
   api.creer(o, dedans?"invitation à l\u2019avant-poste":"proposition à l\u2019avant-poste").then(function(id){
     if(!id){api.toast("Dépôt échoué.");return;}
-    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une proposition est déposée à l'avant-poste",titre:o.titre}); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une proposition est déposée à l\u2019avant-poste",titre:o.titre},"pos"+id); }catch(e){}
     api.fermer(); api.selectionner(id);
     api.toast(dedans?T.OK_NEUF_INT:T.OK_NEUF_EXT); api.rendre();
   });
