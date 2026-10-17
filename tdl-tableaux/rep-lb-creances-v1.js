@@ -258,7 +258,7 @@ function repondre(m, api, oui){
   m.statut=oui?"saisie":"classee";
   if(!oui)m.clos=new Date().toISOString();
   api.patch(m,{reponse:m.reponse, statut:m.statut, clos:m.clos||null, ouverte:m.ouverte});
-  try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",oui?215:216,{titre:m.titre,pseudo:me},"rep"+m.id); }catch(e){}
+  try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",213,{titre:m.titre,pseudo:me,ok:oui}); }catch(e){}
   api.toast(oui?T.OK_ACC:T.OK_REF);
   api.rendre();
 }
@@ -278,7 +278,7 @@ function clore(m, api){
   if(!window.confirm(T.CONF_CLORE))return;
   m.statut="close"; m.demandeValidation=false; m.clos=new Date().toISOString();
   api.patch(m,{statut:"close", demandeValidation:false, clos:m.clos});
-  try{ if(window.EcoNotif&&m.debiteur)EcoNotif.a(m.debiteur,217,{titre:m.titre},"clo"+m.id); }catch(e){}
+  try{ if(window.EcoNotif&&m.debiteur)EcoNotif.a(m.debiteur,214,{}); }catch(e){}
   api.toast(T.OK_CLOS); api.rendre();
 }
 
@@ -321,7 +321,7 @@ function faire(k, m, api){
       champs.statut="en_validation"; champs.demandeValidation=true;
     }
     api.patch(m,champs);
-    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(218,{titre:m.titre},"val"+m.id); }catch(e){}
+    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(215,{titre:m.titre}); }catch(e){}
     api.fermer();
     api.toast(champs.statut?"Créance envoyée en validation.":"Bilan enregistré.");
     return;
