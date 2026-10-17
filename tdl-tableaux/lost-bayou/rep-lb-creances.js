@@ -14,11 +14,17 @@
    sans trace. Il se consomme par TRANSACTION true→false — deux clics simultanés
    annuleraient sinon deux créances avec un seul jeton.
 
+   L’OFFRANDE. Celle ouverte par « Le prix des Lwas » porte une offrande en
+   suspens, acquise aux Sorcières dès que la fiche se ferme — acquittée,
+   refusée ou annulée au jeton : le service avait été rendu avant que la
+   contrepartie ne soit réclamée. Une créance PROPOSÉE en paiement n’en porte
+   aucune, et l’appel n’y fait rien.
+
    STATUTS : ceux du socle, partagés par toutes les fiches. Une créance refusée
    et une créance annulée au jeton sont toutes deux « classée » — ce qui les
    distingue se lit dans reponse et jeton, pas dans une couleur de plus.
 
-   À CHARGER après rep-lb-core. */
+   À CHARGER après rep-lb-core et rep-lb-argent. */
 (function(){
 "use strict";
 var REG = (window.TDLBayou = window.TDLBayou || { types: [], registre: null });
@@ -95,6 +101,10 @@ function normaliser(o){
   o.article=o.article||"";
   o.reponse=(o.reponse&&o.reponse.choix)?o.reponse:null;
   o.jeton=!!o.jeton;
+  /* une créance PROPOSÉE est elle-même une offrande et n’en porte aucune ;
+     celle ouverte par « Le prix des Lwas » en porte une, en suspens. */
+  o.offrandeMode=o.offrandeMode||"";
+  o.offrandeMontant=+o.offrandeMontant||0;
   if(o.statut==="ouverte"&&!o.reponse)o.statut="reponse_attendue";
 }
 
@@ -258,7 +268,10 @@ function repondre(m, api, oui){
   m.statut=oui?"saisie":"classee";
   if(!oui)m.clos=new Date().toISOString();
   api.patch(m,{reponse:m.reponse, statut:m.statut, clos:m.clos||null, ouverte:m.ouverte});
-  try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",213,{titre:m.titre,pseudo:me,ok:oui},"rep"+m.id); }catch(e){}
+  /* Un refus ferme la fiche, mais le service avait déjà été rendu : l’offrande
+     reste acquise. Ce n’est pas un remboursement, c’est un dû non honoré. */
+  if(!oui)window.TDLBayou.argent.aboutir(api, m);
+  try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",oui?215:216,{titre:m.titre,pseudo:me},"rep"+m.id); }catch(e){}
   api.toast(oui?T.OK_ACC:T.OK_REF);
   api.rendre();
 }
@@ -267,6 +280,8 @@ function utiliserJeton(m, api){
   prendreJeton(api).then(function(){
     m.statut="classee"; m.jeton=true; m.clos=new Date().toISOString();
     api.patch(m,{statut:"classee", jeton:true, clos:m.clos});
+    /* le jeton efface la créance, pas le paiement du service */
+    window.TDLBayou.argent.aboutir(api, m);
     api.toast(T.OK_JETON);
     return api.rafraichir();
   }).catch(function(e){
@@ -278,7 +293,7 @@ function clore(m, api){
   if(!window.confirm(T.CONF_CLORE))return;
   m.statut="close"; m.demandeValidation=false; m.clos=new Date().toISOString();
   api.patch(m,{statut:"close", demandeValidation:false, clos:m.clos});
-  try{ if(window.EcoNotif&&m.debiteur)EcoNotif.a(m.debiteur,214,{},"clo"+m.id); }catch(e){}
+  try{ if(window.EcoNotif&&m.debiteur)EcoNotif.a(m.debiteur,217,{titre:m.titre},"clo"+m.id); }catch(e){}
   api.toast(T.OK_CLOS); api.rendre();
 }
 
@@ -321,7 +336,7 @@ function faire(k, m, api){
       champs.statut="en_validation"; champs.demandeValidation=true;
     }
     api.patch(m,champs);
-    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(215,{titre:m.titre},"val"+m.id); }catch(e){}
+    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(218,{titre:m.titre},"val"+m.id); }catch(e){}
     api.fermer();
     api.toast(champs.statut?"Créance envoyée en validation.":"Bilan enregistré.");
     return;
@@ -346,7 +361,7 @@ function creerCreance(api){
   };
   api.creer(o,"créance réclamée").then(function(id){
     if(!id){api.toast("Ouverture échouée.");return;}
-    try{ if(window.EcoNotif)EcoNotif.a(deb,210,{},"cre"+id); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.a(deb,210,{titre:o.titre},"cre"+id); }catch(e){}
     api.fermer(); api.selectionner(id); api.toast(T.OK_NEUF); api.rendre();
   });
 }
