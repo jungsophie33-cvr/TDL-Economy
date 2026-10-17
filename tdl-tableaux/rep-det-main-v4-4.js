@@ -98,7 +98,8 @@ var TYPES = {
   protection:  {label:"Protection",   ic:"fi-tr-shield-check"},
   silence:     {label:"Silence rompu",ic:"fi-tr-comment-slash"},
   negociation: {label:"Négociation",  ic:"fi-tr-balance-scale-left"},
-  service:     {label:"Service à rendre", ic:"fi-tr-handshake"}
+  service:     {label:"Service à rendre", ic:"fi-tr-handshake"},
+  murmure:     {label:"Murmure",      ic:"fi-tr-comment-quote"}
 };
 
 /* miroir de BHL_CONFIG.bandes.main.doigts — [MAJ] si la structure y change */
@@ -546,7 +547,7 @@ function panel(m){
   }
 
   /* corps */
-  var corps='<div class="tdlm-sec"><p class="tdlm-hsec">'+(m.type==="silence"?"Ce que nous savons":"Contexte")+'</p>'
+  var corps='<div class="tdlm-sec"><p class="tdlm-hsec">'+((m.type==="silence"||m.type==="murmure")?"Ce que nous savons":"Contexte")+'</p>'
     +'<div class="tdlm-prose">'+(m.contexte?esc(m.contexte):'<span class="tdlm-todo">—</span>')+'</div></div>';
   if(m.evoquees)corps+='<div class="tdlm-sec"><p class="tdlm-hsec">Personnes évoquées</p><div class="tdlm-prose">'+esc(m.evoquees)+'</div>'
     +'<p class="tdlm-todo" style="margin:6px 0 0">Il ne s\u2019agit pas d\u2019accusations : rien n\u2019est prouvé.</p></div>';
@@ -649,7 +650,7 @@ function drawer(m){
   }
   if(S.drawer==="bilan"){
     var co="";
-    if(m.type==="silence"){
+    if(m.type==="silence"||m.type==="murmure"){
       co='<label class="tdlm-fl">Conclusion</label><select id="tdld-bconc">'
         +Object.keys(CONCLUSIONS).map(function(k){return '<option value="'+k+'"'+(k===m.conclusion?' selected':'')+'>'+CONCLUSIONS[k]+'</option>';}).join("")+'</select>';
     } else if(m.type==="negociation"||m.phase==="nego"){
@@ -698,7 +699,7 @@ function formCreation(){
   var main=peutOuvrir(), appel=!main&&peutAppeler();
     /* silence, négociation et service ne s'ouvrent jamais ici : ils viennent des
      Faiseuses ou de la boutique, avec des montants que ce formulaire ignore. */
-  var NON_MANUELS={silence:1,negociation:1,service:1};
+  var NON_MANUELS={silence:1,negociation:1,service:1,murmure:1};
   var types=main?Object.keys(TYPES).filter(function(k){return !NON_MANUELS[k];}):["protection"];
   var dg='<option value="">— non rattaché —</option>'+Object.keys(DOIGTS).map(function(k){return '<option value="'+k+'">'+DOIGTS[k]+'</option>';}).join("");
   var cb=Object.keys(CIBLES).map(function(k){return '<option value="'+k+'">'+CIBLES[k]+'</option>';}).join("");
