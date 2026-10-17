@@ -61,7 +61,10 @@ function creanceOfferte(api, m){
   var l=api.fiches();
   for(var i=0;i<l.length;i++){
     var f=l[i];
-    if(f.type==="creance"&&f.origine==="propose"&&f.demandeId===m.demandeId
+    /* f.id!==m.id : « Le prix des Lwas » ouvre LUI-MÊME une créance et porte le
+       même demandeId. Sans cette garde, annuler une créance la supprimerait
+       elle-même, et le verrou « solde » serait posé sur une fiche effacée. */
+    if(f.id!==m.id&&f.type==="creance"&&f.origine==="propose"&&f.demandeId===m.demandeId
        &&f.statut!=="close"&&f.statut!=="classee")return f;
   }
   return null;
