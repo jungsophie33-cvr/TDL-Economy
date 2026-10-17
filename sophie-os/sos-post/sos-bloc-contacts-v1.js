@@ -120,7 +120,7 @@
     out += '<div class="tdlplf-bandeau"' +
       (c.img ? ' style="--tdlplf-img:url(\'' + esc(c.img) + '\')"' : '') + '>' +
       '<div class="tdlplf-band-txt">' +
-        '<h4 class="tdlplf-band-nom">' + esc(c.nom) + '</h4>' +
+        '<h1 class="tdlplf-band-nom">' + esc(c.nom) + '</h1>' +
         (c.role ? '<span class="tdlplf-band-sous">' + esc(c.role) + '</span>' : '') +
         (c.profil ? '<span class="tdlplf-band-profil">' + esc(c.profil) + '</span>' : '') +
       '</div>' +
