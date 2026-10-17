@@ -46,14 +46,17 @@ var U = {
   TACHES:   "/t91-le-tableau-des-taches",
   STAFF:    "/t73-gestion-systeme-de-jeu#466",
   HANGAR:   "/t96-le-tableau-du-hangar",
-  CARREFOUR: "/t107-le-tableau-du-carrefour#508",   /* [MAJ] */
+  CARREFOUR: "/t107-le-tableau-du-carrefour",   
+  SECRETS:  "/t108-le-tableau-des-secrets",         
   COURIER:  "/t102-the-houma-courier"
+};
 };
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
           FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier",
-          FLOT:"tdl_flottille", CARR: "tdl_carrefour", COUR:"tdl_courier" };
+          FLOT:"tdl_flottille", CARR: "tdl_carrefour", COUR:"tdl_courier",
+          SORC:"tdl_sorcieres" };
 
 /* ===================== REGISTRE =====================
    n  = classe CSS de module · ic = icône Flaticon (préfixe fi-sr- ajouté au
@@ -178,7 +181,27 @@ var NOTIFS = {
   206:{n:C.CARR, ic:"scale-balanced", url:U.CARREFOUR, txt:function(d){return "La chasse &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est réglée.";}},
   207:{n:C.CARR, ic:"users-alt",      url:U.CARREFOUR, txt:function(d){return "Mission au Carrefour : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
   208:{n:C.CARR, ic:"user-check",     url:U.CARREFOUR, txt:function(d){return esc(d.pseudo)+" tient un intérêt dans &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
-  209:{n:C.CARR, ic:"sack-dollar",    url:U.CARREFOUR, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close : "+(+d.montant||0)+" $ vous ont été versés.";}}
+  209:{n:C.CARR, ic:"sack-dollar",    url:U.CARREFOUR, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est close : "+(+d.montant||0)+" $ vous ont été versés.";}},
+
+        /* --- Le tableau des secrets (Sorcières du Baron / Spectres) ---
+     Même règle qu'ailleurs, et plus strictement encore : la notification
+     annonce, elle ne raconte pas. Le 210 ne dit JAMAIS ce qui est réclamé — le
+     PJ visé le lit dans la fiche, pas dans un bandeau qu'on peut lire par-dessus
+     son épaule. Le 222 ne nomme ni le secret ni la dépositaire : l'avis de fuite
+     est anonyme pour tout le monde, elle comprise. */
+  210:{n:C.SORC, ic:"hand-holding-heart", url:U.SECRETS, txt:function(){return "Les Sorcières réclament quelque chose de votre personnage. Consultez le tableau des secrets.";}},
+  211:{n:C.SORC, ic:"snake",          url:U.SECRETS, txt:function(d){return "Au tableau des secrets, "+esc(d.quoi||"une fiche")+" : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  212:{n:C.SORC, ic:"book-bookmark",  url:U.SECRETS, txt:function(){return "Un secret s'est ajouté au registre.";}},
+  213:{n:C.SORC, ic:"user-check",     url:U.SECRETS, txt:function(d){return esc(d.pseudo)+(d.ok?" s'exécute sur ":" refuse ")+"&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  214:{n:C.SORC, ic:"badge-check",    url:U.SECRETS, txt:function(){return "Votre créance envers les Sorcières est acquittée.";}},
+  215:{n:C.SORC, ic:"inbox-in",       url:U.SECRETS, txt:function(d){return "Le tableau des secrets demande votre validation : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  216:{n:C.SORC, ic:"cross-circle",   url:U.SECRETS, txt:function(){return "Votre proposition à l'avant-poste n'a pas été retenue.";}},
+  217:{n:C.SORC, ic:"ship",           url:U.SECRETS, txt:function(){return "Quelqu'un vous attend à la plateforme. Tenez-vous prêt·e.";}},
+  218:{n:C.SORC, ic:"user-check",     url:U.SECRETS, txt:function(){return "Une Sorcière prend votre séance. La nuit peut commencer.";}},
+  219:{n:C.SORC, ic:"dice-d6",        url:U.SECRETS, txt:function(d){return "Le dé est tombé sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; : un fait reste à écrire.";}},
+  220:{n:C.SORC, ic:"lightbulb-on",   url:U.SECRETS, txt:function(){return "Un secret sur l'objet vous est révélé lors de votre séance.";}},
+  221:{n:C.MAIN, ic:"comment-quote",  url:U.DETTES,  txt:function(){return "Un murmure est remonté du bayou. Il est au tableau des dettes.";}},
+  222:{n:C.SORC, ic:"ear-deaf",       url:U.SECRETS, txt:function(){return "Un secret n'est pas tombé dans l'oreille d'un sourd.";}}
 };
 
 /* préfixes de titre → type de notification */
