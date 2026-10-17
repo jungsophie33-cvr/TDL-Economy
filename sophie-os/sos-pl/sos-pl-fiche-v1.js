@@ -291,9 +291,9 @@
     }).join('');
 
     this.$meta.innerHTML = infos +
-      (m.referent ? '<div class="tdlplf-referent"><b>Référent</b>' + nomRef +
+      (m.referent ? '<div class="tdlplf-referent"><f4>Référent</f4>' + nomRef +
          '<span>à contacter pour toute question sur la famille</span></div>' : '') +
-      (m.credits ? '<div class="tdlplf-credits"><b>Crédits</b>' + T.echappe(m.credits) + '</div>' : '');
+      (m.credits ? '<div class="tdlplf-credits"><f4>Crédits</f4>' + T.echappe(m.credits) + '</div>' : '');
 
     var imgs = m.imgs.filter(Boolean);
     if (imgs.length) {
