@@ -84,6 +84,7 @@ function enDelib(api, id){
 function liste(api){
   var me=api.moi();
   return api.secrets().filter(function(s){
+    if(s.etat==="attente"&&!api.staff())return false;
     if(F.filtre==="tous")return true;
     if(F.filtre==="pot")return s.etat==="pot";
     if(F.filtre==="mien")return s.recueilliPar===me;
@@ -91,7 +92,7 @@ function liste(api){
   });
 }
 function chips(api){
-  var tous=api.secrets(), me=api.moi();
+  var tous=api.secrets().filter(function(s){ return s.etat!=="attente"||api.staff(); }), me=api.moi();
   var out=[{id:"tous",label:T.TOUS,c:"var(--cntr)",n:tous.length},
            {id:"pot",label:T.POT,c:"var(--gr2-color)",n:tous.filter(function(s){return s.etat==="pot";}).length},
            {id:"mien",label:T.MIEN,c:"var(--gr5-color)",n:tous.filter(function(s){return s.recueilliPar===me;}).length}];
