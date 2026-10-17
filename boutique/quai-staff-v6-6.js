@@ -333,11 +333,11 @@
       origine:"boutique", demandeId:d.id||"", deposant:d.pseudo||"",
       article:d.itemId||"", intitule:"",
       contenu:(d.offrande_secret || d.offrande || ""),
-      recueilliPar:null, etat:"pot", usage:"dormant",
+      recueilliPar:null, etat:(d.itemId==="secret"?"pot":"attente"), usage:"dormant",
       deOuvert:false, fuite:null, rumeur:null,
       cree:now
-    }, "secret déposé au pot commun").then(function(r){
-      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",212,{},"sec"+(d.id||"")); }catch(e){}
+      }, "secret déposé").then(function(r){
+      if (d.itemId==="secret") { try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",212,{},"sec"+(d.id||"")); }catch(e){} }
       return r;
     });
   }
@@ -454,7 +454,7 @@
               argentBouge = true;
             } catch(e){ if (e&&e.message==="CAG"){ alert("La cagnotte « "+cible+" » est insuffisante pour ce prêt ("+money(d.montant)+")."); return; } if (window.console) console.error(e); alert("Transfert impossible."); return; }
             if (d.pret_contrepartie==="remboursement") { try { await E().firebasePush(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/prets", { montant:d.montant|0, cagnotte:cible, nom:d.nom||"Prêt", date:new Date().toISOString() }); } catch(e){ if (window.console) console.error("[quais-staff] prêt", e); } }
-          } else if (d.type==="comptant" && d.cagnotte && d.montant){
+          } else if (d.type==="comptant" && d.cagnotte && d.montant && !FICHE_ARTICLE[d.itemId]){
             try { await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(d.cagnotte), function(cur){ return (cur||0)+(d.montant|0); }); argentBouge = true; }
             catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
           }
