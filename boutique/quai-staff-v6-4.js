@@ -337,7 +337,7 @@
       deOuvert:false, fuite:null, rumeur:null,
       cree:now
     }, "secret déposé au pot commun").then(function(r){
-      try{ if(window.EcoNotif) EcoNotif.bande("sorcieres",214,{},"sec"+(d.id||"")); }catch(e){}
+      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",212,{},"sec"+(d.id||"")); }catch(e){}
       return r;
     });
   }
@@ -358,7 +358,7 @@
       demandeValidation:false,
       cree:now, ouverte:now, clos:null
     }, "créance de service ouverte").then(function(r){
-      try{ if(window.EcoNotif) EcoNotif.a(d.pseudo,210,{titre:d.nom||""},"cre"+(d.id||"")); }catch(e){}
+      try{ if(window.EcoNotif)EcoNotif.a(d.pseudo,210,{},"cre"+(d.id||"")); }catch(e){}
       return r;
     });
   }
@@ -385,7 +385,7 @@
     else if (kind === "seance") { o.statut = "en_attente"; o.de = null; o.fait = ""; o.secretId = null; }
     else { o.statut = "due"; o.debiteur = d.pseudo||""; o.nature = ""; o.detail = ""; }
     return ecrireEntree(CFG.NODE_LOSTBAYOU, id, o, "fiche des Sorcières ouverte").then(function(r){
-      try{ if(window.EcoNotif) EcoNotif.bande("sorcieres", kind==="poste"?211:(kind==="seance"?212:213), {titre:o.titre}, "lb"+(d.id||"")); }catch(e){}
+      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:QUOI[kind],titre:o.titre},"lb"+(d.id||"")); }catch(e){}
       return r;
     });
   }
