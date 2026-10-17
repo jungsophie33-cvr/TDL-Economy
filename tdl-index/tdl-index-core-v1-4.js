@@ -61,6 +61,8 @@ window.TDLI = window.TDLI || {};
       faiseuses:    "/t91-le-tableau-des-taches",
       hangar:       "/t96-le-tableau-du-hangar",
       marees:       "/t96-le-tableau-du-hangar",
+      carrefour:    "/t107-le-tableau-du-carrefour",
+      secrets:      "/t108-le-tableau-des-secrets",
       enquetes:     "/t86-le-panneau-des-enquetes",
       evenements:   "/calendar",
       projets:      "#",
@@ -72,12 +74,14 @@ window.TDLI = window.TDLI || {};
   /* Opérations et disparitions sont regroupées sous « hangar » : même public,
      même engagement. Les marées gardent leur branche, parce qu'elles sont les
      seules ouvertes à qui n'appartient à aucune bande. */
-  var SOUS = [
-    { cle: "maringouins", lib: "Missions", ent: "Les Maringouins" },
-    { cle: "main",        lib: "Dettes",   ent: "La Main" },
-    { cle: "faiseuses",   lib: "Tâches",   ent: "Les Faiseuses" },
-    { cle: "hangar",      lib: "Hangar",   ent: "La Flottille" },
-    { cle: "marees",      lib: "Marées",   ent: "Ouvertes à tous" }
+ var SOUS = [
+    { cle: "maringouins", lib: "Missions",  ent: "Les Maringouins" },
+    { cle: "main",        lib: "Dettes",    ent: "La Main" },
+    { cle: "secrets",     lib: "Secrets",   ent: "Les Sorcières" },
+    { cle: "faiseuses",   lib: "Tâches",    ent: "Les Faiseuses" },
+    { cle: "hangar",      lib: "Hangar",    ent: "La Flottille" },
+    { cle: "carrefour",   lib: "Carrefour", ent: "Chasses & missions" },
+    { cle: "marees",      lib: "Marées",    ent: "Ouvertes à tous" }
   ];
 
   var ICONES = {
@@ -368,7 +372,10 @@ window.TDLI = window.TDLI || {};
      rayon en CSS demanderait une valeur par point de rupture. */
   function placer(deploye) {
     var w = rad.offsetWidth, hh = rad.offsetHeight;
-    var cx = w / 2, cy = hh / 2, r = Math.min(w, hh) * 0.355;
+    var cx = w / 2, cy = hh / 2;
+    /* Le rayon suit le nombre de cartes : à cinq, 0.355 les posait bien ; à
+       sept, elles se touchent. On écarte sans sortir du conteneur. */
+    var r = Math.min(w, hh) * (SOUS.length > 6 ? 0.415 : 0.355);
     var rays = rad.querySelectorAll(".tdli-ray");
     var sats = rad.querySelectorAll(".tdli-sat");
     SOUS.forEach(function (s, i) {
