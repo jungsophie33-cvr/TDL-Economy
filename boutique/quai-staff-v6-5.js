@@ -367,6 +367,9 @@
      par une créance de service ouvre donc DEUX fiches : ce qu'on doit aux
      Sorcières, et ce qu'elles doivent au demandeur. */
   var FICHE_ARTICLE = { requete:"poste", prixlwas:"creance", empreinte:"seance" };
+    var QUOI = { poste:"une requête attend votre décision",
+               seance:"une séance cherche une Sorcière",
+               creance:"une créance s\u2019ouvre" };
 
   function creerFicheSorcieres(d){
     var kind = FICHE_ARTICLE[d.itemId]; if (!kind) return Promise.resolve(null);
