@@ -122,6 +122,7 @@ function normaliser(o){
   o.decide=(o.decide&&o.decide.date)?o.decide:null;
   o.tranche=!!o.tranche;
   o.fuite=(o.fuite&&o.fuite.du)?o.fuite:null;   /* {du:ISO, faite:bool} */
+  o.de4=+o.de4||0;                              /* face tirée, 0 = dé non tiré ici */
   o.murmureId=o.murmureId||null;
   o.rumeur=o.rumeur||"";
   o.secteur=o.secteur||"";
@@ -181,10 +182,15 @@ function panel(m, api){
       +'<b>'+(m.decide.choix==="acceptee"?"Acceptée":"Refusée")+'</b> le '+esc(api.dateFr(m.decide.date))
       +' \u00b7 '+esc(String(m.decide.oui||0))+' voix</span></div></div>';
   }
-  /* Le staff seul sait qu'une fuite dort sur ce secret, et sur lequel. */
-  if(api.staff()&&m.fuite){
-    bandeaux+='<div class="tdlm-negobox"><p class="tdlm-hsec">Fuite</p><div class="tdlm-negorow"><span class="tdlm-todo">'
-      +(m.fuite.faite?esc(T.AVIS_STAFF(api.dateFr(m.fuite.du))):esc(T.FUITE_DORT))+'</span></div></div>';
+    /* Le staff seul sait qu'une fuite dort sur ce secret, et sur lequel. */
+  if(api.staff()){
+    var dd;
+    if(!m.de4)dd="Dé non tiré sur cette fiche \u2014 le secret avait déjà été joué lors d\u2019une délibération précédente.";
+    else if(!m.fuite)dd="Dé de fuite : "+m.de4+" sur "+CFG.FUITE_SUR+" \u2014 le secret a tenu.";
+    else if(!m.fuite.faite)dd="Dé de fuite : "+m.de4+" sur "+CFG.FUITE_SUR+" \u2014 "+esc(T.FUITE_DORT)+" Avis prévu le "+esc(api.dateFr(m.fuite.du))+".";
+    else dd="Dé de fuite : "+m.de4+" sur "+CFG.FUITE_SUR+" \u2014 "+esc(T.AVIS_STAFF(api.dateFr(m.fuite.du)));
+    bandeaux+='<div class="tdlm-negobox"><p class="tdlm-hsec">Fuite</p>'
+      +'<div class="tdlm-negorow"><span class="tdlm-todo">'+dd+'</span></div></div>';
   }
 
   var corps='<div class="tdlm-sec"><p class="tdlm-hsec">'+T.SECRET+'</p>'
@@ -276,14 +282,17 @@ function joursFuite(){
   return CFG.FUITE_MIN+Math.floor(Math.random()*(CFG.FUITE_MAX-CFG.FUITE_MIN+1));
 }
 /* Le d4 ne tombe qu'une fois par SECRET : le drapeau vit sur le secret, pas
-   sur la fiche. Un secret qui a tenu une délibération ne se rejoue pas. */
+   sur la fiche. Un secret qui a tenu une délibération ne se rejoue pas.
+   On rend la FACE en plus de la fuite : sans elle, le staff ne peut pas
+   distinguer un secret épargné d'un dé jamais tiré. */
 function tirerFuite(api, secret){
-  if(!secret||secret.deOuvert)return null;
+  if(!secret||secret.deOuvert)return {de4:0, fuite:null};
   api.patchSecret(secret,{deOuvert:true});
   secret.deOuvert=true;
-  if(Math.floor(Math.random()*CFG.FUITE_SUR)!==0)return null;
+  var face=1+Math.floor(Math.random()*CFG.FUITE_SUR);
+  if(face!==1)return {de4:face, fuite:null};
   var d=new Date(); d.setDate(d.getDate()+joursFuite());
-  return {du:d.toISOString(), faite:false};
+  return {de4:face, fuite:{du:d.toISOString(), faite:false}};
 }
 /* Le dossier de la Main : aucun demandeur, aucune cible jouable — la règle de
    visibilité de rep-det-main laisserait sinon le PJ visé lire son propre
@@ -402,7 +411,7 @@ function ouvrir(api){
   if(!sid||!ac){api.toast(T.ERR_FORM);return;}
   if(!intit){api.toast(T.ERR_INTITULE);return;}
   var s=api.secret(sid), me=api.moi(), now=new Date().toISOString();
-  var fuite=tirerFuite(api, s);
+  var jet=tirerFuite(api, s);
   /* l'intitulé public est recopié sur la fiche : les Spectres n'ont que lui,
      et il survit à tout changement du registre */
   if(s&&!s.intitule)api.patchSecret(s,{intitule:intit});
@@ -413,7 +422,7 @@ function ouvrir(api){
     cible:v("tdlb-del-ncible"), contrepartie:v("tdlb-del-ncontre"),
     demandeur:null, statut:"ouverte", responsable:me,
     votes:{}, decide:null, tranche:false,
-    fuite:fuite, murmureId:null, rumeur:"",
+    fuite:jet.fuite, de4:jet.de4, murmureId:null, rumeur:"",
     sujet:"", resume:"", consequences:"", demandeValidation:false,
     cree:now, ouverte:now, clos:null
   };
