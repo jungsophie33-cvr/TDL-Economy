@@ -221,7 +221,21 @@
     detail.innerHTML = htmlFiche(liste[0]);
     train.children[0].classList.add('ctc-on');
 
-    /* Les mesures de largeur n'ont de sens qu'une fois le bloc dans la page. */
+    /* ----- le compteur -----
+       Il cherche à se loger dans le titre de section. Mais sos-inline monte
+       les blocs sur DOMContentLoaded, alors que tdlpl-fiche.js attend load :
+       au premier regard, le bloc est encore dans le message brut et aucun
+       titre n'existe à proximité. On réessaie donc après coup, et le
+       compteur migre de son emplacement de secours vers le titre dès qu'il
+       apparaît. */
+    var cpt = null;
+
+    function placerCompteur() {
+      if (!cpt) return;
+      var titre = titreProche(racine);
+      if (titre && cpt.parentNode !== titre) titre.appendChild(cpt);
+    }
+
     requestAnimationFrame(function () {
       majFleches();
       if (liste.length <= SEUIL_COMPTEUR) return;
@@ -230,12 +244,13 @@
       var txt = '<em>' + libres + (libres > 1 ? ' rôles libres' : ' rôle libre') +
                 ' sur ' + liste.length + '</em>';
       if (res) txt += ' · ' + res + (res > 1 ? ' réservés' : ' réservé');
-      var cpt = document.createElement('span');
+      cpt = document.createElement('span');
       cpt.className = 'ctc-compte';
       cpt.innerHTML = txt;
-      var titre = titreProche(racine);
-      if (titre) titre.appendChild(cpt);
-      else racine.insertBefore(cpt, racine.firstChild);
+      racine.insertBefore(cpt, racine.firstChild);   // emplacement de secours
+      placerCompteur();
+      window.addEventListener('load', placerCompteur);
+      setTimeout(placerCompteur, 600);
     });
 
     return racine;
