@@ -388,6 +388,15 @@ function acte(k, m, api){
   }
   if(k==="supprimer"){
     if(!window.confirm(T.CONF_SUPPR))return;
+    /* Le socle ne connaît pas le secret que la fiche tenait : sans ce retour à
+       dormant, il resterait « en délibération » et ne ressortirait plus jamais
+       dans la liste des secrets ouvrables. */
+    var s=api.secret(m.secretId);
+    if(s&&s.usage==="en_deliberation"){ s.usage="dormant"; api.patchSecret(s,{usage:"dormant"}); }
+    /* Le d4 n'avait de sens que pour cette délibération : tant que la fuite
+       n'est pas partie, on rend au secret son droit d'être rejoué. Une fois
+       l'avis sorti, l'exposition a bien eu lieu — le drapeau reste. */
+    if(s&&s.deOuvert&&(!m.fuite||!m.fuite.faite)){ s.deOuvert=false; api.patchSecret(s,{deOuvert:false}); }
     api.supprimer(m); api.toast("Délibération supprimée."); api.rendre(); return;
   }
 }
@@ -428,7 +437,11 @@ function ouvrir(api){
   };
   if(s){ s.usage="en_deliberation"; api.patchSecret(s,{usage:"en_deliberation"}); }
   api.creer(o,"délibération ouverte").then(function(id){
-    if(!id){api.toast("Ouverture échouée.");return;}
+    if(!id){
+      if(s){ s.usage="dormant"; api.patchSecret(s,{usage:"dormant"}); }   /* écriture compensée */
+      api.toast("Ouverture échouée.");
+      return;
+    }
     try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",211,{quoi:"une délibération est ouverte",titre:o.titre},"del"+id); }catch(e){}
     api.fermer(); api.selectionner(id); api.toast(T.OK_NEUF); api.rendre();
   });
