@@ -16,9 +16,9 @@
    aussitôt quel secret est sorti. L'avis est anonyme pour tout le monde, la
    dépositaire comprise ; seul le staff voit sur quel secret il a porté.
 
-   PAS DE CRON SUR FORUMACTIF : les fuites échues sont déclenchées par les
-   sessions ouvertes (Sorcières et staff), sous verrou — comme la réconciliation
-   périodique du socle rattrape les entrées écrites sans sentinelle.
+   LE DÉPART DE L'AVIS vit dans rep-lb-echeances, avec les autres délais du
+   tableau : ForumActif n'a pas de cron, et les échéances sont déclenchées par
+   les sessions ouvertes, sous verrou.
 
    STATUTS : ceux du socle — ouverte (le vote), close (appliquée), classée
    (refusée). À CHARGER après rep-lb-core et rep-lb-secrets. */
@@ -31,9 +31,6 @@ var CFG = {
   QUORUM:3, APPOINT_MAX:1,
   FUITE_SUR:4,          /* d4 : une chance sur quatre          */
   FUITE_MIN:2, FUITE_MAX:4,   /* jours avant que l'avis ne parte */
-  NODE_MAIN:"dossiers_main",
-  SCHEMA_MAIN:2,        /* doit suivre rep-det-main            */
-  VEILLE_FUITE_MS:60000,
   URL_COURIER:"https://thedrownedlands.forumactif.com/t102-the-houma-courier#hc=rumeur-"
 };
 /* miroir de CFG.SECTEURS dans tdlhc-volet — [MAJ] si la liste y change */
@@ -182,7 +179,9 @@ function panel(m, api){
       +'<b>'+(m.decide.choix==="acceptee"?"Acceptée":"Refusée")+'</b> le '+esc(api.dateFr(m.decide.date))
       +' \u00b7 '+esc(String(m.decide.oui||0))+' voix</span></div></div>';
   }
-    /* Le staff seul sait qu'une fuite dort sur ce secret, et sur lequel. */
+  /* Le staff seul sait qu'une fuite dort sur ce secret, et sur lequel. La FACE
+     lui est montrée dans tous les cas : sans elle, il ne peut pas distinguer un
+     secret épargné d'un dé jamais tiré. */
   if(api.staff()){
     var dd;
     if(!m.de4)dd="Dé non tiré sur cette fiche \u2014 le secret avait déjà été joué lors d\u2019une délibération précédente.";
@@ -284,7 +283,9 @@ function joursFuite(){
 /* Le d4 ne tombe qu'une fois par SECRET : le drapeau vit sur le secret, pas
    sur la fiche. Un secret qui a tenu une délibération ne se rejoue pas.
    On rend la FACE en plus de la fuite : sans elle, le staff ne peut pas
-   distinguer un secret épargné d'un dé jamais tiré. */
+   distinguer un secret épargné d'un dé jamais tiré.
+   LE DÉPART DE L'AVIS n'est pas ici : il échoit plus tard, et c'est
+   rep-lb-echeances qui le déclenche, avec les autres délais du tableau. */
 function tirerFuite(api, secret){
   if(!secret||secret.deOuvert)return {de4:0, fuite:null};
   api.patchSecret(secret,{deOuvert:true});
@@ -293,50 +294,6 @@ function tirerFuite(api, secret){
   if(face!==1)return {de4:face, fuite:null};
   var d=new Date(); d.setDate(d.getDate()+joursFuite());
   return {de4:face, fuite:{du:d.toISOString(), faite:false}};
-}
-/* Le dossier de la Main : aucun demandeur, aucune cible jouable — la règle de
-   visibilité de rep-det-main laisserait sinon le PJ visé lire son propre
-   dossier, donc le secret. Le nom va dans evoquees. */
-function ouvrirMurmure(api, m, secret){
-  var now=new Date().toISOString(), id=api.nouvelId();
-  var o={
-    schema:CFG.SCHEMA_MAIN, type:"murmure", origine:"sorcieres",
-    titre:"Un murmure remonté du bayou", service:"", doigt:null, ouvertTous:true,
-    demandeur:null, cible_type:"aucune", cible:"", protege:"",
-    contexte:(secret&&secret.contenu)||"", objectif:"", evoquees:(m.cible||""),
-    contraintes:[], montant:0, dette:null, accord:null, defaut:null,
-    certitude:null, urgence:"",
-    prixIndicatif:0, prixPropose:0, issue:null, prixFinal:null,
-    prime:0, primeVersee:false, phase:null, phaseService:false, phase1:null,
-    statut:"ouvert", responsable:null,
-    sujet:"", resume:"", consequences:"", conclusion:null,
-    demandeValidation:false, verse:false,
-    cree:now, ouverte:now, clos:null
-  };
-  return Promise.resolve(window.TDLBase.ecrireEntree(CFG.NODE_MAIN, id, o, "murmure remonté à la Main"))
-    .then(function(ok){
-      if(!ok)return null;
-      try{ if(window.EcoNotif)EcoNotif.bande("main",221,{},"mur"+id); }catch(e){}
-      return id;
-    });
-}
-/* Pas de cron sur FA : les sessions ouvertes déclenchent les fuites échues,
-   sous verrou. L'avis à la bande ne dit jamais QUEL secret est sorti. */
-function echeances(api){
-  if(!(api.estSorciere()||api.staff()))return;
-  api.fiches().forEach(function(m){
-    if(m.type!=="delib"||!m.fuite||m.fuite.faite)return;
-    if(new Date(m.fuite.du).getTime()>Date.now())return;
-    api.verrou(api.NODE, m.id, "fuiteFaite").then(function(){
-      var s=api.secret(m.secretId);
-      return ouvrirMurmure(api, m, s);
-    }).then(function(idm){
-      m.fuite.faite=true; m.murmureId=idm||null;
-      api.patch(m,{fuite:m.fuite, murmureId:m.murmureId});
-      try{ if(window.EcoNotif)EcoNotif.bande("sorcieres",222,{},"fui"+m.id); }catch(e){}
-      api.rendre();
-    }).catch(function(){ /* un autre onglet s'en est chargé, ou le réseau a lâché */ });
-  });
 }
 
 /* ===================== ACTIONS ===================== */
@@ -393,9 +350,9 @@ function acte(k, m, api){
        dans la liste des secrets ouvrables. */
     var s=api.secret(m.secretId);
     if(s&&s.usage==="en_deliberation"){ s.usage="dormant"; api.patchSecret(s,{usage:"dormant"}); }
-    /* Le d4 n'avait de sens que pour cette délibération : tant que la fuite
-       n'est pas partie, on rend au secret son droit d'être rejoué. Une fois
-       l'avis sorti, l'exposition a bien eu lieu — le drapeau reste. */
+    /* Le d4 n\u2019avait de sens que pour cette délibération : tant que la fuite
+       n\u2019est pas partie, on rend au secret son droit d\u2019être rejoué. Une fois
+       l\u2019avis sorti, l\u2019exposition a bien eu lieu — le drapeau reste. */
     if(s&&s.deOuvert&&(!m.fuite||!m.fuite.faite)){ s.deOuvert=false; api.patchSecret(s,{deOuvert:false}); }
     api.supprimer(m); api.toast("Délibération supprimée."); api.rendre(); return;
   }
@@ -449,6 +406,11 @@ function ouvrir(api){
 function m_court(s){ s=String(s||""); return s.length>40?s.slice(0,40)+"\u2026":s; }
 
 /* ===================== ENREGISTREMENT ===================== */
+/* L'échéancier tranche parfois à notre place, sur une délibération qu'aucune
+   voix n'a départagée : il a besoin de savoir quel usage porte un acte, et les
+   ACTES ne vivent qu'ici. */
+REG.usageDe=function(k){ return (ACTES[k]&&ACTES[k].usage)||"employe"; };
+
 REG.types.push({
   k:"delib", label:"Délibération", icon:"fi-tr-scale-balanced",
   normaliser:normaliser, visible:visible, ligne:ligne, panel:panel,
@@ -458,11 +420,4 @@ REG.types.push({
   }
 });
 
-/* Veille des fuites échues : elle tourne dans les sessions des Sorcières et du
-   staff, les seules à pouvoir lire le secret qui part à la Main. */
-setTimeout(function(){
-  var api=REG.api; if(!api)return;
-  echeances(api);
-  setInterval(function(){ echeances(api); }, CFG.VEILLE_FUITE_MS);
-}, 8000);
 })();
