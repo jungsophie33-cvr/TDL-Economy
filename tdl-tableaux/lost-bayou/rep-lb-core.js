@@ -111,7 +111,7 @@ function normaliser(o){
   o.participants=lstPseudos(o.participants);
   o.votes=(o.votes&&typeof o.votes==="object")?o.votes:{};
   o.sujet=o.sujet||""; o.resume=o.resume||""; o.consequences=o.consequences||"";
-  o.demandeValidation=!!o.demandeValidation;
+  o.demandeValidation=!!o.demandeValidation; o.solde=!!o.solde; o.annulee=!!o.annulee;
   o.cree=o.cree||new Date().toISOString(); o.ouverte=o.ouverte||o.cree; o.clos=o.clos||null;
   var t=typeDe(o.type);
   if(t&&t.normaliser)t.normaliser(o);
@@ -121,7 +121,8 @@ function normaliserSecret(o){
   o.schema=(o.schema===SCHEMA)?SCHEMA:1;
   o.intitule=o.intitule||""; o.contenu=o.contenu||""; o.origine=o.origine||"";
   o.deposant=o.deposant||null; o.recueilliPar=o.recueilliPar||null;
-  o.etat=(o.etat==="pot")?"pot":"prive"; o.usage=o.usage||"dormant"; o.deOuvert=!!o.deOuvert;
+  o.etat=(o.etat==="pot"||o.etat==="attente")?o.etat:"prive"; 
+  o.usage=o.usage||"dormant"; o.deOuvert=!!o.deOuvert;
   o.fuite=(o.fuite&&typeof o.fuite==="object")?o.fuite:null;
   o.rumeur=(o.rumeur&&typeof o.rumeur==="object")?o.rumeur:null;
   o.cree=o.cree||new Date().toISOString();
