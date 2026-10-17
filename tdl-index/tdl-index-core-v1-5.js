@@ -66,7 +66,7 @@ window.TDLI = window.TDLI || {};
       enquetes:     "/t86-le-panneau-des-enquetes",
       evenements:   "/calendar",
       projets:      "#",
-      courier:      "/t102"
+      courier:      "/t102-the-houma-courier"
     }
   };
 
