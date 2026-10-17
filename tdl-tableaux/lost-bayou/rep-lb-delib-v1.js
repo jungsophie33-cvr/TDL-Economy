@@ -137,7 +137,9 @@ function ligne(m, api){
   if(enVote(m))tags.push({l:compter(m, api, "oui")+"/"+CFG.QUORUM+" voix"});
   if(m.acte==="lacher"&&m.decide&&m.decide.choix==="acceptee"&&!m.rumeurSoum)
     tags.push({l:T.RUMEUR_ATTENTE, c:"var(--gr1-color)"});
-  return { titre:m.titre, sous:(m.intitule||T.RIEN), tags:tags };
+  /* l\u2019intitulé est déjà le titre, et l\u2019acte est dans le tag : le sous-titre
+     dit qui est visé, la seule information qui manquait à la rangée. */
+  return { titre:m.titre, sous:(m.cible||""), tags:tags };
 }
 
 /* ===================== PANNEAU ===================== */
@@ -383,7 +385,7 @@ function ouvrir(api){
   if(s&&!s.intitule)api.patchSecret(s,{intitule:intit});
   var o={
     schema:api.SCHEMA, type:"delib", origine:"tableau",
-    titre:acteLbl(ac)+" \u2014 "+(m_court(intit)),
+    titre:m_court(intit),
     secretId:sid, intitule:intit, acte:ac,
     cible:v("tdlb-del-ncible"), contrepartie:v("tdlb-del-ncontre"),
     demandeur:null, statut:"ouverte", responsable:me,
@@ -412,7 +414,7 @@ function m_court(s){ s=String(s||""); return s.length>40?s.slice(0,40)+"\u2026":
 REG.usageDe=function(k){ return (ACTES[k]&&ACTES[k].usage)||"employe"; };
 
 REG.types.push({
-  k:"delib", label:"Délibération", icon:"fi-tr-scale-balanced",
+  k:"delib", label:"Délibération", icon:"fi-tr-balance-scale-left",
   normaliser:normaliser, visible:visible, ligne:ligne, panel:panel,
   actionbar:actionbar, drawer:drawer, acte:acte, faire:faire,
   creer:function(){
