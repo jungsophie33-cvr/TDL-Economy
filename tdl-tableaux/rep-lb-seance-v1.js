@@ -258,8 +258,8 @@ function prendre(m, api, pnj){
     m.prise=true; m.de=de; m.statut="saisie";
     m.responsable=pnj?null:me; m.pnj=!!pnj;
     api.patch(m,{prise:true, de:de, statut:"saisie", responsable:m.responsable, pnj:m.pnj});
-    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,223,{titre:m.titre},"pri"+m.id); }catch(e){}
-    try{ if(window.EcoNotif)EcoNotif.staff(224,{titre:m.titre},"fai"+m.id); }catch(e){}
+    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,218,{},"pri"+m.id); }catch(e){}
+    try{ if(window.EcoNotif)EcoNotif.staff(219,{titre:m.titre},"fai"+m.id); }catch(e){}
     api.toast(T.OK_PRISE); api.rendre();
   }).catch(function(e){
     if(api.estDeja(e)){api.toast(T.DEJA);api.rendre();return;}
@@ -312,13 +312,12 @@ function clore(m, api){
       cree:now2, ouverte:now2, clos:null
     },"contrecoup de séance").then(function(idc){
       m.creanceId=idc;
-      try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,210,{titre:"Contrecoup"},"cre"+idc); }catch(e){}
+      try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,210,{},"cre"+idc); }catch(e){}
     });
   }).then(function(){
     m.statut="close"; m.demandeValidation=false; m.clos=new Date().toISOString();
     api.patch(m,{statut:"close", demandeValidation:false, clos:m.clos, versee:true,
                  secretId:m.secretId, secretAveuId:m.secretAveuId, creanceId:m.creanceId});
-    try{ if(window.EcoNotif&&m.demandeur)EcoNotif.a(m.demandeur,225,{titre:m.titre},"clo"+m.id); }catch(e){}
     api.fermer(); api.toast(T.OK_CLOS); api.rendre();
   }).catch(function(e){
     if(api.estDeja(e)){api.toast("Séance déjà close ailleurs \u2014 rien n\u2019a été écrit une seconde fois.");api.rendre();return;}
@@ -354,8 +353,8 @@ function faire(k, m, api){
     m.fait=f?String(f.value||"").trim():"";
     api.patch(m,{fait:m.fait}); api.fermer();
     try{ if(window.EcoNotif&&m.fait){
-      if(m.demandeur)EcoNotif.a(m.demandeur,226,{titre:m.titre},"fac"+m.id);
-      if(m.responsable)EcoNotif.a(m.responsable,226,{titre:m.titre},"fas"+m.id);
+      if(m.demandeur)EcoNotif.a(m.demandeur,220,{},"fac"+m.id);
+      if(m.responsable)EcoNotif.a(m.responsable,220,{},"fas"+m.id);
     } }catch(e){}
     api.toast(T.OK_FAIT); api.rendre(); return;
   }
@@ -370,7 +369,7 @@ function faire(k, m, api){
       champs.statut="en_validation"; champs.demandeValidation=true;
     }
     api.patch(m,champs);
-    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(218,{titre:m.titre},"val"+m.id); }catch(e){}
+    try{ if(window.EcoNotif&&champs.statut)EcoNotif.staff(215,{titre:m.titre},"val"+m.id); }catch(e){}
     api.fermer();
     api.toast(champs.statut?"Séance envoyée en validation.":"Bilan enregistré."); return;
   }
