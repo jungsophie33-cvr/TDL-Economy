@@ -50,7 +50,6 @@ var U = {
   SECRETS:  "/t108-le-tableau-des-secrets",         
   COURIER:  "/t102-the-houma-courier"
 };
-};
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
