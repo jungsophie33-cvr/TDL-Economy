@@ -1,8 +1,8 @@
 /* ============================================================================
-   TDL — PRÉ-LIENS : PRÉSENTATION DE FAMILLE
-   Fichier : tdlpl-famille.js
+   TDL — PRÉ-LIENS : FICHE DE PRÉSENTATION (famille, groupe, individuel)
+   Fichier : tdlpl-fiche.js
    ----------------------------------------------------------------------------
-   Lit le format texte « === FAMILLE: » posé dans un message et le transforme
+   Lit « === FAMILLE: », « === GROUPE: » ou « === INDIVIDUEL: » et le transforme
    en parcours à deux niveaux : onglets libres, et sous-rubriques optionnelles
    dans la colonne de gauche.
 
@@ -29,7 +29,7 @@
 
   var alerte = T.journal('famille');
 
-  var RE_BLOC   = /^===\s*FAMILLE\s*:\s*(.+)$/i;
+  var RE_BLOC   = /^===\s*(FAMILLE|GROUPE|INDIVIDUEL)\s*:\s*(.+)$/i;
   var RE_FIN    = /^===\s*FIN/i;
   var RE_ONGLET = /^---\s*ONGLET\s*:?\s*(.*?)\s*---$/i;
   var RE_RUB    = /^--\s*(.*?)\s*--$/;
@@ -104,8 +104,8 @@
     decoupe(el);
 
     var m = {
-      nom: '', soustitre: '', secteur: '', tw: '', image: '',
-      referent: '', referentLien: '', credits: '', imgs: [], onglets: []
+      genre: 'famille', nom: '', soustitre: '', secteur: '', tw: '', image: '',
+      referent: '', referentLien: '', credits: '', imgs: [], infos: [], onglets: []
     };
     var actif = false, onglet = null, rub = null;
     /* cit : la citation en cours de remplissage, ouverte par CITATION: et
@@ -131,12 +131,24 @@
       }
 
       if (estLigne) {
-        if ((r = t.match(RE_BLOC))) { actif = true; m.nom = r[1].trim(); n.remove(); return; }
+        if ((r = t.match(RE_BLOC))) {
+          actif = true;
+          m.genre = r[1].toLowerCase();
+          m.nom = r[2].trim();
+          n.remove(); return;
+        }
         if (!actif) return;
         if (RE_FIN.test(t)) { actif = false; n.remove(); return; }
 
         if ((r = t.match(RE_ONGLET))) {
-          onglet = { titre: r[1], noeuds: [], rubs: [] };
+          // « --- ONGLET: Les contacts | large --- » : l'onglet prend toute la
+          // largeur et replie la colonne de gauche.
+          var bo = r[1].split('|');
+          onglet = {
+            titre: (bo[0] || '').trim(),
+            large: /^(large|pleine|full)$/i.test((bo[1] || '').trim()),
+            noeuds: [], rubs: []
+          };
           m.onglets.push(onglet); rub = null; dernierCit = null; n.remove(); return;
         }
         if (onglet && (r = t.match(RE_RUB))) {
@@ -158,6 +170,13 @@
         if (!onglet && (r = t.match(RE_CLE))) {
           var cle = r[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           var val = r[2].trim();
+          if (cle === 'info') {
+            // INFO: Libellé | valeur — répétable, affichée dans la colonne.
+            var bi = val.split('|');
+            if (bi.length > 1) m.infos.push({ lib: bi[0].trim(), val: bi.slice(1).join('|').trim() });
+            else alerte('INFO attend « Libellé | valeur » : « ' + val + ' »');
+            n.remove(); return;
+          }
           if (cle === 'referent') {
             var bouts = val.split('|');
             m.referent = (bouts[0] || '').trim();
@@ -218,10 +237,11 @@
     var m = this.m, self = this;
 
     var racine = document.createElement('div');
-    racine.className = 'tdlplf tdlplf--famille annexe';
+    racine.className = 'tdlplf tdlplf--fiche tdlplf--' + m.genre + ' annexe';
     racine.innerHTML =
       '<div class="tdlplf-hero"><div class="tdlplf-hero-in">' +
-        '<h1 class="tdlplf-fam">Famille ' + T.echappe(m.nom) + '</h1>' +
+        '<h1 class="tdlplf-fam">' +
+          (m.genre === 'famille' ? 'Famille ' : '') + T.echappe(m.nom) + '</h1>' +
         (m.tw ? '<tw>' + T.echappe(m.tw) + '</tw>' : '') +
       '</div></div>' +
       '<div class="tdlplf-onglets"></div>' +
@@ -241,6 +261,7 @@
     this.el.innerHTML = '';
     this.el.appendChild(racine);
 
+    this.$fiche = racine.querySelector('.tdlplf-fiche');
     this.$ong   = racine.querySelector('.tdlplf-onglets');
     this.$ident = racine.querySelector('.tdlplf-ident-fam');
     this.$port  = racine.querySelector('.tdlplf-portrait');
@@ -264,10 +285,15 @@
     if (m.referent && m.referentLien) {
       nomRef = '<a href="' + T.echappe(m.referentLien) + '">' + nomRef + '</a>';
     }
-    this.$meta.innerHTML =
-      (m.referent ? '<div class="tdlplf-referent"><f4>Référent</f4>' + nomRef +
+    var infos = m.infos.map(function (x) {
+      return '<div class="tdlplf-info"><f4>' + T.echappe(x.lib) + '</f4>' +
+             '<span>' + T.echappe(x.val) + '</span></div>';
+    }).join('');
+
+    this.$meta.innerHTML = infos +
+      (m.referent ? '<div class="tdlplf-referent"><b>Référent</b>' + nomRef +
          '<span>à contacter pour toute question sur la famille</span></div>' : '') +
-      (m.credits ? '<div class="tdlplf-credits"><f4>Crédits</f4>' + T.echappe(m.credits) + '</div>' : '');
+      (m.credits ? '<div class="tdlplf-credits"><b>Crédits</b>' + T.echappe(m.credits) + '</div>' : '');
 
     var imgs = m.imgs.filter(Boolean);
     if (imgs.length) {
@@ -299,6 +325,8 @@
     Array.prototype.forEach.call(this.$ong.children, function (b, i) {
       b.classList.toggle('tdlplf-on', i === self.i);
     });
+    // Onglet « large » : la colonne de gauche se replie, le contenu s'étale.
+    this.$fiche.classList.toggle('tdlplf-large', !!o.large);
 
     var avait = !this.$rubs.hidden;
     this.$rubs.hidden = o.rubs.length < 2;
@@ -360,7 +388,12 @@
   var instances = [];
 
   function demarre() {
-    var cibles = T.postsAvec('=== FAMILLE:', '.tdlplf');
+    var cibles = [];
+    ['=== FAMILLE:', '=== GROUPE:', '=== INDIVIDUEL:'].forEach(function (marq) {
+      T.postsAvec(marq, '.tdlplf').forEach(function (el) {
+        if (cibles.indexOf(el) < 0) cibles.push(el);
+      });
+    });
     if (!cibles.length) return;
     cibles.forEach(function (el) {
       // analyse() détruit le source : on en garde une copie AVANT.
@@ -385,7 +418,8 @@
     return inst.src.slice(0, 2000);
   }
 
-  window.TDLPL_FAMILLE = {
+  window.TDLPL_FICHE = {
     relancer: demarre, analyse: analyse, instances: instances, source: source
   };
+  window.TDLPL_FAMILLE = window.TDLPL_FICHE;   // ancien nom, conservé
 })();
