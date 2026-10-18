@@ -46,7 +46,7 @@
 
   /* Au-delà de ce nombre d'entrées, le compteur de rôles libres s'affiche.
      En dessous, l'offre se compte d'un coup d'œil et il serait bavard. */
-  var SEUIL_COMPTEUR = 6;
+  var SEUIL_COMPTEUR = 3;
 
   var LIB = { UTILITE: "Ce qu'il apporte", PISTES: 'Pistes de jeu' };
   var ORDRE = ['UTILITE', 'PISTES'];
