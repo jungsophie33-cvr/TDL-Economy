@@ -113,7 +113,7 @@
           var entree = { cle: cle, lignes: [] };
           if (reste.trim() !== '') { entree.lignes.push(reste); }
           bloc.entrees.push(entree);
-          if (!(cle in bloc.champs)) { bloc.champs[cle] = entree.lignes; } // 1re occurrence
+         // champs reconstruit après la boucle, depuis entrees
           champ = entree;
         } else if (!panneauVu) {
           meta[cle] = reste.trim();  // métadonnées (avant tout panneau)
@@ -126,6 +126,17 @@
       // ligne de continuation (valeur multi-ligne) — lignes vides ignorées
       if (champ && ligne.trim() !== '') { champ.lignes.push(ligne); }
     }
+    // Reconstruction des champs depuis les entrées, une fois toutes les
+    // lignes de continuation rattachées. Permet l'accumulation d'une clé
+    // répétée sans casser les références utilisées pendant la lecture.
+    panneaux.forEach(function (p) {
+      p.blocs.forEach(function (b) {
+        b.champs = {};
+        b.entrees.forEach(function (e) {
+          b.champs[e.cle] = (b.champs[e.cle] || []).concat(e.lignes);
+        });
+      });
+    });
 
     return { meta: interpMeta(meta), panneaux: panneaux };
   }
@@ -139,16 +150,19 @@
     return (bloc && bloc.champs[cle]) ? bloc.champs[cle] : [];
   };
 
-  // groupe les entrées répétables d'un bloc (ITEM, COLONNE…)
+   // groupe les entrées répétables d'un bloc (ITEM, COLONNE…)
   // -> [ { ouverture:[lignes], champs:{CLE:[lignes]} } ]
+  // Une clé répétée dans un même groupe s'ACCUMULE : deux TEXTE: donnent
+  // deux paragraphes. Écraser la seconde occurrence interdisait toute
+  // valeur multi-paragraphes, et le faisait sans rien signaler.
   SOS.grouper = function (bloc, ouverture) {
     var groupes = [], cur = null;
     (bloc && bloc.entrees || []).forEach(function (e) {
       if (e.cle === ouverture) {
         cur = { ouverture: e.lignes.slice(), champs: {} };
         groupes.push(cur);
-      } else if (cur && !(e.cle in cur.champs)) {
-        cur.champs[e.cle] = e.lignes.slice();
+      } else if (cur) {
+        cur.champs[e.cle] = (cur.champs[e.cle] || []).concat(e.lignes);
       }
     });
     return groupes;
