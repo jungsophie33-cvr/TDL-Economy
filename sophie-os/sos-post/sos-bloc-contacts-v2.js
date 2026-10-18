@@ -65,6 +65,24 @@
     return 'libre';
   }
 
+     /* Aplatit ce que grouper renvoie pour une clé répétée, quelle que soit
+     sa forme : chaîne unique, tableau de lignes, ou tableau de tableaux.
+     Évite de dépendre d'une convention interne qui peut varier d'un champ
+     à l'autre. */
+  function lignes(v) {
+    if (v == null) return [];
+    if (typeof v === 'string') return v.split('\n');
+    var out = [];
+    [].concat(v).forEach(function (x) {
+      if (x == null) return;
+      if (typeof x === 'string') out.push(x);
+      else if (x.length !== undefined) out = out.concat(lignes(x));
+      else if (x.texte) out.push(x.texte);
+      else out.push(String(x));
+    });
+    return out.filter(function (l) { return String(l).trim(); });
+  }
+
   /* ===================== LECTURE ===================== */
   function lire(bloc) {
     var liste = [];
@@ -83,7 +101,7 @@
         role: U.nu(g.champs.ROLE || []),
         profil: U.nu(g.champs.PROFIL || []),
         img: U.sansBalises(U.nu(g.champs.IMAGE || [])).trim(),
-        corps: g.champs.TEXTE || [],
+        corps: lignes(g.champs.TEXTE),
         champs: {
           UTILITE: U.nu(g.champs.UTILITE || []),
           PISTES: U.nu(g.champs.PISTES || [])
