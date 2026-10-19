@@ -162,12 +162,12 @@
     if (champs.length || c.infos.length) {
       out += '<div class="ctc-champs">';
       champs.forEach(function (k) {
-        out += '<div class="ctc-champ"><f4>' + esc(LIB[k]) + '</f4><span>' +
-          esc(c.champs[k]) + '</span></div>';
+        out += '<div class="ctc-champ"><span class="ctc-lib">' + esc(LIB[k]) +
+        '</span><span class="ctc-val">' + esc(c.champs[k]) + '</span></div>';
       });
       c.infos.forEach(function (x) {
-        out += '<div class="ctc-champ"><f4>' + esc(x.lib) + '</f4><span>' +
-          esc(x.val) + '</span></div>';
+        out += '<div class="ctc-champ"><span class="ctc-lib">' + esc(x.lib) +
+        '</span><span class="ctc-val">' + esc(x.val) + '</span></div>';
       });
       out += '</div>';
     }
