@@ -37,6 +37,7 @@
   var RE_CIT    = /^CITATION\s*:\s*(.*)$/i;       // utilisable DANS un onglet
   var RE_TITRE  = /^##\s+(.+)$/;                  // titre de rubrique, dans un onglet
   var RE_Q      = /^Q\s*:\s*(.+)$/i;              // question numérotée, dans un onglet
+  var RE_TXT    = /^TEXTE\s*:\s*(.*)$/i;         // paragraphe, dans un onglet
   var RE_SRC    = /^SOURCE\s*:\s*(.+)$/i;
 
   var CLES = ['soustitre', 'secteur', 'tw', 'image', 'referent', 'credits',
@@ -49,7 +50,8 @@
 
   function estMarqueur(t) {
     return RE_BLOC.test(t) || RE_FIN.test(t) || RE_ONGLET.test(t) ||
-           RE_RUB.test(t) || RE_TITRE.test(t) || RE_Q.test(t) || RE_CLE.test(t);
+           RE_RUB.test(t) || RE_TITRE.test(t) || RE_Q.test(t) ||
+           RE_TXT.test(t) || RE_CLE.test(t);
   }
 
   /* ----------------------------------------------------------- ANALYSEUR */
@@ -184,6 +186,27 @@
           dq.innerHTML = '<span class="tdlplf-q-num">' + ('0' + hq.nQ).slice(-2) + '</span>' +
             '<p class="tdlplf-q-txt">' + T.echappe(r[1]) + '</p>';
           ranger(dq); n.remove(); return;
+        }
+        /* TEXTE: un paragraphe. Les TEXTE qui se suivent se rangent dans le
+           même conteneur, de sorte que le membre n'écrit aucune balise.
+           Comme pour CITATION, le paragraphe absorbe ce qui suit jusqu'au
+           saut de ligne : c'est ce qui laisse passer les italiques et le
+           gras, que ForumActif éclate en plusieurs nœuds. */
+        if (onglet && (r = t.match(RE_TXT))) {
+          var ln = rub ? rub.noeuds : onglet.noeuds;
+          var av = ln[ln.length - 1];
+          var boite = (av && av.classList && av.classList.contains('tdlplf-libre')) ? av : null;
+          if (!boite) {
+            boite = document.createElement('div');
+            boite.className = 'tdlplf-libre';
+            ranger(boite);
+          }
+          var par = document.createElement('p');
+          if (r[1]) par.appendChild(document.createTextNode(r[1]));
+          boite.appendChild(par);
+          cit = par;            /* le puits : absorbe jusqu'au <br> */
+          dernierCit = null;    /* un SOURCE: ne se rattache qu'à une citation */
+          n.remove(); return;
         }
         if (onglet && (r = t.match(RE_CIT))) {
           cit = document.createElement('div');
