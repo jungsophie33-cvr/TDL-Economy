@@ -100,6 +100,36 @@
     return url;
   }
 
+  /* Même piège que urlVoisine, en version multiple : une ligne IMAGES:
+     contient plusieurs adresses, que ForumActif transforme toutes en liens.
+     On les ramasse dans l'ordre, y compris celles restées en texte. */
+  function urlsVoisines(n) {
+    var pris = [], x = n.nextSibling, urls = [];
+    while (x && !(x.nodeType === 1 && x.tagName === 'BR')) {
+      pris.push(x);
+      if (x.nodeType === 1) {
+        var liens = x.tagName === 'A' ? [x]
+          : (x.querySelectorAll ? x.querySelectorAll('a[href]') : []);
+        Array.prototype.forEach.call(liens, function (a) { urls.push(a.getAttribute('href')); });
+        var imgs = x.tagName === 'IMG' ? [x]
+          : (x.querySelectorAll ? x.querySelectorAll('img[src]') : []);
+        Array.prototype.forEach.call(imgs, function (i) { urls.push(i.getAttribute('src')); });
+      } else if (x.nodeType === 3) {
+        (x.data.match(/https?:\/\/\S+/g) || []).forEach(function (u) {
+          urls.push(u.replace(/[|\s]+$/, ''));
+        });
+      }
+      x = x.nextSibling;
+    }
+    if (urls.length) {
+      pris.forEach(function (p) {
+        p.__tdlplPris = true;
+        if (p.parentNode) p.parentNode.removeChild(p);
+      });
+    }
+    return urls;
+  }
+
   /* « Laelyss | 2 », « Laelyss | /u2 », « Laelyss | https://… » : on accepte
      les trois écritures et on normalise vers une adresse utilisable. */
   function versProfil(v) {
@@ -228,15 +258,18 @@
           /* IMAGES: u1 | u2 | u3 — posable n'importe où dans un onglet.
              Sa position dans le texte décide de sa position à l'écran. */
           if (onglet && cle === 'images') {
-            var urls = val.split('|').map(function (u) { return u.trim(); }).filter(Boolean);
+            var urls = val.split('|')
+              .map(function (u) { return u.trim(); })
+              .filter(function (u) { return /^https?:\/\//i.test(u); });
+            urls = urls.concat(urlsVoisines(n));
             if (urls.length) {
               var gi = document.createElement('div');
-              gi.className = 'tdlplf-images';
+              gi.className = 'tdlplf-galerie';
               gi.innerHTML = urls.map(function (u) {
-                return '<span class="tdlplf-img-c"><img src="' + T.echappe(u) + '" alt=""></span>';
+                return '<span class="tdlplf-gal-c"><img src="' + T.echappe(u) + '" alt=""></span>';
               }).join('');
               ranger(gi);
-            } else alerte('IMAGES: aucune adresse exploitable');
+            } else alerte('IMAGES: aucune adresse exploitable sur cette ligne');
             n.remove(); return;
           }
 
@@ -448,7 +481,7 @@
 
     var pan = document.createElement('div');
     pan.className = 'tdlplf-panneau' + (changementOnglet ? ' tdlplf-depuis-bas' : '');
-    pan.innerHTML = '<div class="h3"><h3><span class="tdlplf-num">' +
+    pan.innerHTML = '<div class="h3 tdlplf-titre-pan"><h3><span class="tdlplf-num">' +
       ('0' + num).slice(-2) + '.</span>' + T.echappe(titre) + '</h3></div>';
 
     /* LE DÉPLACEMENT : appendChild détache le nœud de sa position actuelle et
