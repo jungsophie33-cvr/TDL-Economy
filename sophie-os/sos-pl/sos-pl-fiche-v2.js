@@ -29,19 +29,27 @@
 
   var alerte = T.journal('famille');
 
-  var RE_BLOC   = /^===\s*(FAMILLE|GROUPE|INDIVIDUEL)\s*:\s*(.+)$/i;
+  var RE_BLOC   = /^===\s*(FAMILLE|GROUPE|INDIVIDUEL|PRESENTATION|SUITE)\s*:\s*(.+)$/i;
   var RE_FIN    = /^===\s*FIN/i;
   var RE_ONGLET = /^---\s*ONGLET\s*:?\s*(.*?)\s*---$/i;
   var RE_RUB    = /^--\s*(.*?)\s*--$/;
   var RE_CLE    = /^([A-ZÉÈ0-9]+)\s*:\s*(.*)$/;   // les chiffres comptent : IMG1, IMG2…
   var RE_CIT    = /^CITATION\s*:\s*(.*)$/i;       // utilisable DANS un onglet
+  var RE_TITRE  = /^##\s+(.+)$/;                  // titre de rubrique, dans un onglet
+  var RE_Q      = /^Q\s*:\s*(.+)$/i;              // question numérotée, dans un onglet
   var RE_SRC    = /^SOURCE\s*:\s*(.+)$/i;
 
-  var CLES = ['soustitre', 'secteur', 'tw', 'image', 'referent', 'credits'];
+  var CLES = ['soustitre', 'secteur', 'tw', 'image', 'referent', 'credits',
+              'pronoms', 'joueur', 'joueur_pronoms'];
+
+  /* Mêmes emplacements, vocabulaire du type : sur une présentation de
+     personnage, GROUPE occupe la ligne de SECTEUR et FACECLAIM celle de
+     SOUSTITRE. Aucun rendu à dupliquer. */
+  var ALIAS = { groupe: 'secteur', faceclaim: 'soustitre' };
 
   function estMarqueur(t) {
     return RE_BLOC.test(t) || RE_FIN.test(t) || RE_ONGLET.test(t) ||
-           RE_RUB.test(t) || RE_CLE.test(t);
+           RE_RUB.test(t) || RE_TITRE.test(t) || RE_Q.test(t) || RE_CLE.test(t);
   }
 
   /* ----------------------------------------------------------- ANALYSEUR */
@@ -105,7 +113,8 @@
 
     var m = {
       genre: 'famille', nom: '', soustitre: '', secteur: '', tw: '', image: '',
-      referent: '', referentLien: '', credits: '', imgs: [], infos: [], onglets: []
+      referent: '', referentLien: '', credits: '', pronoms: '',
+      joueur: '', joueur_pronoms: '', imgs: [], infos: [], onglets: []
     };
     var actif = false, onglet = null, rub = null;
     /* cit : la citation en cours de remplissage, ouverte par CITATION: et
@@ -147,13 +156,34 @@
           onglet = {
             titre: (bo[0] || '').trim(),
             large: /^(large|pleine|full)$/i.test((bo[1] || '').trim()),
-            noeuds: [], rubs: []
+            noeuds: [], rubs: [], nTitres: 0, nQ: 0
           };
           m.onglets.push(onglet); rub = null; dernierCit = null; n.remove(); return;
         }
         if (onglet && (r = t.match(RE_RUB))) {
-          rub = { titre: r[1], noeuds: [] };
+          rub = { titre: r[1], noeuds: [], nTitres: 0, nQ: 0 };
           onglet.rubs.push(rub); dernierCit = null; n.remove(); return;
+        }
+        /* ## titre de rubrique — l'alternance gauche-droite est comptée par
+           le script, pour que le membre n'ait pas à la gérer. */
+        if (onglet && (r = t.match(RE_TITRE))) {
+          var hote = rub || onglet;
+          var dt = document.createElement('div');
+          dt.className = 'h3' + (hote.nTitres % 2 ? ' h3-droite' : '');
+          dt.innerHTML = '<h3>' + T.echappe(r[1]) + '</h3>';
+          hote.nTitres++;
+          ranger(dt); n.remove(); return;
+        }
+        /* Q: question numérotée — un intitulé long s'accommode mal d'un
+           titre à filet, d'où une forme à part. */
+        if (onglet && (r = t.match(RE_Q))) {
+          var hq = rub || onglet;
+          hq.nQ++;
+          var dq = document.createElement('div');
+          dq.className = 'tdlplf-q';
+          dq.innerHTML = '<span class="tdlplf-q-num">' + ('0' + hq.nQ).slice(-2) + '</span>' +
+            '<p class="tdlplf-q-txt">' + T.echappe(r[1]) + '</p>';
+          ranger(dq); n.remove(); return;
         }
         if (onglet && (r = t.match(RE_CIT))) {
           cit = document.createElement('div');
@@ -167,9 +197,51 @@
           dernierCit.appendChild(c);
           n.remove(); return;
         }
-        if (!onglet && (r = t.match(RE_CLE))) {
+        if ((r = t.match(RE_CLE))) {
           var cle = r[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (ALIAS[cle]) cle = ALIAS[cle];
           var val = r[2].trim();
+
+          /* IMAGES: u1 | u2 | u3 — posable n'importe où dans un onglet.
+             Sa position dans le texte décide de sa position à l'écran. */
+          if (onglet && cle === 'images') {
+            var urls = val.split('|').map(function (u) { return u.trim(); }).filter(Boolean);
+            if (urls.length) {
+              var gi = document.createElement('div');
+              gi.className = 'tdlplf-images';
+              gi.innerHTML = urls.map(function (u) {
+                return '<span class="tdlplf-img-c"><img src="' + T.echappe(u) + '" alt=""></span>';
+              }).join('');
+              ranger(gi);
+            } else alerte('IMAGES: aucune adresse exploitable');
+            n.remove(); return;
+          }
+
+          /* INFO: dans un onglet produit une grille ; en en-tête, elle
+             alimente la colonne. Les occurrences consécutives se groupent. */
+          if (onglet && cle === 'info') {
+            var bi2 = val.split('|');
+            if (bi2.length > 1) {
+              var liste = rub ? rub.noeuds : onglet.noeuds;
+              var prec = liste[liste.length - 1];
+              var gr = (prec && prec.classList && prec.classList.contains('tdlplf-infos'))
+                       ? prec : null;
+              if (!gr) {
+                gr = document.createElement('div');
+                gr.className = 'tdlplf-infos';
+                ranger(gr);
+              }
+              var ci = document.createElement('div');
+              ci.className = 'tdlplf-info-c';
+              ci.innerHTML = '<span class="tdlplf-lib">' + T.echappe(bi2[0].trim()) +
+                '</span><span class="tdlplf-val">' +
+                T.echappe(bi2.slice(1).join('|').trim()) + '</span>';
+              gr.appendChild(ci);
+            } else alerte('INFO attend « Libellé | valeur » : « ' + val + ' »');
+            n.remove(); return;
+          }
+
+          if (onglet) return;   /* toute autre clé n'a de sens qu'en en-tête */
           if (cle === 'info') {
             // INFO: Libellé | valeur — répétable, affichée dans la colonne.
             var bi = val.split('|');
@@ -274,8 +346,9 @@
        Ils ne sont jamais retouchés : rien ne clignote au changement d'onglet. */
     this.$ident.innerHTML =
       (m.secteur ? '<span class="tdlplf-secteur">' + T.echappe(m.secteur) + '</span>' : '') +
-      (m.soustitre ? '<span class="tdlplf-dynastie">' + T.echappe(m.soustitre) + '</span>' : '');
-    if (!m.secteur && !m.soustitre) this.$ident.remove();
+      (m.soustitre ? '<span class="tdlplf-dynastie">' + T.echappe(m.soustitre) + '</span>' : '') +
+      (m.pronoms ? '<span class="tdlplf-pronoms">' + T.echappe(m.pronoms) + '</span>' : '');
+    if (!m.secteur && !m.soustitre && !m.pronoms) this.$ident.remove();
 
     this.$port.innerHTML = m.image
       ? '<img src="' + T.echappe(m.image) + '" alt="">'
@@ -291,6 +364,9 @@
     }).join('');
 
     this.$meta.innerHTML = infos +
+      (m.joueur ? '<div class="tdlplf-joueur"><b>' + T.echappe(m.joueur) + '</b>' +
+         (m.joueur_pronoms ? '<span>' + T.echappe(m.joueur_pronoms) + '</span>' : '') +
+         '</div>' : '') +
       (m.referent ? '<div class="tdlplf-referent"><f4>Référent</f4>' + nomRef +
          '<span>à contacter pour toute question sur la famille</span></div>' : '') +
       (m.credits ? '<div class="tdlplf-credits"><f4>Crédits</f4>' + T.echappe(m.credits) + '</div>' : '');
@@ -367,18 +443,22 @@
       this.$rubs.classList.add('tdlplf-entre');
     }
 
-    reveiller();
+    reveiller(pan);
   };
 
   /* Un bloc monté dans un onglet masqué a été mesuré à hauteur zéro — c'est
      le cas de la frise chronofam, qui calcule la position de ses pastilles.
-     On lui redonne l'occasion de se mesurer une fois le panneau visible. */
-  function reveiller() {
+     On émet donc un signal explicite après chaque montage de panneau, que
+     les blocs concernés écoutent. Les événements resize et scroll restent
+     émis en secours, pour ce qui n'écoute pas encore « sos:panneau ». */
+  function reveiller(panneau) {
     requestAnimationFrame(function () {
       try {
+        document.dispatchEvent(new CustomEvent('sos:panneau', {
+          detail: { panneau: panneau || null }
+        }));
         window.dispatchEvent(new Event('resize'));
         document.dispatchEvent(new Event('scroll'));
-        window.dispatchEvent(new Event('scroll'));
       } catch (e) { /* navigateurs anciens : sans effet, sans dégât */ }
     });
   }
@@ -389,7 +469,8 @@
 
   function demarre() {
     var cibles = [];
-    ['=== FAMILLE:', '=== GROUPE:', '=== INDIVIDUEL:'].forEach(function (marq) {
+    ['=== FAMILLE:', '=== GROUPE:', '=== INDIVIDUEL:',
+     '=== PRESENTATION:', '=== SUITE:'].forEach(function (marq) {
       T.postsAvec(marq, '.tdlplf').forEach(function (el) {
         if (cibles.indexOf(el) < 0) cibles.push(el);
       });
