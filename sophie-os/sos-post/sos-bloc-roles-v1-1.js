@@ -134,6 +134,10 @@
           else { role.chapo.push(para(e)); }
           break;
 
+        case 'CITATION':
+          role.cite = v;
+          break;
+
         case 'LISTE':
           ouvrir({ type: 'liste', lbl: v, mode: null, items: [] });
           break;
@@ -230,6 +234,7 @@
     r.chapo.forEach(function (p) {
       out += String(p).replace(/<p/g, '<p class="tdlrol-def"');
     });
+    if (r.cite) { out += '<p class="tdlrol-cite">' + esc(r.cite) + '</p>'; }
 
     r.sections.forEach(function (s) {
       if (s.lbl) { out += '<p class="tdlrol-lbl">' + esc(s.lbl) + '</p>'; }
