@@ -429,7 +429,7 @@
          (m.joueur_pronoms ? '<span>' + T.echappe(m.joueur_pronoms) + '</span>' : '') +
          '</div>' : '') +
       (m.referent ? '<div class="tdlplf-referent"><f4>Référent</f4>' + nomRef +
-         '<span>à contacter pour toute question sur la famille</span></div>' : '') +
+         '<span>à contacter pour toute question.</span></div>' : '') +
       (m.credits ? '<div class="tdlplf-credits"><f4>Crédits</f4>' + T.echappe(m.credits) + '</div>' : '');
 
     var imgs = m.imgs.filter(Boolean);
