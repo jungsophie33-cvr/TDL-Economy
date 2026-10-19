@@ -204,7 +204,7 @@
   /* ===================== RENDU : BLOC ROLES ===================== */
   function htmlListe(s) {
     var cle = (s.mode === 'cle');
-    var out = '<ul class="tdlrol-liste' + (cle ? ' cle' : '') + '">';
+    var out = '<ul class="tdlrol-liste' + (cle ? ' tdlrol-cle' : '') + '">';
     s.items.forEach(function (it) {
       out += '<li>' + (cle ? '<b>' + esc(it.cle) + '</b><span>' + esc(it.txt) + '</span>'
                            : esc(it.txt)) + '</li>';
