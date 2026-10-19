@@ -129,6 +129,14 @@
 
     teinter(); mesurer(); maj();
     document.addEventListener('scroll', demander, true);   /* capture : aussi les panneaux SOS */
+     /* Un panneau d'onglet vient d'être monté : la frise a pu être mesurée
+       à hauteur zéro pendant qu'elle était détachée du document. On se
+       remesure dès qu'elle est à nouveau visible. */
+    document.addEventListener('sos:panneau', function () {
+      if (!liste.isConnected) { return; }
+      requestAnimationFrame(function () { mesurer(); maj(); });
+    });
+     
     global.addEventListener('resize', function () { mesurer(); demander(); });
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(function () { mesurer(); maj(); });
