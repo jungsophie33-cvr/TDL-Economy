@@ -33,7 +33,8 @@
   var RE_FIN    = /^===\s*FIN/i;
   var RE_ONGLET = /^---\s*ONGLET\s*:?\s*(.*?)\s*---$/i;
   var RE_RUB    = /^--\s*(.*?)\s*--$/;
-  var RE_CLE    = /^([A-ZÉÈ0-9]+)\s*:\s*(.*)$/;   // les chiffres comptent : IMG1, IMG2…
+  /* Chiffres ET souligné : IMG1, IMG2, JOUEUR_PRONOMS… */
+  var RE_CLE    = /^([A-ZÉÈ0-9_]+)\s*:\s*(.*)$/;
   var RE_CIT    = /^CITATION\s*:\s*(.*)$/i;       // utilisable DANS un onglet
   var RE_TITRE  = /^##\s+(.+)$/;                  // titre de rubrique, dans un onglet
   var RE_Q      = /^Q\s*:\s*(.+)$/i;              // question numérotée, dans un onglet
@@ -370,6 +371,10 @@
       '<div class="tdlplf-hero"><div class="tdlplf-hero-in">' +
         '<h1 class="tdlplf-fam">' +
           (m.genre === 'famille' ? 'Famille ' : '') + T.echappe(m.nom) + '</h1>' +
+        /* Sur une suite, la colonne est masquée : le sous-titre n'aurait
+           nulle part où s'afficher s'il restait dans l'identité. */
+        (m.genre === 'suite' && m.soustitre
+          ? '<p class="tdlplf-sous">' + T.echappe(m.soustitre) + '</p>' : '') +
         (m.tw ? '<tw>' + T.echappe(m.tw) + '</tw>' : '') +
       '</div></div>' +
       '<div class="tdlplf-onglets"></div>' +
