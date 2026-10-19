@@ -20,9 +20,14 @@
      NOM: Gareth Blackford Sr
      …
 
-   ANCETRE accepte « 1893 - 1978 », « 1893 » seul, ou rien du tout :
-   la colonne de dates s'adapte. TEXTE peut être répété, une ligne
-   donnant un paragraphe, et accepte les balises en ligne.
+   ANCETRE accepte trois formes :
+     « 1893 - 1978 »  deux dates — l'âge affiché est l'âge au décès
+     « 1952 »         une seule  — l'aïeul est VIVANT, l'âge est calculé
+                                   depuis l'année civile en cours
+     rien du tout     la colonne de dates disparaît
+
+   TEXTE peut être répété, une ligne donnant un paragraphe, et accepte
+   les balises en ligne.
 
    Le bloc ne rend NI cadre NI en-tête : il s'intègre là où on le
    pose. S'emploie dans une annexe comme dans un message ordinaire,
@@ -42,17 +47,30 @@
       .replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* « 1893 - 1978 » → naissance, mort, durée de vie.
+  /* null = année civile réelle. Une année fixe fige le calendrier RP,
+     comme ANNEE_REF dans les scripts de pré-liens. */
+  var ANNEE_REF = null;
+
+  /* Deux dates → naissance, mort, âge au décès.
+     Une seule   → l'aïeul est vivant : l'âge court jusqu'à aujourd'hui.
      Les trois tirets usuels sont acceptés : - – — */
   function dates(brut) {
     var v = String(brut || '').trim(), m;
+
     m = v.match(/(\d{4})\s*[-–—]\s*(\d{4})/);
     if (m) {
       var duree = +m[2] - +m[1];
-      return { ne: m[1], mo: m[2], age: duree > 0 ? duree : null };
+      return { ne: m[1], mo: m[2], age: duree > 0 ? duree : null, vivant: false };
     }
+
     m = v.match(/(\d{4})/);
-    return m ? { ne: m[1], mo: '', age: null } : { ne: '', mo: '', age: null };
+    if (m) {
+      var annee = ANNEE_REF || (new Date()).getFullYear();
+      var a = annee - +m[1];
+      return { ne: m[1], mo: '', age: a > 0 ? a : null, vivant: true };
+    }
+
+    return { ne: '', mo: '', age: null, vivant: false };
   }
 
   /* ===================== LECTURE DU BLOC ===================== */
