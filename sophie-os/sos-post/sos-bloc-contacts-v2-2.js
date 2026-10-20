@@ -48,7 +48,7 @@
      En dessous, l'offre se compte d'un coup d'œil et il serait bavard. */
   var SEUIL_COMPTEUR = 3;
 
-  var LIB = { UTILITE: "Ce qu'il apporte", PISTES: 'Pistes de jeu' };
+  var LIB = { UTILITE: "Son apport", PISTES: 'Pistes de jeu' };
   var ORDRE = ['UTILITE', 'PISTES'];
   var LIB_STATUT = { libre: 'libre', pris: 'pris', reserve: 'réservé', pnj: 'pnj' };
 
