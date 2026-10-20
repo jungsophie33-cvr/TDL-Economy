@@ -278,7 +278,7 @@
     /* grille « Informations clés » façon Comptoir : liste [label, valeur] + carte icône */
     infosCles: function(paires, iconOf){
       return '<div class="qb-sec">'+ui.lab("Informations clés")+'<div class="qb-kg4">'
-        + paires.map(function(f){ return '<div class="qb-kf"><i class="'+esc((iconOf&&iconOf(f[0]))||"fi fi-tr-diamond")+'"></i><div><div class="qb-kl">'+esc(f[0])+'</div><div class="qb-kv">'+esc(f[1])+'</div></div></div>'; }).join("")
+        + paires.map(function(f){ return '<div class="qb-kf"><div><div class="qb-kl"><i class="'+esc((iconOf&&iconOf(f[0]))||"fi fi-tr-diamond")+'"></i>'+esc(f[0])+'</div><div class="qb-kv">'+esc(f[1])+'</div></div></div>'; }).join("")
         + '</div></div>';
     }
   };
