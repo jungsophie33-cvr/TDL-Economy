@@ -178,7 +178,7 @@
       + '<div class="qb-dprice">'+ui.lab("Prix")+'<div class="qb-v">'+money(a.p)+'</div></div></div><div class="qb-rule"></div>';
 
     var kv = "";
-    INFOS.forEach(function(f){ if (a[f[0]]) kv += '<div class="qb-kf"><i class="'+f[2]+'"></i><div><div class="qb-kl">'+esc(f[1])+'</div><div class="qb-kv">'+esc(a[f[0]])+'</div></div></div>'; });
+    INFOS.forEach(function(f){ if (a[f[0]]) kv += '<div class="qb-kf"><div><div class="qb-kl"><i class="'+f[2]+'"></i>'+esc(f[1])+'</div><div class="qb-kv">'+esc(a[f[0]])+'</div></div></div>'; });
     var aSavoir = a.as || (a.direct ? DIRECT_AS : "");
     html += '<div class="qb-sec">'+ui.lab("Informations clés");
     if (aSavoir) html += '<div class="qb-infos"><div class="qb-kg2">'+kv+'</div><div class="qb-asbox">'+ui.lab("À savoir")+'<p>'+esc(aSavoir)+'</p></div></div>';
