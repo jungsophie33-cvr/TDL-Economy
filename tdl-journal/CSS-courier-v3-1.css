@@ -79,9 +79,9 @@
 .tdlhc-statut.refusee  {--c:var(--dark2)}
 
 /* ---------- sceau de signature ---------- */
-.tdlhc-sceau{padding:3px 9px;color:var(--clair1);background:var(--dark);
+.tdlhc-sceau{padding:3px 9px;color:var(--clair1);background:var(--darkopa8);border-radius:3px;
              font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
-.tdlhc-sceau.creux{background:transparent;color:var(--dark);border:1px solid var(--darkopa3)}
+.tdlhc-sceau.creux{background:var(--cntr3);color:var(--dark);border:1px solid var(--cntr4);}
 
 /* ---------- textes récurrents ---------- */
 .tdlhc-surtitre{font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.13em;
@@ -656,10 +656,9 @@ a.tdlhc-btn{text-decoration:none; color:var(--clair1);}
   padding: 8px 12px;
   background: var(--cntr2);
   border-left: 3px solid var(--dark2);
-  color: var(--darkopa8);
+   border-radius: 0 5px 5px 0;
+  color: var(--dark);
   font-family: var(--txt1);
-  font-size: 13px!important;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight:600;
 }
