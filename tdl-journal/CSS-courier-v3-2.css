@@ -361,9 +361,10 @@ background-size: cover;}
 /* ---------- choix du type ---------- */
 .tdlhc-legende{margin:0 0 12px;font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.1em;
                text-transform:uppercase;color:var(--darkopa5)}
+.tdlhc-types {background:var(--cntr2);border:1px solid var(--cntr4);border-radius:5px;overflow:hidden;}
 .tdlhc-type{display:flex;align-items:flex-start;gap:14px;padding:14px 15px;cursor:pointer;
-            border:1px solid var(--darkopa2);border-bottom:0;transition:background .16s}
-.tdlhc-types .tdlhc-type:last-child{border-bottom:1px solid var(--darkopa2)}
+            border-bottom:1px solid var(--cntr4);transition:background .16s}
+.tdlhc-types .tdlhc-type:last-child{border-bottom:0}
 .tdlhc-type:hover{background:var(--cntr2)}
 .tdlhc-type i{width:21px;margin-top:3px;text-align:center;font-size:17px;color:var(--c)}
 .tdlhc-type-txt{flex:1 1 auto}
@@ -379,10 +380,10 @@ background-size: cover;}
 .tdlhc-champ label{display:block;margin-bottom:6px;font-family:var(--txt3);font-size:12px;font-weight:600;
                    letter-spacing:.08em;text-transform:uppercase;color:var(--dark)}
 .tdlhc-champ label span{font-weight:400;color:var(--darkopa5)}
-.tdlhc-champ :is(input,textarea,select){width:100%;padding:10px 12px;border:1px solid var(--darkopa3);
-  background:var(--clair1opa5);color:var(--txt);font-family:var(--font0);font-size:14px;line-height:1.5}
+.tdlhc-champ :is(input,textarea,select){width:100%;padding:10px 12px;border:1px solid var(--cntr4);
+  background:var(--cntr2);color:var(--txt);font-family:var(--font0);font-size:14px;line-height:1.5}
 .tdlhc-champ textarea{resize:vertical;min-height:110px}
-.tdlhc-champ :is(input,textarea,select):focus{outline:2px solid var(--dark2);outline-offset:-2px}
+.tdlhc-champ :is(input,textarea,select):focus{outline:1px solid var(--dark);outline-offset:-1px}
 .tdlhc-duo{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
 .tdlhc-aide{margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--darkopa5)}
 .tdlhc-compteur{float:right;font-family:var(--txt3);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--darkopa5)}
@@ -415,8 +416,8 @@ background-size: cover;}
 /* ---------- mes soumissions, à votre attention ---------- */
 .tdlhc-mes{margin-bottom:26px}
 .tdlhc-mes.apres{margin:28px 0 0}
-.tdlhc-mes-item{padding:13px 15px;border:1px solid var(--darkopa2);border-bottom:0}
-.tdlhc-mes-item:last-child{border-bottom:1px solid var(--darkopa2)}
+.tdlhc-mes-item{padding:13px 15px;border:1px solid var(--cntr4);border-bottom:0;background:var(--cntr2)}
+.tdlhc-mes-item:last-child{border-bottom:1px solid var(--cntr4)}
 .tdlhc-mes-item.retouche{background:var(--cntr1);box-shadow:inset 3px 0 0 var(--gr1-color)}
 .tdlhc-mes-item.accord{background:var(--cntr1);box-shadow:inset 3px 0 0 var(--gr3-color)}
 .tdlhc-mes-tete{display:flex;align-items:center;justify-content:space-between;gap:10px}
