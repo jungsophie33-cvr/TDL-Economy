@@ -82,6 +82,37 @@ var SOURCES = [
     garde:function(m){ return m.type === "vendetta"; } }  /* [MAJ] seul type retenu */
 ];
 
+/* Ce que le bouton « demander un évent » couvre : seulement ce qu'aucun
+   tableau n'offre. Les types, les rôles et les codes de notification font
+   partie du contrat d'une demande, pas de son rendu. */
+var TYPES_DEMANDE = [
+  { id:"communautaire", ico:"users", c:"var(--gr2-color)", prix:"Gratuit",
+    nom:"Événement communautaire",
+    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. "
+       + "Il n'appartient à personne : le forum le reprend." },
+  { id:"bande", ico:"skull", c:"var(--gr6-color)", prix:"Gratuit",
+    nom:"Événement de bande",
+    desc:"Ce qu'aucun tableau ne couvre : une traque interne, une opération qui mêle "
+       + "bandes, communautés et forces de l'ordre." },
+  { id:"tradition", ico:"flame", c:"var(--gr3-color)", prix:"Gratuit",
+    nom:"Tradition",
+    desc:"Un rendez-vous qui revient chaque année et qui manque encore au calendrier "
+       + "de la paroisse." }
+];
+var ROLES_DEMANDE = [
+  ["jouer","J'y joue un personnage",
+   "Vous participez comme les autres. Vous pouvez être retenu à la clôture."],
+  ["mj","Je veux seulement animer cet évent en tant que MJ",
+   "Vous tenez les PNJ et les péripéties sans y jouer. Pas de badge de participation."],
+  ["idee","Je propose seulement l'idée",
+   "Le staff la reprend et l'anime. Votre nom n'apparaît pas sur la fiche."]
+];
+var ROLE_DIT = { jouer:"Jouer un personnage", mj:"Animer en tant que MJ",
+                 idee:"Proposer seulement l'idée" };
+
+/* [MAJ] codes à déclarer dans sos-emi-notif (plage 230-239). */
+var NOTIF = { APPUI:230, REPONSE:231, FILE:232, DECISION:233, CLOTURE:234 };
+
 /* ===================== TEXTES ===================== */
 
 var TEXTES = {
@@ -376,6 +407,8 @@ window.TDLEv = {
   CATEGORIES: CATEGORIES, ORDRE_CAT: ORDRE_CAT,
   COMMUNAUTES: COMMUNAUTES, BANDES: BANDES,
   JAUGES: JAUGES, JAUGE_SANS_REPUTATION: JAUGE_SANS_REPUTATION,
+  TYPES_DEMANDE: TYPES_DEMANDE, ROLES_DEMANDE: ROLES_DEMANDE,
+  ROLE_DIT: ROLE_DIT, NOTIF: NOTIF,
   TEXTES: TEXTES,
   /* utils */
   esc: esc, vt: vt, cles: cles, cle: cle, nouvelId: nouvelId, maintenant: maintenant,
