@@ -134,9 +134,19 @@ function versNoeud(liste){
 
 /* ===================== SORTIES ===================== */
 
+/* Toast maison, reparenté sur <body> comme celui du journal. */
+var _toast = null, _toastT = null;
 function toast(txt){
-  try { if (window.EcoCore && window.EcoCore.toast){ window.EcoCore.toast(txt); return; } } catch(e){}
-  try { window.alert(txt); } catch(e){}
+  if (!_toast){
+    _toast = document.createElement("div");
+    _toast.className = "tdlev-toast";
+    _toast.setAttribute("role", "status");
+    document.body.appendChild(_toast);
+  }
+  _toast.textContent = txt;
+  _toast.classList.add("on");
+  clearTimeout(_toastT);
+  _toastT = setTimeout(function(){ _toast.classList.remove("on"); }, 3800);
 }
 function notifier(pseudo, code, data){
   try { if (window.EcoNotif && window.EcoNotif.a) window.EcoNotif.a(pseudo, code, data || {}); }
