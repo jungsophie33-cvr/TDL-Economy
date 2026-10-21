@@ -5,9 +5,10 @@
      - éditer le descriptif d'une fiche dont on est référent ;
      - se déclarer sur un évent ouvert.
 
-   Le volet est monté DANS la coque .tdlev : son z-index le place au-dessus
-   du panneau de gestion, pour qu'une édition ouverte depuis le panneau reste
-   visible. Voir l'échelle des couches dans CSS-evenements.css.
+   Le voile et le volet sont en position:fixed et REPARENTÉS sur <body>,
+   comme au journal : les contextes d'empilement de ForumActif piègent un
+   fixed laissé dans un message. Leurs couches (9020 et 9021) les placent
+   au-dessus du panneau de gestion (9010) — voir CSS-evenements.css.
 
    QUOTA : une demande à la fois par joueur, et elle tient tant que l'évent
    qui en est né n'est pas clôturé. Le staff peut la libérer à la main.
@@ -111,8 +112,8 @@ function monter(){
     + U.fit("cross-small") + '</button></header>'
     + '<div class="tdlev-vol-c" id="tdlev-vol-c"></div>'
     + '<footer class="tdlev-vol-p" id="tdlev-vol-p"></footer>';
-  RACINE.appendChild(VEIL);
-  RACINE.appendChild(VOL);
+  document.body.appendChild(VEIL);
+  document.body.appendChild(VOL);
   VEIL.addEventListener("click", function(){ ouvrir(false); });
   VOL.addEventListener("click", surClic);
   document.addEventListener("keydown", function(e){
