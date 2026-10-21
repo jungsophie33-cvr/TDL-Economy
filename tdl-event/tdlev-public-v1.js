@@ -118,6 +118,8 @@ function coque(){
     +   '</div>'
     + '</div>';
   document.body.appendChild(d);
+  /* iOS Safari : le verrou de défilement va sur <html>, jamais sur <body>. */
+  document.documentElement.style.overflow = "hidden";
   return d;
 }
 function $(id){ return document.getElementById(id); }
