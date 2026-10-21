@@ -30,6 +30,8 @@ var CFG = {
   NODE:        "evenements",              /* la fiche d'un évent            */
   NODE_CONCL:  "evenements_conclusions",  /* conclusion d'une entrée reprise */
   NODE_DEM:    "evenements_demandes",     /* demandes des joueurs            */
+  NODE_DBL:    "doubles_comptes",         /* comptes liés d'un même joueur   */
+  NODE_PROJ:   "projets_communautaires",  /* [MAJ] nœud à confirmer           */
   MONTAGE:     "#tdlev-app",              /* [MAJ] coquille dans le message  */
   JOURS_APPUI: 7                          /* délai de réponse d'un appui     */
 };
@@ -312,7 +314,8 @@ function lireSources(conclusions){
 
 /* ===================== CHARGEMENT ===================== */
 
-var D = { evenements:[], reprises:[], demandes:[], conclusions:{}, membres:{} };
+var D = { evenements:[], reprises:[], demandes:[], conclusions:{}, membres:{},
+          doublesComptes:{}, projets:[] };
 
 function charger(){
   if (!E() || !E().firebaseGet || !B()) return Promise.reject(new Error("socle"));
@@ -320,11 +323,15 @@ function charger(){
     Promise.resolve(E().firebaseGet(CFG.NODE)).catch(function(){ return {}; }),
     Promise.resolve(E().firebaseGet(CFG.NODE_CONCL)).catch(function(){ return {}; }),
     Promise.resolve(E().firebaseGet(CFG.NODE_DEM)).catch(function(){ return {}; }),
-    Promise.resolve(B().membres()).catch(function(){ return {}; })
+    Promise.resolve(B().membres()).catch(function(){ return {}; }),
+    Promise.resolve(E().firebaseGet(CFG.NODE_DBL)).catch(function(){ return {}; }),
+    Promise.resolve(E().firebaseGet(CFG.NODE_PROJ)).catch(function(){ return {}; })
   ]).then(function(r){
     var brut = r[0] || {};
-    D.conclusions = r[1] || {};
-    D.membres     = r[3] || {};
+    D.conclusions    = r[1] || {};
+    D.membres        = r[3] || {};
+    D.doublesComptes = r[4] || {};
+    D.projets        = vt(r[5]);
     D.evenements = cles(brut).map(function(id){
       var o = brut[id] || {}; o.id = id; return normaliser(o);
     });
