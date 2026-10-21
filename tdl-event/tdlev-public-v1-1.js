@@ -129,12 +129,12 @@ function boutonsBarre(){
   if (V.estStaff()) {
     $("tdlev-barre-g").innerHTML =
       '<button class="tdlev-txt-btn" id="tdlev-gestion">'
-      + fit("settings-sliders") + '<span>' + T.GESTION + '</span></button>';
+      + fit("clipboard-list") + '<span>' + T.GESTION + '</span></button>';
   }
   if (V.monPseudo()) {
     $("tdlev-barre-d").innerHTML =
       '<button class="tdlev-txt-btn est-plein" id="tdlev-demander">'
-      + fit("paper-plane") + '<span>' + T.DEMANDER + '</span></button>';
+      + fit("envelope-plus") + '<span>' + T.DEMANDER + '</span></button>';
   }
 }
 
