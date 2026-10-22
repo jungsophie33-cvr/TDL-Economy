@@ -59,76 +59,133 @@ function lignes(){
   return out;
 }
 
+/* Éléments importants, communs aux six tableaux : on prend ce qui existe,
+   sous le libellé que le joueur comprend. Un champ absent ne crée pas de case. */
+function elements(m){
+  var o = {}, n = 0;
+  function pose(ico, libelle, valeur){
+    if (!valeur) return;
+    o["e" + (n++)] = { ico:ico, libelle:libelle, valeur:String(valeur) };
+  }
+  pose("marker", "Lieu", m.zone || m.lieu || m.destination);
+  pose("clock", "Quand", m.quand || m.depart || m.heure);
+  pose("crosshairs", "Cibles", m.cible || m.cibles);
+  pose("user", "Commanditaire", m.demandeur || m.auteur || m.createur || m.commanditaire);
+  pose("shield", "Au nom de", m.mandataire || m.protege);
+  return o;
+}
+
+/* « Qui doit se retrouver là » : le champ de texte d'une opération nomme les
+   partis attendus. On y reconnaît les communautés et les bandes du forum pour
+   remplir les portées de la fiche — ce que le tableau dit, la fiche l'affiche. */
+function porteesDepuis(txt){
+  var t = String(txt || "").toLowerCase(), o = {};
+  V().COMMUNAUTES.concat(V().BANDES).forEach(function(nom){
+    var court = nom.split(" ")[0].toLowerCase();
+    if (t.indexOf(court) > -1) o[V().cle(nom)] = { nom:nom };
+  });
+  return o;
+}
+
 /* ===================== SOURCES =====================
    clos(m)  : vocabulaire de clôture PROPRE à chaque tableau — « close »
               partout sauf chez les Maringouins, dont le cycle finit par
               « terminee ».
    garde(m) : ce qui est un évent. Les chasses à primes, les petites missions
               du marché noir et les dossiers ordinaires de la Main n'en sont
-              pas : ils ne bougent ni jauge ni réputation.                   */
+              pas : ils ne bougent ni jauge ni réputation.
+   ouvre(m) : la fiche est-elle PUBLIQUE avant sa clôture ? Une mission de
+              cellule maringouine et un dossier de la Main se jouent dans
+              l'ombre : personne n'a à les lire en cours. Un coup, lui, ouvre
+              des rôles au camp d'en face — il est donc annoncé.
+   ombre    : le tableau appartient à une bande hors-la-loi. Une fois close et
+              traitée, sa fiche ne devient publique que si le staff a coché
+              « connu de la paroisse ».
+   conseq(m): ce que le référent a écrit À LA CLÔTURE — jamais le contexte.
+   vignette : [MAJ] image de bandeau, une par tableau. Voir la note en pied. */
 
 var SOURCES = [
   { id:"marees", node:"flottille/marees", url:FORUM + "/t96-le-tableau-du-hangar",
     libelle:"Tableau du Hangar · marée", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:"",
     clos:function(m){ return m.statut === "close"; },
     /* Une marée se rejoint par le POSTE : c'est là que sont ses gens. */
     parts:function(m){ return gens(depuisPris(m.postes)); },
-    texte:function(m){ return lignes(m.contexte); } },
+    texte:function(m){ return lignes(m.contexte); },
+    conseq:function(m){ return lignes(m.consequences); } },
 
   /* Ce qui se joue n'est pas le transport mais la réunion de partis qui ne se
      rencontreraient pas autrement : une opération est communautaire. */
   { id:"operations", node:"flottille/operations", url:FORUM + "/t96-le-tableau-du-hangar",
     libelle:"Opération de la Flottille", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:"",
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){
       return gens(depuisNoeud(m.participants).concat([m.capitaine, m.mandataire]));
     },
-    texte:function(m){ return lignes(m.contexte, m.parties); },
-    objectif:function(m){ return lignes(m.objectif); } },
+    texte:function(m){ return lignes(m.contexte); },
+    objectif:function(m){ return lignes(m.objectif); },
+    conseq:function(m){ return lignes(m.consequences); },
+    portees:function(m){ return porteesDepuis(m.parties); } },
 
   { id:"maringouins", node:"missions", url:FORUM + "/t90-le-tableau-des-missions",
     libelle:"Tableau des Maringouins", categorie:"bande", visible:true,
+    ombre:true, vignette:"",
+    /* un coup ouvre des rôles adverses, donc il s'annonce ; une mission de
+       cellule reste dans l'ombre tant qu'elle n'est pas terminée */
+    ouvre:function(m){ return m.genre === "coup"; },
     clos:function(m){ return m.statut === "terminee"; },
     parts:function(m){
       return gens(depuisNoeud(m.participants)
         .concat(depuisPris(m.roles)).concat([m.chef]));
     },
     texte:function(m){ return lignes(m.contexte); },
-    objectif:function(m){ return lignes(m.objectif); } },
+    objectif:function(m){ return lignes(m.objectif); },
+    conseq:function(m){ return lignes(m.consequences); } },
 
   /* Le contexte d'une mission du Carrefour vit dans carrefour_txt, pas dans
      l'entrée : le socle du tableau sépare la liste du texte pour ne pas
      télécharger des kilo-octets de prose à chaque affichage de colonne. */
   { id:"carrefour", node:"carrefour", txt:"carrefour_txt",
     url:FORUM + "/t107-le-tableau-du-carrefour",
-    libelle:"Tableau du Carrefour · mission", categorie:"bande", visible:true,
+    libelle:"Tableau du Carrefour · mission", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:"",
     garde:function(m){ return m.type !== "chasse"; },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){ return gens(depuisNoeud(m.interets || m.participants)); },
-    texte:function(m, t){ return lignes(t && t.contexte, t && t.acteurs); },
-    objectif:function(m, t){ return (t && V().vt(t.appel)) || []; } },
+    texte:function(m, t){ return lignes(t && t.contexte); },
+    /* les objectifs d'une mission, ce sont les acteurs en présence et les
+       intérêts affichés — rien d'autre */
+    objectif:function(m, t){
+      return lignes(t && t.acteurs).concat((t && V().vt(t.appel)) || []);
+    },
+    conseq:function(m){ return lignes(m.consequences); } },
 
   { id:"sorcieres", node:"lost_bayou", url:FORUM + "/t108-le-tableau-des-secrets",
     libelle:"Tableau des secrets · avant-poste", categorie:"bande", visible:true,
+    ouvre:true, ombre:true, vignette:"",
     garde:function(m){ return m.type === "poste"; },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){
       return gens(depuisNoeud(m.participants).concat([m.demandeur, m.repondant]));
     },
-    texte:function(m){ return lignes(m.objet, m.apport); } },
+    texte:function(m){ return lignes(m.objet, m.apport); },
+    conseq:function(m){ return lignes(m.consequences); } },
 
   /* Trois services de la Main seulement laissent des traces publiques
      possibles. [MAJ] codes du champ `service` — à compléter si un service
      s'ajoute à la boutique de la Main. */
   { id:"main", node:"dossiers_main", url:FORUM + "/t92-le-tableau-des-dettes",
     libelle:"Dossier de la Main", categorie:"bande", visible:false,
+    ouvre:false, ombre:true, vignette:"",
     garde:function(m){
       return ["vend","intim","confesse","medi","mediation"].indexOf(m.service) > -1;
     },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){ return gens(depuisNoeud(m.participants).concat([m.responsable])); },
     texte:function(m){ return lignes(m.contexte); },
-    objectif:function(m){ return lignes(m.objectif); } }
+    objectif:function(m){ return lignes(m.objectif); },
+    conseq:function(m){ return lignes(m.consequences); } }
 ];
 
 /* ===================== TRADUCTION ===================== */
@@ -158,32 +215,50 @@ function depuisSource(src, id, m, txt, conclusions){
   var cid = src.id + "_" + id;
   var c = (conclusions || {})[cid] || null;
   var clos = !!src.clos(m);
+  var parts = src.parts(m);
+
   var liens = {};
   if (m.sujet) liens.rp = { libelle:"Sujet RP", titre:m.titre || "Le sujet", url:m.sujet };
   liens.src = { libelle:"Au tableau d'origine", titre:src.libelle, url:src.url };
 
+  /* Les gens validés par le tableau sont déjà validés : ils sont rattachés au
+     sujet, et retenus d'office. Le staff n'a plus qu'à dire qui est nommé. */
+  var retenus = {};
+  if (c && c.retenus) retenus = c.retenus;
+  else if (clos) V().cles(parts).forEach(function(k){
+    retenus[k] = { nom:parts[k].nom, nomme:false };
+  });
+
   return V().normaliser({
     id:cid, origine:"tableau", sourceType:src.id, sourceId:id,
-    source:src.libelle, urlSource:src.url,
+    source:src.libelle, urlSource:src.url, urlRp:m.sujet || "",
     categorie:src.categorie,
     titre:m.titre || m.intitule || "(mission)",
     sous:m.resume || "",
     contexte:src.texte ? src.texte(m, txt) : [],
     objectifs:src.objectif ? src.objectif(m, txt) : [],
+    consequences:src.conseq ? src.conseq(m) : [],
     periode:"",
     statut:clos ? "cloture" : "en_cours",
     ouvert:!clos && (m.statut === "en_attente" || m.statut === "ouverte"
                   || m.statut === "acceptee"  || m.statut === "saisi"),
     visibilite:src.visible ? "publique" : "bandes",
-    participants:src.parts(m),
-    retenus:c ? (c.retenus || {}) : {},
+    /* une fiche de l'ombre ne s'annonce pas tant qu'elle n'est pas terminée */
+    ouvreAvant:(typeof src.ouvre === "function") ? !!src.ouvre(m) : !!src.ouvre,
+    ombre:!!src.ombre,
+    participants:parts,
+    retenus:retenus,
+    valideParTableau:clos,
     conclusion:c,
     classee:!!(c && c.classee),
     /* clos dans son tableau mais sans conclusion : c'est la file du staff */
     aConclure:clos && !c,
     faits:faits(src, m, c),
+    elements:elements(m),
+    portees:src.portees ? src.portees(m) : {},
+    vignette:src.vignette || "",
     liens:liens,
-    rps:m.sujet ? { s0:{ titre:m.titre || "Le sujet", url:m.sujet } } : {},
+    rps:m.sujet ? { s0:{ titre:m.titre || "Le sujet", url:m.sujet, participants:parts } } : {},
     cree:m.clos || m.cree || ""
   });
 }
@@ -209,6 +284,19 @@ function lire(conclusions){
     return lots.reduce(function(a, b){ return a.concat(b); }, []);
   });
 }
+
+/* [MAJ] VIGNETTES — une image par tableau, posée dans le champ `vignette` de
+   chaque source ci-dessus. Elles habillent le héros de toutes les fiches
+   reprises, donc elles doivent se reconnaître d'un coup d'œil sans dire ce
+   qui se joue :
+     marees      — un chenal étroit de nuit, la proue d'un bateau à moteur
+     operations  — les entrepôts flottants, une passerelle entre deux coques
+     maringouins — une raffinerie ou un entrepôt vu de loin, lumière orange
+     carrefour   — une route de desserte et un panneau, plein jour
+     sorcieres   — l'avant-poste, lanternes et eau noire
+     main        — un intérieur bourgeois vide, un fauteuil, une porte ouverte
+   Laisser vide tant qu'une image n'est pas choisie : le héros se rabat alors
+   sur son dégradé seul, ce qui reste lisible.                               */
 
 window.TDLEvSources = { SOURCES:SOURCES, lire:lire, FORUM:FORUM };
 
