@@ -65,7 +65,17 @@ var RACINE = null;
 function esc(s){ return V.esc(s); }
 function fit(n){ return '<i class="fi fi-tr-' + n + '"></i>'; }
 function fis(n){ return '<i class="fi fi-sr-' + n + '"></i>'; }
-function img(ev){ return V.esc(ev.vignette || VIGNETTE_DEFAUT).replace(/["'()\s<>]/g,""); }
+/* Pas de background-image vide : url() sans adresse est une règle invalide
+   que le navigateur jette, et la classe « est-image » allège le dégradé du
+   héros pour qu'on voie la photo. */
+function img(ev){
+  var u = String(ev.vignette || VIGNETTE_DEFAUT).trim().replace(/["'()\s<>]/g, "");
+  return u ? esc(u) : "";
+}
+function fond(ev){
+  var u = img(ev);
+  return u ? ' style="background-image:url(' + u + ')"' : "";
+}
 function cat(ev){ return V.CATEGORIES[ev.categorie]; }
 
 function parEtat(k){
@@ -188,8 +198,9 @@ function hero(ev, grand){
         + '<b>' + esc(x[1]) + '</b><em>' + esc(x[2]) + '</em></div>'; }).join("")
     + '</div>';
 
-  return '<div class="tdlev-hero' + (grand ? "" : " est-fiche") + '">'
-    + '<div class="tdlev-hero-img" style="background-image:url(' + img(ev) + ')"></div>'
+  return '<div class="tdlev-hero' + (grand ? "" : " est-fiche")
+    + (img(ev) ? " est-image" : "") + '">'
+    + '<div class="tdlev-hero-img"' + fond(ev) + '></div>'
     + '<div class="tdlev-hero-c">'
     +   '<span class="tdlev-hero-rub" style="--c:' + c.c + '">'
     +     '<span class="tdlev-pt"></span>' + esc(c.nom) + '</span>'
@@ -209,7 +220,7 @@ function hero(ev, grand){
 function rangee(ev){
   var c = cat(ev);
   return '<button class="tdlev-r" data-ouvre="' + esc(ev.id) + '">'
-    + '<span class="tdlev-r-img" style="background-image:url(' + img(ev) + ')"></span>'
+    + '<span class="tdlev-r-img"' + fond(ev) + '></span>'
     + '<span><span class="tdlev-rub" style="--c:' + c.c + '">' + esc(c.nom) + '</span>'
     + '<span class="tdlev-r-t">' + esc(ev.titre) + '</span>'
     + '<span class="tdlev-r-x">' + esc(ev.sous) + '</span></span>'
@@ -269,7 +280,7 @@ function rendListe(){
     var c = cat(ev);
     return '<button class="tdlev-e" data-id="' + esc(ev.id) + '" style="--c:' + c.c + '"'
       + ' aria-current="' + (ev.id === S.sel) + '">'
-      + '<span class="tdlev-e-img" style="background-image:url(' + img(ev) + ')"></span>'
+      + '<span class="tdlev-e-img"' + fond(ev) + '></span>'
       + '<span><span class="tdlev-rub" style="--c:' + c.c + '">' + esc(c.nom) + '</span>'
       + '<span class="tdlev-e-t">' + esc(ev.titre) + '</span></span></button>';
   }).join("");
