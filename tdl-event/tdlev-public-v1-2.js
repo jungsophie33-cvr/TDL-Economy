@@ -42,6 +42,7 @@ var T = {
   OBJECTIFS:  "Objectifs et thématiques",
   RPS:        "RP rattachés",
   RETENUS:    "Participants retenus",
+  RETENU_C:   "Ce que la paroisse en retient",
   BREF:       "En bref",
   LIENS:      "Liens et ressources",
   EDITER:     "Éditer la fiche",
@@ -129,12 +130,12 @@ function boutonsBarre(){
   if (V.estStaff()) {
     $("tdlev-barre-g").innerHTML =
       '<button class="tdlev-txt-btn" id="tdlev-gestion">'
-      + fit("clipboard-list") + '<span>' + T.GESTION + '</span></button>';
+      + fit("settings-sliders") + '<span>' + T.GESTION + '</span></button>';
   }
   if (V.monPseudo()) {
     $("tdlev-barre-d").innerHTML =
       '<button class="tdlev-txt-btn est-plein" id="tdlev-demander">'
-      + fit("envelope-plus") + '<span>' + T.DEMANDER + '</span></button>';
+      + fit("paper-plane") + '<span>' + T.DEMANDER + '</span></button>';
   }
 }
 
@@ -338,6 +339,11 @@ function rendFiche(ev){
   if (ev.objectifs.length)
     g += pave("flag", T.OBJECTIFS,
       '<ul class="tdlev-obj">' + ev.objectifs.map(function(o){ return '<li>' + esc(o) + '</li>'; }).join("") + '</ul>');
+
+  if (ev.statut === "cloture" && ev.conclusion && ev.conclusion.texte)
+    g += pave("stamp", T.RETENU_C,
+      ev.conclusion.texte.split("\n").filter(Boolean).map(function(t){
+        return '<p class="tdlev-f-p">' + esc(t) + '</p>'; }).join(""));
 
   if (V.cles(ev.rps).length) g += '<p class="tdlev-f-h">' + T.RPS + '</p>' + accordeon(ev);
 
