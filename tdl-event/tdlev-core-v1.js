@@ -16,10 +16,13 @@
 
    EXPOSE : window.TDLEv
    DÉPEND DE : window.EcoCore, window.TDLBase (chargés avant)
-   ORDRE : eco-core → tdl-base → tdlev-core → les trois autres
+   ORDRE : eco-core → tdl-base → tdlev-core → tdlev-sources →
+           tdlev-ui → tdlev-staff-vues → tdlev-public → tdlev-volet →
+           tdlev-staff
 
    CARTE DES BLOCS : CONFIG · TEXTES · UTILS · DROITS · NORMALISATION
-                     · DÉRIVÉS · SOURCES · CHARGEMENT · VEILLE · EXPORT */
+                     · DÉRIVÉS · CHARGEMENT · VEILLE · EXPORT
+   Le mappage des tableaux repris vit dans tdlev-sources.js. */
 
 (function () {
 "use strict";
@@ -60,27 +63,6 @@ var JAUGES = {
 /* Une catastrophe n'est imputable à personne : la Pression du Bayou ne produit
    aucune contribution de réputation. Le moteur le lit ici, pas ailleurs. */
 var JAUGE_SANS_REPUTATION = "pression_bayou";
-
-/* Les cinq tableaux repris. `visible` dit si l'entrée est publique AVANT
-   clôture ; après, c'est la case « connu de la paroisse » qui tranche.
-   [MAJ] noms de nœuds et de types : à revoir si un tableau est renommé. */
-var SOURCES = [
-  { id:"marees",     node:"flottille/marees",     rev:"flottille_rev/marees",
-    libelle:"Tableau du Hangar · marée",       categorie:"communautaire", visible:true },
-  { id:"operations", node:"flottille/operations", rev:"flottille_rev/operations",
-    libelle:"Opération de la Flottille",       categorie:"bande",         visible:true },
-  { id:"maringouins",node:"missions",             rev:"missions_rev",
-    libelle:"Tableau des Maringouins · coup",  categorie:"bande",         visible:true },
-  { id:"carrefour",  node:"carrefour",            rev:"carrefour_rev",
-    libelle:"Tableau du Carrefour · mission",  categorie:"bande",         visible:true,
-    garde:function(m){ return m.type !== "chasse"; } },   /* les chasses à primes ne remontent pas */
-  { id:"sorcieres",  node:"lost_bayou",           rev:"lost_bayou_rev",
-    libelle:"Tableau des secrets · avant-poste", categorie:"bande",       visible:true,
-    garde:function(m){ return m.type === "poste"; } },
-  { id:"main",       node:"dossiers_main",        rev:"dossiers_main_rev",
-    libelle:"Dossier de la Main · vendetta",   categorie:"bande",         visible:false,
-    garde:function(m){ return m.type === "vendetta"; } }  /* [MAJ] seul type retenu */
-];
 
 /* Ce que le bouton « demander un évent » couvre : seulement ce qu'aucun
    tableau n'offre. Les types, les rôles et les codes de notification font
@@ -244,6 +226,7 @@ function normaliser(o){
   o.ouvert       = !!o.ouvert;
   o.visibilite   = (o.visibilite === "bandes") ? "bandes" : "publique";
   o.elements     = o.elements || {};
+  o.faits        = o.faits || {};
   o.liens        = o.liens || {};
   o.rps          = o.rps || {};
   o.participants = o.participants || {};
@@ -295,54 +278,6 @@ function miseEnAvant(liste){
   return l[0] || null;
 }
 
-/* ===================== SOURCES ===================== */
-
-/* Une entrée de tableau devient une fiche de LECTURE — jamais écrite.
-   id composite : {sourceType}_{sourceId}, c'est la clé de sa conclusion. */
-function depuisSource(src, id, m, conclusions){
-  var c = (conclusions || {})[src.id + "_" + id] || null;
-  return normaliser({
-    id:         src.id + "_" + id,
-    origine:    "tableau",
-    sourceType: src.id,
-    sourceId:   id,
-    source:     src.libelle,
-    categorie:  src.categorie,
-    titre:      m.titre || m.nom || "(mission)",
-    sous:       m.resume || "",
-    contexte:   [m.contexte || m.situation || ""].filter(Boolean),
-    objectifs:  [m.objectif || ""].filter(Boolean),
-    periode:    "",
-    statut:     c ? "cloture" : "en_cours",
-    ouvert:     !c && (m.statut === "en_attente" || m.statut === "ouverte"),
-    visibilite: src.visible ? "publique" : "bandes",
-    participants: m.participants || {},
-    retenus:    c ? (c.retenus || {}) : {},
-    conclusion: c,
-    classee:    !!(c && c.classee)
-  });
-}
-
-/* Les entrées non clôturées dans leur tableau, et celles clôturées qui
-   n'ont pas encore de conclusion : les secondes forment la file du staff. */
-function lireSources(conclusions){
-  var jobs = SOURCES.map(function(src){
-    return Promise.resolve(E().firebaseGet(src.node)).then(function(brut){
-      var out = [];
-      cles(brut).forEach(function(id){
-        var m = brut[id];
-        if (!m || typeof m !== "object") return;
-        if (src.garde && !src.garde(m)) return;
-        out.push(depuisSource(src, id, m, conclusions));
-      });
-      return out;
-    }, function(){ return []; });
-  });
-  return Promise.all(jobs).then(function(lots){
-    return lots.reduce(function(a, b){ return a.concat(b); }, []);
-  });
-}
-
 /* ===================== CHARGEMENT ===================== */
 
 var D = { evenements:[], reprises:[], demandes:[], conclusions:{}, membres:{},
@@ -370,7 +305,9 @@ function charger(){
     D.demandes = cles(dem).map(function(id){
       var o = dem[id] || {}; o.id = id; return normaliserDemande(o);
     });
-    return lireSources(D.conclusions);
+    return window.TDLEvSources
+      ? window.TDLEvSources.lire(D.conclusions)
+      : [];
   }).then(function(reprises){
     D.reprises = reprises;
     return D;
@@ -382,6 +319,9 @@ function visibles(){
   var miennes = mesAppartenances(D.membres);
   return D.evenements.concat(D.reprises).filter(function(e){
     return !e.classee && peutVoir(e, miennes);
+  }).sort(function(a, b){
+    /* du plus récent au plus ancien : une fiche sans date passe en dernier */
+    return String(b.cree || "").localeCompare(String(a.cree || ""));
   });
 }
 
@@ -403,7 +343,7 @@ function veiller(surMaj){
 
 window.TDLEv = {
   /* contrat */
-  CFG: CFG, SCHEMA: SCHEMA, SOURCES: SOURCES,
+  CFG: CFG, SCHEMA: SCHEMA,
   CATEGORIES: CATEGORIES, ORDRE_CAT: ORDRE_CAT,
   COMMUNAUTES: COMMUNAUTES, BANDES: BANDES,
   JAUGES: JAUGES, JAUGE_SANS_REPUTATION: JAUGE_SANS_REPUTATION,
@@ -420,7 +360,7 @@ window.TDLEv = {
   normaliser: normaliser, normaliserDemande: normaliserDemande,
   etatAffichage: etatAffichage, portees: portees, miseEnAvant: miseEnAvant,
   /* données */
-  D: D, charger: charger, visibles: visibles, lireSources: lireSources,
+  D: D, charger: charger, visibles: visibles,
   /* veille */
   veiller: veiller
 };
