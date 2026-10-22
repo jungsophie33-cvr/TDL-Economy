@@ -90,6 +90,7 @@ var T = {
 var ISSUES = [["reussite","Réussite"],["mitigee","Mitigée"],["echec","Échec"]];
 var SENS   = [["aggrave","Aggrave"],["apaise","Apaise"]];
 
+
 /* ===================== OUTILS ===================== */
 
 function dl(paires){
