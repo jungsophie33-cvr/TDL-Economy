@@ -104,7 +104,7 @@ var TEXTES = {
   TOUTE:       "Toute la paroisse",
   PLUS_COMM:   "Plusieurs communautés",
   PLUS_BANDES: "Plusieurs bandes",
-  ETATS:       { rejoindre:"À rejoindre", cours:"En cours", venir:"À venir", cloture:"Clôturé" },
+  ETATS:       { rejoindre:"À rejoindre", cours:"En cours", venir:"À venir", cloture:"Terminé" },
   ISSUES:      { reussite:"Réussite", mitigee:"Mitigée", echec:"Échec" },
   SENS:        { aggrave:"aggravée", apaise:"apaisée" }
 };
@@ -227,6 +227,7 @@ function normaliser(o){
   o.visibilite   = (o.visibilite === "bandes") ? "bandes" : "publique";
   o.elements     = o.elements || {};
   o.faits        = o.faits || {};
+  o.consequences = vt(o.consequences);
   o.liens        = o.liens || {};
   o.rps          = o.rps || {};
   o.participants = o.participants || {};
@@ -315,10 +316,24 @@ function charger(){
 }
 
 /* Ce que le lecteur courant a le droit de voir, tout confondu. */
+/* Une fiche reprise d'un tableau est publique si son tableau l'annonce — une
+   marée, une opération, une mission du Carrefour, un avant-poste, un coup
+   maringouin ouvrent tous des places, donc ils se lisent.
+   Ce qui s'est joué dans l'ombre — une mission de cellule, un dossier de la
+   Main — n'apparaît qu'une fois terminé ET seulement si le staff a coché
+   « connu de la paroisse » à la clôture.
+   RÈGLE : ce qui a été public le reste. On ne fait pas disparaître d'une
+   page une fiche que les joueurs ont lue pendant qu'elle se jouait. */
+function montrable(e){
+  if (e.origine !== "tableau") return true;
+  if (e.ouvreAvant) return true;
+  return e.statut === "cloture" && !!(e.conclusion && e.conclusion.public);
+}
+
 function visibles(){
   var miennes = mesAppartenances(D.membres);
   return D.evenements.concat(D.reprises).filter(function(e){
-    return !e.classee && peutVoir(e, miennes);
+    return !e.classee && montrable(e) && peutVoir(e, miennes);
   }).sort(function(a, b){
     /* du plus récent au plus ancien : une fiche sans date passe en dernier */
     return String(b.cree || "").localeCompare(String(a.cree || ""));
@@ -359,6 +374,7 @@ window.TDLEv = {
   /* dérivés */
   normaliser: normaliser, normaliserDemande: normaliserDemande,
   etatAffichage: etatAffichage, portees: portees, miseEnAvant: miseEnAvant,
+  montrable: montrable,
   /* données */
   D: D, charger: charger, visibles: visibles,
   /* veille */
