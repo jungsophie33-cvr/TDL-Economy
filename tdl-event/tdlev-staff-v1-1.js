@@ -75,7 +75,7 @@ function items(sect){
         date:V.ilya(d.cree), tri:d.cree });
     });
     V.D.evenements.forEach(function(e){
-      if (e.statut === "cloture") return;
+      if (e.statut === "cloture" || e.doublon) return;
       out.push({ nature:"cloture", id:"e:" + e.id, obj:e, titre:e.titre,
         src:(V.CATEGORIES[e.categorie] || {}).nom + (e.referent ? " · " + e.referent : ""),
         date:V.ilya(e.cree), tri:e.cree });
@@ -90,7 +90,8 @@ function items(sect){
   } else if (s === "fiches"){
     V.D.evenements.forEach(function(e){
       out.push({ nature:"fiche", id:"e:" + e.id, obj:e, titre:e.titre,
-        src:(V.CATEGORIES[e.categorie] || {}).nom + (e.statut === "cloture" ? " · clôturé" : ""),
+        src:e.doublon ? T.DOUBLON
+          : (V.CATEGORIES[e.categorie] || {}).nom + (e.statut === "cloture" ? " · terminé" : ""),
         date:V.ilya(e.modifie || e.cree), tri:e.modifie || e.cree });
     });
   } else {
