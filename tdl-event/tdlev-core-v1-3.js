@@ -170,7 +170,14 @@ function estReferent(ev){
   if (!p || !ev || ev.origine === "tableau") return false;
   return ev.referent === p || ev.mj === p;
 }
-function peutEditer(ev){ return estStaff() || estReferent(ev); }
+/* Une fiche reprise d'un tableau ne s'édite JAMAIS, staff compris : ses
+   données appartiennent à son tableau, et l'écrire ici créerait une seconde
+   fiche du même événement sous le même identifiant. Sa vignette vient de sa
+   source, sa conclusion du panneau de gestion. */
+function peutEditer(ev){
+  if (!ev || ev.origine === "tableau") return false;
+  return estStaff() || estReferent(ev);
+}
 
 /* Visibilité d'une fiche pour le lecteur courant.
    - publique                      → tout le monde
@@ -311,6 +318,12 @@ function charger(){
       : [];
   }).then(function(reprises){
     D.reprises = reprises;
+    /* Une fiche d'evenements/ portant l'identifiant d'une entrée de tableau
+       est un doublon né d'une édition : on la retire de la page publique et
+       on la signale au staff, qui peut la supprimer depuis « Les fiches ». */
+    var repris = {};
+    reprises.forEach(function(r){ repris[r.id] = true; });
+    D.evenements.forEach(function(e){ e.doublon = !!repris[e.id]; });
     return D;
   });
 }
@@ -333,7 +346,7 @@ function montrable(e){
 function visibles(){
   var miennes = mesAppartenances(D.membres);
   return D.evenements.concat(D.reprises).filter(function(e){
-    return !e.classee && montrable(e) && peutVoir(e, miennes);
+    return !e.classee && !e.doublon && montrable(e) && peutVoir(e, miennes);
   }).sort(function(a, b){
     /* du plus récent au plus ancien : une fiche sans date passe en dernier */
     return String(b.cree || "").localeCompare(String(a.cree || ""));
