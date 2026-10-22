@@ -61,7 +61,7 @@ function lignes(){
 
 /* Éléments importants, communs aux six tableaux : on prend ce qui existe,
    sous le libellé que le joueur comprend. Un champ absent ne crée pas de case. */
-function elements(m){
+function elements(m, src){
   var o = {}, n = 0;
   function pose(ico, libelle, valeur){
     if (!valeur) return;
@@ -70,8 +70,14 @@ function elements(m){
   pose("marker", "Lieu", m.zone || m.lieu || m.destination);
   pose("clock", "Quand", m.quand || m.depart || m.heure);
   pose("crosshairs", "Cibles", m.cible || m.cibles);
-  pose("user", "Commanditaire", m.demandeur || m.auteur || m.createur || m.commanditaire);
-  pose("shield", "Au nom de", m.mandataire || m.protege);
+
+  /* Les dossiers de la Main ne nomment jamais qui a commandé : c'est tout
+     l'intérêt de passer par elle. Ailleurs, « au nom de » ne s'affiche que
+     faute de commanditaire — les deux disent la même chose. */
+  var qui = src && src.anonyme
+    ? "" : (m.demandeur || m.auteur || m.createur || m.commanditaire);
+  if (qui) pose("user", "Commanditaire", qui);
+  else if (!(src && src.anonyme)) pose("shield", "Au nom de", m.mandataire || m.protege);
   return o;
 }
 
@@ -102,6 +108,7 @@ function porteesDepuis(txt){
               traitée, sa fiche ne devient publique que si le staff a coché
               « connu de la paroisse ».
    conseq(m): ce que le référent a écrit À LA CLÔTURE — jamais le contexte.
+   anonyme  : le tableau ne nomme jamais le commanditaire (la Main).
    vignette : [MAJ] image de bandeau, une par tableau. Voir la note en pied. */
 
 var SOURCES = [
@@ -177,7 +184,7 @@ var SOURCES = [
      s'ajoute à la boutique de la Main. */
   { id:"main", node:"dossiers_main", url:FORUM + "/t92-le-tableau-des-dettes",
     libelle:"Dossier de la Main", categorie:"bande", visible:false,
-    ouvre:false, ombre:true, vignette:"",
+    ouvre:false, ombre:true, anonyme:true, vignette:"",
     garde:function(m){
       return ["vend","intim","confesse","medi","mediation"].indexOf(m.service) > -1;
     },
@@ -254,7 +261,7 @@ function depuisSource(src, id, m, txt, conclusions){
     /* clos dans son tableau mais sans conclusion : c'est la file du staff */
     aConclure:clos && !c,
     faits:faits(src, m, c),
-    elements:elements(m),
+    elements:elements(m, src),
     portees:src.portees ? src.portees(m) : {},
     vignette:src.vignette || "",
     liens:liens,
