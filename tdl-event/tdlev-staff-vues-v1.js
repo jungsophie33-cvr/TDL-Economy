@@ -19,7 +19,7 @@ function U(){ return window.TDLEvUI; }
 var T = {
   TITRE:      "Panneau de gestion",
   RETOUR:     "Retour au récapitulatif",
-  NOUVELLE:   "Nouvelle fiche",
+  NOUVELLE:   "Nouvel évent",
   VIDE:       "Rien à afficher.",
   RIEN:       "Rien à traiter.",
   ENTREE:     "entrée", ENTREES:"entrées",
@@ -30,36 +30,36 @@ var T = {
   DOSSIER:    "Le dossier",
   A_LIRE:     "À lire avant de décider",
   REPONSE:    "Votre réponse",
-  MOT:        "Mot au demandeur",
+  MOT:        "Mot au commanditaire",
   MOT_A:      "Envoyé avec la notification, quelle que soit la décision.",
-  NOTE_ACC:   "Accepter crée la fiche avec les champs déjà remplis. Il restera à compléter "
+  NOTE_ACC:   "Accepter crée la fiche avec les champs déjà remplis. Il restera à poser "
             + "les éléments importants, les liens et la vignette.",
   REFUSER:    "Refuser", PRECISIONS:"Demander des précisions",
   ACCEPTER:   "Accepter et créer la fiche",
   PARTS:      "Les participants",
   PARTS_T:    "Les participants retenus par le tableau",
   PARTS_N:    "« Nommé » reste inerte tant que l'action n'est pas déclarée connue de la paroisse.",
-  PARTS_TN:   "La liste vient du tableau d'origine. On peut en retirer, pas en ajouter.",
-  PARTS_V:    "Personne ne s'est déclaré sur cette fiche.",
+  PARTS_TN:   "Ces personnages ont déjà été validés dans leur tableau : ils sont retenus "
+            + "d'office. Il ne reste qu'à dire qui la paroisse a nommé.",
+  PARTS_V:    "Personne ne s'est déclaré sur cet évent.",
   COL_PERS:   "Personnage", COL_RET:"Retenu", COL_NOM:"Nommé",
   CONCL:      "La conclusion",
   F_ISSUE:    "Issue", F_JAUGE:"Jauge touchée", F_SENS:"Sens du mouvement", AUCUNE:"Aucune",
-  NOTE_PB:    "La Pression du Bayou ne produit aucune contribution de réputation : "
-            + "personne n'est responsable du temps qu'il fait.",
+  NOTE_PB:    "La Pression du Bayou ne produit aucune contribution de réputation. ",           
   F_PUBLIC:   "L'action est connue de la paroisse",
-  F_PUBLIC_A: "Décochée, personne ne peut être nommé et la fiche reste dans la vue de sa bande.",
-  F_TEXTE:    "Ce que la paroisse en retient",
+  F_PUBLIC_A: "Décochée, personne ne peut être dénoncé et la mission reste connue de sa bande seulement.",
+  F_TEXTE:    "Conclusion retenue par la paroisse",
   F_TEXTE_A:  "Le texte affiché sur la fiche clôturée.",
   CLOT_NOTE:  "La clôture applique badges et réputation",
   CLOTURER:   "Clôturer l'événement", LIBERER:"Libérer le quota du référent",
-  REPERC:     "Cette entrée a-t-elle eu des répercussions ?",
-  REPERC_N:   "Les données de la mission appartiennent à son tableau et ne sont pas modifiables "
-            + "ici. Seule la conclusion de réputation se décide depuis ce panneau.",
+  REPERC:     "Cet évent a-t-il eu des répercussions ?",
+  REPERC_N:   "Les données de la mission appartiennent à son tableau et ne sont pas modifiables. "
+            + "On n'opère ici que la conclusion concernant jauges et réputation.",
   CLASSER:    "Classer sans suite", ENREG_CONCL:"Enregistrer la conclusion",
-  CLASSEE_N:  "Cette entrée a été classée sans suite : elle n'a produit ni jauge ni réputation. "
-            + "Elle peut être reprise si le jeu révèle qu'elle comptait.",
+  CLASSEE_N:  "Cet évent a été classé sans suite : il n'a d'impact ni sur les jauges ni la réputation. "
+            + "La conclusion peut être reprise si le jeu futur révèle de vraies conséquences.",
   REPRENDRE:  "Reprendre dans la file",
-  LA_FICHE:   "La fiche",
+  LA_FICHE:   "L'événement",
   F_T:"Titre", F_S:"Accroche", F_CAT:"Catégorie", F_PER:"Période",
   F_CTX:"Contexte", F_OBJ:"Objectifs et thématiques",
   F_ELEM:"Éléments importants",
@@ -68,23 +68,23 @@ var T = {
   F_LIENS_A:"Une ligne par lien : libellé, point-virgule, titre, point-virgule, URL.",
   F_RPS:"Sujets rattachés", F_RPS_A:"Une ligne par sujet : titre, point-virgule, URL.",
   F_VIG:"Vignette", F_QUI:"Qui est concerné",
-  F_VISI:"Visibilité", F_VISI_PUB:"Publique", F_VISI_RES:"Réservée aux bandes désignées",
-  F_VISI_QUI:"Qui peut la voir",
-  F_VISI_QUI_A:"Tant que la fiche n'est pas clôturée et déclarée connue de la paroisse, "
-            + "elle n'apparaît que pour ces bandes.",
+  F_VISI:"Visibilité", F_VISI_PUB:"Public", F_VISI_RES:"Réservé aux bandes désignées",
+  F_VISI_QUI:"Qui peut le voir",
+  F_VISI_QUI_A:"Tant que l'évent n'est pas clôturé et déclaré connu de la paroisse, "
+            + "il n'apparaît que pour ces bandes.",
   F_OUVERT:   "Les inscriptions sont ouvertes",
   F_DEBUT:    "Date de début",
-  F_DEBUT_A:  "Au format 1962-11-02. Laissée vide, la fiche n'est jamais « à venir ».",
+  F_DEBUT_A:  "Au format 1962-11-02. Laissée vide, l'évent n'apparait jamais dans « à venir ».",
   F_UNE:      "Rang à la une",
   F_UNE_A:    "1 pour l'événement principal, 2 à 4 pour les secondaires. Vide sinon.",
   SUPPRIMER:  "Supprimer", ENREGISTRER:"Enregistrer", CREER:"Créer la fiche",
   OK_ACC:     "Demande acceptée, la fiche est créée.",
   OK_REF:     "Demande refusée.", OK_PREC:"Précisions demandées.",
   OK_CLOT:    "Événement clôturé.", OK_CONCL:"Conclusion enregistrée.",
-  OK_CLASS:   "Entrée classée sans suite.", OK_REPR:"Entrée remise dans la file.",
-  OK_FICHE:   "Fiche enregistrée.", OK_SUPP:"Fiche supprimée.",
+  OK_CLASS:   "Event classé sans suite.", OK_REPR:"Event remis dans la file.",
+  OK_FICHE:   "Event enregistré.", OK_SUPP:"Event supprimé.",
   E_ECRIT:    "Écriture impossible. Réessayez dans un instant.",
-  C_SUPP:     "Supprimer définitivement cette fiche ?"
+  C_SUPP:     "Supprimer définitivement cet évent ?"
 };
 
 var ISSUES = [["reussite","Réussite"],["mitigee","Mitigée"],["echec","Échec"]];
@@ -136,9 +136,11 @@ function dossierDemande(d){
 function dossierReprise(r){
   return '<p class="tdlev-f-h">' + T.DOSSIER + '</p>' + dl([
     ["Résumé du référent", r.sous || "—"],
-    ["Conséquences annoncées", r.contexte.join("\n") || "—"],
+    ["Contexte", (r.contexte || []).join("\n") || "—"],
+    /* ce que le référent a écrit À LA CLÔTURE, jamais le contexte d'ouverture */
+    ["Conséquences annoncées", (r.consequences || []).join("\n") || "—"],
     ["Participants validés par le tableau", noms(r.participants).join(" · ") || "—"]
-  ]) + liens([[r.source, r.urlSource]]);
+  ]) + liens([ [r.urlRp ? "Le sujet RP" : "", r.urlRp], [r.source, r.urlSource] ]);
 }
 
 /* ===================== CLÔTURE ===================== */
@@ -162,7 +164,8 @@ function participants(ev, titre, note, figee){
           + '<span class="tdlev-g-part-n">' + V().esc(nom) + '</span>'
           + '<span><input type="checkbox" data-ret="' + V().esc(k) + '"'
           + ' data-nom="' + V().esc(nom) + '"'
-          + ((r || (!r && !figee && !ev.conclusion)) ? " checked" : "") + '></span>'
+          + ((r || (!r && !figee && !ev.conclusion)) ? " checked" : "")
+          + (figee ? " disabled" : "") + '></span>'
           + '<span><input type="checkbox" class="tdlev-nomme" data-nom-de="' + V().esc(k) + '"'
           + (r && r.nomme ? " checked" : "") + ' disabled></span></div>';
       }).join("") + '</div>';
