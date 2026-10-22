@@ -3,7 +3,8 @@
 
    LA FILE À TRAITER mêle trois natures d'entrées, distinguées par un
    marqueur : les demandes appuyées, les évents en cours qui attendent leur
-   clôture, et les entrées de tableaux clôturées chez elles sans conclusion.
+   clôture, et les entrées de tableaux CLOSES dans leur tableau et sans
+   conclusion — une mission qui se joue encore n'y figure jamais.
    Une seule liste, parce que ce qui les réunit est le même geste : décider.
    Les évents en cours y figurent TOUS : c'est la seule façon qu'aucun ne se
    perde, et le staff juge lesquels sont mûrs.
@@ -79,10 +80,12 @@ function items(sect){
         src:(V.CATEGORIES[e.categorie] || {}).nom + (e.referent ? " · " + e.referent : ""),
         date:V.ilya(e.cree), tri:e.cree });
     });
+    /* Une entrée de tableau n'entre dans la file qu'une fois CLOSE chez elle
+       et sans conclusion : tant qu'elle se joue, le staff n'a rien à décider. */
     V.D.reprises.forEach(function(r){
-      if (r.conclusion) return;
+      if (!r.aConclure) return;
       out.push({ nature:"tableau", id:"r:" + r.id, obj:r, titre:r.titre,
-        src:r.source, date:"", tri:"" });
+        src:r.source, date:V.ilya(r.cree), tri:r.cree });
     });
   } else if (s === "fiches"){
     V.D.evenements.forEach(function(e){
@@ -97,7 +100,8 @@ function items(sect){
         src:r.source, date:"", tri:"" });
     });
   }
-  out.sort(function(a, b){ return String(a.tri || "").localeCompare(String(b.tri || "")); });
+  /* du plus récent au plus ancien, dans les trois sections */
+  out.sort(function(a, b){ return String(b.tri || "").localeCompare(String(a.tri || "")); });
   return out;
 }
 function parId(id){
