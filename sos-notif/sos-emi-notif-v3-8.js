@@ -201,7 +201,7 @@ var NOTIFS = {
   219:{n:C.SORC, ic:"dice-d6",        url:U.SECRETS, txt:function(d){return "Le dé est tombé sur &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; : un fait reste à écrire.";}},
   220:{n:C.SORC, ic:"lightbulb-on",   url:U.SECRETS, txt:function(){return "Un secret sur l'objet vous est révélé lors de votre séance.";}},
   221:{n:C.MAIN, ic:"comment-quote",  url:U.DETTES,  txt:function(){return "Un murmure est remonté du bayou. Il est au tableau des dettes.";}},
-  222:{n:C.SORC, ic:"ear-deaf",       url:U.SECRETS, txt:function(){return "Un secret n'est pas tombé dans l'oreille d'un sourd.";}}
+  222:{n:C.SORC, ic:"ear-deaf",       url:U.SECRETS, txt:function(){return "Un secret n'est pas tombé dans l'oreille d'un sourd.";}},
 
      /* --- Les événements ---
      Même règle qu'ailleurs : la notification annonce, elle ne raconte pas.
