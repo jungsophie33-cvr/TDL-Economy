@@ -179,7 +179,7 @@
         await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0)+montant; }).catch(function(){});
         if (window.console) console.error("[Quais] demande comptant", e); alert(TXT.ERR_ACHAT); return { ok:false };
       }
-      return { ok:true, message:TXT.OK_COMPTANT };
+      return { ok:true, message: base.msgOk || TXT.OK_COMPTANT };
     },
 
     /* Dette lourde (0 $, plafond de 3, alerte staff numérotée pour le badge) OU
@@ -217,23 +217,40 @@
         if (montant > 0) await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + P + "/dollars", function(cur){ return (cur||0)+montant; }).catch(function(){});
         if (window.console) console.error("[Quais] dette", e); alert(TXT.ERR_ACHAT); return { ok:false };
       }
-      return { ok:true, message: type==="lourde" ? TXT.OK_DETTE(numero) : TXT.OK_FAVEUR };
+      return { ok:true, message: base.msgOk || (type==="lourde" ? TXT.OK_DETTE(numero) : TXT.OK_FAVEUR) };
     },
 
-    /* Négociation / requête : simple demande, sans débit. */
-      async demande(base, champs){
+       /* Négociation / requête : sans débit, SAUF la Confesse payée en monnaie —
+       la somme y est retenue dès l'envoi, comme un comptant. Sans ça, un refus
+       staff n'avait rien à rendre, et une validation pouvait échouer sur un
+       solde dépensé entre-temps. */
+    async demande(base, champs){
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
-      var px = parseInt(champs && champs.prix_offert, 10) || 0;   /* confesse payée en monnaie */
+      var px = (champs && champs.compensation === "prix")
+             ? (parseInt(champs.prix_offert, 10) || 0) : 0;
       if (px > 0 && GELE > 0 && dispo() < px) { alert(TXT.FONDS_GELE(GELE)); return { ok:false, fonds:true }; }
+      if (px > 0) {
+        try {
+          await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){
+            var s = cur||0; if (s < px) throw new Error("FONDS"); return s - px;
+          });
+        } catch(e){
+          if (e && e.message==="FONDS") { alert(TXT.FONDS); return { ok:false, fonds:true }; }
+          if (window.console) console.error("[Quais] débit confesse", e); alert(TXT.ERR_ACHAT); return { ok:false };
+        }
+      }
       try {
         var d = demandeBase(base, champs); d.type = base.demandeType || "demande";
+        if (px > 0) { d.montant = px; if (base.cagnotte) d.cagnotte = base.cagnotte; }
         if (base.reseau_auto) d.reseau_auto = base.reseau_auto;
         await E().firebasePush(CFG.NODE_DEMANDES, d);
         try { if (window.EcoNotif) EcoNotif.staff(103, { pseudo:p, nom:base.nom }); } catch(e){}
-      } catch(e){ if (window.console) console.error("[Quais] demande", e); alert(TXT.ERR_ACHAT); return { ok:false }; }
-      return { ok:true, message:TXT.OK_DEMANDE };
+      } catch(e){
+        if (px > 0) await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0)+px; }).catch(function(){});
+        if (window.console) console.error("[Quais] demande", e); alert(TXT.ERR_ACHAT); return { ok:false };
+      }
+      return { ok:true, message: base.msgOk || TXT.OK_DEMANDE };
     },
-
     /* Prêt de la Main : aucun débit. On vérifie que la cagnotte a les fonds
        (message si insuffisant) puis on crée la demande ; le transfert
        cagnotte → membre se fait à la validation staff. */
@@ -435,6 +452,7 @@
         cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte,
         creancier: a.creancier, detteAuto: opts.detteAuto!==undefined ? opts.detteAuto : a.detteAuto, reseau_auto: a.reseau_auto
       };
+      if (mod.msgOk) base.msgOk = opts.msgOk || mod.msgOk(a, opts.act || "demande", champs);
       var res = opts.act==="comptant" ? await achat.comptant(base, champs)
               : opts.act==="dette"    ? await achat.dette(base, champs)
               : opts.act==="pret"     ? await achat.pret(base, champs)
@@ -614,6 +632,7 @@
       detteAuto: a.detteAuto || undefined,
       reseau_auto: a.reseau_auto || undefined
     };
+    if (mod.msgOk) base.msgOk = mod.msgOk(a, act, champs);
     btn.disabled = true;
     var res = act==="comptant" ? await achat.comptant(base, champs)
             : act==="dette"    ? await achat.dette(base, champs)
