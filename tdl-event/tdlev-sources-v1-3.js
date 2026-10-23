@@ -28,6 +28,18 @@ function E(){ return window.EcoCore; }
 
 var FORUM = "https://thedrownedlands.forumactif.com";
 
+/* Vignettes de bandeau, une par tableau : les fiches reprises n'ont pas
+   d'auteur pour en choisir une, et une image par source se reconnaît d'un
+   coup d'œil sans rien dire de ce qui s'y joue. */
+var IMG = {
+  MAIN:       "https://www.aht.li/3993920/FRANK_RELLE-1_copie.png",
+  SORCIERES:  "https://www.aht.li/3993922/Cordelle_Frank_Relle_798bab19-f371-4a61-8313-3e8a5d17e8de_copie.png",
+  OPERATIONS: "https://www.aht.li/3993923/Melerine_Frank_Relle_2026-b_copie.png",
+  COUPS:      "https://www.aht.li/3993924/Auguillard_frank_relle_8dd3d6c2-19b7-434f-82e1-22db33565512.jpg",
+  MAREES:     "https://www.aht.li/3993925/Allemands_frank_relle_copyright_2019_copie.png",
+  CARREFOUR:  "https://www.aht.li/3993926/Eleusinian_frank_relle_copyright_2018_copie.png"
+};
+
 function cles(v){ return (v && typeof v === "object") ? Object.keys(v) : []; }
 function val(v){ return cles(v).map(function(k){ return v[k]; }); }
 
@@ -69,7 +81,7 @@ function elements(m, src){
   }
   pose("marker", "Lieu", m.zone || m.lieu || m.destination);
   pose("clock", "Quand", m.quand || m.depart || m.heure);
-  pose("location-crosshairs", "Cibles", m.cible || m.cibles);
+  pose("crosshairs", "Cibles", m.cible || m.cibles);
 
   /* Les dossiers de la Main ne nomment jamais qui a commandé : c'est tout
      l'intérêt de passer par elle. Ailleurs, « au nom de » ne s'affiche que
@@ -113,8 +125,8 @@ function porteesDepuis(txt){
 
 var SOURCES = [
   { id:"marees", node:"flottille/marees", url:FORUM + "/t96-le-tableau-du-hangar",
-    libelle:"Tableau du Hangar · marée", categorie:"communautaire", visible:true,
-    ouvre:true, ombre:false, vignette:"",
+    libelle:"Marée \u27E1 Flottille", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:IMG.MAREES,
     clos:function(m){ return m.statut === "close"; },
     /* Une marée se rejoint par le POSTE : c'est là que sont ses gens. */
     parts:function(m){ return gens(depuisPris(m.postes)); },
@@ -124,8 +136,8 @@ var SOURCES = [
   /* Ce qui se joue n'est pas le transport mais la réunion de partis qui ne se
      rencontreraient pas autrement : une opération est communautaire. */
   { id:"operations", node:"flottille/operations", url:FORUM + "/t96-le-tableau-du-hangar",
-    libelle:"Opération de la Flottille", categorie:"communautaire", visible:true,
-    ouvre:true, ombre:false, vignette:"",
+    libelle:"Opération \u27E1 Flottille", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:IMG.OPERATIONS,
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){
       return gens(depuisNoeud(m.participants).concat([m.capitaine, m.mandataire]));
@@ -136,8 +148,8 @@ var SOURCES = [
     portees:function(m){ return porteesDepuis(m.parties); } },
 
   { id:"maringouins", node:"missions", url:FORUM + "/t90-le-tableau-des-missions",
-    libelle:"Tableau des Maringouins", categorie:"bande", visible:true,
-    ombre:true, vignette:"",
+    libelle:"Coup \u27E1 Maringouins", categorie:"bande", visible:true,
+    ombre:true, vignette:IMG.COUPS,
     /* un coup ouvre des rôles adverses, donc il s'annonce ; une mission de
        cellule reste dans l'ombre tant qu'elle n'est pas terminée */
     ouvre:function(m){ return m.genre === "coup"; },
@@ -155,8 +167,8 @@ var SOURCES = [
      télécharger des kilo-octets de prose à chaque affichage de colonne. */
   { id:"carrefour", node:"carrefour", txt:"carrefour_txt",
     url:FORUM + "/t107-le-tableau-du-carrefour",
-    libelle:"Tableau du Carrefour · mission", categorie:"communautaire", visible:true,
-    ouvre:true, ombre:false, vignette:"",
+    libelle:"Mission du Carrefour", categorie:"communautaire", visible:true,
+    ouvre:true, ombre:false, vignette:IMG.CARREFOUR,
     garde:function(m){ return m.type !== "chasse"; },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){ return gens(depuisNoeud(m.interets || m.participants)); },
@@ -169,8 +181,8 @@ var SOURCES = [
     conseq:function(m){ return lignes(m.consequences); } },
 
   { id:"sorcieres", node:"lost_bayou", url:FORUM + "/t108-le-tableau-des-secrets",
-    libelle:"Tableau des secrets · avant-poste", categorie:"bande", visible:true,
-    ouvre:true, ombre:true, vignette:"",
+    libelle:"Rencontre \u27E1 Sorcières", categorie:"bande", visible:true,
+    ouvre:true, ombre:true, vignette:IMG.SORCIERES,
     garde:function(m){ return m.type === "poste"; },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){
@@ -183,8 +195,8 @@ var SOURCES = [
      possibles. [MAJ] codes du champ `service` — à compléter si un service
      s'ajoute à la boutique de la Main. */
   { id:"main", node:"dossiers_main", url:FORUM + "/t92-le-tableau-des-dettes",
-    libelle:"Dossier de la Main", categorie:"bande", visible:false,
-    ouvre:false, ombre:true, anonyme:true, vignette:"",
+    libelle:"Dossier \u27E1 Main", categorie:"bande", visible:false,
+    ouvre:false, ombre:true, anonyme:true, vignette:IMG.MAIN,
     garde:function(m){
       return ["vend","intim","confesse","medi","mediation"].indexOf(m.service) > -1;
     },
@@ -266,7 +278,7 @@ function depuisSource(src, id, m, txt, conclusions){
     vignette:src.vignette || "",
     liens:liens,
     rps:m.sujet ? { s0:{ titre:m.titre || "Le sujet", url:m.sujet, participants:parts } } : {},
-    cree:m.clos || m.cree || ""
+    cree:m.cree || m.clos || ""
   });
 }
 
@@ -291,19 +303,6 @@ function lire(conclusions){
     return lots.reduce(function(a, b){ return a.concat(b); }, []);
   });
 }
-
-/* [MAJ] VIGNETTES — une image par tableau, posée dans le champ `vignette` de
-   chaque source ci-dessus. Elles habillent le héros de toutes les fiches
-   reprises, donc elles doivent se reconnaître d'un coup d'œil sans dire ce
-   qui se joue :
-     marees      — un chenal étroit de nuit, la proue d'un bateau à moteur
-     operations  — les entrepôts flottants, une passerelle entre deux coques
-     maringouins — une raffinerie ou un entrepôt vu de loin, lumière orange
-     carrefour   — une route de desserte et un panneau, plein jour
-     sorcieres   — l'avant-poste, lanternes et eau noire
-     main        — un intérieur bourgeois vide, un fauteuil, une porte ouverte
-   Laisser vide tant qu'une image n'est pas choisie : le héros se rabat alors
-   sur son dégradé seul, ce qui reste lisible.                               */
 
 window.TDLEvSources = { SOURCES:SOURCES, lire:lire, FORUM:FORUM };
 
