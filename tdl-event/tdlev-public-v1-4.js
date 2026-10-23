@@ -35,17 +35,22 @@ var T = {
   AUTRES:     "Autres événements en cours",
   A_REJOINDRE:"À rejoindre",
   BIENTOT:    "Prochainement",
-  VOIR_FICHE: "Voir la fiche complète",
+  VOIR_FICHE: "Voir le descriptif",
   RIEN:       "Rien dans cette catégorie.",
-  RIEN_UNE:   "Rien ne se joue à Terrebonne pour l'instant.",
+  RIEN_UNE:   "Rien pour l'instant.",
   CONTEXTE:   "Contexte",
   OBJECTIFS:  "Objectifs et thématiques",
-  RPS:        "RP rattachés",
-  RETENUS:    "Participants retenus",
-  RETENU_C:   "Ce que la paroisse en retient",
+  RPS:        "RP en rapport avec l'événement",
+  RETENUS:    "Participants confirmés",
+  INSCRITS:   "Participants",
+  RATTACHER:  "Joindre un RP",
+  REJOINDRE:  "Rejoindre ce RP",
+  F_DEBUT:    "Ouverture",
+  F_PREVENIR: "Vous serez prévenu à l'ouverture.",
+  RETENU_C:   "Retenu par la paroisse",
   BREF:       "En bref",
   LIENS:      "Liens et ressources",
-  EDITER:     "Éditer la fiche",
+  EDITER:     "Éditer l'évent",
   PARTICIPER: "Participer",
   TABLEAU:    "Aller au tableau",
   ATTENDRE:   "Prévenez-moi à l'ouverture",
@@ -175,7 +180,7 @@ function action(ev){
   var etat = V.etatAffichage(ev);
   if (ev.categorie === "lore" || etat === "cloture") return null;
   if (ev.origine === "tableau") return { txt:T.TABLEAU, url:ev.urlSource || "", second:true };
-  if (etat === "venir") return { txt:T.ATTENDRE, second:true };
+  if (etat === "venir") return { txt:T.ATTENDRE, act:"rappel", second:true };
   if (etat === "rejoindre") return { txt:T.PARTICIPER, act:"participer" };
   return null;
 }
@@ -296,18 +301,27 @@ function pave(icone, titre, corps){
     + '<div class="tdlev-pave-c">' + corps + '</div></section>';
 }
 
-function accordeon(ev){
+function accordeon(ev, peutRejoindre, moi){
   return V.cles(ev.rps).map(function(k, i){
     var r = ev.rps[k] || {};
     var gens = V.cles(r.participants);
     var n = gens.length;
+    var dedans = moi && r.participants && r.participants[V.cle(moi)];
     return '<button class="tdlev-rat-l" data-acc="' + i + '" aria-expanded="false">'
       + '<span class="tdlev-rat-nom">' + esc(r.titre || "(sujet)") + '</span>'
       + '<span class="tdlev-rat-n">' + n + " " + (n > 1 ? T.PERSONNES : T.PERSONNE) + '</span>'
       + fit("angle-right") + '</button>'
-      + '<div class="tdlev-rat-p" id="tdlev-acc-' + i + '"><div><div class="tdlev-gens">'
+      + '<div class="tdlev-rat-p" id="tdlev-acc-' + i + '"><div>'
+      + '<div class="tdlev-gens">'
       + gens.map(function(g){ return '<span>' + esc(r.participants[g].nom || g) + '</span>'; }).join("")
-      + '</div></div></div>';
+      + '</div>'
+      + (r.url ? '<div class="tdlev-cta"><button class="tdlev-btn est-second"'
+                 + ' data-url="' + esc(r.url) + '">Lire le sujet</button>'
+                 + (peutRejoindre && !dedans
+                    ? '<button class="tdlev-btn" data-rp="' + esc(k) + '">'
+                      + T.REJOINDRE + '</button>' : '')
+                 + '</div>' : '')
+      + '</div></div>';
   }).join("");
 }
 
@@ -315,6 +329,7 @@ function accordeon(ev){
    conclusion quand la fiche est close. Rien n'y répète le héros. */
 function faits(ev){
   var out = [];
+  if (ev.debut && ev.statut !== "cloture") out.push([T.F_DEBUT, esc(V.dateFr(ev.debut))]);
   if (ev.statut === "cloture" && ev.conclusion){
     var c = ev.conclusion;
     if (c.issue) out.push([T.F_ISSUE,
@@ -356,7 +371,19 @@ function rendFiche(ev){
       ev.conclusion.texte.split("\n").filter(Boolean).map(function(t){
         return '<p class="tdlev-f-p">' + esc(t) + '</p>'; }).join(""));
 
-  if (V.cles(ev.rps).length) g += '<p class="tdlev-f-h">' + T.RPS + '</p>' + accordeon(ev);
+  var moi = V.monPseudo(), inscrit = moi && ev.participants[V.cle(moi)];
+  if (V.cles(ev.rps).length || (ev.rpOuvert && inscrit)){
+    g += '<p class="tdlev-f-h">' + T.RPS + '</p>';
+    if (ev.rpOuvert && inscrit)
+      g += '<div class="tdlev-cta"><button class="tdlev-btn est-second"'
+         + ' data-act="rattacher">' + T.RATTACHER + '</button></div>';
+    g += accordeon(ev, !!(ev.rpOuvert && inscrit), moi);
+  }
+
+  var ins = V.cles(ev.participants);
+  if (ins.length) g += '<p class="tdlev-f-h">' + T.INSCRITS + '</p><div class="tdlev-gens">'
+    + ins.map(function(k){ return '<span>' + esc(ev.participants[k].nom || k) + '</span>'; }).join("")
+    + '</div>';
 
   var ret = V.cles(ev.retenus);
   if (ret.length) g += '<p class="tdlev-f-h">' + T.RETENUS + '</p><div class="tdlev-gens">'
@@ -407,6 +434,7 @@ function brancher(){
       b.innerHTML = b.innerHTML;   /* le chevron pivote par CSS */
       return;
     }
+    if (b.dataset.rp){ e.stopPropagation(); agir("rejoindreRp", b.dataset.rp); return; }
     if (b.dataset.url){ e.stopPropagation(); ouvrir(b.dataset.url); return; }
     if (b.dataset.act){ e.stopPropagation(); agir(b.dataset.act); return; }
     if (b.id === "tdlev-accueil"){ ouvrir("/"); return; }
@@ -415,10 +443,11 @@ function brancher(){
 
 /* Les actions qui sortent de cette page sont émises, pas exécutées ici :
    tdlev-volet.js les écoute. */
-function agir(act){
+function agir(act, arg){
   var ev = parId(S.sel);
   try {
-    document.dispatchEvent(new CustomEvent("tdlev:action", { detail:{ act:act, evenement:ev } }));
+    document.dispatchEvent(new CustomEvent("tdlev:action",
+      { detail:{ act:act, evenement:ev, arg:arg } }));
   } catch(e){}
 }
 
