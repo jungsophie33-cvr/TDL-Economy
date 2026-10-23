@@ -284,6 +284,7 @@ function lireFiche(){
     portees:U.versNoeud(S.portees), vignette:U.val("tdlev-f-vig"),
     debut:U.val("tdlev-f-debut") || null, ouvert:U.coche("tdlev-f-ouvert"),
     aLaUne:parseInt(U.val("tdlev-f-une"), 10) || null,
+    rpOuvert:U.coche("tdlev-f-rp"),
     visibilite:visi, visibleA:(visi === "bandes") ? U.versNoeud(S.visi) : null,
     modifie:V.maintenant()
   };
@@ -320,7 +321,11 @@ function agir(act){
     S.sect = "fiches"; S.neuve = true; S.sel = null; rendListe(); travail(null); return;
   }
   if (act === "creer"){
-    B.ecrireEntree(V.CFG.NODE, V.nouvelId(), lireFiche(), "création de fiche")
+    var neuve = lireFiche();
+    neuve.origine = "staff";
+    neuve.statut  = "en_cours";
+    neuve.cree    = V.maintenant();   /* sans elle, la fiche n'a pas de rang */
+    B.ecrireEntree(V.CFG.NODE, V.nouvelId(), neuve, "création de fiche")
       .then(function(ok){ S.neuve = false; fin(ok, T.OK_FICHE); });
     return;
   }
@@ -340,9 +345,15 @@ function agir(act){
       break;
 
     case "cloturer":
+      var ret = lireRetenus();
       B.ecrire(V.CFG.NODE, o.id, { statut:"cloture", ouvert:false,
-        retenus:lireRetenus(), conclusion:lireConclusion() },
-        "clôture de " + o.titre).then(function(ok){ fin(ok, T.OK_CLOT); });
+        retenus:ret, conclusion:lireConclusion() },
+        "clôture de " + o.titre).then(function(ok){
+          if (ok) V.cles(ret).forEach(function(k){
+            U.notifier(ret[k].nom || k, V.NOTIF.CLOTURE, { titre:o.titre });
+          });
+          fin(ok, T.OK_CLOT);
+        });
       break;
 
     case "liberer":
@@ -364,8 +375,15 @@ function agir(act){
       break;
 
     case "enregistrer":
-      B.ecrire(V.CFG.NODE, o.id, lireFiche(), "édition de " + o.titre)
-        .then(function(ok){ fin(ok, T.OK_FICHE); });
+      var maj = lireFiche();
+      /* une fiche qui s'ouvre prévient ceux qui avaient demandé à l'être */
+      var sOuvre = maj.ouvert && !o.ouvert;
+      B.ecrire(V.CFG.NODE, o.id, maj, "édition de " + o.titre).then(function(ok){
+        if (ok && sOuvre) V.cles(o.rappels).forEach(function(k){
+          U.notifier(o.rappels[k].nom || k, V.NOTIF.OUVERTURE, { titre:o.titre });
+        });
+        fin(ok, T.OK_FICHE);
+      });
       break;
 
     case "supprimer":
