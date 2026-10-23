@@ -48,14 +48,15 @@ var U = {
   HANGAR:   "/t96-le-tableau-du-hangar",
   CARREFOUR: "/t107-le-tableau-du-carrefour",   
   SECRETS:  "/t108-le-tableau-des-secrets",         
-  COURIER:  "/t102-the-houma-courier"
+  COURIER:  "/t102-the-houma-courier",
+  EVENTS:   "/t116-les-evenements-de-tdl"    
 };
 
 /* classes CSS de module (couleur) — voir CSS-notiffi-tdl.css */
 var C = { BOUT:"tdl_boutique", MIS:"tdl_mission", MAIN:"tdl_main",
           FAV:"tdl_faveur", ENQ:"tdl_enquete", CAL:"tdl_calendrier",
           FLOT:"tdl_flottille", CARR: "tdl_carrefour", COUR:"tdl_courier",
-          SORC:"tdl_sorcieres" };
+          SORC:"tdl_sorcieres", EV:"tdl_event" };
 
 /* ===================== REGISTRE =====================
    n  = classe CSS de module · ic = icône Flaticon (préfixe fi-sr- ajouté au
@@ -201,6 +202,17 @@ var NOTIFS = {
   220:{n:C.SORC, ic:"lightbulb-on",   url:U.SECRETS, txt:function(){return "Un secret sur l'objet vous est révélé lors de votre séance.";}},
   221:{n:C.MAIN, ic:"comment-quote",  url:U.DETTES,  txt:function(){return "Un murmure est remonté du bayou. Il est au tableau des dettes.";}},
   222:{n:C.SORC, ic:"ear-deaf",       url:U.SECRETS, txt:function(){return "Un secret n'est pas tombé dans l'oreille d'un sourd.";}}
+
+     /* --- Les événements ---
+     Même règle qu'ailleurs : la notification annonce, elle ne raconte pas.
+     Le 230 ne dit pas ce que contient la proposition — on va la lire. */
+  230:{n:C.EV, ic:"thumbs-up",     url:U.EVENTS, txt:function(d){return esc(d.de)+" vous demande d'appuyer une proposition d'événement : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;. Vous avez sept jours.";}},
+  231:{n:C.EV, ic:"comment-check", url:U.EVENTS, txt:function(d){return "Votre demande &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+esc(d.etat)+".";}},
+  232:{n:C.EV, ic:"inbox-in",      url:U.EVENTS, txt:function(d){return "Une demande d'événement attend le staff : &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;, de "+esc(d.de)+".";}},
+  233:{n:C.EV, ic:"stamp",         url:U.EVENTS, txt:function(d){return "Votre demande &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+esc(d.etat)+".";}},
+  234:{n:C.EV, ic:"bell-ring",     url:U.EVENTS, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; vient d'ouvrir. Vous aviez demandé à être prévenu·e.";}},
+  235:{n:C.EV, ic:"flag-alt",      url:U.EVENTS, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est terminé. Votre participation a été confirmée.";}},
+  236:{n:C.EV, ic:"link-alt",      url:U.EVENTS, txt:function(d){return esc(d.pseudo)+" joint un sujet à &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
 };
 
 /* préfixes de titre → type de notification */
