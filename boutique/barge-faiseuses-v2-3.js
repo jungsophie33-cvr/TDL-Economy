@@ -134,6 +134,6 @@
     k:"faiseuses", bohl:"faiseuses", ordre:4, l:"Les Faiseuses d\u2019Anges",
     ic:"fi fi-tr-hand-holding-heart", c:"var(--gr1-color)",
     hero:{ logo:"fi fi-tr-hand-holding-heart", desc:T.HERO },
-    data: DATA, body: body, heroPrice: heroPrice
+    data: DATA, body: body, heroPrice: heroPrice, msgOk: msgOk
   });
 })();
