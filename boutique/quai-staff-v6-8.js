@@ -113,7 +113,13 @@
     if (d.pret_contrepartie==="dette") return { type:"lourde", creancier:d.bande||"La Main de la Providence", motif:"Prêt : "+(d.nom||"") };
     return null;
   }
-    function reseauAInscrire(d){
+        function reseauAInscrire(d){
+    /* Passage de la Flottille pris à crédit : la dette ne peut être qu'un
+       service dû, donc le statut est FIGÉ — aucun menu staff. Le concours
+       promis est ce que le bottin affichera au pilier. Un passage payé
+       comptant n'inscrit personne. */
+    if (d.itemId==="flot_passage" && d.type==="dette" && String(d.concours||"").trim())
+      return { reseau:"flottille", concours:String(d.concours).trim(), statut:"du", fixe:true };
     if (d.reseau_auto==="faiseuses") return { reseau:"faiseuses", categorie:"faiseuses", statut:d.dispo||"disponible", role:d.apport||d.ressource||d.nom||"", activite:d.activite||"", fixe:false };
     if (d.reseau_auto) return { categorie:d.reseau_auto, statut:"longue", role:d.nom||"", fixe:true };
     if (d.compensation==="reseau" && d.reseau_cat) return { categorie:d.reseau_cat, statut:null, role:d.situation_main||"", fixe:false };
@@ -133,7 +139,8 @@
     var pn = phaseNego(d), ps = phaseService(d);
     if (pn || ps) out += ligne("Dossier à ouvrir", "Tableau de la Main · " + (pn&&ps ? "négociation puis service" : (pn ? "négociation en RP" : "service à rendre")));
     var ri = reseauAInscrire(d);
-    if (ri && ri.reseau==="faiseuses") out += ligne("Réseau à inscrire", "Faiseuses d\u2019Anges · "+(DISPO_LIB[ri.statut]||ri.statut));
+    if (ri && ri.reseau==="flottille") out += ligne("Réseau à inscrire", "Flottille \u00b7 pilier de la terre ferme \u00b7 service dû");
+    else if (ri && ri.reseau==="faiseuses") out += ligne("Réseau à inscrire", "Faiseuses d\u2019Anges · "+(DISPO_LIB[ri.statut]||ri.statut));
     else if (ri) out += ligne("Réseau à inscrire", (RESEAU_LIB[ri.categorie]||ri.categorie)+" · "+(ri.statut?(STATUT_RES[ri.statut]||ri.statut):"statut à préciser par le staff"));
     FIELDS.forEach(function(f){ var v=d[f[0]]; if (v!=null && String(v).trim()!=="") { if (VMAP[f[0]] && VMAP[f[0]][v]) v=VMAP[f[0]][v]; out += ligne(f[1], v); } });
     return out ? '<div class="fi-carte-grille">'+out+'</div>' : "";
@@ -483,9 +490,10 @@
         if (ri) {
           var statutRes = ri.statut;
           if (!statutRes) { var selR = root.querySelector('.qsd-restatut[data-id="'+id+'"]'); statutRes = (selR && selR.value) || "du"; }
-                    var lien = ri.reseau==="faiseuses"
-            ? { type:"reseau_faiseuses", categorie:"faiseuses", role:ri.role, activite:ri.activite, statut:statutRes }
-            : { type:"reseau_main", categorie:ri.categorie, role:ri.role, statut:statutRes };
+            var lien;
+          if (ri.reseau==="flottille")      lien = { type:"pilier_flottille", concours:ri.concours, statut:statutRes };
+          else if (ri.reseau==="faiseuses") lien = { type:"reseau_faiseuses", categorie:"faiseuses", role:ri.role, activite:ri.activite, statut:statutRes };
+          else                              lien = { type:"reseau_main", categorie:ri.categorie, role:ri.role, statut:statutRes };
           try { await ajouterLien(d.pseudo, lien); } catch(e){ if (window.console) console.error("[quais-staff] réseau", e); }
         }
         if (d.type==="faveur" && !d.tacheCreee) {
@@ -535,7 +543,12 @@
         d.montantRendu = rbt;
         o[base+"/statut"] = "refusee"; await E().firebaseUpdate(o);
       }
-      else { o[base+"/statut"] = "en_attente"; await E().firebaseUpdate(o); }
+      else {
+        /* Une demande remboursée ne repart pas en attente : la valider ensuite
+           créditerait la cagnotte d'un argent déjà rendu au joueur. */
+        if (d.rembourse) { alert("Cette demande a été remboursée — impossible de la rouvrir. Le joueur doit la repasser en boutique."); return; }
+        o[base+"/statut"] = "en_attente"; await E().firebaseUpdate(o);
+      }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
         /* [NOTIF] après le catch : l'écriture Firebase a réussi, aucun cas d'échec ici */
         try {
