@@ -36,9 +36,15 @@
     return b;
   }
 
+    function msgOk(item, act){
+    return act === "comptant"
+      ? "Commande passée aux Braconneurs. Le montant est retenu ; le staff validera, ou vous le rendra."
+      : "Demande transmise aux Braconneurs. Le staff fixera le prix ou la contrepartie, et vous répondra.";
+  }
+
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"braco", bohl:"braconneurs", ordre:3, l:"Les Braconneurs", ic:"fi fi-tr-paw", c:"var(--gr3-color)",
     hero:{ logo:"fi fi-tr-paw", desc:"Pisteurs, saboteurs et hommes de terrain, ils opèrent là où personne d\u2019autre ne s\u2019aventure." },
-    data: DATA, body: body
+    data: DATA, body: body, msgOk: msgOk
   });
 })();
