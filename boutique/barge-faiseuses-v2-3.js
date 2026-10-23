@@ -122,6 +122,14 @@
       : { l:"Modalité", v:"Sans tarif ⟡ dette de silence" };
   }
 
+    /* Sans ce hook, le socle renvoie « Requête transmise à la Main » — la pire
+     phrase possible pour une bande qui ne prend ni argent ni ordre de la Main. */
+  function msgOk(item){
+    return item.flow==="don_reseau"
+      ? "Don proposé aux Faiseuses. S\u2019il est retenu, votre personnage entrera dans leur réseau de ressources et figurera dans leur bottin."
+      : "Demande transmise. Le staff la relit, puis les Faiseuses tranchent entre elles. Vous ne payez rien, sauf le silence.";
+  }
+
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"faiseuses", bohl:"faiseuses", ordre:4, l:"Les Faiseuses d\u2019Anges",
     ic:"fi fi-tr-hand-holding-heart", c:"var(--gr1-color)",
