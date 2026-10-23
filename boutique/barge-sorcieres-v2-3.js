@@ -66,6 +66,10 @@
     PH_DETAIL:    "En une phrase : ce qu\u2019il fournira, et dans quelles limites.",
     AIDE_CREANCE: "Vous ne payez rien maintenant. Les Sorcières réclameront ce service quand elles le jugeront bon.",
     L_SECRET_SEUL:"Le secret confié aux Lwas",
+    L_TITRE:      "Titre du secret *",
+    PH_TITRE:     "Intitulé lisible dans le pot des secrets des Sorcière, sans rien dévoiler\u2026",
+    AIDE_TITRE:   "C\u2019est l\u2019intitulé public du secret au tableau des Sorcières : il doit intriguer sans rien révéler. \u00ab Ce que le père Thibodeaux a enterré \u00bb, pas le contenu.",
+    ERR_TITRE:    "Donnez un titre au secret : c\u2019est ce que les Sorcières liront au tableau.",
     AIDE_JETON:   "En échange, les Sorcières vous doivent un refus : vous pourrez annuler une créance future, une seule fois, sans trace.",
     AVERTIR:      "Sous la Brume, on parle. Ce que vous direz pendant la nuit, les Sorcières le garderont.",
     BTN:          "Soumettre aux Sorcières",
@@ -153,6 +157,8 @@
       +   aide(TEXTES.AIDE_MONTANT)
       + '</div>'
       + '<div data-zone="secret" class="qb-sorc-full" style="display:none">'
+      +   ui.fld(TEXTES.L_TITRE, ui.inp("offrande_secret_titre", TEXTES.PH_TITRE))
+      +   aide(TEXTES.AIDE_TITRE)
       +   ui.fld(TEXTES.L_SECRET, ui.ta("offrande_secret", TEXTES.PH_SECRET))
       +   aide(TEXTES.AIDE_SECRET)
       + '</div>'
@@ -180,7 +186,9 @@
     b += '<div class="qb-rule"></div><div class="qb-sec">' + ui.lab("Formuler votre requête");
 
     if (item.sansMode) {
-      b += ui.fld(TEXTES.L_SECRET_SEUL, ui.ta("offrande_secret", TEXTES.PH_SECRET))
+      b += ui.fld(TEXTES.L_TITRE, ui.inp("offrande_secret_titre", TEXTES.PH_TITRE))
+        +  aide(TEXTES.AIDE_TITRE)
+        +  ui.fld(TEXTES.L_SECRET_SEUL, ui.ta("offrande_secret", TEXTES.PH_SECRET))
         +  aide(TEXTES.AIDE_SECRET) + aide(TEXTES.AIDE_JETON);
     } else {
             b += ui.fld(TEXTES.L_REQUETE, ui.ta("requete", TEXTES.PH_REQUETE))
@@ -198,6 +206,7 @@
      contrôles sautent, le débit part sans filet. */
   function valider(det, item, api){
     if (item.sansMode) {
+      if (!champ(det, "offrande_secret_titre")) return TEXTES.ERR_TITRE;
       if (champ(det, "offrande_secret").length < CFG.MIN_SECRET) return TEXTES.ERR_SECRET;
       return null;
     }
@@ -212,6 +221,7 @@
       return null;
     }
     if (mode === "secret") {
+      if (!champ(det, "offrande_secret_titre")) return TEXTES.ERR_TITRE;
       if (champ(det, "offrande_secret").length < CFG.MIN_SECRET) return TEXTES.ERR_SECRET;
       return null;
     }
@@ -233,7 +243,7 @@
         var z = zone(det, k); if (z) z.style.display = "";
       });
       if (v !== "argent")  vider(det, ["offrande_montant"]);
-      if (v !== "secret")  vider(det, ["offrande_secret"]);
+      if (v !== "secret")  vider(det, ["offrande_secret", "offrande_secret_titre"]);
       if (v !== "creance") vider(det, ["offrande_creance_type", "offrande_creance_detail"]);
       if (v === "argent") {
         var mt = det.querySelector('[data-champ="offrande_montant"]');
@@ -269,7 +279,10 @@
   /* Filet : api.acheter court-circuite ce hook, mais un bouton .qb-act ajouté
      plus tard repasserait par lancerAchat. Les règles restent au même endroit. */
   function avantAchat(item, champs, act){
-    if (item.sansMode) return (String(champs.offrande_secret || "").trim().length < CFG.MIN_SECRET) ? TEXTES.ERR_SECRET : null;
+    if (item.sansMode) {
+      if (!String(champs.offrande_secret_titre || "").trim()) return TEXTES.ERR_TITRE;
+      return (String(champs.offrande_secret || "").trim().length < CFG.MIN_SECRET) ? TEXTES.ERR_SECRET : null;
+    }
     if (!String(champs.requete || "").trim()) return TEXTES.ERR_REQUETE;
     if (!champs.offrande_mode) return TEXTES.ERR_MODE;
     if (champs.offrande_mode === "argent" && act !== "comptant") return TEXTES.ERR_MONTANT;
