@@ -262,9 +262,19 @@
     };
   }
 
+    /* Le socle renvoie un message générique « La Main / réponse en RP » à toutes
+     les bandes. Ici il est juste — mais il doit être explicite sur la retenue. */
+  function msgOk(item, act, champs){
+    if (act === "comptant") return "Service réglé. La somme est retenue jusqu\u2019à la décision du staff, qui vous la rendra en cas de refus.";
+    if (act === "pret")     return null;   /* le socle a déjà le bon texte */
+    if (champs && champs.compensation === "prix" && parseInt(champs.prix_offert,10) > 0)
+      return "Requête transmise à la Main. La somme proposée est retenue jusqu\u2019à sa réponse ; elle vous sera rendue si elle refuse.";
+    return "Requête transmise à la Main.";
+  }
+
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"main", bohl:"main", ordre:1, l:"La Main de la Providence", ic:"fi fi-tr-hands-usd", c:"var(--gr6-color)", cagnotte:"Providence",
     hero:{ logo:"fi fi-tr-hands-usd", desc:"La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis 20 ans." },
-    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat
+    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat, msgOk: msgOk
   });
 })();
