@@ -32,27 +32,27 @@ var T = {
   REPONSE:    "Votre réponse",
   MOT:        "Mot au commanditaire",
   MOT_A:      "Envoyé avec la notification, quelle que soit la décision.",
-  NOTE_ACC:   "Accepter crée la fiche avec les champs déjà remplis. Il restera à poser "
+  NOTE_ACC:   "Accepter crée l'évent avec les champs déjà remplis. Il restera à poser "
             + "les éléments importants, les liens et la vignette.",
   REFUSER:    "Refuser", PRECISIONS:"Demander des précisions",
-  ACCEPTER:   "Accepter et créer la fiche",
+  ACCEPTER:   "Accepter et créer l'évent",
   PARTS:      "Les participants",
-  PARTS_T:    "Les participants retenus par le tableau",
-  PARTS_N:    "« Nommé » reste inerte tant que l'action n'est pas déclarée connue de la paroisse.",
-  PARTS_TN:   "Ces personnages ont déjà été validés dans leur tableau : ils sont retenus "
-            + "d'office. Il ne reste qu'à dire qui la paroisse a nommé.",
+  PARTS_T:    "Les participants confirmés",
+  PARTS_N:    "« Suspect » reste inerte tant que l'action n'est pas déclarée connue de la paroisse.",
+  PARTS_TN:   "Ces participants ont déjà été validés dans leur tableau : ils sont cochés "
+            + "d'office. Il ne reste qu'à choisir ceux qui ont grillé leur discrétion.",
   PARTS_V:    "Personne ne s'est déclaré sur cet évent.",
-  COL_PERS:   "Personnage", COL_RET:"Retenu", COL_NOM:"Nommé",
+  COL_PERS:   "Personnage", COL_RET:"participants", COL_NOM:"suspects",
   CONCL:      "La conclusion",
   F_ISSUE:    "Issue", F_JAUGE:"Jauge touchée", F_SENS:"Sens du mouvement", AUCUNE:"Aucune",
-  NOTE_PB:    "La Pression du Bayou ne produit aucune contribution de réputation. ",           
+  NOTE_PB:    "La Pression du Bayou ne produit aucune contribution à la réputation. ",           
   F_PUBLIC:   "L'action est connue de la paroisse",
-  F_PUBLIC_A: "Décochée, personne ne peut être dénoncé et la mission reste connue de sa bande seulement.",
+  F_PUBLIC_A: "Décochée, personne ne peut être suspecté et la mission n'est connue que de sa bande.",
   F_TEXTE:    "Conclusion retenue par la paroisse",
-  F_TEXTE_A:  "Le texte affiché sur la fiche clôturée.",
+  F_TEXTE_A:  "Le texte affiché sur le descriptif une fois l'évent terminé.",
   CLOT_NOTE:  "La clôture applique badges et réputation",
   CLOTURER:   "Clôturer l'événement", LIBERER:"Libérer le quota du référent",
-  REPERC:     "Cet évent a-t-il eu des répercussions ?",
+  REPERC:     "Cet évent a-t-il eu des répercussions sur la Paroisse ?",
   REPERC_N:   "Les données de la mission appartiennent à son tableau et ne sont pas modifiables. "
             + "On n'opère ici que la conclusion concernant jauges et réputation.",
   CLASSER:    "Classer sans suite", ENREG_CONCL:"Enregistrer la conclusion",
@@ -73,12 +73,16 @@ var T = {
   F_VISI_QUI_A:"Tant que l'évent n'est pas clôturé et déclaré connu de la paroisse, "
             + "il n'apparaît que pour ces bandes.",
   F_OUVERT:   "Les inscriptions sont ouvertes",
+  F_RP:       "Permettre aux membres de contribuer via leurs topics RP",
+  F_RP_A:     "Les participants pourront rattacher un sujet à la fiche, ou rejoindre "
+            + "un sujet déjà joint. À réserver aux intrigues et aux événements "
+            + "pouvant se dérouler sur plusieurs sujets.",
   F_DEBUT:    "Date de début",
   F_DEBUT_A:  "Au format 1962-11-02. Laissée vide, l'évent n'apparait jamais dans « à venir ».",
   F_UNE:      "Rang à la une",
   F_UNE_A:    "1 pour l'événement principal, 2 à 4 pour les secondaires. Vide sinon.",
   SUPPRIMER:  "Supprimer", ENREGISTRER:"Enregistrer", CREER:"Créer la fiche",
-  OK_ACC:     "Demande acceptée, la fiche est créée.",
+  OK_ACC:     "Demande acceptée, l'évent est créé.",
   OK_REF:     "Demande refusée.", OK_PREC:"Précisions demandées.",
   OK_CLOT:    "Événement clôturé.", OK_CONCL:"Conclusion enregistrée.",
   OK_CLASS:   "Event classé sans suite.", OK_REPR:"Event remis dans la file.",
@@ -89,7 +93,6 @@ var T = {
 
 var ISSUES = [["reussite","Réussite"],["mitigee","Mitigée"],["echec","Échec"]];
 var SENS   = [["aggrave","Aggrave"],["apaise","Apaise"]];
-
 
 /* ===================== OUTILS ===================== */
 
@@ -234,6 +237,9 @@ function fiche(ev, portees, visi){
     + '<span class="tdlev-aide">' + T.F_DEBUT_A + '</span></div></div>'
     + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-f-ouvert"'
     + (ev.ouvert ? " checked" : "") + '>' + T.F_OUVERT + '</label></div>'
+    + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-f-rp"'
+    + (ev.rpOuvert ? " checked" : "") + '>' + T.F_RP
+    + '<span class="tdlev-aide">' + T.F_RP_A + '</span></label></div>'
     + U().champ(T.F_UNE, V().esc(T.F_UNE_A), U().texte("tdlev-f-une", ev.aLaUne || ""))
     + '<div class="tdlev-champ"><label>' + T.F_VISI + '</label>'
     + U().choix("tdlev-f-visi",
