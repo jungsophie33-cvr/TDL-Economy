@@ -70,20 +70,22 @@ var JAUGE_SANS_REPUTATION = "pression_bayou";
 var TYPES_DEMANDE = [
   { id:"communautaire", ico:"users", c:"var(--gr2-color)", prix:"Gratuit",
     nom:"Événement communautaire",
-    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. " },
+    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. "
+       + "Il n'appartient à personne : le forum le reprend." },
   { id:"bande", ico:"skull", c:"var(--gr6-color)", prix:"Gratuit",
     nom:"Événement de bande",
-    desc:"Un évent qui ne peut être offert par les différentes missions des tableaux : une traque interne, une opération qui mêle "
-       + "bandes, communautés et/ou forces de l'ordre." },
+    desc:"Ce qu'aucun tableau ne couvre : une traque interne, une opération qui mêle "
+       + "bandes, communautés et forces de l'ordre." },
   { id:"tradition", ico:"flame", c:"var(--gr3-color)", prix:"Gratuit",
     nom:"Tradition",
-    desc:"Ces rendez-vous reviennent chaque année mais peuvent attirer rassemblements et péripéties." }
+    desc:"Un rendez-vous qui revient chaque année et qui manque encore au calendrier "
+       + "de la paroisse." }
 ];
 var ROLES_DEMANDE = [
   ["jouer","J'y joue un personnage",
-   "Vous participez comme les autres."],
+   "Vous participez comme les autres. Vous pouvez être retenu à la clôture."],
   ["mj","Je veux seulement animer cet évent en tant que MJ",
-   "Vous tenez les PNJ et animez les péripéties sans y jouer vos personnages."],
+   "Vous tenez les PNJ et les péripéties sans y jouer. Pas de badge de participation."],
   ["idee","Je propose seulement l'idée",
    "Le staff la reprend et l'anime. Votre nom n'apparaît pas sur la fiche."]
 ];
@@ -100,8 +102,8 @@ var NOTIF = { APPUI:230, REPONSE:231, FILE:232, DECISION:233,
 
 var TEXTES = {
   CHARGE:      "On trie les événements du bayou…",
-  SOCLE:       "Socle indisponible — vérifier l'ordre de chargement.",
-  ECHEC:       "Lecture impossible. Réessayez dans un instant.",
+  SOCLE:       "Socle indisponible — vérifie l'ordre de chargement.",
+  ECHEC:       "Lecture impossible. Réessaie dans un instant.",
   TOUTE:       "Toute la paroisse",
   PLUS_COMM:   "Plusieurs communautés",
   PLUS_BANDES: "Plusieurs bandes",
@@ -110,8 +112,8 @@ var TEXTES = {
   SENS:        { aggrave:"aggravée", apaise:"apaisée" }
 };
 
-var MOIS = ["janv","fév","mars","avril","mai","juin",
-            "juil","août","sept","oct","nov","déc"];
+var MOIS = ["janvier","février","mars","avril","mai","juin",
+            "juillet","août","septembre","octobre","novembre","décembre"];
 
 /* ===================== UTILS ===================== */
 
@@ -362,6 +364,19 @@ function ordre(a, b){
   return String(b.cree || "").localeCompare(String(a.cree || ""));
 }
 
+/* Les vignettes sont réécrites à chaque rendu. Les garder en mémoire une fois
+   évite que le navigateur reparte les chercher à chaque changement d'onglet
+   quand l'hébergeur ne pose pas d'en-tête de cache. */
+var _images = {};
+function precharger(){
+  visibles().forEach(function(e){
+    var u = e.vignette;
+    if (!u || _images[u]) return;
+    _images[u] = new Image();
+    _images[u].src = u;
+  });
+}
+
 /* ===================== VEILLE ===================== */
 
 var _veilles = [];
@@ -399,7 +414,7 @@ window.TDLEv = {
   ordre: ordre,
   montrable: montrable,
   /* données */
-  D: D, charger: charger, visibles: visibles,
+  D: D, charger: charger, visibles: visibles, precharger: precharger,
   /* veille */
   veiller: veiller
 };
