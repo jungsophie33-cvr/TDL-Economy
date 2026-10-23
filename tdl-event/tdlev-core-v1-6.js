@@ -70,22 +70,20 @@ var JAUGE_SANS_REPUTATION = "pression_bayou";
 var TYPES_DEMANDE = [
   { id:"communautaire", ico:"users", c:"var(--gr2-color)", prix:"Gratuit",
     nom:"Événement communautaire",
-    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. "
-       + "Il n'appartient à personne : le forum le reprend." },
+   desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. " },
   { id:"bande", ico:"skull", c:"var(--gr6-color)", prix:"Gratuit",
     nom:"Événement de bande",
-    desc:"Ce qu'aucun tableau ne couvre : une traque interne, une opération qui mêle "
-       + "bandes, communautés et forces de l'ordre." },
+    desc:"Ce genre d'évent ne peut être offert par les différentes missions des tableaux : une traque interne, une opération mêlant "
+       + "bandes, communautés et/ou forces de l'ordre." },
   { id:"tradition", ico:"flame", c:"var(--gr3-color)", prix:"Gratuit",
     nom:"Tradition",
-    desc:"Un rendez-vous qui revient chaque année et qui manque encore au calendrier "
-       + "de la paroisse." }
+    desc:"Ces rendez-vous reviennent chaque année mais peuvent attirer rassemblements et péripéties." }
 ];
 var ROLES_DEMANDE = [
   ["jouer","J'y joue un personnage",
-   "Vous participez comme les autres. Vous pouvez être retenu à la clôture."],
+ "Vous participez comme les autres."],
   ["mj","Je veux seulement animer cet évent en tant que MJ",
-   "Vous tenez les PNJ et les péripéties sans y jouer. Pas de badge de participation."],
+  "Vous tenez les PNJ et animez les péripéties sans y jouer vos personnages."],
   ["idee","Je propose seulement l'idée",
    "Le staff la reprend et l'anime. Votre nom n'apparaît pas sur la fiche."]
 ];
@@ -102,8 +100,8 @@ var NOTIF = { APPUI:230, REPONSE:231, FILE:232, DECISION:233,
 
 var TEXTES = {
   CHARGE:      "On trie les événements du bayou…",
-  SOCLE:       "Socle indisponible — vérifie l'ordre de chargement.",
-  ECHEC:       "Lecture impossible. Réessaie dans un instant.",
+  SOCLE:        "Socle indisponible — vérifier l'ordre de chargement.",
+  ECHEC:       "Lecture impossible. Réessayez dans un instant.",
   TOUTE:       "Toute la paroisse",
   PLUS_COMM:   "Plusieurs communautés",
   PLUS_BANDES: "Plusieurs bandes",
@@ -112,8 +110,8 @@ var TEXTES = {
   SENS:        { aggrave:"aggravée", apaise:"apaisée" }
 };
 
-var MOIS = ["janvier","février","mars","avril","mai","juin",
-            "juillet","août","septembre","octobre","novembre","décembre"];
+var MOIS = ["janv","fév","mars","avril","mai","juin",
+            "juil","août","sept","oct","nov","déc"];
 
 /* ===================== UTILS ===================== */
 
