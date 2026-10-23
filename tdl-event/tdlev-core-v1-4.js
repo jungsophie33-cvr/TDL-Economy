@@ -70,22 +70,20 @@ var JAUGE_SANS_REPUTATION = "pression_bayou";
 var TYPES_DEMANDE = [
   { id:"communautaire", ico:"users", c:"var(--gr2-color)", prix:"Gratuit",
     nom:"Événement communautaire",
-    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. "
-       + "Il n'appartient à personne : le forum le reprend." },
+    desc:"Rassembler plusieurs communautés, ou faire avancer un projet communautaire. " },
   { id:"bande", ico:"skull", c:"var(--gr6-color)", prix:"Gratuit",
     nom:"Événement de bande",
-    desc:"Ce qu'aucun tableau ne couvre : une traque interne, une opération qui mêle "
-       + "bandes, communautés et forces de l'ordre." },
+    desc:"Un évent qui ne peut être offert par les différentes missions des tableaux : une traque interne, une opération qui mêle "
+       + "bandes, communautés et/ou forces de l'ordre." },
   { id:"tradition", ico:"flame", c:"var(--gr3-color)", prix:"Gratuit",
     nom:"Tradition",
-    desc:"Un rendez-vous qui revient chaque année et qui manque encore au calendrier "
-       + "de la paroisse." }
+    desc:"Ces rendez-vous reviennent chaque année mais peuvent attirer rassemblements et péripéties." }
 ];
 var ROLES_DEMANDE = [
   ["jouer","J'y joue un personnage",
-   "Vous participez comme les autres. Vous pouvez être retenu à la clôture."],
+   "Vous participez comme les autres."],
   ["mj","Je veux seulement animer cet évent en tant que MJ",
-   "Vous tenez les PNJ et les péripéties sans y jouer. Pas de badge de participation."],
+   "Vous tenez les PNJ et animez les péripéties sans y jouer vos personnages."],
   ["idee","Je propose seulement l'idée",
    "Le staff la reprend et l'anime. Votre nom n'apparaît pas sur la fiche."]
 ];
@@ -93,14 +91,17 @@ var ROLE_DIT = { jouer:"Jouer un personnage", mj:"Animer en tant que MJ",
                  idee:"Proposer seulement l'idée" };
 
 /* [MAJ] codes à déclarer dans sos-emi-notif (plage 230-239). */
-var NOTIF = { APPUI:230, REPONSE:231, FILE:232, DECISION:233, CLOTURE:234 };
+/* [MAJ] codes à déclarer dans sos-emi-notif.js (plage 230-239, classe
+   tdl_event). Voir le diff fourni avec ce lot. */
+var NOTIF = { APPUI:230, REPONSE:231, FILE:232, DECISION:233,
+              OUVERTURE:234, CLOTURE:235, RP:236 };
 
 /* ===================== TEXTES ===================== */
 
 var TEXTES = {
   CHARGE:      "On trie les événements du bayou…",
-  SOCLE:       "Socle indisponible — vérifie l'ordre de chargement.",
-  ECHEC:       "Lecture impossible. Réessaie dans un instant.",
+  SOCLE:       "Socle indisponible — vérifier l'ordre de chargement.",
+  ECHEC:       "Lecture impossible. Réessayez dans un instant.",
   TOUTE:       "Toute la paroisse",
   PLUS_COMM:   "Plusieurs communautés",
   PLUS_BANDES: "Plusieurs bandes",
@@ -109,8 +110,8 @@ var TEXTES = {
   SENS:        { aggrave:"aggravée", apaise:"apaisée" }
 };
 
-var MOIS = ["janvier","février","mars","avril","mai","juin",
-            "juillet","août","septembre","octobre","novembre","décembre"];
+var MOIS = ["janv","fév","mars","avril","mai","juin",
+            "juil","août","sept","oct","nov","déc"];
 
 /* ===================== UTILS ===================== */
 
@@ -234,6 +235,8 @@ function normaliser(o){
   o.visibilite   = (o.visibilite === "bandes") ? "bandes" : "publique";
   o.elements     = o.elements || {};
   o.faits        = o.faits || {};
+  o.rpOuvert     = !!o.rpOuvert;
+  o.rappels      = o.rappels || {};
   o.consequences = vt(o.consequences);
   o.liens        = o.liens || {};
   o.rps          = o.rps || {};
@@ -347,10 +350,16 @@ function visibles(){
   var miennes = mesAppartenances(D.membres);
   return D.evenements.concat(D.reprises).filter(function(e){
     return !e.classee && !e.doublon && montrable(e) && peutVoir(e, miennes);
-  }).sort(function(a, b){
-    /* du plus récent au plus ancien : une fiche sans date passe en dernier */
-    return String(b.cree || "").localeCompare(String(a.cree || ""));
-  });
+  }).sort(ordre);
+}
+
+/* Les intrigues passent devant : ce sont les arcs auxquels tout le reste se
+   rattache. Ensuite, du plus récent au plus ancien, par date de création. */
+function ordre(a, b){
+  var ia = (a.categorie === "intrigue") ? 0 : 1;
+  var ib = (b.categorie === "intrigue") ? 0 : 1;
+  if (ia !== ib) return ia - ib;
+  return String(b.cree || "").localeCompare(String(a.cree || ""));
 }
 
 /* ===================== VEILLE ===================== */
@@ -387,6 +396,7 @@ window.TDLEv = {
   /* dérivés */
   normaliser: normaliser, normaliserDemande: normaliserDemande,
   etatAffichage: etatAffichage, portees: portees, miseEnAvant: miseEnAvant,
+  ordre: ordre,
   montrable: montrable,
   /* données */
   D: D, charger: charger, visibles: visibles,
