@@ -22,7 +22,6 @@
 
 var V = null;                 /* window.TDLEv, résolu au démarrage */
 var ETATS = ["rejoindre","cours","venir","cloture"];
-var VIGNETTE_DEFAUT = "";     /* [MAJ] image de repli si une fiche n'en a pas */
 
 /* ===================== TEXTES ===================== */
 
@@ -41,17 +40,15 @@ var T = {
   CONTEXTE:   "Contexte",
   OBJECTIFS:  "Objectifs et thématiques",
   RPS:        "RP en rapport avec l'événement",
-  RETENUS:    "Participants confirmés",
-  INSCRITS:   "Participants",
+  INSCRITS:   "Personnages inscrits",
   RATTACHER:  "Joindre un RP",
   REJOINDRE:  "Rejoindre ce RP",
   F_DEBUT:    "Ouverture",
-  F_PREVENIR: "Vous serez prévenu à l'ouverture.",
-  RETENU_C:   "Retenu par la paroisse",
+  RETENU_C:   "La paroisse en retiendra...",
   BREF:       "En bref",
   LIENS:      "Liens et ressources",
   EDITER:     "Éditer l'évent",
-  PARTICIPER: "Participer",
+  PARTICIPER: "S'inscrire",
   TABLEAU:    "Aller au tableau",
   ATTENDRE:   "Prévenez-moi à l'ouverture",
   PERSONNE:   "personne", PERSONNES:"personnes",
@@ -74,7 +71,7 @@ function fis(n){ return '<i class="fi fi-sr-' + n + '"></i>'; }
    que le navigateur jette, et la classe « est-image » allège le dégradé du
    héros pour qu'on voie la photo. */
 function img(ev){
-  var u = String(ev.vignette || VIGNETTE_DEFAUT).trim().replace(/["'()\s<>]/g, "");
+  var u = String(ev.vignette || "").trim().replace(/["'()\s<>]/g, "");
   return u ? esc(u) : "";
 }
 function fond(ev){
@@ -380,14 +377,14 @@ function rendFiche(ev){
     g += accordeon(ev, !!(ev.rpOuvert && inscrit), moi);
   }
 
-  var ins = V.cles(ev.participants);
-  if (ins.length) g += '<p class="tdlev-f-h">' + T.INSCRITS + '</p><div class="tdlev-gens">'
-    + ins.map(function(k){ return '<span>' + esc(ev.participants[k].nom || k) + '</span>'; }).join("")
-    + '</div>';
-
-  var ret = V.cles(ev.retenus);
-  if (ret.length) g += '<p class="tdlev-f-h">' + T.RETENUS + '</p><div class="tdlev-gens">'
-    + ret.map(function(k){ return '<span>' + esc(ev.retenus[k].nom || k) + '</span>'; }).join("") + '</div>';
+  /* Avant que ça commence, la liste des inscrits est la seule information
+     disponible. Dès que l'évent tourne, ce sont les sujets rattachés qui
+     disent qui joue vraiment — répéter la liste n'apprendrait rien. */
+  var etat = V.etatAffichage(ev), ins = V.cles(ev.participants);
+  if (ins.length && (etat === "rejoindre" || etat === "venir"))
+    g += '<p class="tdlev-f-h">' + T.INSCRITS + '</p><div class="tdlev-gens">'
+      + ins.map(function(k){ return '<span>' + esc(ev.participants[k].nom || k) + '</span>'; }).join("")
+      + '</div>';
 
   var f = faits(ev);
   if (f.length) d += '<p class="tdlev-f-h">' + T.BREF + '</p><dl class="tdlev-faits">'
@@ -479,7 +476,10 @@ function demarrer(){
     boutonsBarre();
     brancher();
     rendre();
-    V.veiller(function(){ V.charger().then(rendre).catch(function(){}); });
+    V.precharger();
+    V.veiller(function(){
+      V.charger().then(function(){ rendre(); V.precharger(); }).catch(function(){});
+    });
   }).catch(function(e){
     message(e && e.message === "socle" ? V.TEXTES.SOCLE : V.TEXTES.ECHEC);
     try { console.warn("[tdlev] chargement", e); } catch(_){}
