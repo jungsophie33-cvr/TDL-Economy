@@ -10,7 +10,7 @@
  *                  ce cas-là s'appelle une Disparition.
  *   DISPARITION  — flow "disparition", 500 $ minimum, comptant seul. À la
  *                  validation, quai-staff crée  flottille/disparitions/{id}.
- *   OPÉRATION    — flow "operation", 1 000 $ minimum, comptant seul. À la
+ *   OPÉRATION    — flow "operation", 800 $ minimum, comptant seul. À la
  *                  validation, quai-staff crée  flottille/operations/{id}.
  *
  * Les deux derniers utilisent un bouton PROPRE (pas .qb-act) : le montant est
@@ -26,7 +26,7 @@
   var Q = window.Quais, ui = Q.ui, esc = ui.esc, money = Q.money;
 
   /* ===================== CONFIG ===================== */
-  var PRIX_PASSAGE = 300, MIN_DISP = 500, MIN_OP = 1000;
+  var PRIX_PASSAGE = 300, MIN_DISP = 500, MIN_OP = 800;
 
   var DUREES  = [["1","1 mois"],["2","2 mois"],["3","3 mois"]];
   var DESTINS = [["texas","Texas"],["arkansas","Arkansas"],["mississippi","Mississippi"],
@@ -46,7 +46,9 @@
 
     PASSAGE_ACCUEIL: "La Flottille garantit votre arrivée, pas l\u2019accueil qu\u2019on vous réserve. Être déposé à destination ne signifie pas y être reçu avec bienveillance.",
     PASSAGE_DETTE:   "Une dette envers la Flottille n\u2019est écrite nulle part. Elle vit dans la mémoire d\u2019un capitaine, et elle sera rappelée au moment qui vous arrange le moins. Ce ne sera pas de l\u2019argent.",
-    PASSAGE_GEL:     "La Main a ouvert un recouvrement à votre nom. Aucun capitaine ne vous fera monter à bord pour un trajet ordinaire tant que cette histoire n\u2019est pas réglée : le déplacement se verrait, et personne n\u2019a envie d\u2019expliquer pourquoi vous étiez sur son pont. Ce que vous cherchez s\u2019appelle une Disparition, et ça ne se négocie pas au même prix.",
+    PASSAGE_CONCOURS:"Obligatoire si vous payez par une dette : la Flottille n\u2019accepte un passage à crédit que contre un service, jamais contre de l\u2019argent. Ce que vous écrivez ici s\u2019affichera au bottin des hors-la-loi, parmi les piliers de la Flottille.",
+    ERR_CONCOURS:"Dire ce que votre personnage apportera en retour : une dette envers la Flottille est toujours un service dû.",
+    PASSAGE_GEL:     "La Main a ouvert un recouvrement à votre nom. Aucun capitaine ne vous fera monter à bord pour un trajet ordinaire tant que cette histoire n\u2019est pas réglée : le déplacement se verrait, et personne n\u2019a envie d\u2019expliquer pourquoi vous étiez sur son pont. Ce que vous cherchez s\u2019appelle une Disparition, et on ne la négocie pas au même prix.",
 
     DISP_GEL:    "Un personnage dont les fonds sont gelés par la Main ne peut pas payer son propre départ. Il faudra que quelqu\u2019un paie pour lui.",
     DISP_MEMOIRE:"La Main a une mémoire longue. Disparaître déplace le problème, ça ne l\u2019efface pas.",
@@ -148,6 +150,8 @@
       +     '<div>'+ui.fld("Ce que votre personnage compte y faire *", ui.ta("but_passage","Rencontrer, négocier, demander, observer, se cacher…"))+'</div>'
       +   '</div>'
       +   helper(T.PASSAGE_ACCUEIL)
+      +   ui.fld("Concours apporté à la Flottille", ui.ta("concours","Le service que votre personnage rendra en retour : un savoir-faire, un accès, une paire de bras, un silence, un pont\u2026"))
+      +   helper(T.PASSAGE_CONCOURS)
       + '</div>'
       + '<div class="qb-opts">'
       +   ui.optcard({ ic:"fi fi-tr-dollar", titre:"Payer comptant", desc:"Le tarif ne se discute pas pour un trajet ordinaire.",
@@ -224,12 +228,15 @@
   /* ===================== GARDE-FOU AVANT ACHAT ===================== */
   /* Appelé par le core pour les boutons .qb-act — donc pour le Passage seul.
      Les deux autres services ont leur bouton propre et vérifient eux-mêmes. */
-  function avantAchat(item, champs){
+  function avantAchat(item, champs, act){
     if (item.flow !== "prix") return null;
     try { if (Q.gele && Q.gele() > 0) return T.PASSAGE_GEL; } catch(e){}
     if (!String(champs.lieu_vise||"").trim())    return T.ERR_LIEU;
     if (!String(champs.verrou_acces||"").trim()) return T.ERR_VERROU;
     if (!String(champs.but_passage||"").trim())  return T.ERR_BUT;
+    /* La dette de passage n'est JAMAIS monétaire : sans concours décrit, le
+       bottin n'aurait rien à afficher au pilier. */
+    if (act === "dette" && !String(champs.concours||"").trim()) return T.ERR_CONCOURS;
     return null;
   }
 
@@ -321,11 +328,23 @@
     }
   }
 
+    function msgOk(item, act){
+    if (item.flow === "prix")
+      return act === "dette"
+        ? "Passage demandé à crédit. À la validation du staff, votre personnage entre aux piliers de la Flottille au bottin des hors-la-loi, avec le concours qu\u2019il a promis."
+        : "Passage demandé. Les " + money(PRIX_PASSAGE) + " sont retenus ; le staff valide, ou vous les rend.";
+    if (item.flow === "disparition")
+      return "Départ transmis. La prime est retenue ; elle vous est rendue si le staff refuse, ou si aucun capitaine ne prend le départ sous quatorze jours.";
+    if (item.flow === "operation")
+      return "Opération transmise. La prime est retenue ; elle vous est rendue si le staff refuse, ou si personne ne s\u2019en empare sous quatorze jours.";
+    return null;
+  }
+
   /* ===================== DÉCLARATION ===================== */
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"flot", bohl:"flottille", ordre:6, l:"La Flottille",
     ic:"fi fi-tr-anchor", c:"var(--gr5-color)",
     hero:{ logo:"fi fi-tr-anchor", desc:T.HERO },
-    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat
+    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat, msgOk: msgOk
   });
 })();
