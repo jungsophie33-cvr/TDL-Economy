@@ -81,7 +81,7 @@ function elements(m, src){
   }
   pose("marker", "Lieu", m.zone || m.lieu || m.destination);
   pose("clock", "Quand", m.quand || m.depart || m.heure);
-  pose("crosshairs", "Cibles", m.cible || m.cibles);
+  pose("location-crosshairs", "Cibles", m.cible || m.cibles);
 
   /* Les dossiers de la Main ne nomment jamais qui a commandé : c'est tout
      l'intérêt de passer par elle. Ailleurs, « au nom de » ne s'affiche que
