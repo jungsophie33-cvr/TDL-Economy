@@ -89,7 +89,8 @@
                   ["compensation","Compensation"],["dette_argument","Ce qu'il offre à la Main"],["situation_main","Situation vis-à-vis de la Main"],["pret_contrepartie","Remboursement du prêt"],["aide","Nature de l'aide"],["don","Don"],
                 ["demande","Demande / mission"],["prime","Prime"],["requete","Requête"],["offrande","Offrande"],["cible","Cible"],["cible_type","Type de cible"],["cible_pj","PJ ciblé"],["cible_pnj","PNJ ciblé"],["montant_souhaite","Somme demandée"],["lien","Lien"],["article","Article"],
                 ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["rp_mission","Vocation à devenir une mission RP"],
-                ["offrande_mode","Mode d\u2019offrande"],["offrande_secret","Secret confié"],
+                ["concours","Concours apporté à la Flottille"],
+                ["offrande_mode","Mode d\u2019offrande"],["offrande_secret_titre","Titre du secret"],["offrande_secret","Secret confié"],
                 ["offrande_creance_type","Nature de la créance"],["offrande_creance_detail","Ce que le personnage offre"]];
   var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" }, pret_contrepartie:{ remboursement:"Remboursement en monnaie", dette:"Compensation par dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB, cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" }, offrande_mode:OFFRANDE_MODE, offrande_creance_type:CREANCE_NATURE };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
@@ -331,7 +332,7 @@
     return ecrireEntree(CFG.NODE_SECRETS, id, {
       schema: SCHEMA_LB,
       origine:"boutique", demandeId:d.id||"", deposant:d.pseudo||"",
-      article:d.itemId||"", intitule:"",
+      article:d.itemId||"", intitule:(d.offrande_secret_titre||""),
       contenu:(d.offrande_secret || d.offrande || ""),
       recueilliPar:null, etat:(d.itemId==="secret"?"pot":"attente"), usage:"dormant",
       deOuvert:false, fuite:null, rumeur:null,
@@ -366,10 +367,9 @@
     /* Le SERVICE acheté, distinct de l'offrande qui l'a payé. Un article payé
      par une créance de service ouvre donc DEUX fiches : ce qu'on doit aux
      Sorcières, et ce qu'elles doivent au demandeur. */
-  var FICHE_ARTICLE = { requete:"poste", prixlwas:"creance", empreinte:"seance" };
+  var FICHE_ARTICLE = { requete:"poste", empreinte:"seance" };
     var QUOI = { poste:"une requête attend votre décision",
-               seance:"une séance cherche une Sorcière",
-               creance:"une créance s\u2019ouvre" };
+               seance:"une séance cherche une Sorcière" };
 
   function creerFicheSorcieres(d){
     var kind = FICHE_ARTICLE[d.itemId]; if (!kind) return Promise.resolve(null);
@@ -440,10 +440,14 @@
     var base = CFG.NODE_DEMANDES+"/"+id, o = {};
     var argentBouge = false;
     try {
-      if (act==="annuler"){
-        if (d.pseudo && d.montant) { await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); }); argentBouge = true; }
+       if (act==="annuler"){
+        if (d.pseudo && (d.montant|0) > 0 && !d.rembourse && !d.verseeCagnotte) {
+          await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+(d.montant|0); });
+          o[base+"/rembourse"] = true; argentBouge = true;
+        }
         o[base+"/statut"]="annulee"; await E().firebaseUpdate(o);
-      } else if (act==="supprimer"){ o[base]=null; await E().firebaseUpdate(o); }
+      }
+      else if (act==="supprimer"){ o[base]=null; await E().firebaseUpdate(o); }
       else if (act==="valider" || act==="traiter"){
         if (act==="valider"){
           if (d.type==="pret" && d.montant){
@@ -459,15 +463,18 @@
             catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
           }
         }
-        /* Confesse payée en monnaie : on débite le membre vers la cagnotte de la Main */
-        if (d.compensation==="prix" && d.prix_offert){
+        /* Confesse payée en monnaie : la somme a été RETENUE à l'envoi par
+           quai-core. Ici on ne fait que la verser à la cagnotte. Le drapeau
+           verseeCagnotte interdit le double versement ET le remboursement
+           d'une somme déjà encaissée. */
+        if (d.compensation==="prix" && d.prix_offert && !d.verseeCagnotte){
           var px = parseInt(d.prix_offert,10)||0, cagP = d.cagnotte||"Providence";
           if (px>0){
             try {
-              await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ var c=cur||0; if (c < px) throw new Error("FONDS"); return c - px; });
               await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cagP), function(cur){ return (cur||0)+px; });
+              o[base+"/verseeCagnotte"] = true;
               argentBouge = true;
-            } catch(e){ if (e&&e.message==="FONDS"){ alert(d.pseudo+" n'a pas les fonds pour payer "+money(px)+"."); return; } if (window.console) console.error(e); alert("Débit impossible."); return; }
+            } catch(e){ if (window.console) console.error(e); alert("Crédit de la cagnotte impossible."); return; }
           }
         }
         var di = detteAInscrire(d);
@@ -514,7 +521,21 @@
         }
         o[base+"/statut"] = act==="valider" ? "validee" : "traitee"; await E().firebaseUpdate(o);
       }
-      else { o[base+"/statut"] = act==="refuser"?"refusee":"en_attente"; await E().firebaseUpdate(o); }
+      else if (act==="refuser"){
+        /* Un refus rend ce qui a été retenu à l'envoi : comptant, petite faveur
+           (dette avec montant) et confesse payée en monnaie. Le prêt n'a rien
+           débité, une négociation sans prix non plus. Le drapeau rembourse
+           interdit le double recrédit si deux onglets refusent en même temps. */
+        var rbt = (!d.rembourse && !d.verseeCagnotte && d.pseudo && (d.montant|0) > 0 && d.type!=="pret") ? (d.montant|0) : 0;
+        if (rbt && !confirm("Refuser cette demande et rendre "+money(rbt)+" à "+(d.pseudo||"?")+" ?")) return;
+        if (rbt) {
+          await E().firebaseTransaction(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/dollars", function(cur){ return (cur||0)+rbt; });
+          o[base+"/rembourse"] = true; argentBouge = true;
+        }
+        d.montantRendu = rbt;
+        o[base+"/statut"] = "refusee"; await E().firebaseUpdate(o);
+      }
+      else { o[base+"/statut"] = "en_attente"; await E().firebaseUpdate(o); }
     } catch(e){ if (window.console) console.error("[quais-staff]", e); alert("Action impossible."); return; }
         /* [NOTIF] après le catch : l'écriture Firebase a réussi, aucun cas d'échec ici */
         try {
@@ -532,7 +553,7 @@
         } else if (act==="annuler") {
           EcoNotif.a(d.pseudo, 101, { nom:d.nom, montant:d.montant||0 }, "annul"+d.id);
         } else if (act==="refuser") {
-          EcoNotif.a(d.pseudo, 101, { nom:d.nom, montant:0 }, "refus"+d.id);
+          EcoNotif.a(d.pseudo, 101, { nom:d.nom, montant:d.montantRendu||0 }, "refus"+d.id);
         }
       }
     } catch(e){}
