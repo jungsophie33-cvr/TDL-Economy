@@ -202,6 +202,11 @@ var SOURCES = [
     },
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){ return gens(depuisNoeud(m.participants).concat([m.responsable])); },
+    /* un dossier de la Main n'engage que la Main : jamais « toute la paroisse » */
+    portees:function(){
+      var o = {}; o[V().cle("Main de la Providence")] = { nom:"Main de la Providence" };
+      return o;
+    },
     texte:function(m){ return lignes(m.contexte); },
     objectif:function(m){ return lignes(m.objectif); },
     conseq:function(m){ return lignes(m.consequences); } }
