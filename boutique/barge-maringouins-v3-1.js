@@ -1,13 +1,29 @@
 /*
  * barge-maringouins.js — Bande « Les Maringouins » (marché noir) · TDL
  * Deux mécaniques :
- *   DON     — « coup de main » : on sollicite, on propose un don. Aucun débit,
- *             la demande part au staff (moteur du core, act "don").
+ *   DON     — « coup de main » : on sollicite, on propose un don. Le don EST le
+ *             prix du service : obligatoire, 100 $ minimum. Il est RETENU dès
+ *             l'envoi (débit provisoire, moteur du core via base.retenue), puis
+ *             acquis à la validation staff, ou rendu au refus. Le service n'est
+ *             acquis qu'à la validation : le staff vérifie le contexte et la
+ *             justesse de la demande.
  *   MISSION — « mission de cellule » : le commanditaire fixe l'objectif et la
  *             prime ; la prime est RETENUE à l'ouverture (débit provisoire) et
  *             une mission est écrite directement dans  missions/{id}  en_attente,
  *             puis gérée par le Tableau des missions (chef, négociation, refus
  *             auto à 7 j, versement). AUCUN boutique_demandes, aucun gate staff.
+ *
+ * [MAJ v4] LE DON EST RETENU À L'ENVOI, PAS PRÉLEVÉ À LA VALIDATION.
+ *   Prélever au moment où le staff valide exposait à un solde dépensé
+ *   entre-temps : la validation échouait sur « fonds insuffisants » et le staff
+ *   devait relancer le joueur. La somme est donc mise de côté dès l'envoi, comme
+ *   pour tout comptant. Elle est rendue si le staff refuse (quais-staff, branche
+ *   « refuser »).
+ *   LES MARINGOUINS N'ONT PAS DE CAGNOTTE — seule la Main en possède une parmi
+ *   les bandes hors-la-loi. La bande ne déclare donc PAS de champ cagnotte, et
+ *   la somme quitte la circulation à la validation au lieu d'être versée
+ *   quelque part. Ne pas en inventer une : un nom de cagnotte inconnu créerait
+ *   un nœud fantôme dans  cagnottes/  à la première validation.
  *
  * [MAJ v2] La mission est écrite par TDLBase.ecrireEntree, avec une clé générée
  *   en local et la sentinelle missions_rev/{id} bumpée dans le MÊME PATCH : elle
@@ -21,19 +37,28 @@
  *   un « Réessayer » déclenché plus tard depuis un autre tableau recréerait la
  *   mission APRÈS le recrédit — mission gratuite, prime rendue.
  *
- * DÉPEND DE : window.Quais (rendu), window.EcoCore (débit) et window.TDLBase
- *   (clé locale + écriture sentinellée).
+ * DÉPEND DE : window.Quais (rendu + moteur d'achat, hooks avantAchat/retenue/
+ *   msgOk), window.EcoCore (débit) et window.TDLBase (clé locale + écriture
+ *   sentinellée).
  * À CHARGER avant barge-core.js, et après eco-core + tdl-base.
  */
 (function () {
   "use strict";
   if (!window.Quais) { if (window.console) console.warn("[barge-maringouins] quais-core absent."); return; }
-  var Q = window.Quais, ui = Q.ui, esc = ui.esc;
+  var Q = window.Quais, ui = Q.ui, esc = ui.esc, money = Q.money;
 
   var SCHEMA_MISSION = 2;    /* doit suivre rep-mis-marin */
+  var MIN_DON = 100;         /* plancher du don : le coup de main a un prix */
 
   var TYPES = [["recuperation","Récupération"],["contrebande","Contrebande"],["transport","Transport"],["sabotage","Sabotage"],["intimidation","Intimidation"]];
   var MANDS = [["joueur","En mon nom (joueur)"],["entreprise","Une entreprise"],["famille","Une famille"],["pnj","Un PNJ"],["anonyme","Anonyme"]];
+
+  var T = {
+    DON_RETENUE: "La somme est retenue dès l\u2019envoi. Elle est acquise aux Maringouins si le staff valide la demande, et vous est rendue s\u2019il la refuse.",
+    ERR_AIDE:    "Décrivez le coup de main attendu : les Maringouins ne devinent pas.",
+    ERR_MIN:     "Le don commence à " + money(MIN_DON) + ".",
+    ERR_FONDS:   "Votre solde ne couvre pas ce don."
+  };
 
   var DATA = {
     coupmain:{flow:"don",n:"Coup de main discret",desc:"« On te file un coup de main parce que t\u2019es des nôtres. » Ponctuel, clandestin, de faible ampleur.",bullets:["Protection ponctuelle d\u2019un commerce, atelier, embarcadère, distillerie…","Convoyage discret de marchandises non déclarées","Une diversion de leur cru","Un hébergement clandestin d\u2019une nuit","La surveillance d\u2019un lieu"],helper:"La nature exacte de l\u2019aide est à définir avec le staff."},
@@ -49,7 +74,8 @@
     if (item.flow==="don") {
       b += '<div class="qb-sec">'+ui.lab("Solliciter les Maringouins")
         + '<div class="qb-pcgrid"><div>'+ui.fld("Nature de l\u2019aide souhaitée *", ui.ta("aide","Décrivez le coup de main attendu…"))+'</div>'
-        + '<div>'+ui.fld("Montant du don", ui.inp("don","$"))+'</div></div>'
+        + '<div>'+ui.fld("Montant du don * (minimum "+money(MIN_DON)+")", ui.inp("don","$ \u2014 retenu dès l\u2019envoi"))+'</div></div>'
+        + '<div class="qb-helper">'+esc(T.DON_RETENUE)+'</div>'
         + (item.helper?'<div class="qb-helper">'+esc(item.helper)+'</div>':"")
         + '</div>' + ui.envoi("Solliciter les Maringouins","don");
       return b;
@@ -75,6 +101,37 @@
       + '</div>'
       + '<div class="qb-opts qb-center"><button class="qb-optbtn qb-pay" id="qbm-go" style="flex:none">Ouvrir la mission</button></div>';
     return b;
+  }
+
+  /* ---------- LE DON : CONTRÔLE, RETENUE, MESSAGE ---------- */
+  /* Le don est saisi au clavier : il ne peut pas vivre dans un data-montant
+     figé au rendu. Il passe par le hook retenue(), que quais-core lit pour
+     débiter à l'envoi et inscrire montant sur la demande. */
+  function montantDon(champs){
+    return parseInt(String((champs && champs.don) || "").replace(/[^\d]/g,""), 10) || 0;
+  }
+
+  /* Appelé par le core AVANT tout débit, pour le bouton .qb-act du don. */
+  function avantAchat(item, champs){
+    if (item.flow !== "don") return null;
+    if (!String(champs.aide||"").trim()) return T.ERR_AIDE;
+    var n = montantDon(champs);
+    if (n < MIN_DON) return T.ERR_MIN;
+    /* dispo() tient compte des sommes gelées par un recouvrement de la Main */
+    try { if (Q.dispo() < n) return T.ERR_FONDS; } catch(e){}
+    return null;
+  }
+
+  function retenue(item, act, champs){
+    return item.flow === "don" ? montantDon(champs) : 0;
+  }
+
+  /* La mission a son propre circuit et son propre message ; seul le don passe
+     par le moteur du socle. */
+  function msgOk(item, act, champs){
+    if (item.flow !== "don") return null;
+    return "Sollicitation transmise. Le don de " + money(montantDon(champs))
+      + " est retenu : il revient aux Maringouins si le staff valide, et vous est rendu s\u2019il refuse.";
   }
 
   /* ---------- OUVERTURE DE MISSION (débit + écriture) ---------- */
@@ -103,7 +160,7 @@
     try {
       var gel = (Q.gele && Q.gele()) || 0;
       if (gel > 0 && Q.dispo() < prime) {
-        alert("Fonds insuffisants : " + Q.money(gel) + " de votre solde sont retenus par la Main.");
+        alert("Fonds insuffisants : " + money(gel) + " de votre solde sont retenus par la Main.");
         return;
       }
     } catch(e){}
@@ -163,9 +220,11 @@
     if (btn) btn.onclick = function(){ ouvrirMission(det, btn); };
   }
 
+  /* PAS de champ cagnotte : les Maringouins n'en ont pas. */
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"maring", bohl:"maringouins", ordre:2, l:"Les Maringouins", ic:"fi fi-tr-mosquito", c:"var(--gr2-color)",
     hero:{ logo:"fi fi-tr-mosquito", desc:"Un réseau de cellules discrètes, soudées par l\u2019entraide. On ne les achète pas : on sollicite leur attention." },
-    data: DATA, body: body, wireDetail: wireDetail
+    data: DATA, body: body, wireDetail: wireDetail,
+    avantAchat: avantAchat, retenue: retenue, msgOk: msgOk
   });
 })();
