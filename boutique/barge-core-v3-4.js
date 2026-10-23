@@ -37,7 +37,7 @@
     if (b.heroPrice) return b.heroPrice(item);
     if (typeof item.pi==="number") return { l:"Prix indicatif", v:money(item.pi) };
     if (typeof item.p==="number")  return { l:"Prix", v:money(item.p) };
-    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande", faveur:"Sans tarif ⟡ contre le silence", don_reseau:"Don en nature", disparition:"500 $ minimum", operation:"1 000 $ minimum" };
+    var mod = { nego:"Sur proposition", prix:"À définir", pret:"Prêt de la Main", don:"Sur don", mission:"Appel à volontaires", offrande:"Sans tarif ⟡ offrande", faveur:"Sans tarif ⟡ contre le silence", don_reseau:"Don en nature", disparition:"500 $ minimum", operation:"800 $ minimum" };
     return { l:"Modalité", v: mod[item.flow] || "À négocier" };
   }
   function hero(b, sur, titre, desc, prix, api){
@@ -75,7 +75,7 @@
     if (a.flow==="don")      return "don";
     if (a.flow==="mission")  return "mission";
     if (a.flow==="disparition") return "500 $ min.";
-    if (a.flow==="operation")   return "1 000 $ min.";
+    if (a.flow==="operation")   return "800 $ min.";
     if (a.flow==="offrande") return "offrande";
     if (a.flow==="faveur")     return "faveur";
     if (a.flow==="don_reseau") return "don";
@@ -160,6 +160,11 @@
     });
     return patch;
   }
+  
+  function msgOk(item, act, champs){
+    var b = bande(item.cat);
+    return (b && b.msgOk) ? b.msgOk(item, act, champs) : null;
+  }
 
   function avantAchat(item, champs, act){
     var b = bande(item.cat);
@@ -169,7 +174,7 @@
   Q.register({
     key:"barge", label:"La Barge abandonnée", sub:"marché noir", icon:"fi fi-tr-ship",
     mode:"grid", detailFlush:true, itemsLabel:"Services", leftW:"450px", cols:2, sousChemin:"barge",
-    cats: CATS, data: DATA, migre: migre, avantAchat: avantAchat,
+    cats: CATS, data: DATA, migre: migre, avantAchat: avantAchat, msgOk: msgOk,
     cardPrice: cardPrice, detail: detail, emptyDetail: emptyDetail, form: form, wireDetail: wireDetail
   });
 })();
