@@ -1,5 +1,16 @@
 /*
- * tdlch-demande-staff.js — Panneau des demandes de chronologie (côté staff) · TDL
+ * tdlch-demande-staff-v1-1.js — Panneau des demandes de chronologie (côté staff) · TDL
+ *
+ * [MAJ v2]
+ *   - Lectures ciblées : chrono_config et chrono_demandes via firebaseGet,
+ *     plus safeReadBin ni invalidateCache — ce dernier vidait le cache racine
+ *     partagé par toute la page (un marteau pour deux petits nœuds).
+ *   - Tri des demandes corrigé : le comparateur renvoyait 1 sur les égalités,
+ *     l'ordre de deux demandes créées à la même milliseconde oscillait.
+ *   - Échap ferme la modale de validation, comme la modale membre.
+ *   - Validation : l'inscription dans la frise et le classement de la demande
+ *     sont traités séparément. Si l'inscription réussit mais que le classement
+ *     échoue, le bouton reste éteint : revalider dupliquerait l'événement.
  *
  * CE QUE CE FICHIER FAIT : liste les demandes en attente, les affiche en cartes,
  * ouvre une modale de validation où la rédaction place l'événement dans la frise
@@ -19,7 +30,8 @@
  * .mc-sec-head, .mc-cpt, .mc-sub, .mc-dem, .mc-btn, .dc-overlay.
  * Aucune règle CSS nouvelle.
  *
- * Dépend de : tdlch-demande.js (window.TDLCHD), window.EcoCore.
+ * Dépend de : tdlch-demande.js (window.TDLCHD), window.EcoCore
+ *             (firebaseGet, firebasePush, firebaseUpdate, getPseudo).
  * À CHARGER : après tdlch-demande.js.
  */
 (function () {
@@ -54,6 +66,9 @@
     ERR_CHAMPS: "Période, catégorie, date de tri, titre et texte sont obligatoires.",
     ERR_CONF:   "La structure de la frise n'a pas encore été publiée. Ouvrez l'annexe Chronologie une fois, en staff.",
     ERR_ECRIT:  "L'enregistrement a échoué. Rien n'a été modifié.",
+    ERR_MAJ:    "L'événement est inscrit dans la frise, mais la demande n'a pas pu être classée : "
+              + "elle restera en attente. Ne la revalidez pas — l'événement serait doublé. "
+              + "Refusez-la ensuite en signalant qu'elle est déjà inscrite.",
     OK_VALID:   "Inscrit dans la chronologie.", OK_REFUS: "Demande refusée."
   };
 
@@ -120,18 +135,26 @@
 
   /* ===================== LISTE ===================== */
   var ENCOURS = {};
+  /* [MAJ v1-1] deux lectures ciblées au lieu de la racine entière. Sans
+     chrono_config on affiche quand même les demandes (« à placer ») ; seule
+     l'absence de chrono_demandes bloque le panneau. */
   async function charger(listeEl){
-    var root;
-    try { if (E().invalidateCache) E().invalidateCache(); root = await E().safeReadBin(); }
-    catch(e){ root = null; }
-    if (!root) { listeEl.textContent = T.ERR_DONNEES; return; }
-    CONF = root[CFG.NODE_CONFIG] || {};
+    var res = await Promise.allSettled([
+      E().firebaseGet(CFG.NODE_CONFIG),
+      E().firebaseGet(CFG.NODE_DEMANDES)
+    ]);
+    if (res[1].status !== "fulfilled") { listeEl.textContent = T.ERR_DONNEES; return; }
+    CONF = res[0].status === "fulfilled" ? (res[0].value || {}) : {};
 
-    var n = root[CFG.NODE_DEMANDES] || {}, dem = [];
+    var n = res[1].value || {}, dem = [];
     Object.keys(n).forEach(function(id){
       if (n[id] && n[id].statut === "en_attente") { var d = n[id]; d.id = id; dem.push(d); }
     });
-    dem.sort(function(a, b){ return String(a.cree) < String(b.cree) ? -1 : 1; });
+    /* [MAJ v1-1] comparateur complet : les égalités rendent 0, l'ordre est stable */
+    dem.sort(function(a, b){
+      var x = String(a.cree || ""), y = String(b.cree || "");
+      return x < y ? -1 : x > y ? 1 : 0;
+    });
     ENCOURS = {}; dem.forEach(function(d){ ENCOURS[d.id] = d; });
 
     var cpt = document.getElementById("tdlch-staff-nb");
@@ -198,7 +221,14 @@
     document.body.appendChild(m);
     document.body.style.overflow = "hidden";
 
-    function fermer(){ m.remove(); document.body.style.overflow = ""; }
+    /* [MAJ v1-1] Échap ferme aussi la modale, comme celle du membre */
+    function surEchap(ev){ if (ev.key === "Escape") fermer(); }
+    function fermer(){
+      document.removeEventListener("keydown", surEchap);
+      m.remove();
+      document.body.style.overflow = "";
+    }
+    document.addEventListener("keydown", surEchap);
     m.addEventListener("click", function(ev){
       if (ev.target === m || ev.target.closest('[data-act="fermer"]')) { fermer(); return; }
       if (ev.target.closest('[data-act="ok"]')) valider(d, m, listeEl, fermer);
@@ -221,14 +251,23 @@
     maj[CFG.NODE_DEMANDES + "/" + d.id + "/statut"] = "validee";
     maj[CFG.NODE_DEMANDES + "/" + d.id + "/traite_par"] = moi;
     maj[CFG.NODE_DEMANDES + "/" + d.id + "/traite_le"] = ajout.cree;
-    try {
-      await E().firebasePush(CFG.NODE_AJOUTS, ajout);   /* d'abord l'inscription : rien ne se perd */
-      await E().firebaseUpdate(maj);
-    } catch(e){
-      if (window.console) console.error("[Chrono] validation", e);
+
+    /* [MAJ v1-1] l'inscription d'abord — tant qu'elle n'a pas passé, rien n'a
+       bougé. Puis le classement, avec un essai de rattrapage : s'il échoue,
+       l'événement EST déjà dans la frise, revalider le doublerait. */
+    try { await E().firebasePush(CFG.NODE_AJOUTS, ajout); }
+    catch(e){
+      if (window.console) console.error("[Chrono] validation : inscription", e);
       resultat(res, "erreur", T.ERR_ECRIT);
       btn.disabled = false; btn.textContent = T.M_OK; return;
     }
+    var classe = false;
+    for (var i = 0; i < 2 && !classe; i++) {
+      try { await E().firebaseUpdate(maj); classe = true; }
+      catch(e){ if (window.console) console.error("[Chrono] validation : classement (essai " + (i + 1) + ")", e); }
+    }
+    if (!classe) { resultat(res, "erreur", T.ERR_MAJ); return; }   /* bouton laissé éteint */
+
     resultat(res, "succes", T.OK_VALID);
     setTimeout(function(){ fermer(); charger(listeEl); }, 1200);
   }
@@ -255,7 +294,10 @@
     var mont = document.querySelector(CFG.MONTAGE);
     if (!mont || document.getElementById("tdlch-staff-panel")) return;
     if (!staff()) return;                                 /* invisible pour les membres */
-    var pret = window.TDLCHD && E() && typeof E().safeReadBin === "function";
+    var pret = window.TDLCHD && E()
+      && typeof E().firebaseGet === "function"
+      && typeof E().firebasePush === "function"
+      && typeof E().firebaseUpdate === "function";
     if (!pret) {
       if (n > CFG.RETRY_MAX) { if (window.console) console.warn("[Chrono] staff : dépendances absentes."); return; }
       setTimeout(function(){ demarrer(n + 1); }, CFG.RETRY_MS); return;
