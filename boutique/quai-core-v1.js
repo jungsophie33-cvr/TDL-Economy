@@ -29,6 +29,11 @@
  *
  * [MAJ v7] PLUS AUCUN safeReadBin. Le prêt lit la seule cagnotte visée.
  *
+ * [MAJ v7-3] LES CRÉANCES DE SERVICE VIVENT AU RÉSEAU DES SORCIÈRES. Le plafond
+ *   de la boutique des Sorcières se compte sur les liens creance_sorcieres du
+ *   membre (membres/{pseudo}/liens), et non plus sur les fiches du tableau des
+ *   secrets : lost_bayou n'est plus lu à l'ouverture.
+ *
  * [MAJ v7-2] LISTES DE PERSONNAGES. api.pseudos() rend les personnages qu'un
  *   joueur peut viser : ni le compte d'administration (uid 1), ni lui-même.
  *   api.tousLesPseudos() garde la liste complète. api.enregistrerLot() écrit
@@ -72,7 +77,6 @@
     NODE_BANDES:    "bandes",
     NODE_DOSSIERS:  "dossiers_main",
     NODE_ENQUETES:  "enquetes",
-    NODE_LOSTBAYOU: "lost_bayou",
     MAX_DETTES_LOURDES: 3,
     COOLDOWN_JOURS: 7,
     CREANCIER_DEFAUT: "La Main de la Providence",
@@ -560,16 +564,15 @@
     out.sort(function(x,y){ return String(x.titre).localeCompare(String(y.titre),"fr"); });
     return out;
   }
-  /* Créances de service que le membre a PROPOSÉES aux Sorcières (plafond). */
-  var CREANCE_OUVERTE = { due:1, en_cours:1, en_validation:1 };
-  function lireCreances(n){
+  /* Services que le membre doit aux Sorcières : ses liens creance_sorcieres
+     qui portent encore un statut (une créance honorée est retirée du réseau). */
+  function lireCreances(membres){
     var p = pseudo(); if (!p) return [];
-    var out = [];
-    Object.keys(n || {}).forEach(function(id){
-      var f = n[id] || {};
-      if (f.type!=="creance" || f.origine!=="propose") return;
-      if (f.debiteur!==p || !CREANCE_OUVERTE[f.statut]) return;
-      out.push({ id:id, titre:f.titre||"", nature:f.nature||"", statut:f.statut });
+    var m = (membres || {})[p] || {}, out = [];
+    var liens = (window.TDLBase && TDLBase.liens) ? TDLBase.liens(m)
+              : Object.keys(m.liens || {}).map(function(k){ var l = m.liens[k] || {}; l.k = k; return l; });
+    liens.forEach(function(l){
+      if (l && l.type==="creance_sorcieres" && l.statut) out.push({ cle:l.k, nature:l.nature||"", detail:l.detail||"", statut:l.statut });
     });
     return out;
   }
@@ -862,7 +865,7 @@
   }
   async function chargerCatalogues(){ for (var i=0;i<registre.length;i++) await chargerModule(registre[i]); }
 
-  /* Cinq branches ciblées. membres sert à la liste des pseudos ; enquetes
+  /* Quatre branches ciblées. membres sert aux pseudos et aux créances ; enquetes
      pèse le plus lourd : c'est elle qu'il faudra différer si l'ouverture
      devient lente. */
   async function chargerAnnexes(){
@@ -871,8 +874,7 @@
         E().firebaseGet(CFG.NODE_MEMBRES),
         E().firebaseGet(CFG.NODE_BANDES),
         E().firebaseGet(CFG.NODE_ENQUETES),
-        E().firebaseGet(CFG.NODE_DOSSIERS),
-        E().firebaseGet(CFG.NODE_LOSTBAYOU)
+        E().firebaseGet(CFG.NODE_DOSSIERS)
       ]);
       var mbs = r[0] || {};
       UIDS = {}; Object.keys(mbs).forEach(function(p){ UIDS[p] = mbs[p] && mbs[p].uid; });
@@ -880,7 +882,7 @@
       BANDES_INFO = r[1] || {};
       ENQUETES = lireEnquetes(r[2]);
       GELE = calculerGel(r[3]);
-      CREANCES = lireCreances(r[4]);
+      CREANCES = lireCreances(mbs);
     } catch(e){ PSEUDOS = []; UIDS = {}; BANDES_INFO = {}; ENQUETES = []; GELE = 0; CREANCES = []; }
   }
   async function refresh(){
