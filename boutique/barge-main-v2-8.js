@@ -206,6 +206,12 @@
   }
     
   function avantAchat(item, champs){
+    if (item && item.confesse) {
+      if (!String(champs.situation||"").trim()) return "Exposez votre situation : la Confesse commence par là.";
+      if (champs.compensation === "prix" && !(parseInt(champs.prix_offert,10) > 0))
+        return "Indiquez le prix que vous proposez à la Main.";
+      return null;
+    }
     if (!item || !item.cible) return null;
     if (!String(champs.contexte||"").trim()) return "Expliquez le contexte de votre demande : la Main ne s\u2019engage pas sans savoir pourquoi.";
     var nom = (champs.cible_type==="pj") ? (champs.cible_pj||"") : (champs.cible||"");
@@ -270,6 +276,16 @@
     if (champs && champs.compensation === "prix" && parseInt(champs.prix_offert,10) > 0)
       return "Requête transmise à la Main. La somme proposée est retenue jusqu\u2019à sa réponse ; elle vous sera rendue si elle refuse.";
     return "Requête transmise à la Main.";
+  }
+
+    /* La Confesse payée en monnaie met sa somme de côté dès l'envoi : le staff
+     peut refuser sans que rien ne soit perdu, et valider sans buter sur un
+     solde dépensé entre-temps. Les autres compensations (dette, réseau) ne
+     retiennent rien. */
+  function retenue(item, act, champs){
+    if (act !== "demande" || !item.confesse) return 0;
+    if (!champs || champs.compensation !== "prix") return 0;
+    return parseInt(champs.prix_offert, 10) || 0;
   }
 
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
