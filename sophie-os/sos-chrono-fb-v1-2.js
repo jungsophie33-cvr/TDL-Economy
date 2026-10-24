@@ -14,14 +14,42 @@
         disparu de « uid_index » ressort en rouge, pour le staff seul,
         qui décide de le garder ou de le retirer.
 
-   LE LECTEUR NE VOIT AUCUNE DIFFÉRENCE : un événement reste un
-   événement, qu'il vienne du post ou de la base. Seuls le bouton
-   « Retirer » et le signalement des orphelins sont réservés au staff.
+   [MAJ v1-2] LECTURES CIBLÉES, FIN DE LA LECTURE DE RACINE.
+     charger() appelait invalidateCache() + safeReadBin() : 126 ko
+     tirés de la base sur CHAQUE page de chronologie, y compris pour
+     les invités, et une invalidation qui vidait au passage le cache
+     racine partagé par tous les autres modules. Désormais :
+       • le public ne lit que « chrono » et « chrono_journal » ;
+       • le staff lit en plus « uid_index » (annuaire des orphelins),
+         avec « membres » en repli — l'annuaire ne sert à rien aux
+         joueurs, qui ne voient jamais les orphelins ;
+       • « chrono_config » n'est lu qu'au moment de publier la
+         structure (déjà réservée au staff) ;
+       • sans cache racine, chaque rafraîchissement est frais par
+         nature : plus besoin d'invalider quoi que ce soit.
+     Les écritures ne changent pas : firebasePush pour l'ajout,
+     firebaseUpdate par chemin pour le retrait. Ce script n'utilise
+     jamais writeBin : le socle de comparaison d'EcoCore n'entre
+     pas en jeu, la migration est sans effet de bord.
+     Un annuaire non chargé ne juge personne : orphelin() rend
+     toujours faux pour le public — l'absence de donnée n'est pas
+     un départ.
+     [MAJ v1-2] remonter() : SOS.chronoFB.remonter() greffe les
+     instances chrono montées APRÈS le passage de demarrer() — le
+     cas d'une navigation in-page, où la coquille reconstruit une
+     annexe sans recharger la page. Ajouter dans sos-nav.js, juste
+     après s.reconstruire(records) :
+       if (SOS.chronoFB && SOS.chronoFB.remonter) SOS.chronoFB.remonter();
 
    SANS ECOCORE, ce fichier ne fait rien et la chronologie continue
    de fonctionner sur le seul contenu du post.
 
-   Dépend de : sos-bloc-chrono.js, window.EcoCore.
+   Contrat des entrées « chrono_journal » (écrites par
+   tdlhc-bureau-actions, ligneChrono) : periode, cat, iso, d, titre,
+   texte, ancre — plus chrono, soum, publie, ignorées ici.
+
+   Dépend de : sos-bloc-chrono.js, window.EcoCore (v2 : firebaseGet,
+   firebasePush, firebaseUpdate).
    À charger APRÈS sos-bloc-chrono.js.
    ============================================================= */
 (function (global) {
@@ -33,7 +61,7 @@
     NODE_CONFIG:  'chrono_config',     /* périodes et catégories, publiées ici pour le formulaire de demande */
     NODE_JOURNAL: 'chrono_journal',    /* [MAJ] écrit par le bureau du Courier */
     NODE_UID:     'uid_index',         /* uid → pseudo ; un uid absent = membre parti */
-    NODE_MEMBRES: 'membres',
+    NODE_MEMBRES: 'membres',           /* repli de l'annuaire si uid_index est vide */
     SUJET_COURIER: '/t102-the-houma-courier',   /* [MAJ] sujet du journal */
     RETRY_MS: 250, RETRY_MAX: 60
   };
@@ -57,13 +85,19 @@
   };
 
   /* ===================== UTILS ===================== */
-  var C = null, esc = null, MEMBRES = {}, RACINE = null;
+  var C = null, esc = null, MEMBRES = {}, ANNUAIRE = false;
   function E() { return global.EcoCore; }
   function staff() {
     try { return typeof _userdata !== 'undefined' && (_userdata.user_level === 1 || _userdata.user_level === 2); }
     catch (e) { return false; }
   }
-  function vivant(uid) { return uid == null || uid === '' || MEMBRES.hasOwnProperty(String(uid)); }
+  /* L'annuaire n'est chargé que pour le staff. Pour tout le monde
+     il est vide et NON chargé : vivant() rend vrai pour chacun —
+     jamais de « membre parti » inventé sur une donnée absente. */
+  function vivant(uid) {
+    return uid == null || uid === '' || !ANNUAIRE
+        || MEMBRES.hasOwnProperty(String(uid));
+  }
   /* uid_index peut contenir des lignes sans pseudo : elles ne sont pas des membres,
      et une entrée vide polluerait la liste du formulaire. */
   function nomme(n) {
@@ -82,7 +116,7 @@
     return n;
   }
 
-  /* ===================== LECTURE ===================== */
+  /* ===================== LECTURE (ciblée) ===================== */
   /* Une entrée du journal et un ajout du staff prennent la même forme que les
      événements du post : le rendu ne fait aucune différence entre les trois. */
   function depuisJournal(id, j) {
@@ -98,18 +132,42 @@
              marque: '', lienLib: '', lienUrl: '',
              uid: a.uid || null, pseudo: a.pseudo || '' };
   }
+
+  /* Lecture ciblée d'un nœud : une branche, un aller-retour, une
+     panne de branche n'emporte pas les autres. Les appels
+     simultanés au même chemin sont mutualisés par EcoCore. */
+  function lire(noeud) {
+    return E().firebaseGet(noeud).then(null, function (e) {
+      if (global.console) { console.warn('[Chrono] lecture « ' + noeud + ' » refusée', e); }
+      return null;
+    });
+  }
+
   async function charger() {
-    var root;
-    try { if (E().invalidateCache) { E().invalidateCache(); } root = (await E().safeReadBin()) || {}; }
-    catch (e) { if (global.console) { console.warn('[Chrono] lecture Firebase', e); } return []; }
-    RACINE = root;
-    MEMBRES = nomme(root[CFG.NODE_UID] || {});
-    if (!Object.keys(MEMBRES).length) {                 /* repli : l'annuaire des pseudos */
-      var m = root[CFG.NODE_MEMBRES] || {}, inv = {};
-      Object.keys(m).forEach(function (p) { if (m[p] && m[p].uid != null && String(p).trim()) { inv[m[p].uid] = String(p).trim(); } });
-      MEMBRES = inv;
+    var jobs = [lire(CFG.NODE_AJOUTS), lire(CFG.NODE_JOURNAL)];
+    if (staff()) { jobs.push(lire(CFG.NODE_UID)); }
+    var vals = await Promise.all(jobs);
+    var na = vals[0] || {}, nj = vals[1] || {};
+
+    /* Annuaire : staff seulement (orphelins, formulaire « à la demande de »). */
+    if (staff()) {
+      var noms = nomme(vals[2] || {});
+      if (Object.keys(noms).length) {
+        MEMBRES = noms;
+      } else {
+        /* repli : l'annuaire des pseudos, inversé depuis « membres » */
+        var m = await lire(CFG.NODE_MEMBRES), inv = {};
+        Object.keys(m || {}).forEach(function (p) {
+          if (m[p] && m[p].uid != null && String(p).trim()) { inv[m[p].uid] = String(p).trim(); }
+        });
+        MEMBRES = inv;
+      }
+      ANNUAIRE = true;
+    } else {
+      MEMBRES = {}; ANNUAIRE = false;
     }
-    var out = [], nj = root[CFG.NODE_JOURNAL] || {}, na = root[CFG.NODE_AJOUTS] || {};
+
+    var out = [];
     Object.keys(nj).forEach(function (id) { if (nj[id] && nj[id].titre) { out.push(depuisJournal(id, nj[id])); } });
     Object.keys(na).forEach(function (id) { if (na[id] && na[id].t) { out.push(depuisAjout(id, na[id])); } });
     return out;
@@ -119,15 +177,17 @@
      Le formulaire de demande vit dans un autre sujet et ne lit pas le post de
      l'annexe. Plutôt que d'y recopier les périodes et les catégories, la
      chronologie les publie : une seule source, aucune dérive possible.
-     Écrit par le staff seulement, et seulement si quelque chose a changé. */
+     Écrit par le staff seulement, et seulement si quelque chose a changé.
+     La comparaison lit « chrono_config » SEUL : la branche fait quelques
+     octets, la racine n'a plus rien à faire ici. */
   async function publierConfig(api) {
-    if (!staff() || !RACINE) { return; }
+    if (!staff()) { return; }
     var d = api.d;
     var conf = {
       periodes: d.periodes.map(function (p) { return { id: p.id, t: p.t, d: p.d }; }),
       cats: d.ordreCats.map(function (k) { return { id: k, l: d.cats[k].l, c: d.cats[k].c }; })
     };
-    var avant = RACINE[CFG.NODE_CONFIG];
+    var avant = await lire(CFG.NODE_CONFIG);
     if (avant && JSON.stringify(avant.periodes) === JSON.stringify(conf.periodes)
              && JSON.stringify(avant.cats) === JSON.stringify(conf.cats)) { return; }
     conf.maj = new Date().toISOString();
@@ -221,7 +281,9 @@
     f.hidden = false;
   }
 
-  /* ===================== ÉCRITURES ===================== */
+  /* ===================== ÉCRITURES =====================
+     Inchangées : l'ajout pousse dans sa branche, le retrait annule
+     le chemin précis. Rien ne touche la racine. */
   async function envoyer(api, f) {
     var v = {}, err = f.querySelector('[data-err]');
     Array.prototype.forEach.call(f.querySelectorAll('[data-f]'), function (x) { v[x.getAttribute('data-f')] = x.value.trim(); });
@@ -270,17 +332,29 @@
     rafraichir(api).then(function () { publierConfig(api); });
   }
 
+  function pret() {
+    return !!(global.SOS && SOS.chrono && SOS.chrono.instances
+           && SOS.chrono.instances.length);
+  }
+  function ecoPret() {
+    return !!(E() && typeof E().firebaseGet === 'function'
+           && typeof E().firebaseUpdate === 'function'
+           && typeof E().firebasePush === 'function');
+  }
+
+  /* Greffe toutes les instances PAS ENCORE montées. Appelée au boot
+     (demarrer) et à la demande (remonter) : idempotente grâce au
+     garde api._fb. */
+  function greffer() {
+    C = SOS.chrono; esc = C.esc;
+    SOS.chrono.instances.forEach(monter);
+  }
+
   function demarrer(n) {
     n = n || 0;
-    var pret = global.SOS && SOS.chrono && SOS.chrono.instances;
-    var eco = E() && typeof E().safeReadBin === 'function' && typeof E().firebaseUpdate === 'function';
-    if (pret && SOS.chrono.instances.length && eco) {
-      C = SOS.chrono; esc = C.esc;
-      SOS.chrono.instances.forEach(monter);
-      return;
-    }
+    if (pret() && ecoPret()) { greffer(); return; }
     if (n > CFG.RETRY_MAX) {
-      if (global.console && pret && SOS.chrono.instances.length) {
+      if (global.console && pret()) {
         console.warn('[Chrono] EcoCore introuvable : la chronologie reste limitée au contenu du post.');
       }
       return;
@@ -288,5 +362,15 @@
     setTimeout(function () { demarrer(n + 1); }, CFG.RETRY_MS);
   }
   demarrer();
+
+  /* API : remonter les instances nées après le boot — le cas d'une
+     navigation in-page, où sos-nav reconstruit l'annexe sans recharger.
+     Brancher dans sos-nav.js juste après s.reconstruire(records) :
+       if (SOS.chronoFB && SOS.chronoFB.remonter) SOS.chronoFB.remonter(); */
+  SOS.chronoFB = {
+    remonter: function () {
+      if (pret() && ecoPret()) { greffer(); }
+    }
+  };
 
 })(window);
