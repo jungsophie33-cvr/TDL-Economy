@@ -220,14 +220,15 @@
       return { ok:true, message: base.msgOk || (type==="lourde" ? TXT.OK_DETTE(numero) : TXT.OK_FAVEUR) };
     },
 
-       /* Négociation / requête : sans débit, SAUF la Confesse payée en monnaie —
-       la somme y est retenue dès l'envoi, comme un comptant. Sans ça, un refus
-       staff n'avait rien à rendre, et une validation pouvait échouer sur un
+    /* Négociation / requête : sans débit, sauf si la bande déclare une retenue
+       (hook retenue()). Dans ce cas la somme est mise de côté dès l'envoi, comme
+       un comptant — c'est ce qui permet au staff de refuser sans que rien ne
+       soit perdu, et à la validation de ne jamais buter sur un solde dépensé
+       entre-temps. Concerne aujourd'hui la Confesse et le don des Maringouins. */ validation pouvait échouer sur un
        solde dépensé entre-temps. */
     async demande(base, champs){
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
-      var px = (champs && champs.compensation === "prix")
-             ? (parseInt(champs.prix_offert, 10) || 0) : 0;
+      var px = base.retenue|0;   /* somme retenue à l'envoi, fixée par la bande */
       if (px > 0 && GELE > 0 && dispo() < px) { alert(TXT.FONDS_GELE(GELE)); return { ok:false, fonds:true }; }
       if (px > 0) {
         try {
@@ -452,7 +453,8 @@
         cagnotte: opts.cagnotte!==undefined ? opts.cagnotte : a.cagnotte,
         creancier: a.creancier, detteAuto: opts.detteAuto!==undefined ? opts.detteAuto : a.detteAuto, reseau_auto: a.reseau_auto
       };
-      if (mod.msgOk) base.msgOk = opts.msgOk || mod.msgOk(a, opts.act || "demande", champs);
+      if (mod.msgOk)   base.msgOk   = opts.msgOk || mod.msgOk(a, opts.act || "demande", champs);
+      if (mod.retenue) base.retenue = mod.retenue(a, opts.act || "demande", champs);
       var res = opts.act==="comptant" ? await achat.comptant(base, champs)
               : opts.act==="dette"    ? await achat.dette(base, champs)
               : opts.act==="pret"     ? await achat.pret(base, champs)
@@ -632,7 +634,8 @@
       detteAuto: a.detteAuto || undefined,
       reseau_auto: a.reseau_auto || undefined
     };
-    if (mod.msgOk) base.msgOk = mod.msgOk(a, act, champs);
+    if (mod.msgOk)   base.msgOk   = mod.msgOk(a, act, champs);
+    if (mod.retenue) base.retenue = mod.retenue(a, act, champs);
     btn.disabled = true;
     var res = act==="comptant" ? await achat.comptant(base, champs)
             : act==="dette"    ? await achat.dette(base, champs)
