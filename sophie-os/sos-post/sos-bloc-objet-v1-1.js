@@ -70,7 +70,6 @@
     if (lieu) lignes.push([TXT.LIEU, lieu]);
     if (de)   lignes.push([TXT.DE, (PURIF[de] || String(de))]);
     if (benef.length) lignes.push([TXT.BENEF, benef.join(', ')]);
-    if (benef.length) lignes.push([TXT.BENEF, benef.join(', ')]);
     if (leve) lignes.push([TXT.LEVE, leve]);
 
     if (lignes.length) {
