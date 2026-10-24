@@ -30,6 +30,9 @@
  *   Seule la Confesse garde le bouton centré « Soumettre ma demande ».
  *   Le style de la fenêtre du dé vit dans css-barge-de.css.
  *
+ * [MAJ v3-2] Plus aucune mention de badge : l'accès aux services sera filtré
+ *   plus tard, automatiquement, par le système de badges.
+ *
  * À CHARGER avant barge-core.js.
  */
 (function () {
@@ -55,7 +58,7 @@
   var T = {
     HERO:         "La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis vingt ans.",
     L_CONTEXTE:   "Contexte de ta demande *",
-    PH_CONTEXTE:  "Quelle situation motive ta demande ?",
+    PH_CONTEXTE:  "Quelle situation motive ta demande\u2026",
     L_CIBLE_TYPE: "Qui est visé ? *",
     L_CIBLE_PJ:   "Personnage visé *",
     L_CIBLE_NOM:  "Nom de la cible *",
@@ -135,22 +138,22 @@
   var DATA = {
     pcom:{ flow:"nego", rpOnly:true, reseau_auto:"entreprises", qual:"Négociable", pi:800, n:"Protection d\u2019un commerce",
       desc:"Dissuasion des vols, médiation, intervention si quelqu\u2019un tente de nuire. Contribution financière régulière ou service rendu en échange.",
-      infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]] },
+      infos:[["Contrepartie","Contribution financière ou service"],["Niveau","Protection active"],["Validation","Staff obligatoire"],["Note","Tarif selon négociation en RP"]] },
     pfam:{ flow:"nego", rpOnly:true, reseau_auto:"informateurs", qual:"Négociable", pi:1200, n:"Protection d\u2019une famille",
       desc:"Surveillance, présence armée, intimidation désignée. En échange : loyauté et disponibilité. La Main choisit ses obligations en retour.",
-      infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]] },
+      infos:[["Contrepartie","Loyauté et disponibilité"],["Niveau","Protection armée"],["Validation","Staff obligatoire"],["Note","Tarif selon négociation en RP"]] },
     ploc:{ flow:"nego", qual:"Négociable", pi:1000, n:"Protection d\u2019un projet local",
       desc:"Un projet reçoit le soutien discret de la Main. En échange : une influence future sur ce projet. La Main n\u2019investit que dans ce qu\u2019elle juge utile.",
-      infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Condition","Badge + validation staff"],["Note","Tarif selon négociation en RP"]] },
+      infos:[["Contrepartie","Influence future sur le projet"],["Niveau","Soutien discret"],["Validation","Staff obligatoire"],["Note","Tarif selon négociation en RP"]] },
     pret:{ flow:"pret", qual:"Négociable", n:"Prêt discret",
       desc:"La Main prête de quoi lancer une activité ou sauver un commerce. Remboursement en monnaie ou dette de service ; les intérêts se paient en services rendus.",
       infos:[["Provenance","Cagnotte de la Main"],["Intérêts","Services rendus — en RP"],["Contrepartie","Remboursement ou dette lourde"],["Validation","Staff obligatoire"]] },
     med:{ flow:"nego", qual:"Justice officieuse", pi:1500, cible:true, rpForce:true, n:"Médiation forcée",
       desc:"Deux parties contraintes de trouver un accord. La Main est arbitre et garant. Résolution garantie, au prix que la Main juge approprié.",
-      infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Condition","Badge + validation staff"],["Note","Peut imposer des concessions"]] },
+      infos:[["Parties","2 personnages en conflit"],["Arbitre","La Main — décision finale"],["Validation","Staff obligatoire"],["Note","Peut imposer des concessions"]] },
     intim:{ flow:"nego", qual:"Avertissement", pi:1500, cible:true, n:"Intimidation sérieuse",
       desc:"Un avertissement très clair, au-delà du niveau de façade. La Main n\u2019avertit qu\u2019une fois.",
-      infos:[["Niveau","Au-delà de la façade"],["Limite","Une seule fois — la Main n\u2019avertit pas deux fois"],["Condition","Badge + validation staff"],["Note","La suite, c\u2019est la Vendetta"]] },
+      infos:[["Niveau","Au-delà de la façade"],["Limite","Une seule fois — la Main n\u2019avertit pas deux fois"],["Validation","Staff obligatoire"],["Note","La suite, c\u2019est la Vendetta"]] },
     vend:{ flow:"nego", qual:"Réponse définitive", pi:3000, cible:true, n:"Vendetta",
       desc:"Réponse violente organisée. Décision exceptionnelle, conditions strictes, conséquences permanentes.",
       infos:[["Nature","Réponse violente organisée"],["Conditions","Injustice grave + équilibre menacé"],["Validation","Staff obligatoire — délai possible"],["Conséquences","Permanentes et irréversibles"]] },
