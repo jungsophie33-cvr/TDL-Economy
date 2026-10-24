@@ -1,0 +1,157 @@
+/* =============================================================
+   SOS — DOCK DES BOTTINS (dock-bottins.css)
+   -------------------------------------------------------------
+   Feuille du dock vertical des bottins. Aucune couleur en dur :
+   tout vient de la charte. Deux règles nouvelles par rapport à
+   la v1 :
+     • le dock DISPARAÎT sur tactile (téléphones, tablettes) et
+       sur petit écran — trois media queries ceintures et
+       bretelles, la garde JS évitant de toute façon de monter ;
+     • l'opacité de base des items est enfin < 1, ce qui donne
+       un sens au survol (la règle ".dock" de la v1 pointait une
+       classe qui n'existait pas).
+
+   Le conteneur #dock-bottin se positionne par rapport à son
+   parent : celui-ci doit être positionné (relative/absolute).
+   ============================================================= */
+
+#dock-bottin {
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+}
+
+.bot-dock {
+  position: sticky;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 52px;
+  padding: 6px 0;
+  overflow: visible;
+
+  background: var(--clair1opa3);
+  border: 1px solid var(--clair1opa4);
+  border-radius: 15px;
+
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, .10),
+    inset 0 1px rgba(255, 255, 255, .25);
+}
+
+/* ---- items ---- */
+.bot-dock .item {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 50px;
+  height: 50px;
+  text-decoration: none;
+  opacity: .78;                        /* la base < 1 donne enfin son sens au survol */
+  transition: opacity .2s;
+}
+
+.bot-dock .item:hover,
+.bot-dock .item.active {
+  opacity: 1;
+}
+
+.bot-dock .icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: transform .22s cubic-bezier(.2, .9, .2, 1);
+  will-change: transform;
+}
+
+.bot-dock .icon i {
+  font-size: 25px;
+  background: var(--gradark);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* marqueur du bottin courant */
+.bot-dock .item.active::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 13px;
+  border-radius: 99px;
+  background: var(--clair1);
+}
+
+/* ---- info-bulle ---- */
+.bot-dock .tooltip {
+  position: absolute;
+  left: 60px;
+  top: 50%;
+  transform: translate(8px, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: .18s;
+  white-space: nowrap;
+
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--clair1);
+  color: var(--txt);
+  font: 600 14px var(--font2);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .15);
+}
+
+.bot-dock .tooltip::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  transform: translateY(-50%) rotate(45deg);
+  background: inherit;
+}
+
+.bot-dock .item:hover .tooltip,
+.bot-dock .item:focus-visible .tooltip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+/* ---- accessibilité clavier ---- */
+.bot-dock .item:focus-visible {
+  outline: 2px solid var(--clair1);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
+
+/* =========================================================
+   TACTILE ET PETIT ÉCRAN : pas de dock.
+   Trois déclencheurs, ceintures et bretelles : pointeur grossier
+   (doigt), absence de survol, largeur smartphone. La garde JS
+   évite de toute façon de monter quoi que ce soit.
+   ========================================================= */
+@media (hover: none),
+       (pointer: coarse),
+       (max-width: 720px) {
+  #dock-bottin { display: none; }
+}
+
+/* =========================================================
+   MOUVEMENT REFUSÉ : pas de transition décorative.
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .bot-dock .icon { transition: none; }
+  .bot-dock .tooltip { transition: none; }
+}
