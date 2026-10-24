@@ -291,6 +291,6 @@
   (window.QuaisBarge = window.QuaisBarge || { bandes: [] }).bandes.push({
     k:"main", bohl:"main", ordre:1, l:"La Main de la Providence", ic:"fi fi-tr-hands-usd", c:"var(--gr6-color)", cagnotte:"Providence",
     hero:{ logo:"fi fi-tr-hands-usd", desc:"La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis 20 ans." },
-    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat, msgOk: msgOk
+    data: DATA, body: body, wireDetail: wireDetail, avantAchat: avantAchat, msgOk: msgOk, retenue: retenue
   });
 })();
