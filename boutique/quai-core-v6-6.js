@@ -224,8 +224,7 @@
        (hook retenue()). Dans ce cas la somme est mise de côté dès l'envoi, comme
        un comptant — c'est ce qui permet au staff de refuser sans que rien ne
        soit perdu, et à la validation de ne jamais buter sur un solde dépensé
-       entre-temps. Concerne aujourd'hui la Confesse et le don des Maringouins. */ validation pouvait échouer sur un
-       solde dépensé entre-temps. */
+       entre-temps. Concerne aujourd'hui la Confesse et le don des Maringouins.*/
     async demande(base, champs){
       var p = pseudo(); if (!p) { alert(TXT.NON_CONNECTE); return { ok:false }; }
       var px = base.retenue|0;   /* somme retenue à l'envoi, fixée par la bande */
@@ -237,7 +236,7 @@
           });
         } catch(e){
           if (e && e.message==="FONDS") { alert(TXT.FONDS); return { ok:false, fonds:true }; }
-          if (window.console) console.error("[Quais] débit confesse", e); alert(TXT.ERR_ACHAT); return { ok:false };
+          if (window.console) console.error("[Quais] débit retenu", e); alert(TXT.ERR_ACHAT); return { ok:false };
         }
       }
       try {
