@@ -15,6 +15,12 @@
  *   filet avantAchat, qui portaient les mêmes règles en double et avaient
  *   déjà divergé, disparaissent.
  *
+ * [MAJ v3-1] RÉSEAU DE CRÉANCES. Un service promis aux Sorcières n'ouvre plus
+ *   de fiche au tableau des secrets : à la validation staff, ton personnage
+ *   entre à leur réseau de créances, au bottin des hors-la-loi, jusqu'à ce
+ *   qu'une Sorcière réclame son dû. Le plafond (deux services en cours) se
+ *   compte sur ce réseau.
+ *
  * À CHARGER avant barge-core.js.
  */
 (function () {
@@ -32,7 +38,7 @@
 
   /* ===================== TEXTES ===================== */
   var T = {
-    HERO:          "Les Sorcières du Baron ne connaissent pas les dollars. Elles écoutent les Lwas et pèsent les offrandes.",
+    HERO:          "Les Sorcières du Baron sont à l\u2019écoute les Lwas et pèsent les offrandes proposées. Les secrets sont leur monnaie et parfois consentent-elles à exaucer les prières.",
     L_REQUETE:     "Ta requête *",
     PH_REQUETE:    "Ce que recherche ton personnage, et pourquoi il s\u2019en remet aux Sorcières\u2026",
     L_CONTEXTE:    "Contexte de ta demande *",
@@ -50,7 +56,7 @@
     L_NATURE:      "Nature du service *",
     L_DETAIL:      "Ce que ton personnage offre *",
     PH_DETAIL:     "Ce qu\u2019il fournira, et dans quelles limites.",
-    AIDE_CREANCE:  "Rien à payer maintenant : les Sorcières réclameront ce service quand elles le jugeront bon.",
+    AIDE_CREANCE:  "Rien à payer maintenant. Si les Sorcières acceptent, ton personnage entre à leur réseau de créances, au bottin des hors-la-loi, jusqu\u2019à ce qu\u2019elles réclament leur dû.",
     RESTE:         function (n) { return n + " service" + (n>1?"s":"") + " déjà dû" + (n>1?"s":"") + " sur " + CFG.MAX_CREANCES + "."; },
     AIDE_JETON:    "En échange, les Sorcières te doivent un refus : tu pourras annuler une créance future, une seule fois, sans trace.",
     AVERTIR:       "Sous la Brume, on parle. Ce que tu diras pendant la nuit, les Sorcières le garderont.",
@@ -65,7 +71,7 @@
 
     OK_ARGENT:     "Ton offrande est déposée auprès des Sorcières.",
     OK_SECRET:     "Ton secret est porté aux Sorcières.",
-    OK_CREANCE:    "Ta promesse est portée aux Sorcières.",
+    OK_CREANCE:    "Ta promesse est portée aux Sorcières. Si le staff valide, ton personnage entre à leur réseau de créances.",
     OK_SECRET_SEUL:"Ton secret est brûlé pour les Lwas. Si le staff valide, les Sorcières en deviennent dépositaires."
   };
 
