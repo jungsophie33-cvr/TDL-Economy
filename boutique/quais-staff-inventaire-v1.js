@@ -1,5 +1,5 @@
 /*
- * quais-staff-inventaire.js — Onglet « Inventaires » du panel staff · TDL
+ * quais-staff-inventaire.js — Onglet « Inventaires » du panel staff · TDL · v2
  *
  * S'enregistre auprès de window.QuaisStaff (point d'extension de quais-staff).
  * Permet au staff de consulter l'inventaire d'un membre, d'y ajouter ou d'en
@@ -7,23 +7,27 @@
  * par un envoi de message qui a échoué.
  *
  * POURQUOI CET ONGLET EXISTE — les six objets du Bayou s'achètent et se
- *   consomment sans passer par le staff. Il n'y a donc aucune file où rattraper
- *   une erreur : ni un ciblage malheureux, ni un submit perdu, ni un lot d'évent
- *   à distribuer. C'est le seul endroit où l'inventaire se corrige à la main.
+ *   consomment sans passer par le staff. C'est le seul endroit où
+ *   l'inventaire se corrige à la main.
  *
  * TOUT GESTE EST TRACÉ dans consommations, avec r:"staff" et le pseudo de qui
- *   l'a fait. Sans ça, personne ne saura jamais pourquoi un joueur a trois
- *   amulettes.
+ *   l'a fait.
  *
- * RESTAURATION : les consommations des 30 derniers jours seulement. Au-delà,
- *   restaurer un objet n'a plus de sens narratif — la scène est jouée.
- * PURGE : les entrées de plus de 90 jours sont effacées à l'ouverture de
- *   l'onglet, par paquets. Le nœud est lu en entier à chaque fois : sans purge
- *   il grossirait indéfiniment pour un journal que personne ne relit.
+ * [MAJ v2] UN SORT NE S'AJOUTE PAS À LA MAIN. La poupée vaudou (subi:true)
+ *   n'existe que chez une cible, avec un dé, une portée et une échéance tirés
+ *   à l'achat. Elle disparaît de la liste d'ajout ; le staff peut toujours la
+ *   lever.
+ * [MAJ v2] RESTAURATION SOUS VERROU. Le drapeau rest de la consommation est
+ *   posé par TRANSACTION avant de rendre l'objet : deux membres du staff ne
+ *   peuvent plus restaurer deux fois le même incident. Si l'écriture de
+ *   l'objet échoue ensuite, le drapeau est retiré.
+ *
+ * RESTAURATION : consommations des 30 derniers jours seulement.
+ * PURGE : entrées de plus de 90 jours effacées à l'ouverture, par paquets.
  *
  * DÉPEND DE : window.QuaisStaff (api, onglets, vues), window.EcoCore
- *   (firebaseGet, firebaseUpdate), window.TDLBase (nouvelleCle, membres),
- *   window.TDLObjets (table OBJETS).
+ *   (firebaseGet, firebaseUpdate, firebaseTransaction), window.TDLBase
+ *   (nouvelleCle, membres), window.TDLObjets (table OBJETS).
  * À CHARGER : après quais-staff.js et tdl-objets.js.
  */
 (function () {
@@ -32,12 +36,11 @@
   var QS = (window.QuaisStaff = window.QuaisStaff || { onglets: [], vues: {} });
 
   /* ===================== CONFIG ===================== */
-
   var CFG = {
-    CLE:           "inventaires",
-    NODE_MEMBRES:  "membres",
-    SOUS_INV:      "inventaire",
-    NODE_JOURNAL:  "consommations",
+    CLE:            "inventaires",
+    NODE_MEMBRES:   "membres",
+    SOUS_INV:       "inventaire",
+    NODE_JOURNAL:   "consommations",
     JOURS_RESTAURE: 30,
     JOURS_PURGE:    90,
     PURGE_MAX:      200      /* par passage : un PATCH énorme serait refusé */
@@ -45,7 +48,7 @@
 
   var TEXTES = {
     ONGLET:     "Inventaires",
-    SOUS:       "Inventaire d'un membre. Tout geste est inscrit au journal, avec votre pseudo.",
+    SOUS:       "Inventaire d'un membre. Tout geste est inscrit au journal, avec ton pseudo.",
     CHOISIR:    "Choisir un membre",
     CHARGE:     "Lecture de l'inventaire…",
     VIDE:       "Inventaire vide.",
@@ -68,13 +71,13 @@
     C_RETIRER:  function (n, p) { return "Retirer « " + n + " » de l'inventaire de " + p + " ?"; },
     C_LEVER:    function (n, p) { return "Lever « " + n + " » qui frappe " + p + " ? L'objet disparaît de son inventaire."; },
     C_RESTAURE: function (n, p) { return "Rendre « " + n + " » à " + p + " ?"; },
+    DEJA:       "Cet objet vient d'être restauré ailleurs.",
     ERR:        "Opération impossible.",
     ERR_LIRE:   "Lecture impossible.",
     R: { use:"Utilisé", leve:"Sort levé", achat:"Acheté", staff:"Geste du staff" }
   };
 
   /* ===================== UTILS ===================== */
-
   var A = null;                       /* helpers de quais-staff */
   var st = { pseudo: "", inv: [], conso: [], charge: false, erreur: "" };
 
@@ -92,19 +95,14 @@
     Object.keys(src).forEach(function (k) { if (src[k]) out.push({ k: k, d: src[k] }); });
     return out;
   }
-
   function jourFR(iso) {
     if (!iso) return "—";
     var p = String(iso).slice(0, 10).split("-");
     return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
   }
-
   function depuisJours(n) { return new Date(Date.now() - n * 86400000).toISOString(); }
 
   /* ===================== LECTURE ===================== */
-
-  /* Le journal est lu en entier : il est petit, et le filtrer côté serveur
-     demanderait un index que Firebase n'a pas ici. La purge le garde petit. */
   function charger(pseudo) {
     st.pseudo = pseudo; st.charge = true; st.erreur = ""; st.inv = []; st.conso = [];
     A.render();
@@ -141,18 +139,14 @@
   }
 
   /* ===================== ÉCRITURES ===================== */
-
   function tracer(patch, o, raison, detail) {
     patch[CFG.NODE_JOURNAL + "/" + B().nouvelleCle()] = {
       p: st.pseudo, o: o, r: "staff", geste: raison,
       par: moi(), detail: detail || "", t: new Date().toISOString()
     };
   }
-
-  function chemin(cle) {
-    /* chemin BRUT : firebaseUpdate est un PATCH à la racine */
-    return CFG.NODE_MEMBRES + "/" + st.pseudo + "/" + CFG.SOUS_INV + "/" + cle;
-  }
+  /* chemin BRUT : firebaseUpdate est un PATCH à la racine */
+  function chemin(cle) { return CFG.NODE_MEMBRES + "/" + st.pseudo + "/" + CFG.SOUS_INV + "/" + cle; }
 
   function appliquer(patch) {
     return Promise.resolve(E().firebaseUpdate(patch))
@@ -160,16 +154,20 @@
       .catch(function (e) {
         if (window.console) console.error("[quais-staff-inventaire]", e);
         alert(TEXTES.ERR);
+        throw e;
       });
   }
 
+  /* les sorts subis sont exclus : ils naissent d'un achat, jamais d'un ajout */
+  function ajoutables() { return Object.keys(table()).filter(function (o) { return !table()[o].subi; }); }
+
   function ajouter(o, ch, lieu) {
-    if (!o || !table()[o]) return;
+    if (!o || ajoutables().indexOf(o) < 0) return;
     var patch = {}, e = { o: o, src: "staff", t: new Date().toISOString().slice(0, 10), st: "actif", ch: ch || 1 };
     if (lieu) e.lieu = lieu;
     patch[chemin(B().nouvelleCle())] = e;
     tracer(patch, o, "ajout", lieu || "");
-    return appliquer(patch);
+    return appliquer(patch).catch(function () {});
   }
 
   function retirer(x, leve) {
@@ -178,24 +176,35 @@
     var patch = {};
     patch[chemin(x.k)] = null;
     tracer(patch, x.d.o, leve ? "levee" : "retrait", "");
-    return appliquer(patch);
+    return appliquer(patch).catch(function () {});
   }
 
-  /* Restauration : on recrée l'objet ET on marque la consommation, sinon le
-     même incident serait réparé deux fois par deux membres du staff. */
+  /* Le drapeau rest est le verrou : posé par transaction, un seul staff passe. */
   function restaurer(x) {
     var m = meta(x.d.o);
     if (!confirm(TEXTES.C_RESTAURE(m.n, st.pseudo))) return;
-    var patch = {};
-    patch[chemin(B().nouvelleCle())] = { o: x.d.o, src: x.d.src || "staff", t: new Date().toISOString().slice(0, 10), st: "actif", ch: 1 };
-    patch[CFG.NODE_JOURNAL + "/" + x.k + "/rest"] = new Date().toISOString();
-    patch[CFG.NODE_JOURNAL + "/" + x.k + "/rest_par"] = moi();
-    tracer(patch, x.d.o, "restauration", x.k);
-    return appliquer(patch);
+    var cheminRest = CFG.NODE_JOURNAL + "/" + encodeURIComponent(x.k) + "/rest";
+    var quand = new Date().toISOString();
+    return Promise.resolve(E().firebaseTransaction(cheminRest, function (cur) {
+      if (cur) throw new Error("DEJA");
+      return quand;
+    })).then(function () {
+      var patch = {};
+      patch[chemin(B().nouvelleCle())] = { o: x.d.o, src: x.d.src || "staff", t: quand.slice(0, 10), st: "actif", ch: 1 };
+      patch[CFG.NODE_JOURNAL + "/" + x.k + "/rest_par"] = moi();
+      tracer(patch, x.d.o, "restauration", x.k);
+      return appliquer(patch).catch(function () {
+        var retour = {}; retour[CFG.NODE_JOURNAL + "/" + x.k + "/rest"] = null;
+        return Promise.resolve(E().firebaseUpdate(retour)).catch(function () {});
+      });
+    }).catch(function (e) {
+      if (e && e.message === "DEJA") { alert(TEXTES.DEJA); return charger(st.pseudo); }
+      if (window.console) console.error("[quais-staff-inventaire] restauration", e);
+      alert(TEXTES.ERR);
+    });
   }
 
   /* ===================== RENDER ===================== */
-
   function selMembres() {
     var noms = st.noms || [];
     return '<select class="qsi-pseudo"><option value="">' + esc(TEXTES.CHOISIR) + '</option>'
@@ -206,7 +215,7 @@
   function ligneObjet(x, subi) {
     var m = meta(x.d.o), d = x.d;
     var detail = subi
-      ? (TEXTES.RECU + " " + jourFR(d.t) + (d.exp ? " · " + TEXTES.EXPIRE + " " + jourFR(d.exp) : "") + (d.por ? " · " + esc(d.por) : ""))
+      ? (TEXTES.RECU + " " + jourFR(d.t) + (d.exp ? " · " + TEXTES.EXPIRE + " " + jourFR(d.exp) : "") + (d.por ? " · " + d.por : "") + (d.boutique ? " · " + d.boutique : ""))
       : (TEXTES.OBTENU + " " + jourFR(d.t) + (d.lieu ? " · " + d.lieu : "") + (d.ch > 1 ? " · " + d.ch + " charges" : ""));
     return '<div class="qsd-drow"><span class="qsd-st qsd-st-' + (subi ? "refusee" : "validee") + '">'
       + '<i class="fi fi-sr-' + esc(m.ic) + '"></i> ' + esc(m.n) + '</span>'
@@ -216,9 +225,7 @@
   }
 
   function blocAjout() {
-    var opts = Object.keys(table()).map(function (o) {
-      return '<option value="' + esc(o) + '">' + esc(meta(o).n) + '</option>';
-    }).join("");
+    var opts = ajoutables().map(function (o) { return '<option value="' + esc(o) + '">' + esc(meta(o).n) + '</option>'; }).join("");
     return '<div class="qsd-grp"><div class="qsd-grphead"><span class="nom">' + esc(TEXTES.AJOUT) + '</span></div>'
       + '<div class="fi-carte-grille">'
       + '<span>' + esc(TEXTES.OBJET) + '</span><span><select class="qsi-objet">' + opts + '</select></span>'
@@ -232,7 +239,7 @@
     var quoi = TEXTES.R[d.r] || d.r || "—";
     if (d.geste) quoi += " · " + d.geste;
     var bouton = (d.r === "use" || d.r === "leve")
-      ? (d.rest ? '<span class="qsd-st qsd-st-traitee">' + esc(TEXTES.RESTAURE) + '</span>'
+      ? (d.rest ? '<span class="qsd-st qsd-st-validee">' + esc(TEXTES.RESTAURE) + '</span>'
                 : '<button class="qsd-btn" data-conso="' + esc(x.k) + '">' + esc(TEXTES.RESTAURER) + '</button>')
       : "";
     return '<div class="qsd-drow"><span class="qsd-st qsd-st-en_attente">' + esc(quoi) + '</span>'
@@ -257,42 +264,35 @@
       + '<span class="n">' + possedes.length + '</span></div>'
       + (possedes.length ? possedes.map(function (x) { return ligneObjet(x, false); }).join("")
                          : '<p class="mc-sub">' + esc(TEXTES.VIDE) + '</p>') + '</div>';
-
     if (subis.length) {
       corps += '<div class="qsd-grp"><div class="qsd-grphead"><span class="nom">' + esc(TEXTES.SUBI) + '</span>'
         + '<span class="n">' + subis.length + '</span></div>'
         + subis.map(function (x) { return ligneObjet(x, true); }).join("") + '</div>';
     }
-
     corps += blocAjout();
     corps += '<div class="qsd-grp"><div class="qsd-grphead"><span class="nom">' + esc(TEXTES.JOURNAL) + '</span>'
       + '<span class="n">' + st.conso.length + '</span></div>'
       + (st.conso.length ? st.conso.map(ligneConso).join("")
                          : '<p class="mc-sub">' + esc(TEXTES.JOURNAL_V) + '</p>') + '</div>';
-
     return entete + corps + '</section>';
   }
 
   /* ===================== WIRING ===================== */
-
   function wire(root) {
     var sel = root.querySelector(".qsi-pseudo");
     if (sel) sel.onchange = function () { if (sel.value) charger(sel.value); };
-
     Array.prototype.forEach.call(root.querySelectorAll("[data-inv]"), function (b) {
       b.onclick = function () {
         var x = st.inv.filter(function (y) { return y.k === b.getAttribute("data-inv"); })[0];
         if (x) retirer(x, !!b.getAttribute("data-leve"));
       };
     });
-
     Array.prototype.forEach.call(root.querySelectorAll("[data-conso]"), function (b) {
       b.onclick = function () {
         var x = st.conso.filter(function (y) { return y.k === b.getAttribute("data-conso"); })[0];
-        if (x) restaurer(x);
+        if (x) { b.disabled = true; restaurer(x); }
       };
     });
-
     var add = root.querySelector(".qsi-ajouter");
     if (add) add.onclick = function () {
       var o = root.querySelector(".qsi-objet").value;
@@ -303,12 +303,10 @@
   }
 
   /* ===================== ENREGISTREMENT ===================== */
-
   function demarrer() {
     A = QS.api;
     QS.onglets.push([CFG.CLE, TEXTES.ONGLET]);
     QS.vues[CFG.CLE] = { html: html, wire: wire, compte: function () { return st.pseudo ? st.inv.length : 0; } };
-    /* la liste des pseudos vient du socle, déjà chargée pour les dettes */
     Promise.resolve(B().membres()).then(function (m) {
       st.noms = Object.keys(m || {}).sort(function (a, b) { return String(a).localeCompare(String(b), "fr"); });
     }).catch(function () { st.noms = []; });
@@ -318,5 +316,4 @@
     if (QS.api && window.TDLBase && window.EcoCore) { demarrer(); return; }
     if ((n || 0) < 100) setTimeout(function () { attendre((n || 0) + 1); }, 300);
   })();
-
 })();
