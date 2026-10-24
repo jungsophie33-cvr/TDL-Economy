@@ -33,6 +33,10 @@
  *   imposée par le code. Rien n'est écrit, plus aucune migration n'est lancée
  *   depuis le navigateur des joueurs.
  *
+ * [MAJ v4-1] TEXTES PAR DÉFAUT. Le bouton du formulaire staff reprend aussi les
+ *   « informations clés » ; un second bouton remet à neuf les textes de TOUS
+ *   les services en un seul PATCH (noms et prix conservés).
+ *
  * ORDRE DE CHARGEMENT : quais-core → barge-<bande>.js … → barge-core.js EN DERNIER.
  */
 (function () {
@@ -48,13 +52,14 @@
     CONTEXTE: "Explique le contexte de ta demande.",
     VIDE:     "Cette bande n\u2019a pas encore de services disponibles.",
     INCONNUE: "Bande inconnue.",
-    RESET:    "Remettre les textes du code ?\nDescription, aide, puces et exemples seront remplacés à l\u2019enregistrement."
+    RESET:    "Remettre les textes du code ?\nDescription, aide, puces, exemples et informations clés seront remplacés à l\u2019enregistrement.",
+    RESET_TOUS: "Remettre les textes du code sur TOUS les services de la Barge ?\nNoms et prix sont conservés. Description, aide, puces, exemples, note, étiquette et informations clés sont remplacés tout de suite."
   };
 
   /* Propriétés de COMPORTEMENT : toujours dictées par le code. Tout le reste
      (nom, description, puces, aide, prix…) est du contenu éditable. */
   var STRUCT = ["flow","cat","cagnotte","creancier","rpOnly","rpForce","cible","confesse","sansMode","avertir","reseau_auto","pj"];
-  var TEXTUELS = ["desc","helper","bullets","examples","note","tags"];
+  var TEXTUELS = ["desc","helper","bullets","examples","note","tags","infos"];
 
   function bande(k){ for (var i=0;i<bandes.length;i++) if (bandes[i].k===k) return bandes[i]; return null; }
   function plein(v){ return String(v==null?"":v).trim().length > 0; }
@@ -192,6 +197,7 @@
     html += '</div></div>';
     html += '<div class="qb-opts" style="margin-top:14px"><button class="qb-optbtn qb-pay" id="qb-save" style="flex:none">Enregistrer</button>'
       + (id && DATA[id] ? '<button class="qb-optbtn" id="qb-reset" style="flex:none">Textes par défaut</button>' : '')
+      + '<button class="qb-optbtn" id="qb-reset-tous" style="flex:none">Tous les textes par défaut</button>'
       + '<button class="qb-optbtn" id="qb-cancel" style="flex:none">Annuler</button></div>';
     return html;
   }
@@ -205,7 +211,25 @@
       var def = DATA[idEl.value]; if (!def || !window.confirm(T.RESET)) return;
       var d = det.querySelector('[data-champ="desc"]'), h = det.querySelector('[data-champ="helper"]'), bl = det.querySelector('[data-champ="bullets"]');
       if (d) d.value = def.desc || ""; if (h) h.value = def.helper || ""; if (bl) bl.value = vtc(def.bullets).join("\n");
+      var infos = vtc(def.infos);
+      for (var i=0;i<4;i++){
+        var l = det.querySelector('[data-champ="ilabel'+i+'"]'), v = det.querySelector('[data-champ="ivalue'+i+'"]');
+        if (l) l.value = (infos[i] && infos[i][0]) || ""; if (v) v.value = (infos[i] && infos[i][1]) || "";
+      }
       det.setAttribute("data-reset", "1");
+    };
+    var tous = det.querySelector("#qb-reset-tous");
+    if (tous) tous.onclick = function(){
+      if (!window.confirm(T.RESET_TOUS)) return;
+      var lot = {};
+      Object.keys(DATA).forEach(function(k){
+        var cur = copie(api.item(k) || {}), def = DATA[k];
+        TEXTUELS.forEach(function(t){ if (def[t]!==undefined) cur[t] = def[t]; else delete cur[t]; });
+        STRUCT.forEach(function(s){ if (s!=="cat") delete cur[s]; });
+        cur.cat = def.cat;
+        lot[k] = cur;
+      });
+      api.enregistrerLot(lot);
     };
     save.onclick = function(){
       var champs = {}; Array.prototype.forEach.call(det.querySelectorAll("[data-champ]"), function(el){ champs[el.getAttribute("data-champ")] = el.value; });
