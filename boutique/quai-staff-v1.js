@@ -9,6 +9,15 @@
  *   par membre — grand livre (lourdes, légères, karmiques…), dettes de réseau
  *   de la Main, services dus aux piliers de la Flottille, prêts.
  *
+ * [MAJ v7-2] RÉSEAU DE CRÉANCES DES SORCIÈRES. Une offrande payée par un service
+ *   dû n'ouvre plus de fiche au tableau des secrets : elle inscrit un lien
+ *   { type:"creance_sorcieres", nature, detail, statut:"du" } au bottin des
+ *   hors-la-loi. La fiche naîtra au tableau quand une Sorcière réclamera son
+ *   dû. La validation est refusée si le membre doit déjà le maximum de services.
+ *   « Régler » une créance la retire du réseau : honorée, elle n'existe plus.
+ * [MAJ v7-2] FAISEUSES : le bottin affiche la ressource ou l'accès proposé
+ *   (role), plus ce que ça leur apporte ; ce dernier est gardé à part (apport).
+ *
  * [MAJ v7-1] Champs du Comptoir rétablis à l'affichage (lien du RP, PNJ visé,
  *   forme de la contrepartie), perdus à la réécriture de la liste.
  *
@@ -60,6 +69,7 @@
   var SCHEMA_LB      = 2;      /* lost_bayou et secrets */
   var SCHEMA_FLOT    = 2;      /* doit suivre rep-flot-core */
   var RACINE_FLOT_REV= "flottille_rev";
+  var MAX_CREANCES   = 2;      /* MIROIR de barge-sorcieres CFG.MAX_CREANCES */
 
   function E(){ return window.EcoCore; }
   function B(){ return window.TDLBase; }
@@ -156,7 +166,7 @@
     if (d.itemId==="flot_passage" && d.dette_type==="service" && plein(d.concours))
       return { reseau:"flottille", concours:String(d.concours).trim(), statut:"du", fixe:true };
     if (d.reseau_auto==="faiseuses")
-      return { reseau:"faiseuses", statut:d.dispo||"disponible", role:d.apport||d.ressource||d.nom||"", activite:d.activite||"", fixe:false };
+      return { reseau:"faiseuses", statut:d.dispo||"disponible", role:d.ressource||d.apport||d.nom||"", apport:d.apport||"", activite:d.activite||"", fixe:false };
     if (d.reseau_auto)
       return { categorie:d.reseau_auto, statut:"longue", role:d.nom||"", fixe:true };
     if (voieNego(d) && d.compensation==="reseau" && d.reseau_cat)
@@ -198,7 +208,7 @@
     if (d.itemId==="flot_disparition") out += ligne("Entrée à créer", "Tableau du hangar \u00b7 disparition");
     if (d.itemId==="flot_operation")   out += ligne("Entrée à créer", "Tableau du hangar \u00b7 opération");
     if (depotSecret(d))  out += ligne("Entrée à créer", "Tableau des secrets \u00b7 dépôt au pot commun");
-    if (creanceService(d)) out += ligne("Entrée à créer", "Tableau des secrets \u00b7 créance de service");
+    if (creanceService(d)) out += ligne("Réseau à inscrire", "Sorcières du Baron \u00b7 créance de service \u00b7 "+creancesDe(d.pseudo)+" / "+MAX_CREANCES+" en cours");
     if (FICHE_ARTICLE[d.itemId]) out += ligne("Entrée à créer", "Tableau des secrets \u00b7 "+(FICHE_ARTICLE[d.itemId]==="poste"?"requête":"séance"));
     if (d.itemId==="secret") out += ligne("À inscrire", "Jeton de refus pour "+(d.pseudo||"?"));
     var pn = phaseNego(d), ps = phaseService(d);
@@ -242,6 +252,7 @@
   /* ---------- récapitulatif des dettes ---------- */
   function reglerBtn(x){
     if (x.source==="pret") return '<button class="qsd-regler" data-source="pret" data-pseudo="'+esc(x.pseudo)+'" data-key="'+esc(x.key)+'" data-montant="'+(x.montant|0)+'" data-cag="'+esc(x.cagnotte||"Providence")+'">Procéder au remboursement</button>';
+    if (x.source==="lien" && x.typeLien==="creance_sorcieres") return '<button class="qsd-regler" data-source="creance" data-pseudo="'+esc(x.pseudo)+'" data-cle="'+esc(x.cle)+'">Régler</button>';
     if (x.source==="lien") return '<button class="qsd-regler" data-source="lien" data-pseudo="'+esc(x.pseudo)+'" data-cle="'+esc(x.cle)+'">Acquitter</button>';
     return '<button class="qsd-regler" data-source="dette" data-pseudo="'+esc(x.pseudo)+'" data-key="'+esc(x.key)+'">Régler</button>';
   }
@@ -249,6 +260,7 @@
     var puce, label;
     if (x.source==="pret") { puce = '<span class="qsd-st qsd-st-validee">Prêt à rembourser</span>'; label = money(x.montant)+(x.motif?" · "+x.motif:""); }
     else if (x.source==="lien" && x.typeLien==="pilier_flottille") { puce = detteChip(x.type); label = "La Flottille — "+(x.motif||"—"); }
+    else if (x.source==="lien" && x.typeLien==="creance_sorcieres") { puce = detteChip(x.type); label = "Les Sorcières — "+(CREANCE_NATURE[x.nature]||x.nature||"service")+(x.motif?" : "+x.motif:"")+(x.service?" · "+x.service:""); }
     else if (x.source==="lien") { puce = detteChip(x.type); label = "Réseau de la Main · "+(RESEAU_LIB[x.categorie]||x.categorie||"—")+(x.motif?" — "+x.motif:""); }
     else { puce = detteChip(x.type, x.statut==="en_attente"); label = (x.motif || "—")+(x.creancier?" · "+x.creancier:""); }
     return '<div class="qsd-drow">'+puce+'<div class="m">'+esc(label)+'</div><span class="dt">'+dateFr(x.date)+'</span>'+reglerBtn(x)+'</div>';
@@ -381,20 +393,19 @@
     });
   }
 
-  /* Créance PROPOSÉE par le joueur en paiement. [MAJ] Sera déplacée vers le
-     réseau de créances de l'annuaire hors-la-loi. */
-  function creerCreanceService(d){
-    var now = new Date().toISOString(), id = B().nouvelleCle();
-    return ecrireEntree(CFG.NODE_LOSTBAYOU, id, {
-      schema: SCHEMA_LB, type:"creance", origine:"propose",
-      demandeId:d.id||"", debiteur:d.pseudo||"",
-      titre:(d.nom||"Service dû aux Sorcières"), article:d.itemId||"",
+  /* Créance PROPOSÉE par le joueur en paiement : elle entre au réseau des
+     Sorcières, au bottin. Le tableau des secrets ouvrira la fiche quand une
+     Sorcière réclamera son dû. */
+  function creancesDe(pseudo){
+    return B().liens(MEMBRES[pseudo] || {}).filter(function(l){ return l.type==="creance_sorcieres" && l.statut; }).length;
+  }
+  function creerLienCreance(d){
+    return ajouterLien(d.pseudo, {
+      type:"creance_sorcieres", statut:"du",
       nature:d.offrande_creance_type||"", detail:d.offrande_creance_detail||"",
-      statut:"due", responsable:null, sujet:"", resume:"", consequences:"",
-      demandeValidation:false, cree:now, ouverte:now, clos:null
-    }, "créance de service ouverte").then(function(r){
+      article:d.itemId||"", service:d.nom||"", demandeId:d.id||"", date:new Date().toISOString()
+    }).then(function(){
       try{ if(window.EcoNotif)EcoNotif.a(d.pseudo,210,{},"cre"+(d.id||"")); }catch(e){}
-      return r;
     });
   }
 
@@ -504,6 +515,10 @@
      validation : le staff est prévenu et refait l'entrée à la main. */
   async function valider(d){
     var base = CFG.NODE_DEMANDES+"/"+d.id, o = {};
+    if (creanceService(d) && !d.entreeCreance && creancesDe(d.pseudo) >= MAX_CREANCES) {
+      alert(d.pseudo+" doit déjà "+MAX_CREANCES+" services aux Sorcières : refuse la demande, ou attends qu\u2019il s\u2019en acquitte.");
+      return false;
+    }
     if (!await verrouiller(d)) return false;
 
     /* 1. argent */
@@ -545,7 +560,7 @@
       if (!statutRes) { var selR = root.querySelector('.qsd-restatut[data-id="'+d.id+'"]'); statutRes = (selR && selR.value) || "du"; }
       var lien;
       if (ri.reseau==="flottille")      lien = { type:"pilier_flottille", concours:ri.concours, statut:statutRes };
-      else if (ri.reseau==="faiseuses") lien = { type:"reseau_faiseuses", categorie:"faiseuses", role:ri.role, activite:ri.activite, statut:statutRes };
+      else if (ri.reseau==="faiseuses") { lien = { type:"reseau_faiseuses", categorie:"faiseuses", role:ri.role, activite:ri.activite, statut:statutRes }; if (ri.apport) lien.apport = ri.apport; }
       else                              lien = { type:"reseau_main", categorie:ri.categorie, role:ri.role, statut:statutRes };
       try { await ajouterLien(d.pseudo, lien); } catch(e){ if (window.console) console.error("[quais-staff] réseau", e); alert("Validée, mais le lien au bottin n\u2019a pas pu être inscrit."); }
     }
@@ -559,7 +574,7 @@
     await etape("tacheCreee", d.type==="faveur", function(){ return creerTache(d); }, "la tâche des Faiseuses n\u2019a pas pu être créée.");
     await etape("entreeFlottille", d.itemId==="flot_disparition" || d.itemId==="flot_operation", function(){ return creerEntreeFlottille(d); }, "l\u2019entrée du tableau du hangar n\u2019a pas pu être créée.");
     await etape("entreeSecret", depotSecret(d), function(){ return creerSecret(d); }, "le secret n\u2019a pas pu être déposé.");
-    await etape("entreeCreance", creanceService(d), function(){ return creerCreanceService(d); }, "la créance de service n\u2019a pas pu être ouverte.");
+    await etape("entreeCreance", creanceService(d), function(){ return creerLienCreance(d); }, "la créance n\u2019a pas pu être inscrite au réseau des Sorcières.");
     await etape("jetonPose", d.itemId==="secret", function(){ return E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/jeton_sorcieres", true); }, "le jeton de refus n\u2019a pas pu être posé.");
     await etape("ficheSorcieres", !!FICHE_ARTICLE[d.itemId], function(){ return creerFicheSorcieres(d); }, "la fiche du tableau des secrets n\u2019a pas pu être créée.");
     var pn = phaseNego(d), ps = phaseService(d);
@@ -613,6 +628,11 @@
         await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cag||"Providence"), function(cur){ return (cur||0)+montant; });
         var op = {}; op[CFG.NODE_MEMBRES+"/"+pseudo+"/prets/"+key] = null; await E().firebaseUpdate(op);
       } catch(e){ if (e&&e.message==="FONDS"){ alert(pseudo+" n'a pas les fonds pour rembourser ("+money(montant)+")."); return; } if (window.console) console.error("[quais-staff] remboursement", e); alert("Remboursement impossible."); return; }
+    } else if (source==="creance") {
+      /* une créance honorée n'a plus de raison d'être : elle quitte le réseau */
+      if (!confirm("Régler la créance de "+pseudo+" envers les Sorcières ?\nElle quitte leur réseau au bottin.")) return;
+      var okc = await B().supprimerLien(pseudo, cle);
+      if (!okc) { alert("Impossible de régler la créance."); return; }
     } else if (source==="lien") {
       /* le statut part, le contact reste : on s'acquitte d'une dette, on ne
          cesse pas d'être un contact */
@@ -654,6 +674,7 @@
           if (!l.statut) return;
           if (l.type==="reseau_main")      dettesList.push({ pseudo:p, source:"lien", typeLien:l.type, cle:l.k, type:l.statut, categorie:l.categorie, motif:l.role, date:l.date });
           if (l.type==="pilier_flottille") dettesList.push({ pseudo:p, source:"lien", typeLien:l.type, cle:l.k, type:l.statut, motif:l.concours, date:l.date });
+          if (l.type==="creance_sorcieres") dettesList.push({ pseudo:p, source:"lien", typeLien:l.type, cle:l.k, type:l.statut, nature:l.nature, motif:l.detail, service:l.service, date:l.date });
         });
         var prets = m.prets;
         if (prets && typeof prets==="object") Object.keys(prets).forEach(function(key){
