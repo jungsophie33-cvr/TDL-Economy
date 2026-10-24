@@ -157,8 +157,8 @@
   }
   function creancesSection(){
     var cr=tousCreances();
-    return '<div class="tdlb-flo-psec"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.creances)+'</h3><p class="tdlb-main-desc">'+escH(T.creancesTxt)+'</p></div>'
-      + (cr.length ? '<div class="tdlb-flo-pgrid tdlb-fai-rgrid">'+cr.map(creanceHTML).join("")+'</div>' : '<div class="tdlb-empty">'+escH(T.creancesVide)+'</div>')
+    return '<div class="tdlb-flo-psec"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.creances)+'</h3></div><p class="tdlb-main-desc">'+escH(T.creancesTxt)+'</p>'
+      + (cr.length ? '<div class="tdlb-flo-pgrid">'+cr.map(creanceHTML).join("")+'</div>' : '<div class="tdlb-empty">'+escH(T.creancesVide)+'</div>')
       + '</div>';
   }
   /* la recherche se fait sur la CLÉ ; si le lien a disparu entre l'ouverture du
