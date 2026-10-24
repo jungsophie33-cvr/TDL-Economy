@@ -1,5 +1,11 @@
 /*
- * tdlch-demande.js — Demande d'ajout à la chronologie (côté membre) · TDL
+ * tdlch-demande-v2.js — Demande d'ajout à la chronologie (côté membre) · TDL
+ *
+ * [MAJ v2] lectures ciblées : chrono_config et chrono_demandes sont lus par
+ * firebaseGet, plus par safeReadBin qui tirait la racine entière. La modale
+ * relit la structure à CHAQUE ouverture : périodes, catégories et marqueur
+ * de doublon restent à jour sans recharger la page (l'ancienne version ne
+ * chargeait qu'une fois par affichage de la page).
  *
  * CE QUE CE FICHIER FAIT : bouton déclencheur et modale, lecture de la structure
  * de la frise publiée par l'annexe (chrono_config), validation des champs,
@@ -22,7 +28,7 @@
  * le bouton, .dc-overlay / .dc-boite pour la modale, .fi-* pour les champs.
  * Aucune règle CSS nouvelle.
  *
- * Dépend de : window.EcoCore (safeReadBin, firebasePush, getPseudo, getUserId).
+ * Dépend de : window.EcoCore (firebaseGet, firebasePush, getPseudo, getUserId).
  */
 (function () {
   "use strict";
@@ -119,14 +125,18 @@
   }
 
   /* ===================== CHARGEMENT ===================== */
-  /* Périodes et catégories viennent de chrono_config, publié par l'annexe.
-     Sans ce nœud, les deux listes disparaissent : la rédaction placera
-     l'événement elle-même à la validation. */
+  /* [MAJ v2] deux lectures ciblées au lieu de la racine entière. Chaque branche
+     est tolérée séparément : sans chrono_config, les deux listes disparaissent
+     (la rédaction placera l'événement à la validation) ; sans chrono_demandes,
+     le marqueur de doublon reste vide. */
   async function charger(o){
     var p = pseudo();
-    var root;
-    try { root = (await E().safeReadBin()) || {}; } catch(e){ root = {}; }
-    var conf = root[CFG.NODE_CONFIG] || {};
+    var res = await Promise.allSettled([
+      E().firebaseGet(CFG.NODE_CONFIG),
+      E().firebaseGet(CFG.NODE_DEMANDES)
+    ]);
+    var conf     = res[0].status === "fulfilled" ? (res[0].value || {}) : {};
+    var demandes = res[1].status === "fulfilled" ? (res[1].value || {}) : {};
     var selP = o.querySelector('[data-f="p"]'), selC = o.querySelector('[data-f="c"]');
 
     function remplir(sel, liste, lib){
@@ -140,7 +150,8 @@
     remplir(selC, conf.cats, function(x){ return x.l; });
 
     /* une seule demande en attente par membre : la file reste lisible */
-    o.dataset.doublon = versTableau(root[CFG.NODE_DEMANDES]).some(function(d){
+    o.dataset.doublon = Object.keys(demandes).some(function(k){
+      var d = demandes[k];
       return d && d.pseudo === p && d.statut === "en_attente";
     }) ? "1" : "";
   }
@@ -181,6 +192,7 @@
     }
     resultat(res, "succes", T.OK);   /* le staff suit le sujet : les notifications FA suffisent */
     o.querySelector("#tdlch-champs").style.display = "none";
+    o.dataset.envoye = "1";
     o.dataset.doublon = "1";
   }
 
@@ -190,7 +202,13 @@
     function ouvrir(){
       o.classList.add("actif");
       document.body.style.overflow = "hidden";
-      if (!o.dataset.initialise) { o.dataset.initialise = "1"; charger(o); }
+      /* [MAJ v2] relu à chaque ouverture, sauf après un envoi réussi : la
+         modale reste alors sur son message de confirmation. */
+      if (!o.dataset.envoye) {
+        var ch = o.querySelector("#tdlch-champs");
+        if (ch) ch.style.display = "";
+        charger(o);
+      }
     }
     bouton.querySelector('[data-act="ouvrir"]').addEventListener("click", ouvrir);
     o.addEventListener("click", function(ev){
@@ -208,7 +226,7 @@
     var mont = document.querySelector(CFG.MONTAGE);
     if (!mont) return;                                    /* pas le bon sujet : on ne fait rien */
     if (document.getElementById("tdlch-overlay")) return;
-    var eco = E() && typeof E().safeReadBin === "function" && typeof E().firebasePush === "function";
+    var eco = E() && typeof E().firebaseGet === "function" && typeof E().firebasePush === "function";
     if (!eco) {
       if (n > CFG.RETRY_MAX) { if (window.console) console.warn("[Chrono] EcoCore introuvable."); return; }
       setTimeout(function(){ demarrer(n + 1); }, CFG.RETRY_MS); return;
