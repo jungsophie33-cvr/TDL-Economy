@@ -474,8 +474,8 @@
            quai-core. Ici on ne fait que la verser à la cagnotte. Le drapeau
            verseeCagnotte interdit le double versement ET le remboursement
            d'une somme déjà encaissée. */
-        if (d.compensation==="prix" && d.prix_offert && !d.verseeCagnotte){
-          var px = parseInt(d.prix_offert,10)||0, cagP = d.cagnotte||"Providence";
+        if (d.type!=="comptant" && d.type!=="pret" && d.cagnotte && (d.montant|0) > 0 && !d.verseeCagnotte){
+          var px = d.montant|0, cagP = d.cagnotte;
           if (px>0){
             try {
               await E().firebaseTransaction(CFG.NODE_CAGNOTTES+"/"+encodeURIComponent(cagP), function(cur){ return (cur||0)+px; });
