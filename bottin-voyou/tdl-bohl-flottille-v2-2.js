@@ -208,7 +208,7 @@
   }
   function piliersSection(){
     var pil=tousPiliers();
-    return '<div class="tdlb-flo-psec"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.piliers)+'</h3></div><p>'+escH(T.piliersTxt)+'</p>'
+    return '<div class="tdlb-flo-psec"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.piliers)+'</h3></div><p class="tdlb-main-desc">'+escH(T.piliersTxt)+'</p>'
       + (pil.length ? '<div class="tdlb-flo-pgrid">'+pil.map(pilierHTML).join("")+'</div>' : '<div class="tdlb-empty">Aucun contact recensé.</div>')
       + '</div>';
   }
