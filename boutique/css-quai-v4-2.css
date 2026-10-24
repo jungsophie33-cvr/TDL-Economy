@@ -309,6 +309,123 @@
   font-size: 13px;
   vertical-align: -1px;
 }
+
+/* ==========================================================================
+   css-barge-de.css — Fenêtre du dé de la Main (négociation aux dés) · TDL
+   Utilisée par barge-main. Préfixe : .qm-
+   La fenêtre est accrochée à <body>, hors du conteneur .qb : ses règles ne
+   sont donc pas scopées sous .qb.
+   ========================================================================== */
+
+.qm-ov {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(20, 16, 14, .55);
+  font-family: var(--txt3);
+}
+
+.qm-box {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  padding: 26px 28px;
+  border-radius: 12px;
+  background: var(--clair1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+  text-align: center;
+}
+
+.qm-x {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  border: 0;
+  background: none;
+  color: var(--darkopa5);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.qm-t {
+  margin-bottom: 4px;
+  color: var(--dark);
+  font-family: var(--font2);
+  font-size: 22px;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+
+.qm-s {
+  margin-bottom: 18px;
+  color: var(--darkopa6);
+  font-family: var(--txt3);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.qm-p {
+  margin: 6px 0 14px;
+  color: var(--txt);
+  font-family: var(--txt1);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.qm-win  { color: var(--gr2-color); }
+.qm-lose { color: var(--dark2); }
+
+.qm-price {
+  margin: 6px 0 16px;
+  color: var(--dark);
+  font-family: var(--font2);
+  font-size: 30px;
+}
+
+.qm-acts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.qm-roll,
+.qm-alt {
+  padding: 11px 22px;
+  border-radius: 6px;
+  font-family: var(--txt3);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.qm-roll {
+  border: none;
+  background: var(--dark2);
+  color: var(--clair1);
+}
+
+.qm-alt {
+  border: 1px solid var(--cntr6);
+  background: none;
+  color: var(--darkopa6);
+}
+
+.qm-warn {
+  margin: 14px 0 0;
+  color: var(--darkopa6);
+  font-family: var(--txt1);
+  font-size: 13px;
+  font-style: italic;
+}
+
 /* ---------- RESPONSIVE ---------- */
 @media(max-width:1100px){
   .qb-cards.qb-c3{grid-template-columns:repeat(2,1fr)}
