@@ -24,6 +24,12 @@
  * [MAJ v3] LA DETTE LOURDE NAÎT À LA DEMANDE (detteLourde ci-dessous), et
  *   compte aussitôt dans le plafond des trois. Refusée, elle est effacée.
  *
+ * [MAJ v3-1] CARTES D'OPTION RÉTABLIES. Chaque service à prix porte deux
+ *   cartes : « Payer comptant » (soumet aussitôt) et « Négocier » (ouvre le
+ *   volet de négociation, qui a son propre bouton). Le prêt a sa carte.
+ *   Seule la Confesse garde le bouton centré « Soumettre ma demande ».
+ *   Le style de la fenêtre du dé vit dans css-barge-de.css.
+ *
  * À CHARGER avant barge-core.js.
  */
 (function () {
@@ -49,7 +55,7 @@
   var T = {
     HERO:         "La paroisse du crime en Terrebonne. Empire de l\u2019information, cette organisation opère dans la région depuis vingt ans.",
     L_CONTEXTE:   "Contexte de ta demande *",
-    PH_CONTEXTE:  "La situation qui motive ta demande\u2026",
+    PH_CONTEXTE:  "Quelle situation motive ta demande ?",
     L_CIBLE_TYPE: "Qui est visé ? *",
     L_CIBLE_PJ:   "Personnage visé *",
     L_CIBLE_NOM:  "Nom de la cible *",
@@ -59,7 +65,18 @@
     RP_LIBRE:     "Coché, ce service sera joué en RP avec un membre de la Main.",
     RP_MED:       "La médiation se joue toujours en RP : ton personnage est l\u2019une des deux parties.",
     RP_PJ:        "La cible est un personnage joueur : la scène sera jouée.",
-    L_PAIEMENT:   "Paiement *",
+    C_COMPTANT:   "Payer comptant",
+    C_COMPTANT_D: "Règle le prix indicatif en dollars.",
+    C_PAYER:      "Payer maintenant",
+    C_NEGO:       "Négocier",
+    C_NEGO_D:     "Propose un prix et une compensation à la Main.",
+    C_NEGO_RP_D:  "Propose un prix : la négociation se joue en RP.",
+    C_INDISPO:    "Négociation indisponible",
+    C_PRET:       "Demander un prêt",
+    C_PRET_D:     "La Main avance la somme ; tu la rembourses en monnaie ou par une dette lourde.",
+    C_PRET_P:     "Selon la cagnotte",
+    C_ENVOI:      "Soumettre ma demande",
+    S_NEGO:       "Ta négociation",
     L_PRIX_NEGO:  "Prix proposé *",
     PH_PRIX_NEGO: "$",
     L_METHODE:    "Négociation",
@@ -169,33 +186,43 @@
       + '<div class="qb-helper" id="qb-rphint" style="margin-top:4px">'+esc(item.rpForce ? T.RP_MED : T.RP_LIBRE)+'</div>';
   }
 
-  function blocPaiement(item, api, id){
-    var cd = api.cooldownActif(id);
-    var modes = [["prix", "Prix indicatif — " + money(item.pi)]];
-    if (!cd) modes.push(["nego", "Négocier"]);
-    var html = ui.rangee(
-      ui.fld(T.L_PAIEMENT, ui.sel("paiement", modes, null, { bascule:"paiement" })),
-      cd ? "" : ui.zone("paiement:nego", ui.fld(T.L_PRIX_NEGO, ui.inp("prix_negocie", T.PH_PRIX_NEGO)))
-    );
-    if (cd) return html + ui.aide(T.COOLDOWN(cd));
-    if (item.rpOnly) return html + ui.zone("paiement:nego", ui.aide(T.AIDE_RPONLY));
-    return html + ui.zone("paiement:nego",
-        ui.rangee(
+  function carteIndispo(cd){
+    return '<div class="qb-optcard"><div class="qb-optcircle"><i class="fi fi-tr-hourglass-end"></i></div>'
+      + '<div class="qb-optbody"><div class="qb-opttitle">'+esc(T.C_INDISPO)+'</div><div class="qb-optdesc">'+esc(T.COOLDOWN(cd))+'</div></div></div>';
+  }
+
+  function voletNego(item){
+    var champs = item.rpOnly
+      ? ui.rangee(ui.fld(T.L_PRIX_NEGO, ui.inp("prix_negocie", T.PH_PRIX_NEGO))) + ui.aide(T.AIDE_RPONLY)
+      : ui.rangee(
+          ui.fld(T.L_PRIX_NEGO, ui.inp("prix_negocie", T.PH_PRIX_NEGO)),
           ui.fld(T.L_METHODE, ui.sel("methode", METHODES)),
           ui.fld(T.L_COMP, ui.sel("compensation", COMP_NEGO, null, { bascule:"comp" }))
         )
-      + ui.zone("comp:reseau", ui.rangee(
-          ui.fld(T.L_RESEAU, ui.sel("reseau_cat", RESEAUX)),
-          ui.fld(T.L_SITUATION, ui.ta("situation_main", T.PH_SITUATION))
-        ))
-      + ui.aide(T.AIDE_NEGO));
+        + ui.zone("comp:reseau", ui.rangee(
+            ui.fld(T.L_RESEAU, ui.sel("reseau_cat", RESEAUX)),
+            ui.fld(T.L_SITUATION, ui.ta("situation_main", T.PH_SITUATION))
+          ))
+        + ui.aide(T.AIDE_NEGO);
+    return ui.zone("revele:nego", ui.section(T.S_NEGO, champs) + ui.envoi(T.C_ENVOI));
+  }
+
+  /* deux cartes : payer au prix indicatif, ou ouvrir la négociation */
+  function blocPaiement(item, api, id){
+    var cd = api.cooldownActif(id);
+    return ui.options(
+        ui.optcard({ ic:"fi fi-tr-dollar", titre:T.C_COMPTANT, desc:T.C_COMPTANT_D, prix:money(item.pi),
+                     btn:T.C_PAYER, act:"comptant", montant:item.pi, pay:true }),
+        cd ? carteIndispo(cd)
+           : ui.optcard({ ic:"fi fi-tr-balance-scale-left", titre:T.C_NEGO, desc:item.rpOnly ? T.C_NEGO_RP_D : T.C_NEGO_D,
+                          btn:T.C_NEGO, ouvre:"nego" })
+      ) + (cd ? "" : voletNego(item));
   }
 
   /* ===================== CORPS ===================== */
   function corpsService(item, api, id){
     return ui.section("Ta demande", champContexte() + (item.cible ? blocCible(api) + caseRp(item) : ""))
-      + ui.section("Paiement", blocPaiement(item, api, id))
-      + ui.envoi();
+      + blocPaiement(item, api, id);
   }
 
   function corpsConfesse(item){
@@ -223,7 +250,8 @@
           ui.fld(T.L_REMB, ui.sel("pret_contrepartie", REMBOURSEMENT))
         )
       + ui.aide(T.AIDE_PRET))
-      + ui.envoi();
+      + ui.options(ui.optcard({ ic:"fi fi-tr-sack-dollar", titre:T.C_PRET, desc:T.C_PRET_D, prix:T.C_PRET_P,
+                                btn:T.C_ENVOI, act:"pret", pay:true }));
   }
 
   function body(item, api, id){
@@ -234,7 +262,9 @@
   }
 
   /* ===================== RÈGLES ===================== */
-  function enNego(c){ return c.paiement==="nego"; }
+  /* la carte « Payer comptant » soumet l'acte comptant ; tout autre envoi
+     d'un service à prix vient du volet de négociation */
+  function enNego(act){ return act!=="comptant"; }
   function cibleEstPj(c, a, item){ return !!item.cible && c.cible_type==="pj"; }
   function cibleAutre(c, a, item){ return !!item.cible && c.cible_type!=="pj"; }
 
@@ -258,14 +288,13 @@
     },
     nego: {
       resoudre: function(c, item){
-        if (!enNego(c)) return { act:"comptant", montant:item.pi, champs:{ voie:"prix" } };
         if (!item.rpOnly && c.methode==="des") return { act:"des", champs:{ voie:"nego" } };
         return { act:"demande", demandeType:"nego", champs:{ voie:"nego" } };
       },
       requis: [
         ["cible_pj",       T.ERR_CIBLE,     cibleEstPj],
         ["cible",          T.ERR_CIBLE,     cibleAutre],
-        ["situation_main", T.ERR_SITUATION, function(c, a, item){ return enNego(c) && !item.rpOnly && c.compensation==="reseau"; }]
+        ["situation_main", T.ERR_SITUATION, function(c, act, item){ return enNego(act) && !item.rpOnly && c.compensation==="reseau"; }]
       ],
       msg: function(c, act){ return act==="comptant" ? T.OK_PRIX : act==="des" ? T.OK_DES : T.OK_NEGO; }
     }
@@ -273,7 +302,7 @@
 
   /* métier : plancher du rabais, renoncement récent */
   function controle(item, c, act, id, api){
-    if (item.confesse || item.flow!=="nego" || !enNego(c)) return null;
+    if (item.confesse || item.flow!=="nego" || !enNego(act)) return null;
     if (api.cooldownActif(id)) return T.ERR_CD;
     var p = ui.montant(c.prix_negocie), min = prixMin(item);
     if (p < min) return T.ERR_PRIX(min);
@@ -284,29 +313,12 @@
   function detteLourde(item, act, c){
     if (item.confesse && c.compensation==="dette") return { motif:item.n };
     if (item.flow==="pret" && c.pret_contrepartie==="dette") return { motif:item.n };
-    if (item.flow==="nego" && !item.rpOnly && enNego(c) && c.compensation==="dette") return { motif:item.n + " (négociation)" };
+    if (item.flow==="nego" && !item.rpOnly && enNego(act) && c.compensation==="dette") return { motif:item.n + " (négociation)" };
     return null;
   }
 
   /* ===================== LE DÉ ===================== */
-  function styleDe(){
-    if (document.getElementById("qm-style")) return;
-    var s = document.createElement("style"); s.id = "qm-style";
-    s.textContent = ""
-    + ".qm-ov{position:fixed;inset:0;z-index:9500;background:rgba(20,16,14,.55);display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--txt3)}"
-    + ".qm-box{position:relative;background:var(--clair1);border-radius:12px;max-width:440px;width:100%;padding:26px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}"
-    + ".qm-x{position:absolute;top:10px;right:14px;background:none;border:0;font-size:22px;color:var(--darkopa5);cursor:pointer;line-height:1}"
-    + ".qm-t{font-family:var(--font2);font-size:22px;text-transform:uppercase;letter-spacing:.02em;color:var(--dark);margin-bottom:4px}"
-    + ".qm-s{font-family:var(--txt3);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--darkopa6);margin-bottom:18px}"
-    + ".qm-p{font-family:var(--txt1);font-size:17px;line-height:1.45;margin:6px 0 14px;color:var(--txt)}"
-    + ".qm-win{color:var(--gr2-color)}.qm-lose{color:var(--dark2)}"
-    + ".qm-price{font-family:var(--font2);font-size:30px;color:var(--dark);margin:6px 0 16px}"
-    + ".qm-acts{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}"
-    + ".qm-roll{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-size:13px;background:var(--dark2);color:var(--clair1);border:none;border-radius:6px;padding:11px 22px;cursor:pointer}"
-    + ".qm-alt{font-family:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-size:13px;background:none;color:var(--darkopa6);border:1px solid var(--cntr6);border-radius:6px;padding:11px 22px;cursor:pointer}"
-    + ".qm-warn{font-family:var(--txt1);font-style:italic;font-size:13px;color:var(--darkopa6);margin:14px 0 0}";
-    document.head.appendChild(s);
-  }
+  /* Le style de la fenêtre vit dans css-barge-de.css (classes qm-). */
 
   /* Le dé est un acte : le socle a déjà contrôlé le formulaire, vérifié le
      plafond et fait confirmer la dette éventuelle. Le verrou d'envoi reste
@@ -314,7 +326,6 @@
      débit ; « Renoncer » n'écrit rien d'autre que le délai. */
   function acteDes(base, champs, api){
     var item = api.item(base.itemId), pi = item.pi|0, propose = ui.montant(champs.prix_negocie);
-    styleDe();
     return new Promise(function(fin){
       var ov = document.createElement("div"); ov.className = "qm-ov";
       ov.innerHTML = '<div class="qm-box"><button class="qm-x" aria-label="Fermer">\u00D7</button>'
