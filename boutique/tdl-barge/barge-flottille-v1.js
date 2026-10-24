@@ -16,6 +16,11 @@
  *   « Soumettre ma demande », les contrôles sont déclarés dans regles et
  *   appliqués par barge-core, la confirmation par le socle.
  *
+ * [MAJ v3-1] Le Passage retrouve ses deux cartes : « Payer comptant » soumet
+ *   aussitôt ; « Un service dû » ouvre le volet où l'on décrit le service
+ *   promis, avec son propre bouton. Disparition et Opération, dont la prime se
+ *   saisit, gardent le bouton centré.
+ *
  * À CHARGER avant barge-core.js.
  */
 (function () {
@@ -26,7 +31,6 @@
   /* ===================== CONFIG ===================== */
   var CFG = { PRIX_PASSAGE:300, MIN_DISP:500, MIN_OP:800 };
 
-  var PAIEMENTS = [["comptant","Comptant"],["service","Un service dû"]];
   var DUREES    = [["1","1 mois"],["2","2 mois"],["3","3 mois"]];
   var DESTINS   = [["texas","Texas"],["arkansas","Arkansas"],["mississippi","Mississippi"],
                    ["alabama","Alabama et sa côte"],["floride","Floride"],["indifferent","Peu importe"]];
@@ -46,7 +50,15 @@
     PH_VERROU_ACC: "Distance, méfiance, hostilité, absence de route\u2026",
     L_BUT:         "Ce que ton personnage compte y faire *",
     PH_BUT:        "Rencontrer, négocier, observer, se cacher\u2026",
-    L_PAIEMENT:    "Paiement *",
+    C_COMPTANT:    "Payer comptant",
+    C_COMPTANT_D:  "Le tarif ne se discute pas pour un trajet ordinaire.",
+    C_PAYER:       "Payer maintenant",
+    C_SERVICE:     "Un service dû",
+    C_SERVICE_D:   "Le capitaine avance le passage. Tu rendras un service, plus tard.",
+    C_SERVICE_P:   "0 $ + service",
+    C_CHOISIR:     "Choisir",
+    C_ENVOI:       "Soumettre ma demande",
+    S_SERVICE:     "Ton service dû",
     L_CONCOURS:    "Le service que tu devras *",
     PH_CONCOURS:   "Un savoir-faire, un accès, une paire de bras, un silence\u2026",
     AIDE_SERVICE:  "Pas d\u2019argent : un service dû. Il s\u2019affiche au bottin des hors-la-loi, parmi les piliers de la Flottille, jusqu\u2019à ce qu\u2019un capitaine vienne le réclamer.",
@@ -62,10 +74,10 @@
     L_ENQUETE:     "Affaire que tu fuis *",
     SANS_DETTE:    "Aucune dette active à ton nom.",
     SANS_ENQUETE:  "Aucune affaire ouverte au panneau des enquêtes.",
-    L_RESTENT:     "Personne laissée derrière *",
+    L_RESTENT:     "Personne importante laissée derrière *",
     L_RESTENT_PNJ: "Autres proches concernés",
     PH_RESTENT_PNJ:"Famille, associés, voisins\u2026",
-    AIDE_DISP:     "Disparaître déplace le problème, ça ne l\u2019efface pas : ceux que tu laisses derrière en paieront le prix.",
+    AIDE_DISP:     "Disparaître déplace le problème, sans l\u2019effacer : tes proches laissés à Terrebonne en paieront le prix.",
 
     L_TITRE:       "Titre de l\u2019opération *",
     PH_TITRE:      "Ex. : La rencontre du chenal de Dulac",
@@ -84,9 +96,9 @@
     GEL:           "La Main a ouvert un recouvrement à ton nom : aucun capitaine ne te prendra pour un trajet ordinaire. Ce qu\u2019il te faut, c\u2019est une Disparition.",
     ERR_LIEU:      "Indique le lieu ou la communauté que ton personnage veut atteindre.",
     ERR_VERROU:    "Explique ce qui rend cet accès impossible autrement.",
-    ERR_BUT:       "Dis ce que ton personnage compte faire sur place.",
-    ERR_CONCOURS:  "Dis quel service ton personnage devra en retour.",
-    ERR_RESTE:     "Désigne le personnage qui reste derrière : c\u2019est chez lui que la Main ira chercher.",
+    ERR_BUT:       "Explique ce que ton personnage compte faire sur place.",
+    ERR_CONCOURS:  "Indique quel service ton personnage devra en retour.",
+    ERR_RESTE:     "Désigne le personnage important que tu laisses en arrière : c\u2019est là que la Main ira chercher.",
     ERR_DETTE:     "Choisis la dette que ton personnage fuit.",
     ERR_ENQUETE:   "Choisis l\u2019affaire que ton personnage fuit.",
     ERR_PRIME:     function (m) { return "La prime commence à " + money(m) + "."; },
@@ -112,17 +124,17 @@
         "Rejoindre un lieu que les cartes ignorent",
         "Arriver quelque part sans que personne n\u2019ait vu par où"
       ],
-      helper:"Ce qu\u2019elle vend, ce n\u2019est pas la traversée : c\u2019est d\u2019arriver là où ton personnage n\u2019aurait eu ni raison ni moyen de se trouver. Terrebonne et ses abords uniquement."
+      helper:"La Flottille vend le service d\u2019arriver sur un lieu où ton personnage n\u2019aurait en principe ni raison ni moyen de se trouver. Sur Terrebonne et ses abords uniquement."
     },
     flot_disparition: {
       flow:"disparition", ic:"fog", n:"Disparition temporaire",
-      desc:"Sortir de Louisiane, et ne plus figurer nulle part pendant un temps. La Flottille sait faire. Ce qu\u2019elle ne sait pas faire, c\u2019est empêcher ceux que tu laisses derrière de payer à ta place.",
+      desc:"Sortir de Louisiane, et ne plus figurer nulle part pendant un temps. La Flottille sait faire. En revenche, elle ne peut empêcher les proches que tu laisses derrière d'en payer le prix à ta place.",
       helper:"De un à trois mois. Au retour, rien n\u2019aura été effacé : la dette aura seulement changé de mains."
     },
     flot_operation: {
       flow:"operation", ic:"anchor", n:"Opération",
-      desc:"Ce que tu veux faire demande plus de monde que tu n\u2019en connais, et ces gens-là ne se parlent pas. La Flottille fournit le point de rencontre et les moyens du déplacement, rien d\u2019autre.",
-      helper:"Ce qui se décide sur place ne la regarde pas. Elle réunit, elle déplace, elle s\u2019en va."
+      desc:"Ce que tu souhaites organiser demande plus de monde que tu n\u2019en connais, notamment dans les sphères sombres qui ne se fréquentent pas d\u2019ordinaire. La Flottille fournit le point de rencontre et les moyens du déplacement.",
+      helper:"La réunion sur place, et les décisions qui en découlent ne concernent pas la Flottille. Elle se contente de réunir les parties puis s\u2019en va... sauf quand on l\u2019invite à rester."
     }
   };
 
@@ -159,13 +171,15 @@
                  ui.fld(T.L_BUT, ui.ta("but_passage", T.PH_BUT)))
         + champContexte()
         + ui.aide(T.AIDE_ACCUEIL) + ui.aide(item.helper))
-      + ui.section("Paiement",
-          ui.rangee(
-            ui.fld(T.L_PAIEMENT, ui.sel("paiement", [["comptant","Comptant — " + money(prix)], PAIEMENTS[1]], null, { bascule:"paiement" })),
-            ui.zone("paiement:service", ui.fld(T.L_CONCOURS, ui.inp("concours", T.PH_CONCOURS)))
-          )
-        + ui.zone("paiement:service", ui.aide(T.AIDE_SERVICE)))
-      + ui.envoi();
+      + ui.options(
+          ui.optcard({ ic:"fi fi-tr-dollar", titre:T.C_COMPTANT, desc:T.C_COMPTANT_D, prix:money(prix),
+                       btn:T.C_PAYER, act:"comptant", montant:prix, pay:true }),
+          ui.optcard({ ic:"fi fi-tr-anchor", titre:T.C_SERVICE, desc:T.C_SERVICE_D, prix:T.C_SERVICE_P,
+                       btn:T.C_CHOISIR, ouvre:"service" })
+        )
+      + ui.zone("revele:service",
+          ui.section(T.S_SERVICE, ui.fld(T.L_CONCOURS, ui.ta("concours", T.PH_CONCOURS)) + ui.aide(T.AIDE_SERVICE))
+        + ui.envoi(T.C_ENVOI));
   }
 
   function corpsDisparition(item, api){
@@ -218,21 +232,20 @@
   }
 
   /* ===================== RÈGLES ===================== */
-  function service(c){ return c.paiement==="service"; }
+  /* la carte « Payer comptant » soumet l'acte comptant ; le bouton du volet
+     est le seul envoi « auto » du Passage : c'est le service dû */
+  function service(c, act){ return act==="dette"; }
 
   var regles = {
     flot_passage: {
-      resoudre: function(c, item){
-        if (service(c)) return { act:"dette", detteType:"service" };
-        return { act:"comptant", montant: typeof item.p==="number" ? item.p : CFG.PRIX_PASSAGE };
-      },
+      resoudre: function(){ return { act:"dette", detteType:"service" }; },
       requis: [
         ["lieu_vise",    T.ERR_LIEU],
         ["verrou_acces", T.ERR_VERROU],
         ["but_passage",  T.ERR_BUT],
         ["concours",     T.ERR_CONCOURS, service]
       ],
-      msg: function(c){ return service(c) ? T.OK_SERVICE : T.OK_PASSAGE; }
+      msg: function(c, act){ return service(c, act) ? T.OK_SERVICE : T.OK_PASSAGE; }
     },
     flot_disparition: {
       /* les libellés sont figés dans la demande : le tableau du hangar les
