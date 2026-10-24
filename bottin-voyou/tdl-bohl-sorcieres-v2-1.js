@@ -151,14 +151,14 @@
     return '<div class="tdlb-flo-pilier" style="--gc:'+p.couleur+'">'+actes
       + '<span class="av">'+(p.avatar?'<img src="'+escA(p.avatar)+'" alt="">':escH(ini(p.pseudo)))+'</span>'
       + '<div class="info"><span class="nom">'+escH(p.pseudo)+lien+'</span>'
-      +   '<span class="concours">'+escH(nature)+(l.detail?' — '+escH(l.detail):'')+'</span>'
-      +   '<div class="bas"><span class="tag-dette du">'+escH(T.du)+'</span>'+(l.service?' <span class="tdlb-fai-act">'+escH(l.service)+'</span>':'')+'</div>'
+      +   '<span class="concours">'+escH(nature)+'</span>'
+      +   '<div class="bas"><span class="tag-dette du">'+escH(T.du)+'</span></div>'
       + '</div></div>';
   }
   function creancesSection(){
     var cr=tousCreances();
-    return '<div class="tdlb-flo-psec"><div class="tdlb-flo-phead"><h3>'+escH(T.creances)+'</h3><p>'+escH(T.creancesTxt)+'</p></div>'
-      + (cr.length ? '<div class="tdlb-flo-pgrid">'+cr.map(creanceHTML).join("")+'</div>' : '<div class="tdlb-empty">'+escH(T.creancesVide)+'</div>')
+    return '<div class="tdlb-flo-psec"><div class="tdlb-main-h"><i class="fi fi-tr-share"></i><h3>'+escH(T.creances)+'</h3><p class="tdlb-main-desc">'+escH(T.creancesTxt)+'</p></div>'
+      + (cr.length ? '<div class="tdlb-flo-pgrid tdlb-fai-rgrid">'+cr.map(creanceHTML).join("")+'</div>' : '<div class="tdlb-empty">'+escH(T.creancesVide)+'</div>')
       + '</div>';
   }
   /* la recherche se fait sur la CLÉ ; si le lien a disparu entre l'ouverture du
