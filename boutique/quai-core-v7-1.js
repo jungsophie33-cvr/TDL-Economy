@@ -29,6 +29,12 @@
  *
  * [MAJ v7] PLUS AUCUN safeReadBin. Le prêt lit la seule cagnotte visée.
  *
+ * [MAJ v7-1] CARTES D'OPTION À RÉVÉLATION. Une carte peut ouvrir un volet
+ *   (ui.optcard({ ouvre:"nom" }) + ui.zone("revele:nom", …)) au lieu de
+ *   soumettre. Un bouton d'achat placé HORS de tout volet referme d'abord les
+ *   volets ouverts : leurs champs ne partent donc jamais avec un paiement
+ *   au prix affiché.
+ *
  * CONTRAT D'UN MODULE (tous les crochets sont facultatifs)
  *   key, label, sub, icon, mode, leftW, cols, sousChemin, data, cats,
  *   detail(id, api), emptyDetail(api), form(item, api, id), wire, wireDetail,
@@ -81,6 +87,7 @@
     STAFF_TITRE:   "Éditer les items",
     EDIT_TOPIC:    "Éditer le sujet",
     ENVOI:         "Soumettre ma demande",
+    FERMER:        "Fermer",
 
     NON_CONNECTE:  "Connecte-toi pour faire une demande.",
     FONDS:         "Ton solde ne couvre pas cette somme.",
@@ -481,16 +488,21 @@
         + (type ? 'data-act="demande" data-type="'+esc(type)+'"' : 'data-act="auto"')
         + '>'+esc(label || TXT.ENVOI)+'</button></div>';
     },
-    /* carte d'option, conservée pour le Comptoir */
+    /* carte d'option. o.act → le bouton soumet ; o.ouvre → il ouvre le volet
+       ui.zone("revele:"+o.ouvre, …) ; ni l'un ni l'autre → carte sans bouton */
     optcard: function(o){
+      var bouton = "";
+      if (o.ouvre) bouton = '<button class="qb-optbtn'+(o.pay?" qb-pay":"")+'" data-ouvre="'+esc(o.ouvre)+'">'+esc(o.btn)+'</button>';
+      else if (o.act) bouton = '<button class="qb-optbtn'+(o.pay?" qb-pay":"")+' qb-act" data-act="'+esc(o.act)+'"'
+        + (o.montant!=null?' data-montant="'+(o.montant|0)+'"':"")+(o.type?' data-type="'+esc(o.type)+'"':"")+(o.dette?' data-dette="'+esc(o.dette)+'"':"")+(o.id?' id="'+esc(o.id)+'"':"")
+        + '>'+esc(o.btn)+'</button>';
       return '<div class="qb-optcard'+(o.pay?" qb-pay":"")+'"><div class="qb-optcircle"><i class="'+esc(o.ic)+'"></i></div>'
         + '<div class="qb-optbody"><div class="qb-opttitle">'+esc(o.titre)+'</div><div class="qb-optdesc">'+esc(o.desc)+'</div>'
         + (o.note?'<div class="qb-optnote">'+esc(o.note)+'</div>':"")+'</div>'
-        + '<div class="qb-optright">'+(o.prix?'<div class="qb-optprice">'+esc(o.prix)+'</div>':"")
-        + '<button class="qb-optbtn'+(o.pay?" qb-pay":"")+' qb-act" data-act="'+esc(o.act)+'"'
-        + (o.montant!=null?' data-montant="'+(o.montant|0)+'"':"")+(o.type?' data-type="'+esc(o.type)+'"':"")+(o.dette?' data-dette="'+esc(o.dette)+'"':"")+(o.id?' id="'+esc(o.id)+'"':"")
-        + '>'+esc(o.btn)+'</button></div></div>';
+        + '<div class="qb-optright">'+(o.prix?'<div class="qb-optprice">'+esc(o.prix)+'</div>':"")+bouton+'</div></div>';
     },
+    /* rangée de cartes d'option */
+    options: function(){ return '<div class="qb-opts">'+Array.prototype.slice.call(arguments).filter(Boolean).join("")+'</div>'; },
     infosCles: function(paires, iconOf){
       return '<div class="qb-sec">'+ui.lab("Informations clés")+'<div class="qb-kg4">'
         + paires.map(function(f){ return '<div class="qb-kf"><div><div class="qb-kl"><i class="'+esc((iconOf&&iconOf(f[0]))||"fi fi-tr-diamond")+'"></i>'+esc(f[0])+'</div><div class="qb-kv">'+esc(f[1])+'</div></div></div>'; }).join("")
@@ -745,9 +757,37 @@
     });
   }
 
+  /* Volets ouverts par une carte d'option. Un seul ouvert à la fois. */
+  function volets(det, nom){
+    return Array.prototype.filter.call(det.querySelectorAll("[data-zone]"), function(z){
+      var noms = z.getAttribute("data-zone").split(/\s+/);
+      return nom ? noms.indexOf("revele:"+nom) >= 0 : noms.some(function(n){ return n.indexOf("revele:")===0; });
+    });
+  }
+  function fermerVolets(det){
+    volets(det).forEach(function(z){ z.hidden = true; });
+    Array.prototype.forEach.call(det.querySelectorAll("[data-ouvre]"), function(b){
+      if (b.getAttribute("data-lib")) b.textContent = b.getAttribute("data-lib");
+    });
+  }
+  function brancherVolets(det){
+    Array.prototype.forEach.call(det.querySelectorAll("[data-ouvre]"), function(b){
+      b.setAttribute("data-lib", b.textContent);
+      b.onclick = function(){
+        var zs = volets(det, b.getAttribute("data-ouvre"));
+        var ouvrir = zs.length && zs[0].hidden;
+        fermerVolets(det);
+        if (!ouvrir) return;
+        zs.forEach(function(z){ z.hidden = false; });
+        b.textContent = TXT.FERMER;
+      };
+    });
+  }
+
   function wireDetail(mod){
     var det = root.querySelector("#qb-detail"); if (!det) return;
     brancherBascules(det);
+    brancherVolets(det);
     Array.prototype.forEach.call(det.querySelectorAll(".qb-act"), function(b){
       b.onclick = function(){ depuisBouton(mod, b); };
     });
@@ -765,6 +805,9 @@
   }
 
   function depuisBouton(mod, btn){
+    /* un paiement au prix affiché n'emporte pas les champs d'un volet ouvert */
+    var det = root.querySelector("#qb-detail");
+    if (det && !btn.closest('[data-zone^="revele:"], [data-zone*=" revele:"]')) fermerVolets(det);
     var m = btn.getAttribute("data-montant");
     return soumettre(mod, {
       act: btn.getAttribute("data-act") || "auto",
