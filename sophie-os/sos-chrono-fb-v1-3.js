@@ -271,10 +271,18 @@
               return String(MEMBRES[a]).localeCompare(String(MEMBRES[b]), 'fr'); })
             .map(function (u) { return '<option value="' + esc(u) + '">' + esc(MEMBRES[u]) + '</option>'; }).join('')
           + '</select>', TXT.F_UID_AIDE)
-      + champ(TXT.F_T, '<input type="text" data-f="t">', '', true)
-      + champ(TXT.F_X, '<textarea data-f="x"></textarea>', '', true)
-      + champ(TXT.F_A, '<input type="text" data-f="a">', TXT.F_A_AIDE, true)
-      + champ(TXT.F_IMG, '<input type="text" data-f="img" placeholder="https://…">', TXT.F_IMG_AIDE, true)
+      /* Colonne éditoriale : à gauche Titre, Aparté, Image ; à droite,
+         Texte, qui prend toute la hauteur de la colonne gauche. */
+      + '<div class="tdlch-duo">'
+      + '<div class="tdlch-col-g">'
+      + champ(TXT.F_T, '<input type="text" data-f="t">')
+      + champ(TXT.F_A, '<input type="text" data-f="a">', TXT.F_A_AIDE)
+      + champ(TXT.F_IMG, '<input type="text" data-f="img" placeholder="https://…">', TXT.F_IMG_AIDE)
+      + '</div>'
+      + '<div class="tdlch-col-d">'
+      + champ(TXT.F_X, '<textarea data-f="x"></textarea>')
+      + '</div>'
+      + '</div>'
       + '</div><div class="tdlch-form-pied"><button class="tdlch-btn" type="submit">' + esc(TXT.F_OK) + '</button>'
       + '<button class="tdlch-btn creux" type="button" data-annule>' + esc(TXT.F_ANNULE) + '</button>'
       + '<span class="tdlch-erreur" data-err></span></div>';
