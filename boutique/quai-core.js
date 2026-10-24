@@ -29,6 +29,11 @@
  *
  * [MAJ v7] PLUS AUCUN safeReadBin. Le prêt lit la seule cagnotte visée.
  *
+ * [MAJ v7-2] LISTES DE PERSONNAGES. api.pseudos() rend les personnages qu'un
+ *   joueur peut viser : ni le compte d'administration (uid 1), ni lui-même.
+ *   api.tousLesPseudos() garde la liste complète. api.enregistrerLot() écrit
+ *   plusieurs items du catalogue en un seul PATCH (remise à neuf des textes).
+ *
  * [MAJ v7-1] CARTES D'OPTION À RÉVÉLATION. Une carte peut ouvrir un volet
  *   (ui.optcard({ ouvre:"nom" }) + ui.zone("revele:nom", …)) au lieu de
  *   soumettre. Un bouton d'achat placé HORS de tout volet referme d'abord les
@@ -74,6 +79,7 @@
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
     EDIT_URL:       "https://thedrownedlands.forumactif.com/post?p=465&mode=editpost", /* [MAJ] */
     MONNAIE:        "$",
+    UID_EXCLUS:     [1],                   /* [MAJ] comptes jamais proposés comme cible */
     RETRY_MS:       250,
     RETRY_MAX:      60
   };
@@ -100,7 +106,7 @@
 
     CONFIRMER:     "Confirmer l'envoi de ta demande ?",
     CONF_RETENU:   function (m) { return money(m) + " seront retenus sur ton solde jusqu'à la décision du staff, et rendus en cas de refus."; },
-    CONF_RETENU_ACTE: function (m) { return money(m) + " seront retenus sur ton solde."; },
+    CONF_RETENU_ACTE: function (m) { return money(m) + " seront prélevés sur ton solde."; },
     CONF_DETTE:    function (n) { return "Une dette lourde (n°" + n + " sur " + CFG.MAX_DETTES_LOURDES + ") sera inscrite à ton nom dès maintenant. Elle sera effacée si le staff refuse."; },
 
     OK: {
@@ -523,6 +529,7 @@
   var cat = {};
   var etatMembre = { pseudo:null, solde:0, dettes:[], dettesBrut:{}, pretsBrut:{}, cooldowns:{} };
   var PSEUDOS = [];
+  var UIDS = {};           /* pseudo → uid, pour écarter les comptes exclus */
   var BANDES_INFO = {};
   var ENQUETES = [];
   var GELE = 0;
@@ -631,7 +638,12 @@
       if (!etatMembre.cooldowns) etatMembre.cooldowns = {}; etatMembre.cooldowns[id] = iso;
       try { await E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(p)+"/nego_cd/"+id, iso); } catch(e){}
     },
-    pseudos: function(){ return PSEUDOS; },
+    /* personnages qu'on peut viser : ni le compte d'administration, ni soi */
+    pseudos: function(){
+      var moi = pseudo();
+      return PSEUDOS.filter(function(p){ return p!==moi && CFG.UID_EXCLUS.indexOf(+UIDS[p]) < 0; });
+    },
+    tousLesPseudos: function(){ return PSEUDOS.slice(); },
     /* dettes du membre avec leur VRAIE clé Firebase : [{ key, d }] */
     dettes: function(){
       var src = etatMembre.dettesBrut, out = [];
@@ -655,6 +667,17 @@
       cat[mod.key][id] = mod.fusion ? (mod.fusion((function(){ var o={}; o[id]=item; return o; })())[id] || item) : item;
       if (item.cat) { st.band = item.cat; st.open = item.cat; }
       st.formMode=false; st.sel=id; render(); return true;
+    },
+    /* plusieurs items d'un coup, en un seul PATCH : items = { id: item } */
+    enregistrerLot: async function(items){
+      var mod = modByKey(st.tab), chemin = typeof mod.sousChemin==="string" ? mod.sousChemin : mod.key, maj = {};
+      Object.keys(items).forEach(function(id){ maj[CFG.NODE_BOUTIQUE + "/" + chemin + "/" + id] = items[id]; });
+      try { await E().firebaseUpdate(maj); }
+      catch(e){ if (window.console) console.error("[Quais] enregistrerLot", e); alert("Sauvegarde échouée."); return false; }
+      var fusion = mod.fusion ? mod.fusion(items) : items;
+      if (!cat[mod.key]) cat[mod.key] = {};
+      Object.keys(items).forEach(function(id){ cat[mod.key][id] = fusion[id] || items[id]; });
+      st.formMode=false; render(); return true;
     },
     annulerForm: function(){ st.formMode=false; render(); }
   };
@@ -851,12 +874,14 @@
         E().firebaseGet(CFG.NODE_DOSSIERS),
         E().firebaseGet(CFG.NODE_LOSTBAYOU)
       ]);
-      PSEUDOS = Object.keys(r[0] || {}).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
+      var mbs = r[0] || {};
+      UIDS = {}; Object.keys(mbs).forEach(function(p){ UIDS[p] = mbs[p] && mbs[p].uid; });
+      PSEUDOS = Object.keys(mbs).sort(function(a,b){ return String(a).localeCompare(String(b),"fr"); });
       BANDES_INFO = r[1] || {};
       ENQUETES = lireEnquetes(r[2]);
       GELE = calculerGel(r[3]);
       CREANCES = lireCreances(r[4]);
-    } catch(e){ PSEUDOS = []; BANDES_INFO = {}; ENQUETES = []; GELE = 0; CREANCES = []; }
+    } catch(e){ PSEUDOS = []; UIDS = {}; BANDES_INFO = {}; ENQUETES = []; GELE = 0; CREANCES = []; }
   }
   async function refresh(){
     etatMembre = await membre.lire();
