@@ -9,6 +9,9 @@
  *   par membre — grand livre (lourdes, légères, karmiques…), dettes de réseau
  *   de la Main, services dus aux piliers de la Flottille, prêts.
  *
+ * [MAJ v7-1] Champs du Comptoir rétablis à l'affichage (lien du RP, PNJ visé,
+ *   forme de la contrepartie), perdus à la réécriture de la liste.
+ *
  * [MAJ v7] DEUX ACTIONS, UN VOCABULAIRE. Une demande en attente se valide ou se
  *   refuse ; elle finit « Validée » ou « Refusée ». « Marquer traitée »,
  *   « Annuler & rembourser » et « Rouvrir » disparaissent : rouvrir une demande
@@ -97,7 +100,8 @@
     ["paiement","Paiement"],["prix_negocie","Prix proposé (négociation)"],["methode","Méthode"],["prix_final","Prix final"],["dice","Dé"],
     ["compensation","Compensation"],["prix_offert","Prix proposé"],["dette_argument","Ce qu'il offre à la Main"],
     ["reseau_cat","Catégorie du réseau"],["situation_main","Rôle dans le réseau"],["pret_contrepartie","Remboursement du prêt"],["montant_souhaite","Somme demandée"],
-    ["cible_type","Type de cible"],["cible_pj","PJ concerné"],["cible","Cible"],["rp_mission","Vocation RP"],
+    ["cible_type","Type de cible"],["cible_pj","PJ concerné"],["cible","Cible"],["cible_pnj","PNJ visé"],["rp_mission","Vocation RP"],
+    ["lien","Lien du RP"],["forme","Forme de la contrepartie"],
     ["lieu_vise","Lieu ou communauté visée"],["verrou_acces","Ce qui rend l'accès impossible"],["but_passage","Ce que le personnage va y faire"],["concours","Service dû à la Flottille"],
     ["duree_libelle","Durée d'absence"],["destination","Destination"],["motif_libelle","Motif du départ"],["dette_libelle","Dette fuie"],["enquete_titre","Affaire fuie"],
     ["restent","Reste derrière (PJ)"],["restent_pnj","Autres proches"],
@@ -109,6 +113,7 @@
   ];
   var VMAP = { methode:{ rp:"En RP", des:"Avec les dés" }, compensation:{ prix:"Prix", dette:"Dette lourde", reseau:"Réseau d'influence" },
                paiement:{ prix:"Prix indicatif", nego:"Négociation", comptant:"Comptant", service:"Service dû" },
+               forme:{ article:"Un article dans le Houma Courier", mj:"Un post MJ dans un évent" },
                pret_contrepartie:{ remboursement:"En monnaie", dette:"Par une dette lourde" }, reseau_cat:RESEAU_LIB, dispo:DISPO_LIB,
                cible_type:CIBLE_LIB, rp_mission:{ oui:"Oui — à jouer en RP" }, offrande_mode:OFFRANDE_MODE, offrande_creance_type:CREANCE_NATURE };
   var ONGLETS = [["en_attente","En attente"],["traitees","Traitées"],["toutes","Toutes"],["dettes","Gestion des dettes"]];
