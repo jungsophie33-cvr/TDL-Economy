@@ -156,7 +156,7 @@
     var ac = BHL.S.admin
       ? '<div class="actes"><button class="tdlb-ic" data-redit="'+escA(key)+'" title="'+BHL.T.modifier+'"><i class="fi fi-tr-pencil"></i></button>'
         + '<button class="tdlb-ic" data-rrm="'+escA(key)+'" title="'+BHL.T.retirer+'"><i class="fi fi-tr-trash"></i></button></div>' : "";
-    var nom = escH(p.pseudo) + (l.activite?' <span class="tdlb-fai-act">'+escH(l.activite)+'</span>':'')
+    var nom = escH(p.pseudo)
             + (p.uid?' <a class="tdlb-card-link" href="/u'+p.uid+'"><i class="fi fi-tr-arrow-up-right-from-square"></i></a>':'');
     return '<div class="tdlb-flo-pilier" style="--gc:'+p.couleur+'">'+ac
       + '<span class="av">'+(p.avatar?'<img src="'+escA(p.avatar)+'" alt="">':escH(ini(p.pseudo)))+'</span>'
