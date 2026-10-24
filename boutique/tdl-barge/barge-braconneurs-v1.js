@@ -10,12 +10,15 @@
  *   sans toucher au code. Si un prix est vidé, la fiche repasse en simple
  *   demande au staff.
  *
+ * [MAJ v2-1] Paiement par la carte « Payer comptant ». Sans prix, la fiche
+ *   repasse au bouton centré « Soumettre ma demande ».
+ *
  * À CHARGER avant barge-core.js.
  */
 (function () {
   "use strict";
   if (!window.Quais) { if (window.console) console.warn("[barge-braconneurs] quais-core absent."); return; }
-  var Q = window.Quais, ui = Q.ui;
+  var Q = window.Quais, ui = Q.ui, money = Q.money;
 
   var PRIX_PROVISOIRE = 300;   /* [MAJ] grille définitive à venir */
 
@@ -27,6 +30,9 @@
     PH_CIBLE:    "Nom, lieu, objet\u2026",
     L_PJ:        "Personnage joueur concerné *",
     ERR_PJ:      "Ce service exige un personnage joueur : choisis-le.",
+    C_COMPTANT:  "Payer comptant",
+    C_COMPTANT_D:"Règle le montant en dollars.",
+    C_PAYER:     "Payer maintenant",
     OK:          "Commande passée aux Braconneurs."
   };
 
@@ -44,6 +50,8 @@
       note:"Peut déclencher un évent de bande." }
   };
 
+  function aPrix(item){ return typeof item.p==="number" && item.p > 0; }
+
   function body(item, api){
     var pjs = api.pseudos().map(function(p){ return [p,p]; });
     return (item.tags ? '<div class="qb-dtag">'+ui.esc(item.tags)+'</div>' : "")
@@ -53,16 +61,16 @@
         + ui.rangee(item.pj
             ? ui.fld(T.L_PJ, ui.sel("cible_pj", pjs, "— Choisir un personnage —"))
             : ui.fld(T.L_CIBLE, ui.inp("cible", T.PH_CIBLE))))
-      + ui.envoi();
+      + (aPrix(item)
+          ? ui.options(ui.optcard({ ic:"fi fi-tr-dollar", titre:T.C_COMPTANT, desc:T.C_COMPTANT_D, prix:money(item.p),
+                                    btn:T.C_PAYER, act:"comptant", montant:item.p, pay:true }))
+          : ui.envoi());
   }
 
   var regles = {
     prix: {
-      resoudre: function(c, item){
-        return typeof item.p==="number" && item.p > 0
-          ? { act:"comptant", montant:item.p }
-          : { act:"demande", demandeType:"braconneurs" };
-      },
+      /* seul l'envoi sans prix passe par ici : la carte soumet l'acte comptant */
+      resoudre: function(){ return { act:"demande", demandeType:"braconneurs" }; },
       requis: [ ["cible_pj", T.ERR_PJ, function(c, a, item){ return !!item.pj; }] ],
       msg: T.OK
     }
