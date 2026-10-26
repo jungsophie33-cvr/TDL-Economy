@@ -1,5 +1,19 @@
 /*
- * bottin-fc-form.js — Formulaire de réservation membre · The Drowned Lands
+ * bottin-fc-form-v2-1.js — Formulaire de réservation membre · The Drowned Lands
+ *
+ * [MAJ v2-1]
+ *   - Lectures ciblées via firebaseGet : le solde ne lit plus que
+ *     « membres/{pseudo}/dollars », le renouvellement ne lit plus que la carte
+ *     « faceclaims/{cle} » et le solde du demandeur. Plus aucun readBin de
+ *     racine entière (~116 ko tirés pour deux valeurs).
+ *   - Plus d'invalidateCache : les deux occurrences sont devenues inutiles,
+ *     firebaseGet étant frais par construction (il ignore le cache de session).
+ *     Lire le solde après un débit redevient fiable sans vider le cache
+ *     partagé de toute la page.
+ *   - Prérequis corrigé : eco-core-v2.js puis bottin-fc-v3-6.js (l'en-tête
+ *     citait encore eco-core-v1-1.js et bottin-fc.js, qui n'existent plus).
+ *   - T.MOIS : le ternaire renvoyait " mois" dans les deux branches —
+ *     condition morte, simplifiée.
  *
  * CE QUE CE FICHIER FAIT : définit BottinFC.ouvrirReservation(), le hook appelé
  * par le bouton « Réserver un faceclaim » du bottin. Ouvre une modale à deux
@@ -14,7 +28,7 @@
  *   membres/{pseudo}/dollars avec re-contrôle des fonds ; 4) annulation de la
  *   carte si le débit échoue. L'occupation ne touche donc jamais à l'argent.
  *
- * PRÉREQUIS : eco-core-v1-1.js puis bottin-fc.js chargés AVANT (pour
+ * PRÉREQUIS : eco-core-v2.js puis bottin-fc-v3-6.js chargés AVANT (pour
  *   EcoCore.* et BottinFC.rafraichir). CSS : bottin-fc-form.css.
  *
  * CARTE DES BLOCS : CONFIG · TEXTES · UTILS · DONNÉES · MODALE · ÉCRANS · SOUMISSION
@@ -57,7 +71,8 @@ window.BottinFC = window.BottinFC || {};
     P_BTN: "Payer et réserver",
     EN_COURS: "Traitement…",
     CHARGEMENT: "Chargement…",
-    MOIS: function (n) { return n + (n > 1 ? " mois" : " mois"); },
+    // [MAJ v2-1] ternaire mort retiré : singulier et pluriel s'écrivent pareil
+    MOIS: function (n) { return n + " mois"; },
     OK_7J: function (a) { return "✅ « " + a + " » réservé 7 jours."; },
     OK_PRELIEN: function (a, m) { return "✅ Pré-lien « " + a + " » réservé (−" + m + " $)."; },
     ERR_ACTEUR: "⚠️ Le nom du faceclaim est requis.",
@@ -111,10 +126,10 @@ window.BottinFC = window.BottinFC || {};
   }
 
   /* === DONNÉES (lectures / écritures Firebase) === */
+  // [MAJ v2-1] lecture ciblée du seul nœud du membre — plus de racine entière
   function lireSolde(pseudo) {
-    return EcoCore.readBin().then(function (rec) {
-      return (rec && rec.membres && rec.membres[pseudo] && rec.membres[pseudo].dollars) || 0;
-    });
+    return EcoCore.firebaseGet("membres/" + encodeURIComponent(pseudo))
+      .then(function (m) { return (m && m.dollars) || 0; });
   }
 
   // Création atomique : refuse si l'acteur est déjà occupé, puis indexe l'UID.
@@ -237,7 +252,8 @@ window.BottinFC = window.BottinFC || {};
 
   function succes(ov, texte) {
     message(ov, texte, "ok");
-    if (EcoCore.invalidateCache) EcoCore.invalidateCache();
+    // [MAJ v2-1] majSoldeAffiche relit via firebaseGet : frais par construction,
+    // plus besoin de vider le cache de session de toute la page.
     majSoldeAffiche();
     setTimeout(function () { fermer(); if (NS.rafraichir) NS.rafraichir(); }, 1400);
   }
@@ -436,20 +452,25 @@ window.BottinFC = window.BottinFC || {};
   };
 
   // Renouvellement d'une carte pré-lien : détenteur (payant) ou staff (gratuit).
+  // [MAJ v2-1] deux lectures ciblées — la carte et le solde du demandeur — au
+  // lieu de la racine entière. Fraîches par construction : plus d'invalidateCache.
   NS.renouvelerCarte = function (cle) {
     var u = utilisateur();
     if (!u.pseudo || u.uid <= 0) return;
-    if (!window.EcoCore || typeof EcoCore.firebaseTransaction !== "function") return;
+    if (!window.EcoCore || typeof EcoCore.firebaseTransaction !== "function"
+        || typeof EcoCore.firebaseGet !== "function") return;
 
-    if (EcoCore.invalidateCache) EcoCore.invalidateCache();   // lecture fraîche : reliquat à jour
-    EcoCore.readBin().then(function (rec) {
-      var c = (rec && rec.faceclaims && rec.faceclaims[cle]) || null;
+    Promise.all([
+      EcoCore.firebaseGet("faceclaims/" + cle),
+      EcoCore.firebaseGet("membres/" + encodeURIComponent(u.pseudo))
+    ]).then(function (r) {
+      var c = r[0] || null;
       if (!c || c.statut !== "libre") return;                 // carte disparue / non pré-lien
       var admin = estAdmin();
-     var detenteur = (c.uid != null && String(c.uid) === String(u.uid));
+      var detenteur = (c.uid != null && String(c.uid) === String(u.uid));
       if (!admin && !detenteur) return;                       // double vérification de droit
       var gratuit = admin && !detenteur;                      // staff sur la carte d'un TIERS → gratuit
-      var solde = (rec.membres && rec.membres[u.pseudo] && rec.membres[u.pseudo].dollars) || 0;
+      var solde = (r[1] && r[1].dollars) || 0;
       ecranRenouv(ouvrir(), cle, c, solde, gratuit);          // détenteur (même admin) → payant
     }).catch(function () {});
   };
