@@ -1,6 +1,20 @@
 /*
  * tdlhc-core.js — Socle du journal « The Houma Courier » · TDL · lot 1
  *
+ * [MAJ v1-5]
+ *   - Lectures ciblées : fb() n'assemble plus la racine entière mais cinq
+ *     branches via firebaseGet — journal, enquetes, membres, dossiers_main,
+ *     emplois. Inventaire vérifié fichier par fichier : ce sont les seules
+ *     branches que lisent les vues, le volet, l'envoi, le bureau et le suivi.
+ *     Une branche illisible vaut absente (tolérance par branche), et
+ *     fbRacine() est exposé pour lireFrais() de tdlhc-envoi.
+ *   - Plus de cache racine partagé : la fraîcheur vient de firebaseGet, le
+ *     marteau invalidateCache disparaît de l'écosystème du journal.
+ *   - Correction : atterrissage en milieu de sujet (t102p50-…). L'ancienne
+ *     version rangeait le document courant comme page 1 : la vraie page 1
+ *     n'était jamais chargée et la numérotation des avis était fausse.
+ *     Le document est désormais rangé sous son vrai numéro de page.
+ *
  * CE QUE CE FICHIER FAIT :
  *   - monte l'interface depuis le premier message du sujet t102 (#tdlhc-app) ;
  *   - lit les pages du sujet, parse les enveloppes .tdlhc-data (contrat d'en-tête),
@@ -11,9 +25,10 @@
  *     externes et les ancres #hc=… des notifications.
  * CE QU'IL NE FAIT PAS : aucune écriture Firebase (lots 2 et 3).
  *
- * DÉPEND DE : window.EcoCore (safeReadBin, getPseudo).
+ * DÉPEND DE : window.EcoCore (firebaseGet, getPseudo).
  * EXPOSE : window.Courier (vue, ancre, api, boot).
  * À CHARGER : après eco-core, AVANT tdlhc-rendu et tdlhc-rendu-listes.
+ *   tdlhc-envoi v1-3 exige cette version (API.fbRacine).
  */
 (function () {
   "use strict";
@@ -25,10 +40,13 @@
     SEL_MSG_RACINE: ".sj-post-msg",         /* [MAJ] un message, pour isoler son ancre */
     SUJET_ID:       102,
     SUJET_SLUG:     "the-houma-courier",
-    PAR_PAGE:       25,
+    PAR_PAGE:       25,                     /* [MAJ v1-5] doit suivre le réglage FA « messages par page » */
     FORUM_HOME:     "https://thedrownedlands.forumactif.com/",
     NODE_JOURNAL:   "journal",
     NODE_ENQUETES:  "enquetes",
+    NODE_MEMBRES:   "membres",              /* [MAJ v1-5] branches de la racine synthétique */
+    NODE_DOSSIERS:  "dossiers_main",
+    NODE_EMPLOIS:   "emplois",
     AVIS_BASE:      { "2026": 380 },        /* numéro du premier avis de l'année = base + 1 */
     UNE_ARTICLES:   4,                      /* un dominant + trois secondaires */
     UNE_AVIS:       6,
@@ -41,6 +59,8 @@
   var CLES_URL = { IMAGE:1, RP:1 };
   var VUE_DU_TYPE = { "article":"articles", "lettre":"courrier", "etat-civil":"civil", "avis-legal":"legaux" };
   var MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  /* [MAJ v1-5] les cinq branches que l'écosystème du journal lit réellement */
+  var BRANCHES = [CFG.NODE_JOURNAL, CFG.NODE_ENQUETES, CFG.NODE_MEMBRES, CFG.NODE_DOSSIERS, CFG.NODE_EMPLOIS];
 
   var TXT = {
     FOLIO_G:    "Terrebonne Parish",
@@ -209,6 +229,11 @@
   var CLE_CACHE = CFG.CACHE + CFG.SUJET_ID + ":";
 
   function urlPage(n){ return "/t" + CFG.SUJET_ID + (n>1 ? "p" + ((n-1)*CFG.PAR_PAGE) : "") + "-" + CFG.SUJET_SLUG; }
+  /* [MAJ v1-5] numéro de la page physique où l'on a atterri : t102p50-… → 3e page */
+  function pageCourante(){
+    var m = new RegExp("^/t" + CFG.SUJET_ID + "p(\\d+)-").exec(location.pathname);
+    return m ? Math.max(1, Math.floor(parseInt(m[1], 10) / CFG.PAR_PAGE) + 1) : 1;
+  }
   function compterPages(doc){
     var re = new RegExp("/t" + CFG.SUJET_ID + "p(\\d+)-"), max = 0;
     boucle(doc.querySelectorAll("a[href]"), function(a){ var m = re.exec(a.getAttribute("href")); if (m) max = Math.max(max, parseInt(m[1],10)); });
@@ -245,17 +270,20 @@
     if (!l) { l = lireDoc(await docPage(n), n); cacheEcrire(n, l); }
     ranger(n, l); return l;
   }
-  /* Page 1 = le document courant. La dernière page est toujours relue : si le nombre
+  /* Le document courant est rangé sous SA page physique — même en atterrissant en
+     milieu de sujet [MAJ v1-5]. La dernière page est toujours relue : si le nombre
      de pages ou son dernier message a changé, tout le cache de la session est jeté. */
   async function initDonnees(){
     DATA.nbPages = compterPages(document);
-    ranger(1, lireDoc(document, 1));
+    var ici = pageCourante();
+    ranger(ici, lireDoc(document, ici));
     var der = DATA.nbPages, sig = String(der);
     if (der > 1) {
-      var l = lireDoc(await docPage(der), der);
+      /* si l'on est déjà sur la dernière page, on ne la relit pas : elle est en mémoire */
+      var l = (ici === der) ? DATA.pages[der] : lireDoc(await docPage(der), der);
       sig += ":" + (l.length ? l[l.length-1].ancre : "");
       if (cacheLire("sig") !== sig) cacheVider();
-      cacheEcrire(der, l); ranger(der, l);
+      if (ici !== der) { cacheEcrire(der, l); ranger(der, l); }
     }
     cacheEcrire("sig", sig);
     DATA.tout = der===1;
@@ -282,9 +310,20 @@
     var rang = contenus("avis-legal").filter(function(x){ return x.cles.DATE.slice(0,4)===an; }).reverse().indexOf(c);
     return rang < 0 ? null : an + "-" + ("000" + ((CFG.AVIS_BASE[an]||0) + rang + 1)).slice(-4);
   }
+  /* [MAJ v1-5] racine synthétique : cinq branches ciblées, fraîches par
+     construction (firebaseGet ignore le cache de session), tolérées une à une.
+     Inventaire des lecteurs : journal (vues, volet, bureau, suivi), enquetes
+     (rendu, bureau, envoi), membres/dossiers_main/emplois (envoi : solde, gel,
+     pigiste). Aucun autre consommateur ne touche à ces données. */
+  async function fbRacine(){
+    var res = await Promise.allSettled(BRANCHES.map(function(n){ return E().firebaseGet(n); }));
+    var out = {};
+    res.forEach(function(r, i){ if (r.status === "fulfilled") out[BRANCHES[i]] = r.value || {}; });
+    return out;
+  }
   async function fb(){
     if (DATA.fb) return DATA.fb;
-    try { DATA.fb = (await E().safeReadBin()) || {}; } catch(e){ DATA.fb = {}; }
+    try { DATA.fb = await fbRacine(); } catch(e){ DATA.fb = {}; }
     return DATA.fb;
   }
   function journal(root){ return (root && root[CFG.NODE_JOURNAL]) || {}; }
@@ -399,7 +438,7 @@
     n = n||0;
     var mount = document.querySelector(CFG.MONTAGE);
     if (!mount || !estPageJournal()) return;               /* pas la page du journal : on ne fait rien */
-    var eco = window.EcoCore && typeof EcoCore.safeReadBin==="function";
+    var eco = window.EcoCore && typeof EcoCore.firebaseGet==="function";   /* [MAJ v1-5] lectures ciblées */
     if (eco && VUES.length) { cb(mount); return; }
     if (n > CFG.RETRY_MAX) {
       if (window.console) console.warn("[Courier] démarrage impossible — eco:" + !!eco + " vues:" + VUES.length);
@@ -427,7 +466,7 @@
     contenus:contenus, chargerJusqua:chargerJusqua, chargerTout:chargerTout,
     toutCharge:function(){ return DATA.tout; },
     parAncre:function(a){ return DATA.parAncre[a] || null; },
-    numeroAvis:numeroAvis, fb:fb, journal:journal,
+    numeroAvis:numeroAvis, fb:fb, fbRacine:fbRacine, journal:journal,
     fbInvalider:function(){ DATA.fb = null; },
     pseudo:pseudo, isStaff:isStaff, estPageJournal:estPageJournal,
     slot:function(cote){ return root && root.querySelector("#tdlhc-slot-" + cote); },
