@@ -37,6 +37,12 @@
    toutes les écoutes sur une seule websocket. À défaut, EventSource (streaming
    REST). À défaut encore, interrogation ciblée.
 
+   [MAJ v2-2] LE MÉMO SUIVRA LE PLAFOND. GLOB_MAX passe de 20 à 50, même
+   valeur que le plafond de l'émetteur (sos-emi-notif v3-9) : ce que la
+   base conserve est exactement ce que la liste peut rappeler. Au-delà,
+   l'émetteur efface l'annonce ET ses états lues/masquees — une annonce
+   disparue ne réapparaîtra donc jamais comme non lue.
+
    PIÈGE POTION : le morphing recopie tous les attributs SAUF @… et #…, donc un
    handler @click lié à une ligne réutilisée pointe encore l'ancien contexte.
    deleteNotif lit donc TOUJOURS l'id dans le DOM, jamais dans le closure. */
@@ -59,7 +65,9 @@ var CFG = {
   PLAFOND:    30,               /* notifs personnelles conservées */
   PURGE_J:    30,
   DELAI_PURGE:8000,             /* [MAJ v2] le flux doit d'abord livrer le nœud */
-  GLOB_MAX:   20,               /* annonces globales relues */
+  GLOB_MAX:   50,               /* [MAJ v2-2] aligné sur le plafond de l'émetteur
+                                   (sos-emi-notif v3-9) : les 50 dernières
+                                   annonces restent consultables en mémo. */
   CLE_TS:     "tdl_notif_fa_ts" /* horodatage local des notifs FA */
 };
 
