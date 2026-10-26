@@ -396,7 +396,7 @@
 
   function htmlSecRec(liste) {
     var h = '<div class="tdlfl-sec tdlfl-rec">';
-    h += htmlHead('Recherche de liens rapide';
+    h += htmlHead('Recherche de liens rapide');
     h += '<div class="srec-grid">';
     liste.forEach(function (r) {
       h += '<div class="srec-card">' +
@@ -431,7 +431,7 @@
 
   function htmlSecRps(liste) {
     var h = '<div class="tdlfl-sec tdlfl-rps">';
-    h += htmlHead('Listing des sujets rp';
+    h += htmlHead('Listing des sujets rp');
     h += '<div class="srp-filtre"><span>sujets rp avec <b class="srp-filtre-qui"></b></span>' +
       '<button type="button" class="srp-filtre-reset">réinitialiser</button></div>';
     var cur = null, ouvert = false;
