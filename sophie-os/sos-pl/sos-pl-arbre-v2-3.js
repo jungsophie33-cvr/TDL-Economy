@@ -9,7 +9,7 @@
    Rendu D'ABORD depuis le texte, enrichissement ENSUITE : si la base tarde ou
    tombe, la lignée reste lisible.
 
-   Dépendances : eco-core-v1-5.js, puis tdlpl-core.js. Dans cet ordre.
+   Dépendances : eco-core-v2.js, puis tdlpl-core.js. Dans cet ordre.
    ========================================================================== */
 
 (function () {
@@ -172,7 +172,10 @@
   function urlFiche(p, base) {
     if (!base) return '#' + p.slug;
     var parts = base.split('#');
-    return parts[0] + '?fiche=' + p.slug + (parts[1] ? '#' + parts[1] : '');
+    /* [MAJ v2-3] une URL FA qui porte déjà une query (?t=…) obtenait un
+       double « ? ». On insère avec & dans ce cas. */
+    var sep = parts[0].indexOf('?') >= 0 ? '&' : '?';
+    return parts[0] + sep + 'fiche=' + p.slug + (parts[1] ? '#' + parts[1] : '');
   }
 
   function htmlLien(p, base) {
