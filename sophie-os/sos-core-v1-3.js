@@ -1,6 +1,10 @@
 /* =============================================================
    SOS — Sophia OS · NOYAU (sos-core.js)
    -------------------------------------------------------------
+   [v1-3] Correction du diagnostic « clé hors bloc » : l'avertissement
+   se déclencherait sur TOUTE clé de TOUT bloc (panneau vu, donc
+   signalée), noyant les vrais problèmes. Il ne se déclenche plus
+   que pour une clé réellement hors de tout bloc après un panneau.
    Rôle unique : transformer des posts ForumActif en enregistrements
    structurés. Le noyau ne connaît NI « communautés » NI le sens des
    blocs — il livre des données, le rendu (sos-annexe.js) s'en occupe.
@@ -140,7 +144,7 @@
         }
         // clé hors bloc et après un panneau : ignorée, mais signalée —
         // un rédacteur qui a perdu son « --- BLOC --- » le voit en console.
-        if (panneauVu) { console.warn('SOS: clé « ' + cle + ': » hors bloc (après « === PANNEAU === ») — ignorée'); }
+        if (!bloc && panneauVu) { console.warn('SOS: clé « ' + cle + ': » hors bloc (après « === PANNEAU === ») — ignorée'); }
         continue;
       }
 
