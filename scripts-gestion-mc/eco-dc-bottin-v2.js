@@ -1,17 +1,26 @@
 /*
- * eco-dc-bottin.js — Répertoire public des multi-comptes · TDL
+ * eco-dc-bottin-v2.js — Répertoire public des multi-comptes · TDL
  *
- * CE QUE CE FICHIER FAIT : lit rec.doubles_comptes et affiche la liste des groupes
+ * [MAJ v2] lecture ciblée : doubles_comptes et uid_index sont lus par
+ * firebaseGet, plus par safeReadBin qui tirait la racine entière. Chaque
+ * branche est tolérée séparément : sans uid_index, les pseudos s'affichent
+ * en texte (dégradation déjà prévue) ; seul l'échec de doubles_comptes
+ * bloque l'affichage. rafraichirBottin, rappelé par eco-dc-gestion-v2 après
+ * ses écritures, est désormais frais par construction — firebaseGet ignore
+ * le cache de session, là où l'ancienne version dépendait de sa cohérence.
+ *
+ * CE QUE CE FICHIER FAIT : lit doubles_comptes et affiche la liste des groupes
  * dans .affichage-dc. Si les UIDs sont stockés, génère de vrais liens mentiontag
  * avec tooltip (même rendu que @"Pseudo" posté en BBCode). Sinon, affichage texte.
- * CE QU'IL NE FAIT PAS : aucune écriture JSONBin, aucune logique staff.
+ * CE QU'IL NE FAIT PAS : aucune écriture, aucune logique staff.
  *
  * CARTE DES BLOCS :
  *   MENTION  — génération HTML des liens mention avec ou sans UID
- *   RENDER   — construction de la liste depuis rec.doubles_comptes
+ *   RENDER   — construction de la liste depuis doubles_comptes
  *   INIT     — points d'entrée exposés sur window.DC
  *
- * Dépend de : eco-dc-config.js, window.EcoCore
+ * Dépend de : eco-dc-config.js, eco-dc-utils.js, window.EcoCore (firebaseGet).
+ * Remplace : eco-dc-bottin.js.
  */
 
 (function (DC, CFG) {
@@ -93,10 +102,24 @@
   async function afficherBottin(zoneEl) {
     zoneEl.textContent = "Chargement du répertoire…";
 
-    const rec = await window.EcoCore.safeReadBin();
-    if (!rec) { zoneEl.innerHTML = "<em>Impossible de charger les données.</em>"; return; }
+    if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
+      zoneEl.innerHTML = "<em>Impossible de charger les données.</em>";
+      return;
+    }
 
-    zoneEl.innerHTML = construireHTML(rec.doubles_comptes, rec.uid_index || {});
+    /* [MAJ v2] deux lectures ciblées, tolérées séparément */
+    const [resDC, resUID] = await Promise.allSettled([
+      window.EcoCore.firebaseGet("doubles_comptes"),
+      window.EcoCore.firebaseGet("uid_index"),
+    ]);
+    if (resDC.status !== "fulfilled") {
+      zoneEl.innerHTML = "<em>Impossible de charger les données.</em>";
+      return;
+    }
+    const doublesComptes = resDC.value || {};
+    const uidIndex = resUID.status === "fulfilled" ? (resUID.value || {}) : {};
+
+    zoneEl.innerHTML = construireHTML(doublesComptes, uidIndex);
     initialiserTooltips(zoneEl);
   }
 
