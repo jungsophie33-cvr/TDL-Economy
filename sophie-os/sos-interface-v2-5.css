@@ -1,3 +1,8 @@
+/* [MAJ v2-5] nettoyage : le !important de .narr-card.deplie rendait
+   inopérant le recalcul de largeur du bloc déplié (rendreDuo) ; règles
+   mortes retirées (.p-stub, .prose2, .sos-charge-txt, .sos-lecteur.cache,
+   .e2top top), double align-items de .duo réduit. Aucun rendu légitime
+   ne change — sauf le bloc déplié, qui suit ENFIN son redimensionnement. */
 html:has(.sos-app) #min-width, body:has(.sos-app), #wrap:has(.sos-app), #sj-main:has(.sos-app) {min-width:0;overflow:hidden;}
 /* ----- VOILE DE CHARGEMENT ANNEXES SOS ---- */
 /* voile de pré-chargement : couvre le forum brut jusqu'au montage de SOS */
@@ -115,7 +120,6 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .sos-orbite{position:relative;width:52px;height:52px;border-radius:50%;border:1px solid var(--darkopa3);animation:sos-tour 1.15s linear infinite}
 .sos-bille{position:absolute;top:-4px;left:50%;width:9px;height:9px;margin-left:-4.5px;border-radius:50%;background:var(--gradark)}
 @keyframes sos-tour{to{transform:rotate(360deg)}}
-.sos-charge-txt{position:absolute;margin-top:92px;font-family:var(--txt3);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--darkopa6)}
 
 /* =========================================================
    LECTEUR AUDIO — placeholder VISUEL, clair (logique à venir)
@@ -126,7 +130,6 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
   padding:5px 10px 5px 7px;background:var(--clair1opa4);border:1px solid var(--cntr5);border-radius:40px;
   -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
 }
-.sos-lecteur.cache{display:none}
 .lec-btn{width:24px;height:24px;flex:0 0 auto;border:0;border-radius:50%;background:var(--gradark);color:var(--clair1);display:grid;place-items:center;cursor:pointer;font-size:10px}
 .lec-info{display:flex;flex-direction:column;line-height:1.25}
 .lec-titre{font-family:var(--font2);font-style:italic;font-size:12px;color:var(--dark)}
@@ -222,12 +225,12 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .zz-row h3 i{font-size:24px;color:var(--commu)}
 .zz-row p{font-family:var(--txt3);font-size:15px;line-height:1.55;text-align:justify}
 .zz-row .renvoi{margin-top:10px;display:inline-flex;gap:6px;align-items:center;font-family:var(--txt3);font-size:15px;color:var(--commu);border-bottom:1px solid var(--gr1-40);padding-bottom:2px;cursor:pointer}
-.duo{display:flex;align-items:flex-start;gap:40px;align-items:stretch;margin:0 auto 52px;justify-content:space-evenly;}
+.duo{display:flex;gap:40px;align-items:stretch;margin:0 auto 52px;justify-content:space-evenly;}   /* [MAJ v2-5] un seul align-items */
 .trans{flex:1 1 auto;min-width:35%;border-left:3px solid var(--commu);padding-left:24px;align-self:center;max-width:550px;}
 .trans p{font-family:var(--txt3);font-size:15px;line-height:1.7;text-align:justify;margin-bottom:12px}
 .trans .fort{font-weight:600;color:var(--dark)}
 .narr-card{flex:0 0 auto;max-width:100%;overflow:hidden;transition:width .55s cubic-bezier(.22,.61,.36,1);background:var(--cntr3);border:1px solid var(--cntr5);border-radius:5px;padding:24px 28px;text-align:justify;-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);}
-.narr-card.deplie {width:65%!important;}
+.narr-card.deplie {width:65%;}   /* [MAJ v2-5] sans !important : la largeur inline calculée par ouvrir() reprend la main */
 .narr-card h4{font-family:var(--txt3);font-size:14px;text-transform:uppercase;font-weight:400;color:var(--commu);}
 .narr-card p{font-family:var(--txt2);font-size:17px;line-height:1.4;}
 .narr-corps{overflow:hidden;transition:max-height .55s cubic-bezier(.22,.61,.36,1)}
@@ -235,8 +238,6 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .narr-plus:hover{color:var(--dark)}
 .narr-card.deplie .narr-plus{display:none}
 
-.prose2{max-width:90%;margin:0 auto 52px;column-count:2;column-gap:54px;column-rule:1px solid var(--dark2opa2);font-family:var(--txt3);font-size:15px;line-height:1.6;text-align:justify}
-.prose2 p{margin-bottom:12px;break-inside:avoid}
 .essor{max-width:90%;margin:0 auto 52px;padding:30px 40px 20px;border:1px solid var(--cntr5);border-radius:8px;background:var(--clair1opa2);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
 .essor > .eyebrow{margin-bottom:20px}
 .essor-cols{display:grid;grid-template-columns:1fr 1fr;gap:46px}
@@ -254,14 +255,9 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
 .concl .body p:last-child {font-family:var(--font2);font-style:italic;text-align:right;}
 .suite2{display:flex;justify-content:center;padding:34px 0 54px;color:var(--commu);position:relative;z-index:4}
 .suite2 svg{stroke:currentColor}
-.p-stub{background:var(--clair1);display:grid;place-items:center;text-align:center;color:var(--darkopa5)}
-.p-stub .fleur{width:38px;height:38px;background:var(--fleurlys) center/contain no-repeat;opacity:.55;margin-bottom:16px}
-.p-stub h3{font-family:var(--font2);font-size:30px;color:var(--dark);margin-bottom:8px}
-.p-stub p{font-family:var(--txt3);font-size:15px;letter-spacing:.08em;text-transform:uppercase}
 @media(max-width:990px){
   .sos-tabs{gap:16px;padding:14px 18px;font-size:13px;overflow-x:auto;white-space:nowrap}.sos-tab .num{font-size:13px}.sos-dots{display:none}
   .hero-in{grid-template-columns:1fr;padding:0 26px}.hero-toc{display:none}
-  .e2top {top:50px;}
   .ouv{padding:44px 22px;min-height:52vh}
   .e2wrap{padding:0 20px}.cle{padding:30px 26px;max-width:100%;}
   .cle .bgic{font-size:130px}
@@ -270,7 +266,7 @@ html.sos-pret .sos-preload{ opacity:0; pointer-events:none; }  /* SOS monté -> 
   .zz-row img{order:0!important;width:150px;height:auto;aspect-ratio:16/9}
   .zz-row .txt{order:1!important}
   .zz-row.d h3{justify-content:flex-start}
-  .duo{flex-direction:column}.prose2{column-count:1;column-rule:none}.essor-cols{grid-template-columns:1fr}
+  .duo{flex-direction:column}.essor-cols{grid-template-columns:1fr}
   .narr-card{width:auto!important;flex:1 1 auto}
   .narr-corps{max-height:none!important}.narr-plus{display:none}
   .essor {max-width:100%;}
