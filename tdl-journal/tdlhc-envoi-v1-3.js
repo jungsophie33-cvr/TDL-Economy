@@ -1,6 +1,21 @@
 /*
  * tdlhc-envoi.js — Contrôles et écriture des soumissions · The Houma Courier · TDL · lot 2
  *
+ * [MAJ v1-3]
+ *   - lireFrais() lit la racine synthétique de tdlhc-core v1-5 (A.fbRacine :
+ *     journal, enquetes, membres, dossiers_main, emplois, par firebaseGet)
+ *     au lieu d'invalidateCache + safeReadBin. Fraîcheur par construction :
+ *     le marteau qui vidait le cache racine de toute la page disparaît.
+ *     Le contrat est inchangé pour ses appelants (bureau, suivi).
+ *   - recrediter() ne peut plus échouer en silence : deux essais, puis une
+ *     trace console et un message honnête — l'ancienne version rendait le
+ *     message « rien n'a été retenu sur ton solde » faux en cas d'échec du
+ *     recrédit après un échec d'écriture.
+ *   - Les sous-types « commande » et « commande-une » ne sont pas morts : ils
+ *     sont posés par la boutique (tdl-article-achat-v1.js, circuit presse du
+ *     Comptoir) et lus par le bureau (plancher, classement en une). Conservés
+ *     et documentés.
+ *
  * CE QUE CE FICHIER FAIT :
  *   - prépare le contexte d'un formulaire (pigiste ?, articles, affaires, enquêtes classées) ;
  *   - affiche le quota restant et prévient d'un solde insuffisant dès l'ouverture ;
@@ -12,7 +27,8 @@
  * CE QU'IL NE FAIT PAS : aucune publication, aucun versement (lot 3).
  *
  * DÉPEND DE : window.Courier, window.Courier.volet, window.EcoCore
- *   (safeReadBin, invalidateCache, firebaseUpdate, firebaseTransaction, getPseudo, getUserId).
+ *   (firebaseUpdate, firebaseTransaction, getPseudo, getUserId).
+ *   Exige tdlhc-core v1-5 (API.fbRacine).
  * À CHARGER : après tdlhc-volet.
  */
 (function () {
@@ -25,6 +41,11 @@
     NODE_EMPLOIS:  "emplois",           /* [MAJ] emplois/<lieu>/roles */
     LIEU_COURIER:  "lieu_muckgpoh",     /* [MAJ] The Houma Courier dans le bottin des métiers */
     PRIX:          { annonce:30, prelien:50 },
+    /* [MAJ v1-3] commande / commande-une : sous-types posés par la boutique
+       (tdl-article-achat), pas par le formulaire du journal — le volet n'offre
+       que correspondant et pigiste. REMUNERATION à 0 : l'argent passe par la
+       boutique, la caisse du journal n'encaisse rien. PLANCHER : lu par le
+       bureau pour le plancher de signes. */
     REMUNERATION:  { correspondant:50, pigiste:80, commande:0, "commande-une":0 },
     PLANCHER:      { correspondant:2500, pigiste:4000, commande:2000, "commande-une":3000 },
     QUOTAS:        { annonce:{ n:2, p:"mois" }, rumeur:{ n:1, p:"semaine" }, lettre:{ n:1, p:"mois" }, correspondant:{ n:2, p:"mois" } },
@@ -38,6 +59,7 @@
     NON_CONNECTE:"Connecte-toi pour soumettre au Courier.",
     ERR_LECTURE:"Impossible de lire la base pour l'instant. Réessaie dans un instant.",
     ERR_ECRITURE:"L'envoi a échoué — rien n'a été retenu sur ton solde.",
+    ERR_RETOUR:function(p){ return "L'envoi a échoué et " + p + " $ n'ont pas pu te être rendus automatiquement. Préviens le staff : la caisse sera corrigée à la main."; },
     REQUIS:function(c){ return "Champ obligatoire : " + c + "."; },
     URL:function(c){ return c + " : un lien vers un sujet du forum est attendu."; },
     IMAGE:"Image : un lien commençant par https:// est attendu.",
@@ -67,8 +89,11 @@
   function E(){ return window.EcoCore; }
   function vt(v){ return A.versTableau(v); }
   function J(root){ return A.journal(root); }
+  /* [MAJ v1-3] racine synthétique ciblée du core v1-5 : fraîche par construction.
+     Le contrat est conservé : null en cas d'échec complet, consommé tel quel
+     par le bureau (etat.db) et le suivi. */
   async function lireFrais(){
-    try { if (E().invalidateCache) E().invalidateCache(); return (await E().safeReadBin()) || {}; } catch(e){ return null; }
+    try { return await A.fbRacine(); } catch(e){ return null; }
   }
   function nouvelId(){ return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function mois(d){ var x = new Date(d); return x.getFullYear() + "-" + ("0" + (x.getMonth()+1)).slice(-2); }
@@ -177,8 +202,18 @@
       var s = cur || 0; if (s - g < prix) throw new Error("FONDS"); return s - prix;
     });
   }
+  /* [MAJ v1-3] plus d'échec silencieux : deux essais, puis trace console et
+     retour false — l'appelant affiche alors un message honnête au lieu de
+     promettre un solde intact qui ne l'est pas. */
   async function recrediter(p, prix){
-    await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0) + prix; }).catch(function(){});
+    for (var i = 0; i < 2; i++) {
+      try {
+        await E().firebaseTransaction(CFG.NODE_MEMBRES + "/" + encodeURIComponent(p) + "/dollars", function(cur){ return (cur||0) + prix; });
+        return true;
+      } catch(e){}
+    }
+    if (window.console) console.error("[Courier] RECRÉDIT ÉCHOUÉ — " + prix + " $ retenus sans soumission pour " + p + " : correction manuelle nécessaire.");
+    return false;
   }
   /* dest : pseudo(s), « staff » (ou null), « tous » ; ref : clé anti-doublon de l'émetteur */
   function notifier(code, dest, vars, ref){
@@ -226,7 +261,13 @@
                                                          montant:-prix, etat:"retenu", soum:id };
     Object.keys(maj).forEach(function(k){ if (maj[k]===undefined) delete maj[k]; else maj[k] = sansUndefined(maj[k]); });
     try { await E().firebaseUpdate(maj); }
-    catch(e){ if (prix) await recrediter(p, prix); if (window.console) console.error("[Courier] envoi", e); return { erreurs:[TXT.ERR_ECRITURE] }; }
+    catch(e){
+      if (prix) {
+        var rendu = await recrediter(p, prix);
+        if (!rendu) return { erreurs:[TXT.ERR_RETOUR(prix)] };
+      }
+      if (window.console) console.error("[Courier] envoi", e); return { erreurs:[TXT.ERR_ECRITURE] };
+    }
 
     A.fbInvalider();
     notifier(reprise ? CFG.N_REPRISE : CFG.N_SOUMISSION, "staff", { pseudo:p, titre:b.meta.titre, url:lien("bureau-" + id) },
@@ -269,7 +310,7 @@
     C.envoi = { CFG:CFG, gel:gel, solde:solde, estPigiste:estPigiste, compter:compter, notifier:notifier, lien:lien, lireFrais:lireFrais };
   }
   (function attendre(n){
-    if (window.Courier && window.Courier.volet) { demarrer(); return; }
+    if (window.Courier && window.Courier.volet && window.Courier.api && window.Courier.api.fbRacine) { demarrer(); return; }
     if ((n||0) < 60) setTimeout(function(){ attendre((n||0)+1); }, 250);
   })();
 })();
