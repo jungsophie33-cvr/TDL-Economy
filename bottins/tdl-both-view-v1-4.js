@@ -6,6 +6,11 @@
            EVENTS · INIT · BOOT
    Écritures optimistes : mutation locale + render, puis PATCH async
    (toast si échec), à la manière du panneau des enquêtes.
+
+   [MAJ v1-4] L'ÉDITION STAFF PORTE SUR LE STRUCTUREL UNIQUEMENT :
+   nom, prix, tags amb/com, types. Les champs edImg, edVois et edDesc
+   disparaissent — la lore (image d'en-tête, voisinage, description)
+   vit dans le catalogue JS du modèle, elle ne se touche plus ici.
    ============================================================ */
 (function (BH) {
   "use strict";
@@ -72,7 +77,6 @@
         <div class="tdlh-qeyebrow">${escH(q.zone)}</div>
         <input class="tdlh-edit-title" id="edNom" value="${escA(q.nom)}">
         <div class="tdlh-edit-hrow">
-          <input class="tdlh-ein" id="edImg" placeholder="URL de l'image d'en-tête" value="${escA(q.image||"")}">
           <input class="tdlh-ein short" id="edPrix" placeholder="Prix" value="${escA(q.prix)}">
         </div>
         <div class="tdlh-tags">${tagsEditHTML("amb")}</div>
@@ -84,12 +88,10 @@
           ${q.amb.map(a=>`<span class="tag-amb">${escH(a)}</span>`).join("")}
           ${q.com.map(c=>`<span class="tag-com">${escH(c)}</span>`).join("")}
         </div>`;
-    const vois = ed
-      ? `<div class="tdlh-sec"><div class="tdlh-vois"><span class="lbl">${T.voisinage}</span><input class="tdlh-ein" id="edVois" value="${escA(q.vois)}"></div></div>`
-      : `<div class="tdlh-sec"><div class="tdlh-vois"><span class="lbl">${T.voisinage}</span><span class="val">${escH(q.vois)}</span></div></div>`;
-    const desc = ed
-      ? `<div class="tdlh-sec"><textarea class="tdlh-ein" id="edDesc" rows="5">${escH(q.desc)}</textarea></div>`
-      : `<div class="tdlh-sec"><p class="tdlh-desc">${escH(q.desc)}</p></div>`;
+    /* [MAJ v1-4] vois et desc restent en lecture seule, même en édition :
+       ils viennent du catalogue JS du modèle, plus de la base. */
+    const vois = `<div class="tdlh-sec"><div class="tdlh-vois"><span class="lbl">${T.voisinage}</span><span class="val">${escH(q.vois)}</span></div></div>`;
+    const desc = `<div class="tdlh-sec"><p class="tdlh-desc">${escH(q.desc)}</p></div>`;
     $(SEL.panneau).innerHTML = `
       <div class="tdlh-hero">
         <div class="qimg" style="${img}"></div><div class="qveil"></div>
@@ -204,7 +206,9 @@
   }
   function createQuartier(){
     let base="quartier", k=base, i=1; while(BH.QUARTIERS[k]) k=base+(++i);
-    BH.QUARTIERS[k] = {nom:T.nouveauQuartier, zone:BH.BAYOU, prix:"$ à $$", amb:[], com:[], vois:"", desc:"", types:[T.typeParDefaut]};
+    /* [MAJ v1-4] pas de vois/desc/image : la lore d'un nouveau quartier se
+       rédige dans le catalogue JS du modèle — ici elle naîtrait vide. */
+    BH.QUARTIERS[k] = {nom:T.nouveauQuartier, zone:BH.BAYOU, prix:"$ à $$", amb:[], com:[], types:[T.typeParDefaut]};
     BH.ORDRE.push(k); BH._createKey=k; BH._snap=null;
     BH.S.tab=k; BH.S.mode="panneau"; BH.S.type=null; BH.S.editing=true; render();
   }
@@ -349,10 +353,7 @@
     $(SEL.panneau).addEventListener("input",e=>{
       if(!BH.S.editing) return; const q=BH.QUARTIERS[BH.S.tab], t=e.target;
       if(t.id==="edNom"){ q.nom=t.value; const b=document.querySelector(`#${SEL.tabs} button[data-tab="${BH.S.tab}"]`); if(b) b.textContent=t.value; }
-      else if(t.id==="edImg"){ q.image=t.value; const im=document.querySelector(".tdlh-hero .qimg"); if(im) im.style.backgroundImage=t.value?`url('${t.value}')`:""; }
       else if(t.id==="edPrix") q.prix=t.value;
-      else if(t.id==="edVois") q.vois=t.value;
-      else if(t.id==="edDesc") q.desc=t.value;
     });
     $(SEL.mur).addEventListener("click",e=>{
       const fc=e.target.closest(".tdlh-fc"); if(!fc) return;
