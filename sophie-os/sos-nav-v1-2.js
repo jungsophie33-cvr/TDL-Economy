@@ -16,6 +16,21 @@
      3. VOILE DE CHARGEMENT — feedback discret, affiché seulement si la
         latence dépasse 180 ms (pas de flash sur connexion rapide).
 
+   [MAJ v1-2] ANNEXES MULTIPAGES ET ÉCHEC DOUX.
+     · Un topic d'annexe qui déborde sur /t38p25-… était chargé pour sa
+       seule première page : les panneaux des pages suivantes étaient
+       perdus, sans erreur. chargerTopic sonde désormais la pagination
+       du topic fetché (SOS.detecterPages, [MAJ v1-2] du noyau) et
+       charge toutes ses pages (jusqu'à 12) avant de reconstruire.
+     · L'échec d'un chargement ne RECHARGE PLUS la page : le repli
+       location.href coupait la musique et l'ambiance, précisément ce
+       que cette couche existe pour préserver. On reste sur l'annexe
+       courante, avec un avis discret et un avertissement console.
+     · Le marqueur « vous êtes ici » du sommaire compare l'ID du sujet
+       (/t38), pas le préfixe de l'URL : un renommage ou une pagination
+       ne provoquera plus de faux positifs (ancien bug : /t38-033
+       marqué courant pour l'annexe /t38-03).
+
    Couche OPTIONNELLE : si ce fichier n'est pas chargé, la coquille
    fonctionne seule (navigation intra-annexe, « sujet: » en nouvel
    onglet, pas de bouton sommaire).
@@ -30,12 +45,13 @@
   if (!SOS) { console.error('sos-nav.js : sos-core.js doit être chargé avant.'); return; }
   var h = SOS.h;
 
-  /* URL de repli si un chargement in-page échoue (fetch KO ou aucune
-     donnée tdl-data dans le topic cible). */
-  var GUIDE = 'https://thedrownedlands.forumactif.com/f1-guidebook';
+  /* (l'ancien repli GUIDE — rechargement complet — est retiré en
+     v1-2 : il coupait le lecteur audio. On reste désormais en place.) */
 
   function shell() { return SOS.shell || {}; }
   function normPath(p) { return String(p || '').replace(/\/+$/, ''); }
+  /* [MAJ v1-2] ID de sujet (/t38), indépendant du slug et de la page. */
+  function sujetId(p) { var m = String(p || '').match(/^\/t(\d+)/); return m ? m[1] : ''; }
   function absolu(url) {
     try { return new URL(url, location.href).href; } catch (e) { return url; }
   }
@@ -83,8 +99,10 @@
         var carte = h('a', 'somm-carte');
         carte.href = e.url;                        // vraie URL : repli si JS off / clic milieu
         carte.setAttribute('data-annexe', e.url);  // hook navigation in-page (géré par la coquille)
-        var cible = normPath(e.url.replace(/^https?:\/\/[^\/]+/, ''));
-        if (ici && cible && ici.indexOf(cible) === 0) { carte.classList.add('courant'); }
+        /* [MAJ v1-2] « courant » par ID de sujet : page (p25) et
+           renommage du slug ne provoquent plus de faux positifs. */
+        var idCible = sujetId(normPath(e.url.replace(/^https?:\/\/[^\/]+/, '')));
+        if (sujetId(ici) && idCible && sujetId(ici) === idCible) { carte.classList.add('courant'); }
         var ic = (e.icone || '').trim();
         if (ic) { carte.appendChild(h('i', 'somm-ic fi ' + ic)); }
         carte.appendChild(h('h3', 'somm-nom', e.titre || ''));
@@ -107,6 +125,41 @@
   /* =========================================================
      CHARGEMENT IN-PAGE D'UN TOPIC (le cœur de la fluidité)
      ========================================================= */
+  /* Avis discret d'échec — styles inline : aucune dépendance CSS,
+     retiré tout seul. On ne recharge JAMAIS la page (voir en-tête). */
+  function avisEchec(msg) {
+    var app = shell().app;
+    if (!app) { return; }
+    var d = document.createElement('div');
+    d.setAttribute('role', 'status');
+    d.style.cssText = 'position:absolute;left:50%;bottom:76px;transform:translateX(-50%);'
+      + 'padding:10px 22px;border-radius:6px;background:rgba(20,16,12,.88);color:#f3ead9;'
+      + 'font-size:13px;letter-spacing:.06em;z-index:60;pointer-events:none;';
+    d.textContent = msg;
+    app.appendChild(d);
+    setTimeout(function () { d.remove(); }, 4200);
+  }
+
+  /* [MAJ v1-2] pages suivantes d'un topic annexe, déduites de SON
+     document (pas du nôtre). Même ID de sujet, page > 1, sans query
+     (?sid=… créerait des doublons), plafonné à 12. */
+  function pagesDuTopic(doc, url) {
+    var id = sujetId(normPath(url.replace(/^https?:\/\/[^\/]+/, '')));
+    var vus = {}, urls = [];
+    (SOS.detecterPages ? SOS.detecterPages(doc) : []).forEach(function (u) {
+      try {
+        var p = new URL(u, location.href);
+        if (p.origin !== location.origin) { return; }
+        var m = p.pathname.match(/^\/t(\d+)(?:p(\d+))?/);
+        if (!m || m[1] !== id || !(m[2] && +m[2] > 1)) { return; }
+        var propre = p.origin + p.pathname;           // query écartée
+        if (vus[propre]) { return; }
+        vus[propre] = 1; urls.push(propre);
+      } catch (e) { /* lien ignoré */ }
+    });
+    return urls.slice(0, 12);
+  }
+
   function chargerTopic(url, opts) {
     opts = opts || {};
     var s = shell();
@@ -121,6 +174,21 @@
       .then(function (html) {
         var doc = new DOMParser().parseFromString(html, 'text/html');
         var textes = SOS.lireSources(doc).map(function (src) { return src.texte; });
+
+        /* [MAJ v1-2] le topic déborde ? on charge ses pages suivantes
+           avant de reconstruire : une annexe longue n'est plus tronquée. */
+        var suite = pagesDuTopic(doc, abs).map(function (u) {
+          return fetch(u, { credentials: 'same-origin' })
+            .then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } return r.text(); })
+            .then(function (h2) {
+              var d2 = new DOMParser().parseFromString(h2, 'text/html');
+              SOS.lireSources(d2).forEach(function (src) { textes.push(src.texte); });
+            })
+            .catch(function (e) { console.warn('SOS: page suivante non chargée', u, e); });
+        });
+        return Promise.all(suite).then(function () { return textes; });
+      })
+      .then(function (textes) {
         var records = SOS.parserSources(textes);
         if (!s.filtrerVolets(records).length) { throw new Error('aucune donnée tdl-data'); }
 
@@ -137,7 +205,9 @@
         clearTimeout(minuteur);
         montrerCharge(false);
         console.warn('SOS: chargement du topic échoué', abs, e);
-        location.href = GUIDE;         // repli : guidebook
+        /* [MAJ v1-2] échec doux : on garde l'annexe affichée, la musique
+           continue, l'utilisatrice sait ce qui s'est passé. */
+        avisEchec('Impossible de charger cette annexe — la page courante est conservée.');
       });
   }
 
