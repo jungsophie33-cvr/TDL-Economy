@@ -25,6 +25,9 @@
  *   · ses rôles dans le bottin des métiers → les postes se rouvrent
  *   · son statut de référent d'entreprise
  *   · ses cartes du bottin des avatars → le faceclaim redevient disponible
+ *   · [MAJ v2-1] ses nœuds de notifications (notifs, notifs_etat, et les
+ *     éventuelles en attente sous pseudo) — sinon orphelins à vie : c'était
+ *     la seule famille de nœuds de la base à croissance non bornée.
  * La libération est silencieuse : rien n'est signalé côté joueur.
  *
  * Toutes les écritures passent par firebaseUpdate (PATCH multi-chemins,
@@ -351,6 +354,18 @@
       updates["uid_index/" + uid] = null;
       actions.push("index UID");
     }
+    /* [MAJ v2-1] les nœuds de notifications du défunt. Rien d'automatique
+       ne les nettoie ailleurs : supprimer le compte FA ne touche pas la
+       base, et sans ces deux lignes, curseur + lues/masquees et notifs
+       personnelles restaient orphelins à vie. null sur un chemin absent
+       est un no-op — pas de lecture préalable nécessaire. */
+    if (uid != null) {
+      updates["notifs/" + uid] = null;
+      updates["notifs_etat/" + uid] = null;
+      actions.push("notifications");
+    }
+    /* en attente sous un pseudo jamais résolu : même sort, même PATCH. */
+    updates["notifs_pseudo/" + String(pseudo).replace(/[.$#\[\]\/]/g, "_")] = null;
     nettoyerGroupes(rec, pseudo, updates, actions);
 
     const cartes = cartesFCDuMembre(rec, pseudo, uid);
