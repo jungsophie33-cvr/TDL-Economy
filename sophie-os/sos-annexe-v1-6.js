@@ -72,8 +72,16 @@
     var toutes = records || [];
     var v = toutes.filter(function (a) { return a.meta && a.meta.onglet; });
     if (!v.length) { v = toutes.filter(function (a) { return a.panneaux.length; }); }
+    /* [MAJ v1-6] tri numérique quand l'onglet est un numéro (« 2 »
+       avant « 10 »), alphabétique sinon, numériques d'abord. */
+    function cleTri(a) { return a && a.meta && a.meta.onglet ? String(a.meta.onglet.num || '') : ''; }
+    function numTri(x) { var m = cleTri(x).match(/^\s*(\d+)/); return m ? parseInt(m[1], 10) : null; }
     v.sort(function (a, b) {
-      return (a.meta.onglet ? a.meta.onglet.num : '').localeCompare(b.meta.onglet ? b.meta.onglet.num : '');
+      var na = numTri(a), nb = numTri(b);
+      if (na !== null && nb !== null && na !== nb) { return na - nb; }
+      if (na !== null && nb === null) { return -1; }
+      if (na === null && nb !== null) { return 1; }
+      return cleTri(a).localeCompare(cleTri(b));
     });
     return v;
   }
@@ -150,7 +158,10 @@
     var volet = volets[idx];
 
     // couleur du volet (les variantes --commu40/20 se dérivent en CSS)
+    /* [MAJ v1-6] un volet SANS COULEUR retombe sur l'accent neutre :
+       il n'hérite plus de celui du volet précédent. */
     if (volet.meta.couleur) { app.style.setProperty('--commu', 'var(' + volet.meta.couleur + ')'); }
+    else { app.style.setProperty('--commu', 'var(--dark)'); }
 
     // bouton d'édition : URL du post de CE volet
     if (editBtn) {
@@ -415,8 +426,13 @@
       }, 40);
     }, { passive: true });
 
-    // clavier
+    // clavier — [MAJ v1-6] jamais quand on tape : la recherche de la
+    // chronologie, un formulaire staff, tout champ du forum sous la
+    // coquille ne doit plus changer de panneau à chaque flèche.
     global.addEventListener('keydown', function (ev) {
+      var t = ev.target;
+      if (t && ((t.tagName && /INPUT|TEXTAREA|SELECT|BUTTON/i.test(t.tagName)) || t.isContentEditable)) { return; }
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) { return; }
       if (ev.key === 'ArrowRight' || ev.key === 'PageDown') { aller(courant + 1); }
       if (ev.key === 'ArrowLeft' || ev.key === 'PageUp') { aller(courant - 1); }
     });
