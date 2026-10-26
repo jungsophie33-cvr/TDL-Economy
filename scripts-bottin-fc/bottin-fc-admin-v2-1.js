@@ -1,11 +1,23 @@
 /*
- * bottin-fc-admin-v2.js — Outil admin du bottin des faceclaims · The Drowned Lands
+ * bottin-fc-admin-v2-1.js — Outil admin du bottin des faceclaims · The Drowned Lands
  *
- * REMPLACE bottin-fc-admin-v1.js. Seul le mode d'ouverture change : le panneau
- * n'est plus injecté dans une div .bfc-admin-panel posée dans un sujet staff,
- * il devient le contenu d'une modale ouverte par le bouton « Gestion staff »
- * de la barre du bottin (bottin-fc-v3.js, hook BottinFC.ouvrirGestion).
- * → La div .bfc-admin-panel n'est plus lue ; elle peut être retirée du sujet.
+ * [MAJ v2-1]
+ *   - Lectures ciblées via firebaseGet, plus aucun readBin/safeReadBin : la
+ *     modale de création ne lit que « membres », la suppression ne lit que
+ *     la carte « faceclaims/{cle} » puis l'index « faceclaims_uid/{uid} ».
+ *     La racine entière (~116 ko) n'est plus tirée pour trois petits nœuds.
+ *   - Plus d'invalidateCache : les deux occurrences sont devenues inutiles.
+ *     Celle de supprimerCarte précédait un readBin qui, de toute façon,
+ *     contourne le cache ; celle d'après-création servait au rafraîchissement
+ *     du bottin, qui lit désormais via firebaseGet (ignoré du cache).
+ *   - Prérequis corrigé : eco-core-v2.js (eco-core-v1-1.js n'existe plus).
+ *   - majChamps : le ternaire du bloc membre renvoyait "block" dans les deux
+ *     branches — condition morte, simplifiée.
+ *
+ * Seul le mode d'ouverture diffère depuis la v2 : le panneau est le contenu
+ * d'une modale ouverte par le bouton « Gestion staff » de la barre du bottin
+ * (bottin-fc-v3-6.js, hook BottinFC.ouvrirGestion). La div .bfc-admin-panel
+ * n'est plus lue ; elle peut être retirée du sujet.
  *
  * CE QUE CE FICHIER FAIT :
  *   - définit BottinFC.supprimerCarte(cle) (anime les corbeilles du bottin) ;
@@ -16,7 +28,7 @@
  *   - pour les cartes « pris », récupère automatiquement l'URL d'avatar depuis
  *     le profil FA via l'UID.
  *
- * PRÉREQUIS : eco-core-v1-1.js puis bottin-fc-v3.js chargés AVANT.
+ * PRÉREQUIS : eco-core-v2.js puis bottin-fc-v3-6.js chargés AVANT.
  * SÉCURITÉ : toutes les actions sont gardées par EcoCore.ADMIN_USERS. Le bouton
  *   du bottin n'est masqué qu'en CSS aux non-staff — estAdmin() est donc
  *   revérifié ici, à l'ouverture comme à la soumission.
@@ -102,13 +114,14 @@ window.BottinFC = window.BottinFC || {};
     return !!pseudo && admins.indexOf(pseudo) !== -1;
   }
 
-  function membresTries(rec) {
-    var m = (rec && rec.membres) || {};
+  // [MAJ v2-1] prennent directement le nœud « membres », pas la racine
+  function membresTries(membres) {
+    var m = membres || {};
     return Object.keys(m).sort(function (a, b) { return a.localeCompare(b, "fr"); });
   }
 
-  function uidDeMembre(rec, pseudo) {
-    var m = (rec && rec.membres) || {};
+  function uidDeMembre(membres, pseudo) {
+    var m = membres || {};
     return (m[pseudo] && m[pseudo].uid != null) ? m[pseudo].uid : null;
   }
 
@@ -149,24 +162,26 @@ window.BottinFC = window.BottinFC || {};
   }
 
   // Suppression d'une carte + nettoyage de l'index inverse (PATCH multi-chemins).
+  // [MAJ v2-1] lecture ciblée de la seule carte, puis de son entrée d'index :
+  // ni racine entière, ni invalidateCache — firebaseGet est frais par construction.
   function supprimerCarte(cle) {
     if (!estAdmin()) { if (window.console) console.warn("[BottinFC-admin] " + T.NON_ADMIN); return; }
-    EcoCore.invalidateCache && EcoCore.invalidateCache();
-    return EcoCore.readBin().then(function (rec) {
-      if (!rec) return;
-      var c = (rec.faceclaims || {})[cle];
+    return EcoCore.firebaseGet("faceclaims/" + cle).then(function (c) {
       if (!c) { NS.rafraichir && NS.rafraichir(); return; }
       if (!window.confirm(T.CONFIRM_SUPPR(c.acteur || cle))) return;
 
       var updates = {}; updates["faceclaims/" + cle] = null;
+      var preparer = Promise.resolve();
       if (c.uid != null) {
         var u = String(c.uid);
-        var liste = versTableau((rec.faceclaims_uid || {})[u]).filter(function (k) { return k !== cle; });
-        updates["faceclaims_uid/" + u] = liste.length ? liste : null;
+        preparer = EcoCore.firebaseGet("faceclaims_uid/" + u).then(function (courant) {
+          var liste = versTableau(courant).filter(function (k) { return k !== cle; });
+          updates["faceclaims_uid/" + u] = liste.length ? liste : null;
+        });
       }
-      return EcoCore.firebaseUpdate(updates).then(function () {
-        NS.rafraichir && NS.rafraichir();
-      });
+      return preparer
+        .then(function () { return EcoCore.firebaseUpdate(updates); })
+        .then(function () { NS.rafraichir && NS.rafraichir(); });
     }).catch(function (err) { if (window.console) console.error("[BottinFC-admin] suppression", err); });
   }
 
@@ -175,8 +190,8 @@ window.BottinFC = window.BottinFC || {};
   /* === UI (formulaire de création) ===
      Rendu dans .bfc-form-contenu : la modale fournit déjà la boîte, le titre
      reprend donc la classe de titre du formulaire de réservation. */
-  function html(rec) {
-    var opts = membresTries(rec).map(function (p) {
+  function html(membres) {
+    var opts = membresTries(membres).map(function (p) {
       return '<option value="' + p.replace(/"/g, "&quot;") + '">' + p + '</option>';
     }).join("");
     var typeOpts = Object.keys(TYPES).map(function (k) {
@@ -213,8 +228,9 @@ window.BottinFC = window.BottinFC || {};
 
   function majChamps(panel) {
     var t = TYPES[panel.querySelector("#bfc-adm-type").value] || TYPES.pris;
-    panel.querySelector("#bfc-adm-r-membre").style.display = (t.membre || t === TYPES.staff || t.prelien) ? "block" : "block";
     // membre : requis pour pris/7j/mc, optionnel pour pré-lien/staff → toujours affiché
+    // [MAJ v2-1] l'ancien ternaire renvoyait "block" dans les deux branches : condition morte retirée
+    panel.querySelector("#bfc-adm-r-membre").style.display = "block";
     panel.querySelector("#bfc-adm-r-prenom").style.display = t.prelien ? "block" : "none";
     var rDuree = panel.querySelector("#bfc-adm-r-duree");
     var champDuree = panel.querySelector("#bfc-adm-duree");
@@ -231,7 +247,7 @@ window.BottinFC = window.BottinFC || {};
     el.style.color = ok ? "green" : "var(--dark2)";
   }
 
-  function soumettre(panel, rec) {
+  function soumettre(panel, membres) {
     if (!estAdmin()) { afficherResultat(panel, T.NON_ADMIN); return; }
 
     var typeKey = panel.querySelector("#bfc-adm-type").value;
@@ -246,7 +262,7 @@ window.BottinFC = window.BottinFC || {};
     // résolution UID si un membre est sélectionné (obligatoire pour pris/7j/mc)
     var uid = null;
     if (pseudo) {
-      uid = uidDeMembre(rec, pseudo);
+      uid = uidDeMembre(membres, pseudo);
       if (uid == null) { afficherResultat(panel, T.ERR_UID); return; }
     } else if (t.membre) {
       afficherResultat(panel, T.ERR_MEMBRE); return;
@@ -284,9 +300,9 @@ window.BottinFC = window.BottinFC || {};
       .then(function () {
         afficherResultat(panel, T.OK(acteur), true);
         panel.querySelector("#bfc-adm-acteur").value = "";
-        if (EcoCore.invalidateCache) EcoCore.invalidateCache();
-        // Rafraîchit le bottin DERRIÈRE la modale : celle-ci reste ouverte pour
-        // enchaîner plusieurs créations sans avoir à la rouvrir à chaque carte.
+        // Rafraîchit le bottin DERRIÈRE la modale : NS.rafraichir relit via
+        // firebaseGet, donc toujours frais — plus besoin d'invalidateCache.
+        // La modale reste ouverte pour enchaîner plusieurs créations.
         NS.rafraichir && NS.rafraichir();
       })
       .catch(function (err) {
@@ -329,22 +345,26 @@ window.BottinFC = window.BottinFC || {};
     overlayActif = null;
   }
 
-  function remplir(zone, rec) {
-    zone.innerHTML = html(rec);
+  function remplir(zone, membres) {
+    zone.innerHTML = html(membres);
     majChamps(zone);
     zone.querySelector("#bfc-adm-type").addEventListener("change", function () { majChamps(zone); });
-    zone.querySelector("#bfc-adm-creer").addEventListener("click", function () { soumettre(zone, rec); });
+    zone.querySelector("#bfc-adm-creer").addEventListener("click", function () { soumettre(zone, membres); });
   }
 
   /* === HOOK PUBLIC === */
-  // Appelé par le bouton « Gestion staff » du bottin (bottin-fc-v3.js).
-  // rec est relu à chaque ouverture : la liste des membres reste figée le temps
-  // d'une session de modale, ce qui est sans risque — la création passe par
-  // firebaseTransaction, qui refuse proprement un acteur déjà occupé.
+  // Appelé par le bouton « Gestion staff » du bottin (bottin-fc-v3-6.js).
+  // [MAJ v2-1] le nœud « membres » est relu à chaque ouverture via firebaseGet :
+  // la liste reste figée le temps d'une session de modale, ce qui est sans
+  // risque — la création passe par firebaseTransaction, qui refuse proprement
+  // un acteur déjà occupé.
   NS.ouvrirGestion = function () {
     if (!estAdmin()) return;
     if (overlayActif) return;                       // pas de double ouverture
-    if (!window.EcoCore || typeof EcoCore.firebaseTransaction !== "function") {
+    if (!window.EcoCore
+        || typeof EcoCore.firebaseTransaction !== "function"
+        || typeof EcoCore.firebaseGet !== "function"
+        || typeof EcoCore.firebaseUpdate !== "function") {
       if (window.console) console.warn("[BottinFC-admin] EcoCore indisponible.");
       return;
     }
@@ -353,10 +373,10 @@ window.BottinFC = window.BottinFC || {};
     var zone = ov.querySelector(".bfc-form-contenu");
     zone.innerHTML = '<p class="bfc-form-msg">' + T.CHARGEMENT + '</p>';
 
-    EcoCore.safeReadBin()
-      .then(function (rec) {
+    EcoCore.firebaseGet("membres")
+      .then(function (membres) {
         if (!overlayActif) return;                  // fermée pendant la lecture
-        remplir(zone, rec || {});
+        remplir(zone, membres || {});
       })
       .catch(function (err) {
         if (overlayActif) zone.innerHTML = '<p class="bfc-form-msg err">' + T.ERR_LECTURE + '</p>';
