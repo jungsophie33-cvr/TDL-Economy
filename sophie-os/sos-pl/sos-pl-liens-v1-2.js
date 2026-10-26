@@ -59,6 +59,12 @@
    Aucune écriture Firebase : lecture seule, fonctionne pour les invités.
    La classe « annexe » est posée sur le conteneur (profil FA masqué).
 
+   [v1-2] correctif : la détection des posts testait le marqueur avec
+     une frontière de mot (« \b ») sur le textContent — or le textContent
+     colle les lignes entre elles (« === LIENS » suivi de « LIEN: … » se lit
+     « === LIENSLIEN: ») : tout marqueur suivi d'un mot sur la ligne suivante
+     était invisible et le post restait brut. Les « === » suffisent désormais.
+
    [v1-1] correctifs : ce script ATTEND le socle au lieu d'abandonner s'il
    est injecté avant lui (ordre du loader non garanti) ; la barre de filtres
    n'est plus échappée comme du texte ; la catégorie « amour » est de
@@ -115,7 +121,7 @@
   var RE_CLE      = /^([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9_]*)\s*:\s?(.*)$/i;
   /* N'importe lequel de nos marqueurs, pour repérer les posts à transformer
      sans dépendre de la casse (postsAvec est un indexOf strict). */
-  var RE_UN_MARQUEUR = /===\s*(RECHERCHES|RPS|LIENS)\b/i;
+  var RE_UN_MARQUEUR = /===\s*(RECHERCHES|RPS|LIENS)/i;
 
   /* Clés normalisées (casse + accents retirés) de chaque bloc. */
   var CLES_REC  = { RECHERCHE: 1, CATEGORIE: 1, CAT: 1 };
