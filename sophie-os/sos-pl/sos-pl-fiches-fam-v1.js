@@ -9,6 +9,12 @@
    Ciblage : un lien « ?fiche=slug » venant de l'arbre ouvre directement la
    bonne fiche. Si elle est déjà dans la page, aucun rechargement.
 
+   [MAJ frise] rendFrise pose maintenant aussi --n (nombre de générations)
+   en plus de --k (progression). Le CSS de la frise s'en sert pour poser la
+   ligne grise et la ligne rouge d'un centre de bulle à l'autre, quel que
+   soit le nombre de jalons — les anciens décalages fixes (34/98/132 px),
+   calibrés pour un padding-right de 64 px aujourd'hui retiré, disparaissent.
+
    Dépendances : eco-core-v1-5.js, puis tdlpl-core.js. Dans cet ordre.
    ========================================================================== */
 
@@ -242,6 +248,10 @@
       b.classList.toggle('tdlplf-fait', g < self.gen);
     });
     var n = this.gens.length;
+    // --n alimente le CSS de la frise (feuille de style du forum) : la ligne
+    // rouge et son rail gris vont d'un centre de bulle à l'autre, sans
+    // décalage fixe à recalibrer si le padding ou la largeur change.
+    this.$frise.style.setProperty('--n', n);
     this.$frise.style.setProperty('--k', n > 1 ? (this.gens.indexOf(this.gen) / (n - 1)) : 0);
   };
 
