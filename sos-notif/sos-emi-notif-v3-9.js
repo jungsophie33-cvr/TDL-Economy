@@ -15,7 +15,17 @@
    par son propriétaire à sa prochaine connexion (voir notiffi-fb.js).
 
    AJOUTER UNE NOTIFICATION = une ligne dans le REGISTRE ci-dessous + un appel
-   EcoNotif.a() / .bande() / .staff() / .tous() à l'endroit du clic. */
+   EcoNotif.a() / .bande() / .staff() / .tous() à l'endroit du clic.
+
+   [MAJ v3-9] LE CANAL GLOBAL EST PLAFONNÉ À 50 ET S'AUTOPURGE.
+     notifs_globales n'expirait jamais : chaque annonce y vivait à vie, alors
+     que personne ne lit au-delà de la vingtième la plus récente. Après
+     chaque émission, l'émetteur taille au-delà de GLOB_MAX (50) — et retire
+     dans le même PATCH les entrées lues/masquees correspondantes de
+     notifs_etat/{uid} : une annonce disparue n'a plus d'état utile, le
+     garder gonflait chaque membre de deux octets-clés à jamais.
+     Les 50 dernières restent consultables en mémo côté réception
+     (sos-notiffi v2-2 lit le même plafond). */
 (function () {
 "use strict";
 
@@ -26,6 +36,8 @@ var CFG = {
   NODE_GLOB:   "notifs_globales",  /* canal « tous les membres » */
   NODE_FAITS:  "notifs_faits",     /* verrous anti-double-émission */
   NODE_META:   "notifs_meta",      /* plancher (dernier_topic) */
+  NODE_ETAT:   "notifs_etat",      /* lues/masquees par membre */
+  GLOB_MAX:    50,                 /* plafond des annonces globales conservées */
   NODE_MEMBRES:"membres",
   NODE_UID:    "uid_index",        /* uid_index/{uid} = pseudo */
   /* Source primaire des nouveaux sujets : les sujets actifs, une requête pour
@@ -304,13 +316,47 @@ function envoyer(pseudos, type, d, ref) {
   }).catch(function (e) { if (window.console) console.error("[EcoNotif] envoi", e); });
 }
 
+/* [MAJ v3-9] plafond + autopurge du canal global.
+   Les clés « tdl_{ts}_{rand} » se trient chronologiquement par ordre
+   lexicographique (timestamp 13 chiffres jusqu'en 2286) : inutile de lire
+   les timestamps des annonces, l'ordre des clés suffit.
+   Quand une annonce sort du plafond, ses entrées lues/masquees chez
+   chaque membre deviennent du ballast mort : le même PATCH les efface.
+   null sur un chemin absent est un no-op Firebase — pas de lecture de
+   notifs_etat nécessaire, ni de risque. */
+function trimGlobales() {
+  if (!ok()) return Promise.resolve();
+  return Promise.all([
+    E().firebaseGet(CFG.NODE_GLOB),
+    E().firebaseGet(CFG.NODE_UID)
+  ]).then(function (r) {
+    var annonces = r[0] || {}, uids = [];
+    Object.keys(r[1] || {}).forEach(function (u) { if (r[1][u]) uids.push(u); });
+    var ids = Object.keys(annonces).sort();
+    if (ids.length <= CFG.GLOB_MAX) return;
+    var vieux = ids.slice(0, ids.length - CFG.GLOB_MAX), up = {};
+    vieux.forEach(function (id) {
+      up[CFG.NODE_GLOB + "/" + id] = null;
+      uids.forEach(function (u) {
+        up[CFG.NODE_ETAT + "/" + u + "/lues/" + id] = null;
+        up[CFG.NODE_ETAT + "/" + u + "/masquees/" + id] = null;
+      });
+    });
+    return E().firebaseUpdate(up);
+  });
+}
+
 /* canal global : une écriture unique, lue par tous via curseur individuel.
-   Laisse remonter l'échec — annoncer() en a besoin pour relâcher son verrou. */
+   Laisse remonter l'échec — annoncer() en a besoin pour relâcher son verrou.
+   La purge roule ensuite en tâche de fond : son échec ne doit jamais
+   faire échouer l'annonce ni relâcher le verrou à tort. */
 function global(type, d, ref) {
   if (!NOTIFS[type] || !ok()) return Promise.resolve();
   var n = paquet(type, d, ref), up = {};
   up[CFG.NODE_GLOB + "/" + newId(n.ts)] = n;
-  return Promise.resolve(E().firebaseUpdate(up));
+  var pr = Promise.resolve(E().firebaseUpdate(up));
+  pr.then(function () { return trimGlobales().catch(rate); }, rate);
+  return pr;
 }
 
 /* verrou : sur un événement CONSTATÉ (pas cliqué), un seul client agit.
