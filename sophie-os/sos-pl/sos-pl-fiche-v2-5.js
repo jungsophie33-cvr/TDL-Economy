@@ -6,6 +6,15 @@
    en parcours à deux niveaux : onglets libres, et sous-rubriques optionnelles
    dans la colonne de gauche.
 
+   [v2-5] L'aside accepte les clés identitaires des --- FICHE de pré-liens,
+   pour la fiche === INDIVIDUEL : FC (faceclaim proposé), NAISSANCE (aaaa,
+   jj/mm/aaaa ou aaaa–aaaa : l'âge est calculé via T.calculeAge), METIER,
+   CARACTERE (mots-clés séparés par des virgules, rendus en pastilles
+   .tdlplf-trait). Elles se posent en en-tête, avant le premier
+   --- ONGLET ---, et alimentent la colonne en dl/dt/dd exactement comme
+   sos-pl-fiches-fam — la coque et le CSS (tdlplf-fiches) sont partagés.
+   INFO: reste disponible à côté, comme pour tous les genres.
+
    DIFFÉRENCE MAJEURE avec l'arbre et les fiches : ici le contenu n'est pas
    réécrit, il est DÉPLACÉ. Les nœuds d'origine sont rattachés aux panneaux,
    jamais recréés. Tout ce qu'un autre script a monté — un bloc SOS, une
@@ -42,7 +51,7 @@
   var RE_SRC    = /^SOURCE\s*:\s*(.+)$/i;
 
   var CLES = ['soustitre', 'secteur', 'tw', 'image', 'referent', 'credits',
-              'pronoms', 'joueur', 'joueur_pronoms'];
+              'pronoms', 'joueur', 'joueur_pronoms', 'fc', 'metier'];
 
   /* Mêmes emplacements, vocabulaire du type : sur une présentation de
      personnage, GROUPE occupe la ligne de SECTEUR et FACECLAIM celle de
@@ -147,7 +156,8 @@
     var m = {
       genre: 'famille', nom: '', soustitre: '', secteur: '', tw: '', image: '',
       referent: '', referentLien: '', credits: '', pronoms: '',
-      joueur: '', joueur_pronoms: '', imgs: [], infos: [], onglets: []
+      joueur: '', joueur_pronoms: '', fc: '', naissance: null, metier: '',
+      caractere: [], imgs: [], infos: [], onglets: []
     };
     var actif = false, onglet = null, rub = null;
     /* cit : la citation en cours de remplissage, ouverte par CITATION: et
@@ -313,6 +323,18 @@
             m.referentLien = versProfil((bouts[1] || '').trim() || urlVoisine(n));
             n.remove(); return;
           }
+          /* Clés identitaires des --- FICHE : mêmes clés, mêmes libellés,
+             même rendu que sos-pl-fiches-fam. */
+          if (cle === 'naissance') {
+            m.naissance = T.calculeAge(val);
+            if (!m.naissance) alerte('NAISSANCE illisible — attendu aaaa, jj/mm/aaaa ou aaaa-aaaa : « ' + val + ' »');
+            n.remove(); return;
+          }
+          if (cle === 'caractere') {
+            m.caractere = val.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+            if (!m.caractere.length) alerte('CARACTERE: aucun mot-clé à afficher sur la ligne');
+            n.remove(); return;
+          }
           if (CLES.indexOf(cle) >= 0) {
             m[cle] = (cle === 'image' && !val) ? urlVoisine(n) : val;
             if (cle === 'image' && !m.image) alerte('IMAGE: aucune adresse trouvée sur cette ligne');
@@ -424,7 +446,20 @@
              '<span>' + T.echappe(x.val) + '</span></div>';
     }).join('');
 
-    this.$meta.innerHTML = infos +
+    /* Les clés identitaires, en dl/dt/dd comme sos-pl-fiches-fam :
+       la feuille tdlplf-fiches (PA) style .tdlplf-meta dl de la même
+       façon pour les deux modules. */
+    var dl = '';
+    if (m.fc) dl += '<dt><f4>Faceclaim proposé</f4></dt><dd>' + T.echappe(m.fc) + '</dd>';
+    if (m.naissance) dl += '<dt><f4>Naissance</f4></dt><dd>' + T.texteDates(m.naissance) + '</dd>';
+    if (m.metier) dl += '<dt><f4>Métier</f4></dt><dd>' + T.echappe(m.metier) + '</dd>';
+    if (m.caractere.length) {
+      dl += '<dt><f4>Caractère</f4></dt><dd>' + m.caractere.map(function (t) {
+        return '<span class="tdlplf-trait">' + T.echappe(t) + '</span>';
+      }).join('') + '</dd>';
+    }
+
+    this.$meta.innerHTML = (dl ? '<dl>' + dl + '</dl>' : '') + infos +
       (m.joueur ? '<div class="tdlplf-joueur"><b>' + T.echappe(m.joueur) + '</b>' +
          (m.joueur_pronoms ? '<span>' + T.echappe(m.joueur_pronoms) + '</span>' : '') +
          '</div>' : '') +
