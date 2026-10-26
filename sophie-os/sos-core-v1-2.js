@@ -10,7 +10,24 @@
        panneaux: [ { id, blocs: [ Bloc ] } ] }
      Bloc = { type, champs:{CLE:[lignes]}, entrees:[{cle,lignes}] }
 
-   Voir « Contrat de format tdl-data » §9 pour la spécification.
+   [MAJ v1-2] TOLÉRANCE ALIGNÉE SUR LES FORMATS MEMBRES.
+     Le noyau était le plus STRICT des parseurs du dépôt — pour des
+     annexes rédigées par le staff, c'était jouable ; pour un système
+     dont les blocs (=== FAMILLE:, PRESENTATION:, ARBRE:, PRELIENS:…)
+     sont écrits par des MEMBRES découvrant le format, c'était la mauvaise
+     extrémité. Règles désormais communes à tout SOS (charte du format :
+     canvas « charte-format-sos ») :
+       · « === FIN » est reconnu avec OU sans « === » fermant, dans
+         n'importe quelle casse — comme dans sos-pl-* ;
+       · les clés sont insensibles à la casse et aux accents, et sont
+         NORMALISÉES en majuscules dans l'enregistrement : « age: »,
+         « ÂGE: » et « AGE: » donnent la même clé ;
+       · le type de bloc (--- BLOC x ---) est normalisé en minuscules ;
+       · === FIN reste FACULTATIF : sans lui, les lignes se rattachent
+         au bloc courant jusqu'au marqueur suivant — comportement
+         inchangé, maintenant documenté au lieu d'être implicite.
+     detecterPages(doc?) accepte un document étranger (page fetchée),
+     pour que sos-nav puisse sonder la pagination d'un topic annexe.
    ============================================================= */
 (function (global) {
   'use strict';
@@ -64,10 +81,12 @@
   /* ---------------------------------------------------------
      3. PARSEUR : texte délimité -> enregistrement structuré
      --------------------------------------------------------- */
-  var reP   = /^===\s*PANNEAU:\s*(.+?)\s*===\s*$/;
-  var reFin = /^===\s*FIN\s*===\s*$/;
-  var reB   = /^---\s*BLOC\s+([\w-]+)\s*---\s*$/;
-  var reCle = /^([A-Z][A-Z0-9_]*):\s?(.*)$/;
+  /* [MAJ v1-2] tolérance alignée : FIN libre de casse et de fermeture,
+     clés insensibles (casse + accents), tout normalisé à la lecture. */
+  var reP   = /^===\s*PANNEAU:\s*(.+?)\s*===\s*$/i;
+  var reFin = /^===\s*FIN(?:\s*===)?\s*$/i;
+  var reB   = /^---\s*BLOC\s+([\w-]+)\s*---\s*$/i;
+  var reCle = /^([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9_]*)\s*:\s?(.*)$/i;
 
   function interpMeta(m) {
     var out = { brut: m };
@@ -101,14 +120,14 @@
 
       if ((m = ligne.match(reB))) {
         if (!panneau) { panneau = { id: '_racine', blocs: [] }; panneaux.push(panneau); panneauVu = true; }
-        bloc = { type: m[1], champs: {}, entrees: [] };
+        bloc = { type: m[1].toLowerCase(), champs: {}, entrees: [] };   /* [MAJ v1-2] type normalisé */
         panneau.blocs.push(bloc);
         champ = null;
         continue;
       }
 
       if ((m = ligne.match(reCle))) {
-        var cle = m[1], reste = m[2];
+        var cle = m[1].toUpperCase(), reste = m[2];   /* [MAJ v1-2] clé normalisée (casse + accents) */
         if (bloc) {
           var entree = { cle: cle, lignes: [] };
           if (reste.trim() !== '') { entree.lignes.push(reste); }
@@ -119,7 +138,9 @@
           meta[cle] = reste.trim();  // métadonnées (avant tout panneau)
           champ = null;
         }
-        // clé hors bloc et après un panneau : ignorée
+        // clé hors bloc et après un panneau : ignorée, mais signalée —
+        // un rédacteur qui a perdu son « --- BLOC --- » le voit en console.
+        if (panneauVu) { console.warn('SOS: clé « ' + cle + ': » hors bloc (après « === PANNEAU === ») — ignorée'); }
         continue;
       }
 
@@ -184,13 +205,16 @@
 
   /* ---------------------------------------------------------
      6. PAGINATION : pages suivantes du sujet (fetch same-origin)
-     Utile seulement si les posts-communautés débordent de la page 1.
-     Détection best-effort : à ajuster au besoin selon l'instance FA.
+     [MAJ v1-2] detecterPages(doc?) accepte un document ÉTRANGER :
+     sos-nav s'en sert pour sonder la pagination d'un topic annexe
+     fraîchement fetché et charger TOUTES ses pages. Sans argument,
+     comportement inchangé (document courant).
      --------------------------------------------------------- */
-  function detecterPages() {
+  function detecterPages(doc) {
+    doc = doc || document;
     var sel = '.pagination a, .paging a, a.pag, span.pagination a, .pages a, #pagination a';
     var vus = {}, urls = [];
-    Array.prototype.forEach.call(document.querySelectorAll(sel), function (a) {
+    Array.prototype.forEach.call(doc.querySelectorAll(sel), function (a) {
       var href = a.href;
       if (!href) { return; }
       try {
