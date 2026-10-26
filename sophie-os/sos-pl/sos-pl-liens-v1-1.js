@@ -31,6 +31,9 @@
    · Les marqueurs sont insensibles à la casse ; les blocs répétés
      s'ACCUMULENT (deux === LIENS dans un post = une seule section, remplie
      par les deux). Chaque section n'apparaît que si son bloc est présent.
+   · UN MARQUEUR RESTE SEUL SUR SA LIGNE. « === RPS » ou « === RPS: », mais
+     jamais « === RPS: du texte » : ce qui suit le marqueur sur la même
+     ligne serait perdu (contrairement aux === FAMILLE: des pré-liens).
    · Les clés sont insensibles à la casse et aux accents, dans un bloc comme
      dans les segments d'une ligne « RP: a | b | c ». Un segment nu est admis
      pour l'URL (http…) ; tout le reste attend une clé.
@@ -56,6 +59,12 @@
    Aucune écriture Firebase : lecture seule, fonctionne pour les invités.
    La classe « annexe » est posée sur le conteneur (profil FA masqué).
 
+   [v1-1] correctifs : ce script ATTEND le socle au lieu d'abandonner s'il
+   est injecté avant lui (ordre du loader non garanti) ; la barre de filtres
+   n'est plus échappée comme du texte ; la catégorie « amour » est de
+   nouveau affichée (« intime » était orpheline) ; un post en échec
+   n'interrompt plus le rendu des autres.
+
    Feuille associée : CSS-pl-liens.css (sos-pl/).
    Dépendances : eco-core-v2.js, puis sos-pl-core.js. Dans cet ordre.
    ========================================================================== */
@@ -66,10 +75,25 @@
   if (window.TDLPL_LIENS) return;
 
   var T = window.TDLPL;
-  if (!T) {
-    if (window.console) console.error('[TDLPL liens] sos-pl-core.js doit être chargé avant ce script.');
-    return;
-  }
+  if (T) { installer(T); return; }
+
+  /* Le loader peut injecter ce script avant le socle : au lieu d'abandonner
+     (l'ancien comportement laissait le post brut, sans erreur visible), on
+     le guette. 60 × 150 ms = 9 secondes, comme l'attente d'EcoCore. */
+  var essais = 0;
+  (function attendre() {
+    var socle = window.TDLPL;
+    if (socle) { installer(socle); return; }
+    if (++essais >= 60) {
+      if (window.console) console.error(
+        '[TDLPL liens] sos-pl-core.js introuvable après 9 s — ' +
+        'est-il déclaré dans le loader, AVANT ce script ?');
+      return;
+    }
+    setTimeout(attendre, 150);
+  })();
+
+  function installer(T) {
 
   var CFG = T.CFG;
   var alerte = T.journal('liens');
@@ -78,7 +102,7 @@
   /* ------------------------------------------------------------- CONSTANTES */
 
   var MARQUEURS  = ['RECHERCHES', 'RPS', 'LIENS'];
-  var CATS_LIENS = ['famille', 'intime', 'amitié', 'professionnel', 'hostilité', 'autre'];
+  var CATS_LIENS = ['famille', 'amour', 'amitié', 'professionnel', 'hostilité', 'autre'];
   var STATUTS_RP = ['en cours', 'terminé', 'abandonné'];
 
   var MOIS = { janvier: 1, fevrier: 2, février: 2, mars: 3, avril: 4, mai: 5,
@@ -151,7 +175,7 @@
     var s = slug(v);
     if (!s) return null;
     if (s === 'famille') return 'famille';
-    if (s === 'amour' || s === 'romantique' || s === 'coeur') return 'amour';
+    if (s === 'amour' || s === 'romantique' || s === 'coeur' || s === 'intime') return 'amour';
     if (s === 'amitie' || s.indexOf('ami') === 0) return 'amitié';
     if (s.indexOf('prof') === 0 || s.indexOf('metier') === 0 || s === 'travail') return 'professionnel';
     if (s.indexOf('hostil') === 0 || s.indexOf('ennem') === 0 || s === 'rival') return 'hostilité';
@@ -390,7 +414,7 @@
   function htmlHead(titre, sous, tagsHtml) {
     return '<div class="tdlplf-hero"><div class="tdlplf-hero-in">' +
       '<h2 class="tdlrol-titre">' + echappe(titre) + '</h2>' +
-      '<p class="tdlrol-sous">' + echappe(sous) + '</p></div>' +
+      (sous ? '<p class="tdlrol-sous">' + echappe(sous) + '</p>' : '') + '</div>' +
       (tagsHtml || '') + '</div>';
   }
 
@@ -486,6 +510,8 @@
       l.tags.forEach(function (t) { if (!vus[t]) { vus[t] = 1; tags.push(t); } });
     });
     tags.sort(function (a, b) { return a.localeCompare(b, 'fr'); });
+    /* Les filtres sont du HTML : ils passent par tagsHtml (3e argument),
+       JAMAIS par sous — htmlHead échappe son sous-titre. */
     var filtres = '<div class="tdlrol-tags">' +
       '<button type="button" class="tdlrol-tag actif" data-tag="*">tous</button>' +
       tags.map(function (t) {
@@ -494,8 +520,7 @@
       }).join('') + '</div>';
 
     var h = '<div class="tdlfl-sec tdlfl-liens">';
-    h += htmlHead('Répertoire des liens',
-      filtres);
+    h += htmlHead('Répertoire des liens', '', filtres);
     CATS_LIENS.forEach(function (cat) {
       var items = liste.filter(function (l) { return l.catNorm === cat; });
       if (!items.length) return;
@@ -649,9 +674,13 @@
     var rpsPage = [];   // rp fusionnés de toute la page (counts + filtre)
 
     posts.forEach(function (el) {
-      var d = preparer(analysePost(T.texteBrut(el)));
+      var d;
+      try { d = preparer(analysePost(T.texteBrut(el))); }
+      catch (e) { alerte('analyse impossible pour un post : ' + (e && e.message)); return; }
       if (!d.recherches.length && !d.rps.length && !d.liens.length) {
-        alerte('post marqué mais sans entrée exploitable — laissé tel quel');
+        alerte('post marqué mais sans entrée exploitable — laissé tel quel ' +
+               '(les marqueurs === restent seuls sur leur ligne ; les boîtes ' +
+               '[code] et les citations sont ignorées)');
         return;
       }
       rendus.push({ el: el, d: d, branche: false });
@@ -661,20 +690,28 @@
 
     /* 1. rendu immédiat (vignettes à initiales si la base tarde ou tombe) */
     var ctx = { rpsPage: rpsPage, avatars: null };
-    rendus.forEach(function (r) { peindre(r, ctx); });
+    rendus.forEach(function (r) {
+      try { peindre(r, ctx); }
+      catch (e) { alerte('rendu impossible pour un post : ' + (e && e.message)); }
+    });
 
     /* 2. enrichissement : avatars du bottin, une seule lecture du nœud
           (promesse partagée du socle — déjà servie si l'arbre est passé) */
     T.litIndex(function (idx) {
       if (!idx) return;
       ctx.avatars = idx;
-      rendus.forEach(function (r) { if (r.d.liens.length) peindre(r, ctx); });
+      rendus.forEach(function (r) {
+        if (!r.d.liens.length) return;
+        try { peindre(r, ctx); }
+        catch (e) { alerte('rendu impossible pour un post : ' + (e && e.message)); }
+      });
     });
   }
 
   function diagnostic() {
     var C = window.console;
     C.log('--- TDLPL liens diagnostic ---');
+    C.log('socle TDLPL    :', window.TDLPL ? 'présent' : 'ABSENT (sos-pl-core.js non chargé)');
     C.log('EcoCore présent :', !!(window.EcoCore && window.EcoCore.firebaseGet));
     C.log('visiteur        :', (window._userdata && _userdata.username) || 'invité');
     var posts = postsMarques();
@@ -696,5 +733,7 @@
     voirRp: voirRp,
     diagnostic: diagnostic
   };
+
+  }
 
 })();
