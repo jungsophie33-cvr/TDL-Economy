@@ -64,6 +64,13 @@ var JAUGES = {
    aucune contribution de réputation. Le moteur le lit ici, pas ailleurs. */
 var JAUGE_SANS_REPUTATION = "pression_bayou";
 
+   /* Poids d'un évent NATIF dans une jauge, en points sur la base de
+   TDLJauges.MOTEUR.POINTS_CRAN (8 points = un cran). Le staff choisit la
+   jauge et le sens à la clôture, jamais le poids. Les entrées de tableau
+   portent leur propre poids, posé par tdlev-sources.js. */
+var POIDS = { intrigue:8, communautaire:4, bande:4, lore:2, tradition:1, membre:2 };
+var POIDS_CATASTROPHE = 8;
+
 /* Ce que le bouton « demander un évent » couvre : seulement ce qu'aucun
    tableau n'offre. Les types, les rôles et les codes de notification font
    partie du contrat d'une demande, pas de son rendu. */
@@ -107,7 +114,7 @@ var TEXTES = {
   PLUS_BANDES: "Plusieurs bandes",
   ETATS:       { rejoindre:"À rejoindre", cours:"En cours", venir:"À venir", cloture:"Terminé" },
   ISSUES:      { reussite:"Réussite", mitigee:"Mitigée", echec:"Échec" },
-  SENS:        { aggrave:"aggravée", apaise:"apaisée" }
+  SENS:        { aggrave:"aggravation", apaise:"apaisement" }
 };
 
 var MOIS = ["janv","fév","mars","avril","mai","juin",
@@ -295,6 +302,16 @@ function miseEnAvant(liste){
   return l[0] || null;
 }
 
+   /* Le poids d'un évent dans une jauge, en points. secondaire : la jauge
+   secondaire d'une intrigue reçoit la moitié. Un Organisateur ne pèse rien. */
+function poids(ev, secondaire){
+  if (!ev) return 0;
+  if (ev.origine === "tableau") return secondaire ? 0 : (ev.poids | 0);
+  if (ev.categorie === "membre" && ev.ampleur === false) return 0;
+  var p = ev.catastrophe ? POIDS_CATASTROPHE : (POIDS[ev.categorie] || 0);
+  return secondaire ? Math.floor(p / 2) : p;
+}
+
 /* ===================== CHARGEMENT ===================== */
 
 var D = { evenements:[], reprises:[], demandes:[], conclusions:{}, membres:{},
@@ -415,7 +432,7 @@ window.TDLEv = {
   /* dérivés */
   normaliser: normaliser, normaliserDemande: normaliserDemande,
   etatAffichage: etatAffichage, portees: portees, miseEnAvant: miseEnAvant,
-  ordre: ordre,
+  ordre: ordre, POIDS: POIDS, poids: poids,
   montrable: montrable,
   /* données */
   D: D, charger: charger, visibles: visibles, precharger: precharger,
