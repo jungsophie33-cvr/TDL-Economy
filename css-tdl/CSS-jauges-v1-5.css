@@ -416,3 +416,132 @@ font-weight: 700;  line-height: 1.2;
 @media (max-width: 700px) {
   .tdl-js-jl { grid-template-columns: 1fr 1fr; }
 }
+
+   /* === JAUGES DE TERREBONNE — AJOUTS v2 ===
+   À coller dans jauges.css, à la fin du bloc PANNEAU STAFF.
+   Rien n'est redéclaré : uniquement les nouveaux éléments du panneau. */
+
+/* État réel sous la barre : charge, échéances */
+.tdl-js-etat {
+  display        : flex;
+  flex-wrap      : wrap;
+  gap            : 4px 14px;
+  margin-top     : 6px;
+}
+.tdl-js-etat-i {
+  font-family    : var(--font0);
+  font-size      : 14px;
+  color          : var(--txt);
+}
+
+/* Journal des mouvements */
+.tdl-js-journal {
+  margin-top     : 18px;
+  padding-top    : 14px;
+  border-top     : 1px solid var(--cntr3);
+}
+.tdl-js-journal-h {
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+  margin         : 0 0 8px;
+  color          : var(--dark);
+}
+.tdl-js-journal-v {
+  font-family    : var(--font0);
+  font-size      : 14px;
+  margin         : 0;
+}
+.tdl-js-jl {
+  display               : grid;
+  grid-template-columns : 70px 150px 1fr auto auto;
+  gap                   : 4px 12px;
+  align-items           : baseline;
+  padding               : 6px 0;
+  border-bottom         : 1px solid var(--cntr2);
+  font-family           : var(--font0);
+  font-size             : 14px;
+}
+.tdl-js-jl:last-child { border-bottom: none; }
+.tdl-js-jl-date,
+.tdl-js-jl-jauge,
+.tdl-js-jl-par {
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+}
+.tdl-js-jl-par   { color: var(--dark2); }
+.tdl-js-jl-motif {
+  display        : block;
+  color          : var(--dark2);
+}
+
+/* Motif dans la boîte de confirmation */
+.tdl-js-motif-l {
+  display        : block;
+  text-align     : left;
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+  margin         : 0 0 4px;
+}
+.tdl-js-motif {
+  display        : block;
+  width          : 100%;
+  box-sizing     : border-box;
+  font-family    : var(--font0);
+  font-size      : 14px;
+  padding        : 6px 8px;
+  border         : 1px solid var(--cntr3);
+  border-radius  : 3px;
+  background     : var(--clair1opa7);
+  resize         : vertical;
+}
+.tdl-js-motif-a {
+  text-align     : left;
+  font-family    : var(--font0);
+  font-size      : 14px;
+  margin         : 4px 0 16px;
+}
+.tdl-js-motif-a.est-erreur { color: var(--dark2); }
+
+@media (max-width: 700px) {
+  .tdl-js-jl { grid-template-columns: 1fr 1fr; }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   REMPLISSAGE DES SEGMENTS (accueil tdl-ja-* et panneau staff tdl-js-*)
+   Le segment garde son fond neutre : c'est la piste. Le remplissage
+   intérieur porte la couleur de la jauge, et seule sa largeur bouge.
+   Un segment partiel montre la charge accumulée vers le niveau voisin.
+   ──────────────────────────────────────────────────────────────── */
+
+.tdl-ja-segment,
+.tdl-js-segment {
+  position : relative;
+  overflow : hidden;
+}
+.tdl-ja-seg-fill,
+.tdl-js-seg-fill {
+  position   : absolute;
+  top        : 0;
+  bottom     : 0;
+  left       : 0;
+  width      : 0;
+  transition : width 0.4s ease;
+}
+.est-partiel > .tdl-ja-seg-fill,
+.est-partiel > .tdl-js-seg-fill {
+  opacity : 0.55;
+}
+/* charge pleine, passage retenu par le plafond hebdomadaire */
+.est-attente > .tdl-ja-seg-fill,
+.est-attente > .tdl-js-seg-fill {
+  opacity          : 0.8;
+  background-image : repeating-linear-gradient(45deg,
+                       transparent 0 4px, var(--clair1opa4) 4px 8px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tdl-ja-seg-fill,
+  .tdl-js-seg-fill { transition: none; }
+}
