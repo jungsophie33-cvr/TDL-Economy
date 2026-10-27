@@ -63,11 +63,13 @@
   "use strict";
   var CFG = { MOUNT:"#quais-staff", NODE_DEMANDES:"boutique_demandes", NODE_MEMBRES:"membres", NODE_CAGNOTTES:"cagnottes",
               NODE_TACHES:"taches_faiseuses", NODE_DOSSIERS:"dossiers_main", NODE_FLOT:"flottille", NODE_LOSTBAYOU:"lost_bayou",
-              NODE_SECRETS:"secrets", NODE_CATALOGUE:"boutique/barge", MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
+              NODE_SECRETS:"secrets", NODE_EVENTS:"evenements", NODE_CATALOGUE:"boutique/barge",
+              MONNAIE:"$", RETRY_MS:300, RETRY_MAX:100 };
   var SCHEMA_DOSSIER = 2;      /* doit suivre rep-det-main */
   var SCHEMA_TACHE   = 2;      /* doit suivre rep-tac-fais */
   var SCHEMA_LB      = 2;      /* lost_bayou et secrets */
   var SCHEMA_FLOT    = 2;      /* doit suivre rep-flot-core */
+  var SCHEMA_EVENT   = 2;
   var RACINE_FLOT_REV= "flottille_rev";
   var MAX_CREANCES   = 2;      /* MIROIR de barge-sorcieres CFG.MAX_CREANCES */
 
@@ -115,7 +117,7 @@
     ["lieu_vise","Lieu ou communauté visée"],["verrou_acces","Ce qui rend l'accès impossible"],["but_passage","Ce que le personnage va y faire"],["concours","Service dû à la Flottille"],
     ["duree_libelle","Durée d'absence"],["destination","Destination"],["motif_libelle","Motif du départ"],["dette_libelle","Dette fuie"],["enquete_titre","Affaire fuie"],
     ["restent","Reste derrière (PJ)"],["restent_pnj","Autres proches"],
-    ["titre","Titre"],["verrou_libelle","Pourquoi la Flottille"],["parties","Qui doit se retrouver là"],["objectif","Objectif"],["contraintes","Contraintes"],
+    ["titre","Titre"],["titre_ev","Titre de l'événement"],["verrou_libelle","Pourquoi la Flottille"],["parties","Qui doit se retrouver là"],["objectif","Objectif"],["contraintes","Contraintes"],
     ["mandtype_libelle","Commanditaire affiché"],["mand","Nom du commanditaire"],["prime","Prime"],
     ["ressource","Ressource ou accès proposé"],["apport","Ce que ça apporte au réseau"],["activite","Activité du personnage"],["dispo","Disponibilité"],["don","Don en nature"],
     ["offrande_mode","Offrande"],["offrande_secret_titre","Titre du secret"],["offrande_secret","Secret confié"],
@@ -180,6 +182,9 @@
     if (d.methode==="des") return false;
     return d.methode==="rp" || (!d.methode && plein(d.prix_negocie));
   }
+  /* Les deux articles de la Vie mondaine qui ouvrent un évent membre.
+     L'acheteur a payé et le staff valide : ni appuis ni file de demande. */
+  function evenementAchete(d){ return d.itemId==="initiative" || d.itemId==="orga"; }
   function phaseService(d){ return d.rp_mission==="oui"; }
   function depotSecret(d){ return d.itemId==="secret" || d.offrande_mode==="secret"; }
   function creanceService(d){ return d.offrande_mode==="creance" && plein(d.offrande_creance_type); }
@@ -207,6 +212,7 @@
     var di = detteAInscrire(d); if (di) out += ligne("Dette à inscrire", (DETTE_LIB[di.type]||di.type)+(di.creancier?" · "+di.creancier:""));
     if (d.itemId==="flot_disparition") out += ligne("Entrée à créer", "Tableau du hangar \u00b7 disparition");
     if (d.itemId==="flot_operation")   out += ligne("Entrée à créer", "Tableau du hangar \u00b7 opération");
+    if (evenementAchete(d)) out += ligne("Entrée à créer", "Récapitulatif des évents \u00b7 fiche d\u2019événement membre");
     if (depotSecret(d))  out += ligne("Entrée à créer", "Tableau des secrets \u00b7 dépôt au pot commun");
     if (creanceService(d)) out += ligne("Réseau à inscrire", "Sorcières du Baron \u00b7 créance de service \u00b7 "+creancesDe(d.pseudo)+" / "+MAX_CREANCES+" en cours");
     if (FICHE_ARTICLE[d.itemId]) out += ligne("Entrée à créer", "Tableau des secrets \u00b7 "+(FICHE_ARTICLE[d.itemId]==="poste"?"requête":"séance"));
@@ -393,6 +399,33 @@
     });
   }
 
+    /* La fiche naît FERMÉE, au nom de l'acheteur, qui la complète ensuite par
+     « Éditer la fiche » : période, portée, sujet RP. Elle bascule en « à
+     rejoindre » quand il renseigne son sujet.
+     ampleur distingue les deux articles : l'Initiative régionale peut peser
+     sur une jauge et sur la réputation, l'Organisateur non. */
+  function creerEvenement(d){
+    var it = CATALOGUE[d.itemId] || {};
+    var now = new Date().toISOString(), id = B().nouvelleCle();
+    return ecrireEntree(CFG.NODE_EVENTS, id, {
+      schema: SCHEMA_EVENT,
+      origine:"boutique", article:d.itemId||"", demandeId:d.id||"",
+      categorie:"membre",
+      titre:(d.titre_ev||d.nom||"Événement membre"), sous:"",
+      contexte:[d.contexte||""].filter(Boolean), objectifs:[],
+      periode:"", vignette:"",
+      referent:d.pseudo||"", mj:null,
+      ampleur: it.evAmpleur !== false,
+      statut:"en_cours", ouvert:false, rpOuvert:false, aClore:false,
+      visibilite:"publique",
+      cree:now, modifie:now
+    }, "fiche d'événement membre").then(function(r){
+      try{ if(window.EcoNotif) EcoNotif.a(d.pseudo, 237,
+        { titre:(d.titre_ev||d.nom||"") }, "ev"+(d.id||"")); }catch(e){}
+      return r;
+    });
+  }
+
   /* Créance PROPOSÉE par le joueur en paiement : elle entre au réseau des
      Sorcières, au bottin. Le tableau des secrets ouvrira la fiche quand une
      Sorcière réclamera son dû. */
@@ -573,6 +606,7 @@
     }
     await etape("tacheCreee", d.type==="faveur", function(){ return creerTache(d); }, "la tâche des Faiseuses n\u2019a pas pu être créée.");
     await etape("entreeFlottille", d.itemId==="flot_disparition" || d.itemId==="flot_operation", function(){ return creerEntreeFlottille(d); }, "l\u2019entrée du tableau du hangar n\u2019a pas pu être créée.");
+    await etape("ficheEvenement", evenementAchete(d), function(){ return creerEvenement(d); }, "la fiche d\u2019événement n\u2019a pas pu être créée.");
     await etape("entreeSecret", depotSecret(d), function(){ return creerSecret(d); }, "le secret n\u2019a pas pu être déposé.");
     await etape("entreeCreance", creanceService(d), function(){ return creerLienCreance(d); }, "la créance n\u2019a pas pu être inscrite au réseau des Sorcières.");
     await etape("jetonPose", d.itemId==="secret", function(){ return E().writeField(CFG.NODE_MEMBRES+"/"+encodeURIComponent(d.pseudo)+"/jeton_sorcieres", true); }, "le jeton de refus n\u2019a pas pu être posé.");
