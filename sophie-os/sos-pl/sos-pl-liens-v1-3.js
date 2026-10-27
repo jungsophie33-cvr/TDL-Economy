@@ -57,13 +57,22 @@
    rendu dans un autre post du sujet.
 
    Aucune écriture Firebase : lecture seule, fonctionne pour les invités.
-   La classe « annexe » est posée sur le conteneur (profil FA masqué).
+   La classe « annexe » est posée sur chaque section (profil FA masqué).
 
    [v1-2] correctif : la détection des posts testait le marqueur avec
      une frontière de mot (« \b ») sur le textContent — or le textContent
      colle les lignes entre elles (« === LIENS » suivi de « LIEN: … » se lit
      « === LIENSLIEN: ») : tout marqueur suivi d'un mot sur la ligne suivante
      était invisible et le post restait brut. Les « === » suffisent désormais.
+
+     Rendu remis au gabarit du forum : le hero de section reprend EXACTEMENT
+     la structure de la fiche de prélien (h1 .tdlplf-fam dans .tdlplf-hero /
+     .tdlplf-hero-in, frise en vis-à-vis, tags de tri sous le titre) ; les
+     têtes de groupe reprennent les classes du forum .tdlrol-head avec
+     .tdlrol-titre et .tdlrol-sous en <p> (margin-left 30px sur celles du
+     répertoire des liens) ; plus de div .tdlfl-sec ni de conteneur global —
+     chaque section porte tdlfl + tdlfl-<section> + annexe au premier
+     niveau du post.
 
    [v1-1] correctifs : ce script ATTEND le socle au lieu d'abandonner s'il
    est injecté avant lui (ordre du loader non garanti) ; la barre de filtres
@@ -417,15 +426,19 @@
 
   /* ------------------------------------------------------------------ RENDU */
 
+  /* Hero strictement calqué sur la fiche de prélien : h1 .tdlplf-fam,
+     sous-titre facultatif en .tdlplf-sous, tags de tri sous le titre,
+     frise en vis-à-vis — la même structure, au div près. */
   function htmlHead(titre, sous, tagsHtml) {
     return '<div class="tdlplf-hero"><div class="tdlplf-hero-in">' +
-      '<h2 class="tdlrol-titre">' + echappe(titre) + '</h2>' +
-      (sous ? '<p class="tdlrol-sous">' + echappe(sous) + '</p>' : '') + '</div>' +
-      (tagsHtml || '') + '</div>';
+      '<h1 class="tdlplf-fam">' + echappe(titre) + '</h1>' +
+      (sous ? '<p class="tdlplf-sous">' + echappe(sous) + '</p>' : '') +
+      (tagsHtml || '') +
+      '</div></div>';
   }
 
   function htmlSecRec(liste) {
-    var h = '<div class="tdlfl-sec tdlfl-rec">';
+    var h = '<div class="tdlfl tdlfl-rec annexe">';
     h += htmlHead('Recherche de liens rapide');
     h += '<div class="srec-grid">';
     liste.forEach(function (r) {
@@ -460,7 +473,7 @@
   }
 
   function htmlSecRps(liste) {
-    var h = '<div class="tdlfl-sec tdlfl-rps">';
+    var h = '<div class="tdlfl tdlfl-rps annexe">';
     h += htmlHead('Listing des sujets rp');
     h += '<div class="srp-filtre"><span>sujets rp avec <b class="srp-filtre-qui"></b></span>' +
       '<button type="button" class="srp-filtre-reset">réinitialiser</button></div>';
@@ -472,8 +485,8 @@
         var n = 0;
         liste.forEach(function (x) { if (x.statutNorm === cur) n++; });
         h += '<div class="srp-group" data-statut="' + echappe(cur) + '">' +
-          '<div class="srp-head"><h3 class="srp-titre">' + echappe(cur) + '</h3>' +
-          '<p class="srp-sous">' + n + ' sujet' + (n > 1 ? 's' : '') + '</p></div>';
+          '<div class="tdlrol-head"><p class="tdlrol-titre">' + echappe(cur) + '</p>' +
+          '<p class="tdlrol-sous">' + n + ' sujet' + (n > 1 ? 's' : '') + '</p></div>';
       }
       h += htmlRpRow(rp);
     });
@@ -525,14 +538,14 @@
           echappe(t) + '</button>';
       }).join('') + '</div>';
 
-    var h = '<div class="tdlfl-sec tdlfl-liens">';
+    var h = '<div class="tdlfl tdlfl-liens annexe">';
     h += htmlHead('Répertoire des liens', '', filtres);
     CATS_LIENS.forEach(function (cat) {
       var items = liste.filter(function (l) { return l.catNorm === cat; });
       if (!items.length) return;
       h += '<div class="sli-cat" data-cat="' + echappe(cat) + '">' +
-        '<div class="sli-cat-head"><h3 class="sli-cat-titre">' + echappe(cat) + '</h3>' +
-        '<p class="sli-cat-sous">' + items.length + ' lien' + (items.length > 1 ? 's' : '') + '</p></div>' +
+        '<div class="tdlrol-head" style="margin-left:30px"><p class="tdlrol-titre">' + echappe(cat) + '</p>' +
+        '<p class="tdlrol-sous">' + items.length + ' lien' + (items.length > 1 ? 's' : '') + '</p></div>' +
         '<div class="sli-list">';
       items.forEach(function (l) { h += htmlCarteLien(l, ctx); });
       h += '</div></div>';
@@ -540,14 +553,16 @@
     return h + '</div>';
   }
 
-  /* Un post transformé : sections dans l'ordre canonique, seulement
-     celles qui ont des entrées. */
+  /* Un post transformé : chaque section vit SA vie au premier niveau du
+     post — plus de conteneur global, plus de div .tdlfl-sec. La div de
+     section porte elle-même les classes tdlfl + tdlfl-<section> + annexe,
+     au même niveau que vivait l'ancien conteneur .tdlfl. */
   function htmlPost(d, ctx) {
-    var h = '<div class="tdlfl annexe">';
+    var h = '';
     if (d.recherches.length) h += htmlSecRec(d.recherches);
     if (d.rps.length)        h += htmlSecRps(d.rps);
     if (d.liens.length)      h += htmlSecLiens(d.liens, ctx);
-    return h + '</div>';
+    return h;
   }
 
   /* Avatar du bottin par pseudo : passe par l'index du socle (clé du
