@@ -71,6 +71,12 @@ function lignes(){
   return out;
 }
 
+   /* Une propriété de source peut être une valeur ou une fonction de l'entrée. */
+function lit(x, m){ return (typeof x === "function") ? x(m) : x; }
+
+/* Poids des dossiers de la Main, en points (8 = un cran). */
+var POIDS_MAIN = { vend:4, medi:4, mediation:4, intim:2, confesse:1 };
+
 /* Éléments importants, communs aux six tableaux : on prend ce qui existe,
    sous le libellé que le joueur comprend. Un champ absent ne crée pas de case. */
 function elements(m, src){
@@ -121,11 +127,14 @@ function porteesDepuis(txt){
               « connu de la paroisse ».
    conseq(m): ce que le référent a écrit À LA CLÔTURE — jamais le contexte.
    anonyme  : le tableau ne nomme jamais le commanditaire (la Main).
+   poids    : points versés à la jauge choisie par le staff (8 = un cran).
+   pressentie : la jauge annoncée sur la fiche avant clôture, ou rien quand
+              elle dépend trop de ce qui se joue. Le staff décide toujours.
    vignette : [MAJ] image de bandeau, une par tableau. Voir la note en pied. */
 
 var SOURCES = [
   { id:"marees", node:"flottille/marees", url:FORUM + "/t96-le-tableau-du-hangar",
-    libelle:"Marée \u27E1 Flottille", categorie:"communautaire", visible:true,
+    libelle:"Marée \u27E1 Flottille", categorie:"communautaire", visible:true, poids:1, pressentie:"activite_clandestine",
     ouvre:true, ombre:false, vignette:IMG.MAREES,
     clos:function(m){ return m.statut === "close"; },
     /* Une marée se rejoint par le POSTE : c'est là que sont ses gens. */
@@ -136,7 +145,7 @@ var SOURCES = [
   /* Ce qui se joue n'est pas le transport mais la réunion de partis qui ne se
      rencontreraient pas autrement : une opération est communautaire. */
   { id:"operations", node:"flottille/operations", url:FORUM + "/t96-le-tableau-du-hangar",
-    libelle:"Opération \u27E1 Flottille", categorie:"communautaire", visible:true,
+    libelle:"Opération \u27E1 Flottille", categorie:"communautaire", visible:true, poids:2, pressentie:null,
     ouvre:true, ombre:false, vignette:IMG.OPERATIONS,
     clos:function(m){ return m.statut === "close"; },
     parts:function(m){
@@ -148,7 +157,7 @@ var SOURCES = [
     portees:function(m){ return porteesDepuis(m.parties); } },
 
   { id:"maringouins", node:"missions", url:FORUM + "/t90-le-tableau-des-missions",
-    libelle:"Coup \u27E1 Maringouins", categorie:"bande", visible:true,
+    libelle:"Coup \u27E1 Maringouins", categorie:"bande", visible:true, poids:function(m){ return m.envergure === true ? 2 : 1; }, pressentie:"activite_clandestine",
     ombre:true, vignette:IMG.COUPS,
     /* un coup ouvre des rôles adverses, donc il s'annonce ; une mission de
        cellule reste dans l'ombre tant qu'elle n'est pas terminée */
@@ -167,7 +176,7 @@ var SOURCES = [
      télécharger des kilo-octets de prose à chaque affichage de colonne. */
   { id:"carrefour", node:"carrefour", txt:"carrefour_txt",
     url:FORUM + "/t107-le-tableau-du-carrefour",
-    libelle:"Mission du Carrefour", categorie:"communautaire", visible:true,
+    libelle:"Mission du Carrefour", categorie:"communautaire", visible:true, poids:1, pressentie:"climat_social",
     ouvre:true, ombre:false, vignette:IMG.CARREFOUR,
     garde:function(m){ return m.type !== "chasse"; },
     clos:function(m){ return m.statut === "close"; },
@@ -181,7 +190,7 @@ var SOURCES = [
     conseq:function(m){ return lignes(m.consequences); } },
 
   { id:"sorcieres", node:"lost_bayou", url:FORUM + "/t108-le-tableau-des-secrets",
-    libelle:"Rencontre \u27E1 Sorcières", categorie:"bande", visible:true,
+    libelle:"Rencontre \u27E1 Sorcières", categorie:"bande", visible:true, poids:1, pressentie:null,
     ouvre:true, ombre:true, vignette:IMG.SORCIERES,
     garde:function(m){ return m.type === "poste"; },
     clos:function(m){ return m.statut === "close"; },
@@ -196,6 +205,11 @@ var SOURCES = [
      s'ajoute à la boutique de la Main. */
   { id:"main", node:"dossiers_main", url:FORUM + "/t92-le-tableau-des-dettes",
     libelle:"Dossier \u27E1 Main", categorie:"bande", visible:false,
+    poids:function(m){ return POIDS_MAIN[m.service] || 0; },
+    pressentie:function(m){
+      return (m.service === "medi" || m.service === "mediation")
+        ? "climat_social" : "activite_clandestine";
+    },
     ouvre:false, ombre:true, anonyme:true, vignette:IMG.MAIN,
     garde:function(m){
       return ["vend","intim","confesse","medi","mediation"].indexOf(m.service) > -1;
@@ -215,18 +229,15 @@ var SOURCES = [
 /* ===================== TRADUCTION ===================== */
 
 /* « En bref » d'une fiche reprise : ce qu'on ne lit pas déjà dans le héros.
-   La jauge pressentie est déduite de la catégorie — un évent de bande pèse
-   sur l'activité clandestine, un évent communautaire sur le climat social.
+   La jauge pressentie est déclarée par la source, ou absente quand elle dépend de ce qui se joue.
    Ce n'est qu'une annonce : la jauge réellement touchée est décidée à la
    clôture par le staff. */
 function faits(src, m, c){
   var out = [];
   if (!c){
     out.push({ libelle:"Tenue par", valeur:src.libelle });
-    out.push({ libelle:"Jauge pressentie",
-      valeur:(src.categorie === "bande" ? V().JAUGES.activite_clandestine
-                                        : V().JAUGES.climat_social)
-             + ", selon l'issue" });
+    var jp = lit(src.pressentie, m);
+    if (jp && V().JAUGES[jp]) out.push({ libelle:"Jauge pressentie", valeur:V().JAUGES[jp] });
     if (m.prime) out.push({ libelle:"Prime", valeur:m.prime + " $" });
     if (m.zone || m.lieu) out.push({ libelle:"Zone", valeur:m.zone || m.lieu });
   }
@@ -257,6 +268,7 @@ function depuisSource(src, id, m, txt, conclusions){
     id:cid, origine:"tableau", sourceType:src.id, sourceId:id,
     source:src.libelle, urlSource:src.url, urlRp:m.sujet || "",
     categorie:src.categorie,
+    poids:Math.max(0, lit(src.poids, m) | 0),
     titre:m.titre || m.intitule || "(mission)",
     sous:m.resume || "",
     contexte:src.texte ? src.texte(m, txt) : [],
