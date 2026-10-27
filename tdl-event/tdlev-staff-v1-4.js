@@ -1,24 +1,30 @@
 /* THE DROWNED LANDS — LES ÉVÉNEMENTS · PANNEAU DE GESTION
    Réservé au staff. Trois sections : À traiter, Les fiches, Classées.
 
-   LA FILE À TRAITER mêle trois natures d'entrées, distinguées par un
+   LA FILE À TRAITER mêle quatre natures d'entrées, distinguées par un
    marqueur : les demandes appuyées, les évents en cours qui attendent leur
-   clôture, et les entrées de tableaux CLOSES dans leur tableau et sans
-   conclusion — une mission qui se joue encore n'y figure jamais.
+   clôture, les entrées de tableaux CLOSES dans leur tableau et sans
+   conclusion — une mission qui se joue encore n'y figure jamais —, et les
+   conclusions qui portent une jauge sans avoir été versées.
    Une seule liste, parce que ce qui les réunit est le même geste : décider.
    Les évents en cours y figurent TOUS : c'est la seule façon qu'aucun ne se
    perde, et le staff juge lesquels sont mûrs.
 
+   JAUGES : la clôture écrit la conclusion, PUIS la verse aux jauges par
+   tdlev-jauges.js. L'écriture part sans file de réessai : si elle échoue,
+   rien n'est écrit ni versé et le staff recommence. Une conclusion écrite
+   dont le versement n'a pas pu commencer revient en « Versement ».
+
    CE QUE LE PANNEAU NE FAIT PAS : poser un badge à la main (le catalogue
    décide), ni modifier les données d'une mission (elles appartiennent à son
-   tableau). Seule la conclusion de réputation se décide ici.
+   tableau). Seule la conclusion — jauges et réputation — se décide ici.
 
    Le panneau est en position:fixed et reparenté sur <body> — couche 9010,
    donc sous le volet, pour qu'une édition ouverte par-dessus reste visible.
 
    EXPOSE : window.TDLEvStaff
    DÉPEND DE : window.TDLEv, window.TDLEvUI, window.TDLEvVues,
-               window.TDLEvPublic, window.TDLBase
+               window.TDLEvJauges, window.TDLEvPublic, window.TDLBase
 
    CARTE DES BLOCS : CONFIG · COQUE · FILE · TRAVAIL · ÉVÉNEMENTS
                      · LECTURE · ÉCRITURE · INIT */
@@ -28,7 +34,7 @@
 
 /* ===================== CONFIG ===================== */
 
-var V = null, U = null, W = null, T = null, GEST = null;
+var V = null, U = null, W = null, X = null, T = null, GEST = null;
 var S = { sect:"traiter", sel:null, portees:[], visi:[], neuve:false };
 
 /* ===================== COQUE ===================== */
@@ -87,6 +93,13 @@ function items(sect){
       if (!r.aConclure) return;
       out.push({ nature:"tableau", id:"r:" + r.id, obj:r, titre:r.titre,
         src:r.source, date:V.ilya(r.cree), tri:r.cree });
+    });
+    /* Une conclusion qui porte une jauge et n'a jamais été versée. */
+    if (X) V.D.evenements.concat(V.D.reprises).forEach(function(e){
+      if (e.doublon || !X.aVerser(e)) return;
+      out.push({ nature:"versement", id:"v:" + e.id, obj:e, titre:e.titre,
+        src:e.source || (V.CATEGORIES[e.categorie] || {}).nom,
+        date:V.ilya(e.conclusion.le), tri:e.conclusion.le, urgent:true });
     });
   } else if (s === "fiches"){
     V.D.evenements.forEach(function(e){
@@ -159,6 +172,14 @@ function bouton(act, lib, creux){
   return '<button class="tdlev-btn' + (creux ? " est-fantome" : "") + '" data-g="' + act + '">'
     + lib + '</button>';
 }
+/* Ce que le formulaire de clôture propose : aucune jauge pour un
+   Organisateur, une jauge secondaire pour une intrigue seulement. */
+function optsDe(i){
+  var o = i && i.obj;
+  if (!o || i.nature !== "cloture") return {};
+  return { sansJauge:o.ampleur === false, double:o.categorie === "intrigue" };
+}
+
 function remplir(i){
   if (S.neuve) return { h:W.fiche(null, S.portees, S.visi),
     p:'<span class="tdlev-vol-p-txt"></span>' + bouton("creer", T.CREER) };
@@ -171,9 +192,15 @@ function remplir(i){
   if (i.nature === "cloture") return {
     h: W.liens(V.cles(o.rps).map(function(k){ var r = o.rps[k] || {}; return [r.titre, r.url]; }))
      + W.participants(o, T.PARTS, T.PARTS_N, false)
-     + W.conclusion(o.conclusion, o.ampleur === false),
+     + W.conclusion(o.conclusion, optsDe(i)),
     p: '<span class="tdlev-vol-p-txt">' + T.CLOT_NOTE + '</span>'
      + bouton("liberer", T.LIBERER, 1) + bouton("cloturer", T.CLOTURER) };
+
+  if (i.nature === "versement") return {
+    h: '<p class="tdlev-f-h">' + T.VERS_H + '</p>'
+     + '<p class="tdlev-g-note">' + T.VERS_N + '</p>'
+     + X.resume(o).map(function(t){ return '<p class="tdlev-g-note">' + V.esc(t) + '</p>'; }).join(""),
+    p: '<span class="tdlev-vol-p-txt"></span>' + bouton("verser", T.VERSER) };
 
   if (i.nature === "tableau" && S.sect === "classees") return {
     h: W.dossierReprise(o) + '<p class="tdlev-g-note">' + T.CLASSEE_N + '</p>',
@@ -183,7 +210,7 @@ function remplir(i){
     h: W.dossierReprise(o)
      + '<p class="tdlev-f-h">' + T.REPERC + '</p>'
      + '<p class="tdlev-g-note">' + T.REPERC_N + '</p>'
-     + W.participants(o, T.PARTS_T, T.PARTS_TN, true) + W.conclusion(o.conclusion),
+     + W.participants(o, T.PARTS_T, T.PARTS_TN, true) + W.conclusion(o.conclusion, {}),
     p: bouton("classer", T.CLASSER, 1) + '<span class="tdlev-vol-p-txt"></span>'
      + bouton("conclure", T.ENREG_CONCL) };
 
@@ -207,14 +234,15 @@ function travail(i){
   c.innerHTML = (S.neuve ? "" : tete(i)) + r.h;
   pied.innerHTML = r.p;
   c.scrollTop = 0;
-  brancher(c);
+  brancher(c, i);
 }
 
 /* ===================== ÉVÉNEMENTS ===================== */
 
 /* « Nommé » suit la case publique ; la note de jauge ne paraît que pour la
-   Pression du Bayou ; pastilles et bloc de visibilité se branchent ici. */
-function brancher(c){
+   Pression du Bayou ; l'aperçu des jauges, la bascule, les pastilles et le
+   bloc de visibilité se branchent ici. */
+function brancher(c, i){
   var pub = $("tdlev-c-public");
   if (pub){
     var maj = function(){
@@ -225,11 +253,13 @@ function brancher(c){
     };
     pub.addEventListener("change", maj); maj();
   }
+  /* un sélecteur désactivé (Organisateur) garde sa note propre, toujours visible */
   var j = $("tdlev-c-jauge"), note = $("tdlev-c-note");
-  if (j && note){
+  if (j && note && !j.disabled){
     var majJ = function(){ note.hidden = (j.value !== V.JAUGE_SANS_REPUTATION); };
     j.addEventListener("change", majJ); majJ();
   }
+  if (X && i && (i.nature === "cloture" || i.nature === "tableau")) X.brancher(c, i.obj);
   U.brancherChips(c, { gcomm:S.portees, gbandes:S.portees, gvisi:S.visi });
   var vi = $("tdlev-f-visi"), bloc = $("tdlev-f-visi-bloc");
   if (vi && bloc){
@@ -259,12 +289,15 @@ function lireRetenus(){
   });
   return out;
 }
-function lireConclusion(){
-  var jauge = U.val("tdlev-c-jauge");
-  return { issue:U.val("tdlev-c-issue") || "mitigee",
-           jauge:jauge, sens:(jauge === "aucune") ? null : U.val("tdlev-c-sens"),
-           public:U.coche("tdlev-c-public"), texte:U.val("tdlev-c-texte"),
-           le:V.maintenant(), par:V.monPseudo() };
+/* → la conclusion, ou { erreur } si le formulaire n'est pas cohérent. Les
+   lignes de jauge (jauge, sens, bascule, motif) sont lues par tdlev-jauges,
+   qui tient aussi leur aperçu. */
+function lireConclusion(opts){
+  var c = { issue:U.val("tdlev-c-issue") || "mitigee", jauge:"aucune",
+            public:U.coche("tdlev-c-public"), texte:U.val("tdlev-c-texte"),
+            le:V.maintenant(), par:V.monPseudo() };
+  var err = X ? X.lire(c, opts) : "";
+  return err ? { erreur:err } : c;
 }
 /* « libellé ; valeur » par ligne → nœud à clés */
 function lireNoeud(id, champs){
@@ -300,6 +333,24 @@ function lireFiche(){
 function fin(ok, msg){
   U.toast(ok ? msg : T.E_ECRIT);
   if (ok) window.TDLEvPublic.rafraichir().then(rendListe);
+}
+
+/* Une conclusion qui doit bouger une jauge exige le moteur sur la page :
+   sans lui, on n'écrit rien plutôt que d'écrire une conclusion inerte. */
+function verifier(c, o){
+  if (c.erreur){ U.toast(c.erreur); return false; }
+  var choisie = (U.val("tdlev-c-jauge") || "aucune") !== "aucune";
+  if (choisie && (!X || !X.pret())){ U.toast(T.E_MOTEUR); return false; }
+  return true;
+}
+/* Écriture d'abord, sans file de réessai ; versement ensuite. */
+function conclureEtVerser(ecriture, o, c, msgOk, apres){
+  ecriture.then(function(ok){
+    if (!ok){ U.toast(T.E_ECRIT); return; }
+    if (apres) apres();
+    var v = (X && !c.classee) ? X.verser(o, c) : Promise.resolve("");
+    return v.then(function(bilan){ fin(true, msgOk + (bilan ? " " + bilan : "")); });
+  });
 }
 
 function accepter(d, B){
@@ -350,15 +401,16 @@ function agir(act){
       break;
 
     case "cloturer":
+      var c1 = lireConclusion(optsDe(i));
+      if (!verifier(c1, o)) return;
       var ret = lireRetenus();
-      B.ecrire(V.CFG.NODE, o.id, { statut:"cloture", ouvert:false,
-        retenus:ret, conclusion:lireConclusion() },
-        "clôture de " + o.titre).then(function(ok){
-          if (ok) V.cles(ret).forEach(function(k){
-            U.notifier(ret[k].nom || k, V.NOTIF.CLOTURE, { titre:o.titre });
-          });
-          fin(ok, T.OK_CLOT);
-        });
+      conclureEtVerser(
+        B.ecrire(V.CFG.NODE, o.id, { statut:"cloture", ouvert:false, retenus:ret, conclusion:c1 },
+          "clôture de " + o.titre, { sansFile:true }),
+        o, c1, T.OK_CLOT,
+        function(){ V.cles(ret).forEach(function(k){
+          U.notifier(ret[k].nom || k, V.NOTIF.CLOTURE, { titre:o.titre });
+        }); });
       break;
 
     case "liberer":
@@ -367,11 +419,22 @@ function agir(act){
       break;
 
     case "conclure": case "classer":
-      var c = lireConclusion();
-      c.retenus = lireRetenus();
-      if (act === "classer") c.classee = true;
-      B.ecrireEntree(V.CFG.NODE_CONCL, o.id, c, "conclusion de " + o.titre)
-        .then(function(ok){ fin(ok, (act === "classer") ? T.OK_CLASS : T.OK_CONCL); });
+      /* classée : ni jauge ni réputation, quoi que dise le formulaire */
+      var c2 = (act === "classer")
+        ? { issue:U.val("tdlev-c-issue") || "mitigee", jauge:"aucune", public:false,
+            texte:U.val("tdlev-c-texte") || "", le:V.maintenant(), par:V.monPseudo(),
+            classee:true }
+        : lireConclusion({});
+      if (act !== "classer" && !verifier(c2, o)) return;
+      c2.retenus = lireRetenus();
+      conclureEtVerser(
+        B.ecrireEntree(V.CFG.NODE_CONCL, o.id, c2, "conclusion de " + o.titre, { sansFile:true }),
+        o, c2, (act === "classer") ? T.OK_CLASS : T.OK_CONCL);
+      break;
+
+    case "verser":
+      if (!X || !X.pret()){ U.toast(T.E_MOTEUR); return; }
+      X.verser(o, o.conclusion).then(function(bilan){ fin(true, bilan || T.OK_VERS); });
       break;
 
     case "reprendre":
@@ -401,12 +464,14 @@ function agir(act){
 
 /* ===================== INIT ===================== */
 
+/* L'état des jauges est lu AVANT le premier rendu : l'aperçu du formulaire
+   de clôture en dépend. Une seule lecture ciblée de jauges/. */
 function ouvrir(){
   if (!V.estStaff()) return;
   monter();
-  GEST.hidden = false;
   S.neuve = false;
-  rendListe();
+  var pret = X ? X.charger() : Promise.resolve();
+  pret.then(function(){ GEST.hidden = false; rendListe(); });
 }
 
 function demarrer(){
@@ -414,6 +479,7 @@ function demarrer(){
   if (!V || !U || !W || !window.TDLEvPublic || !window.TDLEvPublic.racine()){
     setTimeout(demarrer, 300); return;
   }
+  X = window.TDLEvJauges || null;
   T = W.T;
   if (!V.estStaff()) return;
   var b = document.getElementById("tdlev-gestion");
