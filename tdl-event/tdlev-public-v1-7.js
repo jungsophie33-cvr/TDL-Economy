@@ -306,16 +306,19 @@ function pave(icone, titre, corps){
 function accordeon(ev, peutRejoindre, moi){
   return V.cles(ev.rps).map(function(k, i){
     var r = ev.rps[k] || {};
-    var gens = V.cles(r.participants);
+    /* Un sujet unique n'a pas sa propre liste : ceux qui jouent là sont les
++       inscrits de l'événement. On la dérive plutôt que de la recopier. */
+    var pars = V.cles(r.participants).length ? r.participants : ev.participants;
+    var gens = V.cles(pars);
     var n = gens.length;
-    var dedans = moi && r.participants && r.participants[V.cle(moi)];
+    var dedans = moi && pars[V.cle(moi)];
     return '<button class="tdlev-rat-l" data-acc="' + i + '" aria-expanded="false">'
       + '<span class="tdlev-rat-nom">' + esc(r.titre || "(sujet)") + '</span>'
       + '<span class="tdlev-rat-n">' + n + " " + (n > 1 ? T.PERSONNES : T.PERSONNE) + '</span>'
       + fit("angle-right") + '</button>'
       + '<div class="tdlev-rat-p" id="tdlev-acc-' + i + '"><div>'
       + '<div class="tdlev-gens">'
-      + gens.map(function(g){ return '<span>' + esc(r.participants[g].nom || g) + '</span>'; }).join("")
+      + gens.map(function(g){ return '<span>' + esc(pars[g].nom || g) + '</span>'; }).join("")
       + '</div>'
       + (r.url ? '<div class="tdlev-cta"><button class="tdlev-btn est-second"'
                  + ' data-url="' + esc(r.url) + '">Lire le sujet</button>'
@@ -390,8 +393,12 @@ function rendFiche(ev){
   /* Avant que ça commence, la liste des inscrits est la seule information
      disponible. Dès que l'évent tourne, ce sont les sujets rattachés qui
      disent qui joue vraiment — répéter la liste n'apprendrait rien. */
-  var etat = V.etatAffichage(ev), ins = V.cles(ev.participants);
-  if (ins.length && (etat === "rejoindre" || etat === "venir"))
+  /* La liste des inscrits ne s'efface que là où les sujets rattachés la
++     remplacent vraiment : une intrigue ouverte aux RP des membres. Partout
++     ailleurs — un évent membre, un évent du staff à sujet unique — elle reste
++     la seule information sur qui est là. */
+  var ins = V.cles(ev.participants);
+  if (ins.length && !ev.rpOuvert)
     g += '<p class="tdlev-f-h">' + T.INSCRITS + '</p><div class="tdlev-gens">'
       + ins.map(function(k){ return '<span>' + esc(ev.participants[k].nom || k) + '</span>'; }).join("")
       + '</div>';
