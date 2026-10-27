@@ -52,7 +52,9 @@
    plus ancien), regroupement des liens par catégorie puis tri alphabétique,
    vignettes d'avatar lues dans le bottin des faceclaims PAR PSEUDO (une
    seule lecture du nœud par page, mutualisée avec l'arbre et les fiches),
-   filtres de tags, accordéon du résumé, et communication entre posts :
+   filtres de tags, accordéon du résumé, repli des groupes de 7 RP et plus
+   (6 lignes visibles, le reste déroulé par trois petits points), et
+   communication entre posts :
    le bouton « voir les rp » d'un lien filtre le répertoire des RP, même
    rendu dans un autre post du sujet.
 
@@ -73,6 +75,10 @@
      répertoire des liens) ; plus de div .tdlfl-sec ni de conteneur global —
      chaque section porte tdlfl + tdlfl-<section> + annexe au premier
      niveau du post.
+
+     Longueurs : un statut de 7 RP ou plus se replie — 6 lignes visibles,
+     le reste derrière un bouton .srp-plus à trois points (fi-sr-ellipsis)
+     qui déroule et replie ; en dessous de 7, tout reste visible.
 
    [v1-1] correctifs : ce script ATTEND le socle au lieu d'abandonner s'il
    est injecté avant lui (ordre du loader non garanti) ; la barre de filtres
@@ -472,25 +478,40 @@
     return h + '</div>';
   }
 
+  /* À partir de 7 sujets dans un statut, la liste se replie : 6 lignes
+     visibles, le reste derrière un bouton à trois points qui le déroule
+     — et le replie au second clic. En dessous de 7, tout est visible. */
+  var SEUIL_REPLIE = 7, RP_VISIBLES = 6;
+
   function htmlSecRps(liste) {
     var h = '<div class="tdlfl tdlfl-rps annexe">';
     h += htmlHead('Listing des sujets rp');
     h += '<div class="srp-filtre"><span>sujets rp avec <b class="srp-filtre-qui"></b></span>' +
       '<button type="button" class="srp-filtre-reset">réinitialiser</button></div>';
-    var cur = null, ouvert = false;
+    var cur = null, ouvert = false, cacheOuvert = false, cpt = 0, total = 0;
     liste.forEach(function (rp) {
       if (rp.statutNorm !== cur) {
-        if (ouvert) h += '</div>';
+        if (ouvert) h += (cacheOuvert ? '</div>' : '') + '</div>';
         cur = rp.statutNorm; ouvert = true;
-        var n = 0;
-        liste.forEach(function (x) { if (x.statutNorm === cur) n++; });
+        cacheOuvert = false; cpt = 0; total = 0;
+        liste.forEach(function (x) { if (x.statutNorm === cur) total++; });
         h += '<div class="srp-group" data-statut="' + echappe(cur) + '">' +
           '<div class="tdlrol-head"><p class="tdlrol-titre">' + echappe(cur) + '</p>' +
-          '<p class="tdlrol-sous">' + n + ' sujet' + (n > 1 ? 's' : '') + '</p></div>';
+          '<p class="tdlrol-sous">' + total + ' sujet' + (total > 1 ? 's' : '') + '</p></div>';
+      }
+      cpt++;
+      if (total >= SEUIL_REPLIE && cpt === RP_VISIBLES + 1) {
+        var reste = total - RP_VISIBLES;
+        h += '<button type="button" class="srp-plus" data-reste="' + reste + '"' +
+          ' title="voir les ' + reste + ' sujet' + (reste > 1 ? 's' : '') +
+          ' restant' + (reste > 1 ? 's' : '') + '">' +
+          '<i class="fi fi-sr-ellipsis"></i></button>' +
+          '<div class="srp-cache" style="display:none">';
+        cacheOuvert = true;
       }
       h += htmlRpRow(rp);
     });
-    if (ouvert) h += '</div>';
+    if (ouvert) h += (cacheOuvert ? '</div>' : '') + '</div>';
     return h + '</div>';
   }
 
@@ -596,6 +617,22 @@
     return null;
   }
 
+  /* Déroule — puis replie — les sujets masqués d'un statut replié. */
+  function basculeCache(btn) {
+    var groupe = plusProche(btn, '.srp-group');
+    var cache = groupe ? groupe.querySelector('.srp-cache') : null;
+    if (!cache) return;
+    var replie = cache.style.display === 'none';
+    cache.style.display = replie ? '' : 'none';
+    btn.classList.toggle('ouvert', replie);
+    var reste = +btn.getAttribute('data-reste') || 0;
+    btn.setAttribute('title', replie
+      ? 'replier les ' + reste + ' sujet' + (reste > 1 ? 's' : '') +
+        ' masqué' + (reste > 1 ? 's' : '')
+      : 'voir les ' + reste + ' sujet' + (reste > 1 ? 's' : '') +
+        ' restant' + (reste > 1 ? 's' : ''));
+  }
+
   /* Filtre « voir les rp avec ce personnage » : agit sur TOUTES les
      sections rp de la page — le répertoire peut vivre dans un autre post
      du sujet. Requête vivante : survit aux repeintes. */
@@ -655,6 +692,8 @@
 
       if (plusProche(cible, '.srp-ic')) return;              // lien du rp : suivre l'url
       if (plusProche(cible, '.srp-filtre-reset')) { reinitFiltre(); return; }
+      var plus = plusProche(cible, '.srp-plus');
+      if (plus) { basculeCache(plus); return; }             // repli des statut
       var btn = plusProche(cible, '.sli-rpbtn');
       if (btn && btn.getAttribute('data-pseudo')) { voirRp(btn.getAttribute('data-pseudo')); return; }
       var tag = plusProche(cible, '.tdlrol-tags .tdlrol-tag');
