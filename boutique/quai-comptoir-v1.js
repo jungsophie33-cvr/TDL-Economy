@@ -55,6 +55,11 @@
     CHOISIR_PJ:   "— Choisir un personnage —",
     AIDE_STAFF:   "Sois précis : ça aide le staff à valider ta demande.",
 
+    L_TITRE_EV:   "Titre de l\u2019événement *",
+    PH_TITRE_EV:  "Le bal du Chêne-Vert, la foire d\u2019automne\u2026",
+    AIDE_TITRE_EV:"Ce titre ouvrira ta fiche dans le sujet de gestion des événements. Tu pourras la compléter ensuite.",
+    ERR_TITRE_EV: "Donne un titre à ton événement.",
+
     L_LIEU:       "Lieu protégé *",
     PH_LIEU:      "La maison de Bayou Dularge, l\u2019atelier sur Main Street\u2026",
 
@@ -135,8 +140,8 @@
     mainint:{cat:"rendre",n:"Main : intervention rapide",ic:"bolt",gd:true,p:350,desc:"La Main sait agir vite quand la situation est urgente mais sans gravité (non criminelle).",na:"Action urgente",fo:"Post MJ",us:"Utilisable 1 fois",li:"Gravité minime : un délit possible, jamais un crime.",rp:"ctx",dette:"main",cagnotte:CFG.CAGNOTTE_MAIN,creancier:CFG.CREANCIER_MAIN,as:MAIN_AS},
 
     sponl:{cat:"mondaine",n:"Sponsoring local",ic:"donate",p:400,desc:"Participer financièrement à une initiative locale visible.",na:"Renforcement de réputation",fo:"Communiqué en une du Houma Courier, ou post MJ en évent",us:"Unique ⟡ 3 000 signes minimum pour l\u2019article",ja:"Climat social",po:"Communauté",presse:true,une:true,formePick:true,as:COMM_AS},
-    initiative:{cat:"mondaine",n:"Initiative régionale",ic:"confetti",p:800,desc:"Participer financièrement à une initiative de la paroisse : foire, festival, grand rendez-vous de Terrebonne. Ouvre un évent membre important.",na:"Renforcement de réputation",fo:"Évent membre",ja:"Climat social (selon l\u2019issue de l\u2019évent)",po:"Paroisse",note:"Si l\u2019évent est réussi, il fait gagner un niveau de réputation.",rp:"ctx",ctxLabel:"Contexte de l\u2019événement *"},
-    orga:{cat:"mondaine",n:"Organisateur",ic:"cocktail",p:300,desc:"Créer un évent membre léger et social.",na:"Renforcement de réputation",fo:"Évent membre",ef:"PNJ ou événements inattendus injectés par le staff",li:"Initiative à petite échelle, sans effet sur les jauges.",rp:"ctx",ctxLabel:"Contexte de l\u2019événement *"},
+    initiative:{cat:"mondaine",n:"Initiative régionale",ic:"confetti",p:800,desc:"Participer financièrement à une initiative de la paroisse : foire, festival, grand rendez-vous de Terrebonne. Ouvre un évent membre important.",na:"Renforcement de réputation",fo:"Évent membre",ja:"Climat social (selon l\u2019issue de l\u2019évent)",po:"Paroisse",note:"Si l\u2019évent est réussi, il fait gagner un niveau de réputation.",rp:"ctx",ctxLabel:"Contexte de l\u2019événement *",titreEv:true,evAmpleur:true},
+    orga:{cat:"mondaine",n:"Organisateur",ic:"cocktail",p:300,desc:"Créer un évent membre léger et social.",na:"Renforcement de réputation",fo:"Évent membre",ef:"PNJ ou événements inattendus injectés par le staff",li:"Initiative à petite échelle, sans effet sur les jauges.",rp:"ctx",ctxLabel:"Contexte de l\u2019événement *",titreEv:true,evAmpleur:false},
     projecteur:{cat:"mondaine",n:"Coup de projecteur",ic:"broadcast-tower",p:150,desc:"Une initiative, une réussite ou un engagement mérite d\u2019être relayé au-delà de ton cercle habituel. Une telle mise en lumière peut ouvrir de nouvelles rencontres, créer des opportunités… ou des oppositions.",na:"Mise en lumière publique",fo:"Communiqué dans le Houma Courier",us:"Unique ⟡ 2 000 signes minimum",li:"L\u2019article doit rester cohérent avec les faits joués en RP. La rédaction peut demander des ajustements. La démarche ne garantit ni adhésion ni succès.",presse:true,une:false,as:COMM_AS},
     attention:{cat:"mondaine",n:"Attirer l\u2019attention",ic:"bullhorn",p:800,desc:"Prendre publiquement position, pour ou contre une initiative, une décision, une personne ou une communauté. Ton personnage signe sa tribune : tout le monde saura qui a payé pour cette place.",na:"Position publique forte",fo:"Tribune libre en une du Houma Courier",us:"Unique ⟡ 3 000 signes minimum ⟡ lien RP obligatoire",ja:"Activité clandestine",po:"Paroisse",ef:"Une prise de parole publique a des conséquences : attends-toi à des réactions.",presse:true,une:true,tribune:true,rpObligatoire:true,affaire:true,as:TRIB_AS}
   };
@@ -157,7 +162,7 @@
   /* ===================== STRUCTURE ET CONTENU ===================== */
   /* COMPORTEMENT : dicté par le code. Tout le reste (nom, prix, textes) est du
      contenu, éditable par le staff. */
-  var STRUCT = ["cat","dette","detteAuto","creancier","cagnotte","gd","rp","ctxLabel","targetPJ","ciblePJ","lieuLibre",
+  var STRUCT = ["cat","dette","detteAuto","creancier","cagnotte","gd","rp","ctxLabel","titreEv","evAmpleur","targetPJ","ciblePJ","lieuLibre",
                 "roll","pick","direct","obj","ch","presse","une","tribune","rpObligatoire","affaire","formePick"];
   var TEXTUELS = ["desc","na","fo","us","ef","sv","co","li","po","ja","note","as"];
   /* restes d'anciens circuits : ignorés à la lecture, effacés au prochain enregistrement */
@@ -253,7 +258,8 @@
   /* circuit staff : le contexte est TOUJOURS demandé */
   function commandeStaff(a, api){
     return ui.section(T.S_DEMANDE,
-        ui.fld(a.ctxLabel || T.L_CONTEXTE, ui.ta("contexte", T.PH_CONTEXTE))
+        (a.titreEv ? ui.fld(T.L_TITRE_EV, ui.inp("titre_ev", T.PH_TITRE_EV)) + ui.aide(T.AIDE_TITRE_EV) : "")
+      + ui.fld(a.ctxLabel || T.L_CONTEXTE, ui.ta("contexte", T.PH_CONTEXTE))
       + (a.rp===true ? ui.rangee(ui.fld(T.L_LIEN, ui.inp("lien", "https://"))) : "")
       + (a.targetPJ ? blocCible(api) : "")
       + ui.aide(T.AIDE_STAFF));
@@ -301,6 +307,7 @@
       if (!window.TDLArticle) return T.NO_PRESSE;
       return window.TDLArticle.valider ? window.TDLArticle.valider(a, c) : null;
     }
+    if (a.titreEv && !plein(c.titre_ev)) return T.ERR_TITRE_EV;
     if (!plein(c.contexte)) return T.ERR_CONTEXTE;
     if (a.targetPJ && c.cible_type==="pj" && !plein(c.cible_pj)) return T.ERR_CIBLE_PJ;
     if (a.targetPJ && c.cible_type==="pnj" && !plein(c.cible_pnj)) return T.ERR_CIBLE_PNJ;
