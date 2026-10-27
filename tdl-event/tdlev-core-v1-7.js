@@ -236,6 +236,8 @@ function normaliser(o){
   o.elements     = o.elements || {};
   o.faits        = o.faits || {};
   o.rpOuvert     = !!o.rpOuvert;
+  o.ampleur      = (o.ampleur !== false);   /* défaut vrai : seul l'Organisateur l'éteint */
+  o.aClore       = !!o.aClore;
   o.rappels      = o.rappels || {};
   o.consequences = vt(o.consequences);
   o.liens        = o.liens || {};
