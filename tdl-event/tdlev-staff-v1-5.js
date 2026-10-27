@@ -341,6 +341,8 @@ function verifier(c, o){
   if (c.erreur){ U.toast(c.erreur); return false; }
   var choisie = (U.val("tdlev-c-jauge") || "aucune") !== "aucune";
   if (choisie && (!X || !X.pret())){ U.toast(T.E_MOTEUR); return false; }
+  var vide = X ? X.sansPoids(c, o) : "";
+  if (vide){ U.toast(vide); return false; }
   return true;
 }
 /* Écriture d'abord, sans file de réessai ; versement ensuite. */
