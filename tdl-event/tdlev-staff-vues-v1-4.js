@@ -23,7 +23,8 @@ var T = {
   VIDE:       "Rien à afficher.",
   RIEN:       "Rien à traiter.",
   ENTREE:     "entrée", ENTREES:"entrées",
-  MARQ:       { demande:"Demande", cloture:"Clôture", tableau:"Tableau", fiche:"Fiche" },
+  MARQ:       { demande:"Demande", cloture:"Clôture", tableau:"Tableau", fiche:"Fiche",
+                versement:"Versement" },
   SECTIONS:   [ { id:"traiter",  ico:"inbox",   nom:"À traiter" },
                 { id:"fiches",   ico:"list",    nom:"Les fiches" },
                 { id:"classees", ico:"archive", nom:"Classées" } ],
@@ -50,7 +51,7 @@ var T = {
   F_PUBLIC_A: "Décochée, personne ne peut être suspecté et la mission n'est connue que de sa bande.",
   F_TEXTE:    "Conclusion retenue par la paroisse",
   F_TEXTE_A:  "Le texte affiché sur le descriptif une fois l'évent terminé.",
-  CLOT_NOTE:  "La clôture applique badges et réputation",
+  CLOT_NOTE:  "La clôture applique badges, réputation et jauges",
   CLOTURER:   "Clôturer l'événement", LIBERER:"Libérer le quota du référent",
   REPERC:     "Cet évent a-t-il eu des répercussions sur la Paroisse ?",
   REPERC_N:   "Les données de la mission appartiennent à son tableau et ne sont pas modifiables. "
@@ -91,6 +92,19 @@ var T = {
   C_SUPP:     "Supprimer définitivement cet évent ?",
   NOTE_ORGA:  "Un service Organisateur est une initiative à petite échelle et ne pèse sur aucune jauge. "
             + "Seule l'Initiative régionale peut en bouger une.",
+  F_JAUGE2:   "Jauge secondaire",
+  SEC_H:      "La jauge secondaire",
+  F_BASC:     "Faire basculer la jauge au niveau suivant",
+  F_BASC_A:   "Le poids de l'évent est ignoré, et le plafond hebdomadaire aussi. "
+            + "Jamais plus d'un niveau.",
+  F_MOTIF:    "Motif de la bascule",
+  F_MOTIF_A:  "Obligatoire. Il reste au journal des jauges.",
+  E_MOTEUR:   "Le moteur des jauges n'est pas chargé sur cette page : rien n'a été écrit.",
+  VERS_H:     "Versement aux jauges",
+  VERS_N:     "Cette conclusion est enregistrée mais n'a jamais été versée aux jauges. "
+            + "Le versement se fera sur l'état actuel des jauges.",
+  VERSER:     "Verser aux jauges",
+  OK_VERS:    "Versement effectué.",
   CLORE_DEM:  "clôture demandée",
 };
 
@@ -178,23 +192,44 @@ function participants(ev, titre, note, figee){
       }).join("") + '</div>';
 }
 
-function conclusion(c, sansJauge){
+/* Une ligne de jauge du formulaire de clôture. s = "" pour la principale,
+   "2" pour la secondaire. Le motif ne paraît qu'avec la bascule, et l'aperçu
+   (rempli par tdlev-jauges.js) dit ce que le versement produira. */
+function ligneJauge(c, s, jauges){
+  var basc = !!c["bascule" + s];
+  return '<div class="tdlev-champ tdlev-deux">'
+    + '<div><label>' + (s ? T.F_JAUGE2 : T.F_JAUGE) + '</label>'
+    + U().choix("tdlev-c-jauge" + s, jauges, c["jauge" + s] || "aucune") + '</div>'
+    + '<div><label>' + T.F_SENS + '</label>'
+    + U().choix("tdlev-c-sens" + s, SENS.map(function(x){ return { v:x[0], l:x[1] }; }),
+        c["sens" + s] || "aggrave") + '</div></div>'
+    + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-c-basc' + s + '"'
+    + (basc ? " checked" : "") + '>' + T.F_BASC
+    + '<span class="tdlev-aide">' + T.F_BASC_A + '</span></label></div>'
+    + '<div id="tdlev-c-motif-bloc' + s + '"' + (basc ? "" : " hidden") + '>'
+    + U().champ(T.F_MOTIF, V().esc(T.F_MOTIF_A), U().texte("tdlev-c-motif" + s, c["motif" + s] || ""))
+    + '</div>'
+    + '<p class="tdlev-g-note tdlev-c-apercu" id="tdlev-c-apercu' + s + '"></p>';
+}
+
+/* opts = { sansJauge, double } — sansJauge pour un Organisateur, double pour
+   une intrigue, seule à pouvoir toucher une jauge secondaire. */
+function conclusion(c, opts){
   c = c || {};
+  if (typeof opts !== "object" || !opts) opts = { sansJauge:!!opts };
   var jauges = [{ v:"aucune", l:T.AUCUNE }].concat(V().cles(V().JAUGES).map(function(k){
     return { v:k, l:V().JAUGES[k] };
   }));
   return '<p class="tdlev-f-h">' + T.CONCL + '</p>'
     + U().champ(T.F_ISSUE, "", U().choix("tdlev-c-issue",
         ISSUES.map(function(x){ return { v:x[0], l:x[1] }; }), c.issue))
-    + '<div class="tdlev-champ tdlev-deux">'
-    + '<div><label>' + T.F_JAUGE + '</label>'
-    + (sansJauge
-        ? '<select id="tdlev-c-jauge" disabled><option value="aucune">' + T.AUCUNE + '</option></select>'
-        : U().choix("tdlev-c-jauge", jauges, c.jauge || "aucune")) + '</div>'
-    + '<div><label>' + T.F_SENS + '</label>'
-    + U().choix("tdlev-c-sens", SENS.map(function(x){ return { v:x[0], l:x[1] }; }),
-        c.sens || "aggrave") + '</div></div>'
-    + '<p class="tdlev-g-note" id="tdlev-c-note">' + (sansJauge ? T.NOTE_ORGA : T.NOTE_PB) + '</p>'
+    + (opts.sansJauge
+        ? '<div class="tdlev-champ"><label>' + T.F_JAUGE + '</label>'
+          + '<select id="tdlev-c-jauge" disabled><option value="aucune">' + T.AUCUNE
+          + '</option></select></div>'
+        : ligneJauge(c, "", jauges))
+    + '<p class="tdlev-g-note" id="tdlev-c-note">' + (opts.sansJauge ? T.NOTE_ORGA : T.NOTE_PB) + '</p>'
+    + (opts.double ? '<p class="tdlev-f-h">' + T.SEC_H + '</p>' + ligneJauge(c, "2", jauges) : '')
     + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-c-public"'
     + (c.public ? " checked" : "") + '>' + T.F_PUBLIC
     + '<span class="tdlev-aide">' + T.F_PUBLIC_A + '</span></label></div>'
