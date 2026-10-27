@@ -46,6 +46,10 @@ var T = {
   F_DEBUT:    "Ouverture",
   RETENU_C:   "La paroisse en retiendra...",
   BREF:       "En bref",
+  F_REF:      "Organisé par",
+  F_JAUGE:    "Jauges",
+  J_AUCUNE:   "Aucune. Une initiative à petite échelle ne pèse sur rien.",
+  J_CLIMAT:   "Le Climat social peut bouger, selon l'issue.",
   LIENS:      "Liens et ressources",
   EDITER:     "Éditer l'évent",
   PARTICIPER: "S'inscrire",
@@ -166,8 +170,9 @@ function stats(ev){
     if (ev.conclusion && ev.conclusion.le) out.push(["clock", T.F_CLOS, V.dateFr(ev.conclusion.le)]);
   } else {
     if (nbP) out.push(["users","Inscrits", String(nbP)]);
-    if (nbR) out.push(["feather", T.RPS, String(nbR)]);
-    if (ev.referent) out.push(["user","Référent", esc(ev.referent)]);
+    /* Un évent membre n'a qu'un seul sujet : l'annoncer en chiffre n'apprend
+       rien. Le compte n'a de sens que là où les sujets s'accumulent. */
+    if (nbR > 1) out.push(["feather", T.RPS, String(nbR)]);
   }
   return out;
 }
@@ -327,6 +332,11 @@ function accordeon(ev, peutRejoindre, moi){
 function faits(ev){
   var out = [];
   if (ev.debut && ev.statut !== "cloture") out.push([T.F_DEBUT, esc(V.dateFr(ev.debut))]);
+   if (ev.referent) out.push([T.F_REF, esc(ev.referent)]);
+  /* ampleur vient de l'article acheté : l'Organisateur ne bouge aucune jauge,
+     l'Initiative régionale peut peser sur le Climat social. */
+  if (ev.origine === "boutique" && ev.statut !== "cloture")
+    out.push([T.F_JAUGE, ev.ampleur === false ? T.J_AUCUNE : T.J_CLIMAT]);
   if (ev.statut === "cloture" && ev.conclusion){
     var c = ev.conclusion;
     if (c.issue) out.push([T.F_ISSUE,
