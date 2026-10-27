@@ -38,7 +38,7 @@
 
   var T = {
     TITRE:     "Équilibres de Terrebonne",
-    SOUS:      "Panneau staff de gestion",
+    SOUS:      "Panneau staff – état des jauges collectives et réglage direct",
     REFUS:     "Accès réservé au staff.",
     CHARGE:    "Chargement…",
     ERREUR:    "Erreur de chargement.",
@@ -56,7 +56,7 @@
     MOTIF_A:   "Obligatoire. Il reste au journal des jauges.",
     MOTIF_E:   "Indiquez un motif.",
     OK:        "Confirmer", ANNULER: "Annuler",
-    DEJA:      function (n) { return "La jauge avait déjà évolué entre-temps : elle est maintenant au niveau " + n + "."; },
+    DEJA:      function (n) { return "La jauge avait déjà bougé entre-temps : elle est maintenant au niveau " + n + "."; },
     ECHEC:     "Le réglage n'a pas été enregistré. Vérifiez la console."
   };
 
@@ -139,7 +139,8 @@
         +   '<div class="tdl-js-segments">';
       for (var i = 1; i <= 5; i++) {
         html += '<div class="tdl-js-segment" id="js-seg-' + key + '-' + i + '"'
-              + ' data-key="' + key + '" data-n="' + i + '" role="img" aria-label="Niveau ' + i + '"></div>';
+              + ' data-key="' + key + '" data-n="' + i + '" role="img" aria-label="Niveau ' + i + '">'
+              + '<span class="tdl-js-seg-fill"></span></div>';
       }
       html += '</div>'
         +   '<button class="tdl-js-btn" data-key="' + key + '" data-delta="1" aria-label="Monter">+</button>'
@@ -169,12 +170,16 @@
       var info = document.getElementById("js-info-" + key);
       if (info) info.textContent = T.NIVEAU + e.niveau + " — " + c.niveaux[e.niveau - 1].label;
 
-      for (var i = 1; i <= 5; i++) {
-        var seg = document.getElementById("js-seg-" + key + "-" + i);
-        if (!seg) continue;
-        seg.style.backgroundColor = (i <= e.niveau) ? c.color : "";
-        seg.classList.toggle("tdl-js-seg-active", i <= e.niveau);
-      }
+      /* la charge se lit dans le segment voisin, comme sur l'accueil */
+      J().remplissage(e).forEach(function (p, idx) {
+        var seg = document.getElementById("js-seg-" + key + "-" + (idx + 1));
+        if (!seg) return;
+        seg.firstChild.style.width = Math.round(p.part * 100) + "%";
+        seg.firstChild.style.backgroundColor = c.color;
+        seg.classList.toggle("tdl-js-seg-active", p.part === 1 && !p.partiel);
+        seg.classList.toggle("est-partiel", p.partiel);
+        seg.classList.toggle("est-attente", p.attente);
+      });
 
       var lignes = [J().charge(e.charge)];
       if (e.attente)       lignes.push(T.SUIVANT + J().jour(e.passageLe));
