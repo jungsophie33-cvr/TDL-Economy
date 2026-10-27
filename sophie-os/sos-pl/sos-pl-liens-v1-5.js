@@ -505,7 +505,7 @@
         h += '<button type="button" class="srp-plus" data-reste="' + reste + '"' +
           ' title="voir les ' + reste + ' sujet' + (reste > 1 ? 's' : '') +
           ' restant' + (reste > 1 ? 's' : '') + '">' +
-          '<i class="fi fi-sr-ellipsis"></i></button>' +
+          '<i class="fi fi-sr-circle-ellipsis"></i></button>' +
           '<div class="srp-cache" style="display:none">';
         cacheOuvert = true;
       }
