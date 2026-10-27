@@ -405,7 +405,6 @@
      ampleur distingue les deux articles : l'Initiative régionale peut peser
      sur une jauge et sur la réputation, l'Organisateur non. */
   function creerEvenement(d){
-    var it = CATALOGUE[d.itemId] || {};
     var now = new Date().toISOString(), id = B().nouvelleCle();
     return ecrireEntree(CFG.NODE_EVENTS, id, {
       schema: SCHEMA_EVENT,
@@ -415,7 +414,7 @@
       contexte:[d.contexte||""].filter(Boolean), objectifs:[],
       periode:"", vignette:"",
       referent:d.pseudo||"", mj:null,
-      ampleur: it.evAmpleur !== false,
+      ampleur: d.itemId !== "orga",
       statut:"en_cours", ouvert:false, rpOuvert:false, aClore:false,
       visibilite:"publique",
       cree:now, modifie:now
