@@ -25,7 +25,8 @@
       window.EcoCore &&
       window.EcoCore.firebaseGet &&
       window.TDLJauges &&
-      window.TDLJauges.CFG
+      window.TDLJauges.CFG &&
+      window.TDLJauges.etat
     );
   }
 
@@ -129,8 +130,8 @@
     const cfg  = window.TDLJauges.CFG;
 
     keys.forEach(function (key) {
-      const entry = data[key] || {};
-      const n     = Math.min(5, Math.max(1, parseInt(entry.niveau) || 1));
+      /* le niveau RÉEL : retour au calme et passage différé compris */
+      const n     = window.TDLJauges.etat(data[key]).niveau;
       const c     = cfg[key];
 
       // Couleur des segments
