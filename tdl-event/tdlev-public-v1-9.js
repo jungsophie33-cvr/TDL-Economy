@@ -49,7 +49,7 @@ var T = {
   F_REF:      "Organisé par",
   F_JAUGE:    "Jauges",
   J_AUCUNE:   "Aucune. Une initiative à petite échelle ne pèse sur rien.",
-  J_CLIMAT:   "Le Climat social peut bouger, selon l'issue.",
+  J_CLIMAT:   "Le Climat social peut évoluer.",
   LIENS:      "Liens et ressources",
   EDITER:     "Éditer l'évent",
   PARTICIPER: "S'inscrire",
@@ -345,8 +345,13 @@ function faits(ev){
     if (c.issue) out.push([T.F_ISSUE,
       '<span class="tdlev-issue est-' + esc(c.issue) + '"><span class="tdlev-pt"></span>'
       + esc(V.TEXTES.ISSUES[c.issue] || c.issue) + '</span>']);
-    if (c.jauge && c.jauge !== "aucune")
-      out.push([T.F_CONSEQ, esc(V.JAUGES[c.jauge] || c.jauge) + " " + esc(V.TEXTES.SENS[c.sens] || "")]);
+   /* une intrigue peut toucher deux jauges ; la bascule reste une affaire de staff */
+    var cq = [[c.jauge, c.sens], [c.jauge2, c.sens2]].filter(function(x){
+      return x[0] && x[0] !== "aucune";
+    }).map(function(x){
+      return esc(V.JAUGES[x[0]] || x[0]) + " : " + esc(V.TEXTES.SENS[x[1]] || "");
+    });
+    if (cq.length) out.push([T.F_CONSEQ, cq.join("<br>")]);
     out.push([T.F_PUBLIC, c.public ? T.OUI_NON.true : T.OUI_NON.false]);
   }
   V.cles(ev.faits).forEach(function(k){
