@@ -88,7 +88,10 @@ var T = {
   OK_CLASS:   "Event classé sans suite.", OK_REPR:"Event remis dans la file.",
   OK_FICHE:   "Event enregistré.", OK_SUPP:"Event supprimé.",
   E_ECRIT:    "Écriture impossible. Réessayez dans un instant.",
-  C_SUPP:     "Supprimer définitivement cet évent ?"
+  C_SUPP:     "Supprimer définitivement cet évent ?",
+  NOTE_ORGA:  "Un service Organisateur est une initiative à petite échelle et ne pèse sur aucune jauge. "
+            + "Seule l'Initiative régionale peut en bouger une.",
+  CLORE_DEM:  "clôture demandée",
 };
 
 var ISSUES = [["reussite","Réussite"],["mitigee","Mitigée"],["echec","Échec"]];
@@ -175,7 +178,7 @@ function participants(ev, titre, note, figee){
       }).join("") + '</div>';
 }
 
-function conclusion(c){
+function conclusion(c, sansJauge){
   c = c || {};
   var jauges = [{ v:"aucune", l:T.AUCUNE }].concat(V().cles(V().JAUGES).map(function(k){
     return { v:k, l:V().JAUGES[k] };
@@ -185,11 +188,13 @@ function conclusion(c){
         ISSUES.map(function(x){ return { v:x[0], l:x[1] }; }), c.issue))
     + '<div class="tdlev-champ tdlev-deux">'
     + '<div><label>' + T.F_JAUGE + '</label>'
-    + U().choix("tdlev-c-jauge", jauges, c.jauge || "aucune") + '</div>'
+    + (sansJauge
+        ? '<select id="tdlev-c-jauge" disabled><option value="aucune">' + T.AUCUNE + '</option></select>'
+        : U().choix("tdlev-c-jauge", jauges, c.jauge || "aucune")) + '</div>'
     + '<div><label>' + T.F_SENS + '</label>'
     + U().choix("tdlev-c-sens", SENS.map(function(x){ return { v:x[0], l:x[1] }; }),
         c.sens || "aggrave") + '</div></div>'
-    + '<p class="tdlev-g-note" id="tdlev-c-note">' + T.NOTE_PB + '</p>'
+    + '<p class="tdlev-g-note" id="tdlev-c-note">' + (sansJauge ? T.NOTE_ORGA : T.NOTE_PB) + '</p>'
     + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-c-public"'
     + (c.public ? " checked" : "") + '>' + T.F_PUBLIC
     + '<span class="tdlev-aide">' + T.F_PUBLIC_A + '</span></label></div>'
