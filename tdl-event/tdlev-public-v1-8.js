@@ -390,15 +390,11 @@ function rendFiche(ev){
     g += accordeon(ev, !!(ev.rpOuvert && inscrit), moi);
   }
 
-  /* Avant que ça commence, la liste des inscrits est la seule information
-     disponible. Dès que l'évent tourne, ce sont les sujets rattachés qui
-     disent qui joue vraiment — répéter la liste n'apprendrait rien. */
-  /* La liste des inscrits ne s'efface que là où les sujets rattachés la
-+     remplacent vraiment : une intrigue ouverte aux RP des membres. Partout
-+     ailleurs — un évent membre, un évent du staff à sujet unique — elle reste
-+     la seule information sur qui est là. */
+  /* La liste des inscrits ne s'affiche que si aucun sujet ne la montre déjà.
++     Sur un évent membre, l'accordéon du sujet unique porte les mêmes noms :
++     la répéter dessous n'ajoute rien. */
   var ins = V.cles(ev.participants);
-  if (ins.length && !ev.rpOuvert)
+  if (ins.length && !V.cles(ev.rps).length)
     g += '<p class="tdlev-f-h">' + T.INSCRITS + '</p><div class="tdlev-gens">'
       + ins.map(function(k){ return '<span>' + esc(ev.participants[k].nom || k) + '</span>'; }).join("")
       + '</div>';
