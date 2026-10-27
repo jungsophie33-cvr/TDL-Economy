@@ -266,7 +266,11 @@ function etatAffichage(ev){
   if (!ev) return "cours";
   if (ev.statut === "cloture") return "cloture";
   if (ev.debut && new Date(ev.debut).getTime() > Date.now()) return "venir";
-  return ev.ouvert ? "rejoindre" : "cours";
+  if (ev.ouvert) return "rejoindre";
+  /* « En cours » suppose qu'il y ait quelque chose à lire. Tant qu'aucun sujet
+     n'est rattaché — une fiche achetée que son référent n'a pas encore
+     complétée, par exemple — l'événement est annoncé, pas commencé. */
+  return cles(ev.rps).length ? "cours" : "venir";
 }
 
 /* Repli des portées par famille : moins de trois, on nomme ; à partir de
