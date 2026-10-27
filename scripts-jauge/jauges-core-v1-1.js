@@ -64,7 +64,7 @@
         { n: 1, label: "Harmonie relative",  desc: "La cohabitation est paisible entre les communautés." },
         { n: 2, label: "Murmures",           desc: "Des rumeurs et tensions commencent à circuler." },
         { n: 3, label: "Frictions",          desc: "Conflits locaux et rivalités visibles entre groupes." },
-        { n: 4, label: "Crise sociale",      desc: "Manifestations, boycotts, sabotages des initiatives communautaires." },
+        { n: 4, label: "Crise sociale",      desc: "Manifestations, boycotts, sabotages d'initiatives communautaires." },
         { n: 5, label: "Rupture",            desc: "Le conflit devient ouvert entre les communautés de Terrebonne." }
       ]
     },
@@ -75,9 +75,9 @@
       niveaux: [
         { n: 1, label: "Discrétion",              desc: "Les activités illégales sont rarement évoquées." },
         { n: 2, label: "Rumeurs",                 desc: "On parle d'activités clandestines proches de chez nous." },
-        { n: 3, label: "Mouvement",               desc: "Les réseaux créent du remous, sentiment d'insécurité croissant." },
+        { n: 3, label: "Mouvement",               desc: "Les réseaux s'activent, sentiment d'insécurité croissant." },
         { n: 4, label: "Escalade",                desc: "Actions et intimidations se multiplient ; le bureau du shérif est débordé." },
-        { n: 5, label: "Guerre hors de l'ombre",  desc: "Les bandes en conflit agissent ouvertement dans Terrebonne." }
+        { n: 5, label: "Guerre hors de l'ombre",  desc: "Les réseaux en conflit agissent ouvertement dans Terrebonne." }
       ]
     },
     pression_bayou: {
@@ -87,8 +87,8 @@
       niveaux: [
         { n: 1, label: "Équilibre",          desc: "La région est stable." },
         { n: 2, label: "Instabilité",        desc: "Des tensions apparaissent à plusieurs niveaux." },
-        { n: 3, label: "Pression",           desc: "Plusieurs crises s'accumulent dans la région." },
-        { n: 4, label: "Tempête imminente",  desc: "La situation devient explosive ; une crise majeure approche." },
+        { n: 3, label: "Pression",           desc: "Plusieurs crises se superposent dans la région." },
+        { n: 4, label: "Tempête imminente",  desc: "La situation devient explosive : une crise majeure approche." },
         { n: 5, label: "Ouragan",            desc: "Crise majeure touchant toute la paroisse de Terrebonne." }
       ]
     }
@@ -185,6 +185,23 @@
       /* fin du plafond en cours, s'il y en a un */
       plafondJusqua: (s.passage != null && t - s.passage < plafond()) ? iso(s.passage + plafond()) : null
     };
+  };
+
+  /* Remplissage des cinq segments d'une barre, à partir d'un etat().
+     Les segments jusqu'au niveau sont pleins. La charge se lit dans le
+     segment voisin : côté aggravation, le segment SUIVANT se remplit d'autant
+     de huitièmes ; côté apaisement, le segment COURANT se vide d'autant.
+     Rend [{ part:0..1, partiel, attente }] pour les niveaux 1 à 5. */
+  J.remplissage = function (e) {
+    var out = [], c = cran();
+    for (var i = 1; i <= 5; i++) {
+      var part = (i <= e.niveau) ? 1 : 0, partiel = false;
+      if (e.charge > 0 && i === e.niveau + 1) { part = e.charge / c; partiel = true; }
+      if (e.charge < 0 && i === e.niveau)     { part = 1 + e.charge / c; partiel = true; }
+      out.push({ part: Math.max(0, Math.min(1, part)), partiel: partiel,
+                 attente: partiel && !!e.attente });
+    }
+    return out;
   };
 
   /* ===================== CALCULS ===================== */
