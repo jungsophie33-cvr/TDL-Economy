@@ -224,7 +224,8 @@ var NOTIFS = {
   233:{n:C.EV, ic:"stamp",         url:U.EVENTS, txt:function(d){return "Votre demande &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; a été "+esc(d.etat)+".";}},
   234:{n:C.EV, ic:"bell-ring",     url:U.EVENTS, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; vient d'ouvrir. Vous aviez demandé à être prévenu·e.";}},
   235:{n:C.EV, ic:"flag-alt",      url:U.EVENTS, txt:function(d){return "&laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est terminé. Votre participation a été confirmée.";}},
-  236:{n:C.EV, ic:"link-alt",      url:U.EVENTS, txt:function(d){return esc(d.pseudo)+" joint un sujet à &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}}
+  236:{n:C.EV, ic:"link-alt",      url:U.EVENTS, txt:function(d){return esc(d.pseudo)+" joint un sujet à &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo;.";}},
+  237:{n:C.EV, ic:"calendar-star", url:U.EVENTS, txt:function(d){return "Votre événement &laquo;&nbsp;"+esc(d.titre)+"&nbsp;&raquo; est créé. Complétez sa fiche, puis ouvrez-la quand votre sujet sera prêt.";}}
 };
 
 /* préfixes de titre → type de notification */
