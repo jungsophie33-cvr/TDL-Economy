@@ -39,8 +39,8 @@ function M(){ return window.TDLJaugesMoteur; }
 /* ===================== TEXTES ===================== */
 
 var T = {
-  POIDS:    "Impact mesuré de cet évent : ",
-  POIDS2:   "Jauge secondaire, moitié de l'impact principal : ",
+  POIDS:    "Impact de cet évent : ",
+  POIDS2:   "Jauge secondaire, moitié de la valeur d'impact de la jauge principale : ",
   BASCULE:  "Bascule : l'impact est ignoré. ",
   DEJA:     "Cette conclusion avait déjà été versée aux jauges : rien n'a bougé.",
   ECHEC:    "Le versement de « {j} » a échoué après la prise du verrou : la conclusion "
@@ -50,14 +50,22 @@ var T = {
   ABSENT:   "Le moteur des jauges n'est pas chargé sur cette page.",
   E_MOTIF:  "Une bascule demande un motif.",
   E_SEC:    "Choisissez d'abord la jauge principale.",
-  E_DOUBLE: "La jauge secondaire doit être différente de la principale."
+  E_DOUBLE: "La jauge secondaire doit être différente de la principale.",
+  /* une jauge choisie sur un évent sans poids : erreur de configuration
+     (diff de tdlev-core ou de tdlev-sources absent), jamais un choix */
+  E_POIDS:  "« {j} » est choisie, mais ce type d'évent n'a aucun impact déclaré "
+          + "(tdlev-core ou tdlev-sources). Rien n'a été écrit.",
+  E_POIDS_V:"Versement impossible : ce type d'évent n'a aucun impact déclaré "
+          + "(tdlev-core ou tdlev-sources)."
 };
 
 /* ===================== OUTILS ===================== */
 
 var _etats = {};          /* jauges/ brut, tel que lu ; recalculé à l'aperçu */
 
-function pret(){ return !!(J() && J().verser && M() && M().pret()); }
+function pret(){
+  return !!(V() && typeof V().poids === "function" && J() && J().verser && M() && M().pret());
+}
 
 /* Une lecture ciblée de la branche jauges, à l'ouverture du panneau et après
    chaque versement. */
@@ -75,7 +83,13 @@ function ligne(c, ev, s){
   var l = { jauge: j, sens: c["sens" + s] || "aggrave",
             points: V().poids(ev, s === "2"), bascule: !!c["bascule" + s],
             motif: c["motif" + s] || "" };
-  return (l.bascule || l.points > 0) ? l : null;
+  return l;
+}
+
+/* Une ligne qui ne pèse rien sans bascule : le poids manque à la config. */
+function sansPoids(c, ev){
+  var l = lignes(c, ev).filter(function (x) { return !x.bascule && !(x.points > 0); })[0];
+  return l ? T.E_POIDS.replace("{j}", (J().CFG[l.jauge] || {}).label || l.jauge) : "";
 }
 
 function lignes(c, ev){
@@ -94,6 +108,7 @@ function verrou(ev){
 /* Conclue, porteuse d'au moins une ligne, jamais versée. */
 function aVerser(ev){
   var c = ev && ev.conclusion;
+  if (!pret()) return false;
   if (!c || c.classee || c.versee === true) return false;
   if (ev.origine !== "tableau" && ev.statut !== "cloture") return false;
   return lignes(c, ev).length > 0;
@@ -103,6 +118,7 @@ function aVerser(ev){
 
 function texte(l, secondaire){
   if (!pret()) return T.ABSENT;
+  if (!l.bascule && !(l.points > 0)) return T.E_POIDS_V;
   var r = J().verser(_etats[l.jauge], l);
   return (l.bascule ? T.BASCULE : (secondaire ? T.POIDS2 : T.POIDS) + J().fraction(l.points) + ". ")
     + J().decrire(l.jauge, r);
@@ -111,6 +127,7 @@ function texte(l, secondaire){
 /* Les deux lignes d'une conclusion déjà enregistrée, pour la file. */
 function resume(ev){
   var c = ev.conclusion || {};
+  if (!pret()) return [T.ABSENT];
   return lignes(c, ev).map(function (l, i) { return texte(l, i === 1); });
 }
 
@@ -128,7 +145,8 @@ function brancher(racine, ev){
     function maj(){
       if (bloc && basc) bloc.hidden = !basc.checked;
       var l = { jauge: j.value, sens: sens ? sens.value : "aggrave",
-                points: V().poids(ev, s === "2"), bascule: !!(basc && basc.checked) };
+                points: pret() ? V().poids(ev, s === "2") : 0,
+                bascule: !!(basc && basc.checked) };
       if (!l.jauge || l.jauge === "aucune") {
         ap.textContent = (s === "2" ? T.POIDS2 : T.POIDS) + (pret() ? J().fraction(l.points) : "—") + ".";
         return;
@@ -173,10 +191,14 @@ function lire(c, opts){
 /* → Promise<string> : le bilan à afficher. Ne rejette jamais : un échec se
    dit dans le bilan. */
 function verser(ev, c){
+  if (!pret()) return Promise.resolve(T.ABSENT);
   var ls = lignes(c, ev);
   if (!ls.length) return Promise.resolve("");
-  if (!pret()) return Promise.resolve(T.ABSENT);
-  return M().verserConclusion(verrou(ev), { id: ev.id, titre: ev.titre }, ls)
+  if (sansPoids(c, ev)) return Promise.resolve(T.E_POIDS_V);
+  /* une exception avant la prise du verrou ne doit pas se perdre en silence */
+  return Promise.resolve().then(function () {
+    return M().verserConclusion(verrou(ev), { id: ev.id, titre: ev.titre }, ls);
+  })
     .then(function (b) {
       if (b.deja) return T.DEJA;
       return charger().then(function () {
@@ -193,7 +215,8 @@ function verser(ev, c){
 window.TDLEvJauges = {
   T: T, pret: pret, charger: charger,
   lignes: lignes, verrou: verrou, aVerser: aVerser,
-  resume: resume, brancher: brancher, lire: lire, verser: verser
+  resume: resume, brancher: brancher, lire: lire, verser: verser,
+  sansPoids: sansPoids
 };
 
 })();
