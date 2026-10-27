@@ -66,6 +66,18 @@ var T = {
   F_ROLE:     "Votre rôle à cet évent",
   F_APPUIS:   "Vos deux appuis",
   F_VIGNETTE: "Vignette",
+  F_PER:      "Période",
+  F_PER_A:    "Septembre — novembre 1962, ou « Octobre 1962 ».",
+  F_SUJET:    "Le sujet de l'événement",
+  F_SUJET_A:  "Un évent membre se joue dans un seul sujet. Renseignez-le pour que votre fiche passe en « à rejoindre ».",
+  F_SUJET_T:  "Titre du sujet",
+  F_SUJET_U:  "Adresse du sujet",
+  F_OUVERT:   "Ouvrir les inscriptions",
+  F_OUVERT_A: "Votre fiche apparaîtra dans « à rejoindre ». Il faut un sujet renseigné.",
+  F_CLORE:    "Mon événement est terminé",
+  F_CLORE_A:  "Il passe en instance de clôture : le staff en tirera les conséquences.",
+  E_URL:      "L'adresse du sujet n'est pas valide.",
+  E_SANS_RP:  "Renseignez le sujet avant d'ouvrir les inscriptions.",
   APPUIS_N:   "Deux joueurs doivent trouver l'idée bonne avant qu'elle parte au staff. "
             + "Ils reçoivent une notification et ont sept jours pour répondre. "
             + "<b>Donner son appui n'inscrit à rien</b> — ils pourront se déclarer plus tard, "
@@ -300,16 +312,26 @@ function vueAppui(){
 
 /* ===================== ÉDITION ===================== */
 
-/* Le référent édite le DESCRIPTIF seulement. Ni statut, ni participants, ni
-   conclusion : rien de ce qui produit une conséquence. */
 function vueEdition(){
-  var e = S.cible || {};
+  var e = S.cible || {}, k = V.cles(e.rps)[0], rp = k ? e.rps[k] : {};
   return '<p class="tdlev-vol-h2">' + V.esc(e.titre || "") + '</p>'
     + U.champ(T.F_TITRE, "", U.texte("tdlev-f-titre", e.titre))
     + U.champ(T.F_SOUS, "", U.texte("tdlev-f-sous", e.sous))
     + U.champ(T.F_CTX, "", U.zone("tdlev-f-ctx", (e.contexte || []).join("\n")))
     + U.champ(T.F_OBJ, "", U.zone("tdlev-f-obj", (e.objectifs || []).join("\n")))
-    + U.champ(T.F_VIGNETTE, "", U.texte("tdlev-f-vig", e.vignette, "URL de l'image"));
+    + U.champ(T.F_PER, V.esc(T.F_PER_A), U.texte("tdlev-f-per", e.periode))
+    + U.champ(T.F_QUI, V.esc(T.F_QUI_A), U.portees(["comm","bandes"], S.portees, true))
+    + '<p class="tdlev-vol-h2">' + T.F_SUJET + '</p>'
+    + '<p class="tdlev-vol-note" style="margin-top:0">' + T.F_SUJET_A + '</p>'
+    + U.champ(T.F_SUJET_T, "", U.texte("tdlev-f-rpt", rp.titre))
+    + U.champ(T.F_SUJET_U, "", U.texte("tdlev-f-rpu", rp.url, "https://…/t000-sujet"))
+    + U.champ(T.F_VIGNETTE, "", U.texte("tdlev-f-vig", e.vignette, "URL de l'image"))
+    + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-f-ouvert"'
+    + (e.ouvert ? " checked" : "") + '>' + T.F_OUVERT
+    + '<span class="tdlev-aide">' + T.F_OUVERT_A + '</span></label></div>'
+    + '<div class="tdlev-champ"><label><input type="checkbox" id="tdlev-f-clore"'
+    + (e.aClore ? " checked" : "") + '>' + T.F_CLORE
+    + '<span class="tdlev-aide">' + T.F_CLORE_A + '</span></label></div>';
 }
 
 /* ===================== ÉCRITURE ===================== */
@@ -365,17 +387,27 @@ function repondreAppui(donne){
 
 function enregistrerEdition(){
   var e = S.cible; if (!e) return;
-  window.TDLBase.ecrire(V.CFG.NODE, e.id, {
-    titre:     U.val("tdlev-f-titre"),
-    sous:      U.val("tdlev-f-sous"),
-    contexte:  U.lignes("tdlev-f-ctx"),
-    objectifs: U.lignes("tdlev-f-obj"),
-    vignette:  U.val("tdlev-f-vig"),
-    modifie:   V.maintenant()
-  }, "édition de " + e.titre).then(function(ok){
-    U.toast(ok ? T.OK_EDIT : T.E_ECRIT);
-    if (ok){ ouvrir(false); window.TDLEvPublic.rafraichir(); }
-  });
+  var url = U.val("tdlev-f-rpu"), titreRp = U.val("tdlev-f-rpt");
+  if (url && !/^https?:\/\/\S+$/.test(url)){ U.toast(T.E_URL); return; }
+  var ouvert = U.coche("tdlev-f-ouvert");
+  if (ouvert && !url){ U.toast(T.E_SANS_RP); return; }
+
+  var champs = {
+    titre:U.val("tdlev-f-titre"), sous:U.val("tdlev-f-sous"),
+    contexte:U.lignes("tdlev-f-ctx"), objectifs:U.lignes("tdlev-f-obj"),
+    periode:U.val("tdlev-f-per"), portees:U.versNoeud(S.portees),
+    vignette:U.val("tdlev-f-vig"),
+    ouvert:ouvert, aClore:U.coche("tdlev-f-clore"),
+    modifie:V.maintenant()
+  };
+  /* un évent membre n'a qu'un seul sujet : toujours la même clé, jamais deux */
+  if (url) champs["rps/s0"] = { titre:titreRp || champs.titre, url:url };
+
+  window.TDLBase.ecrire(V.CFG.NODE, e.id, champs, "édition de " + e.titre)
+    .then(function(ok){
+      U.toast(ok ? T.OK_EDIT : T.E_ECRIT);
+      if (ok){ ouvrir(false); window.TDLEvPublic.rafraichir(); }
+    });
 }
 
 function participer(ev){
@@ -417,12 +449,15 @@ function rendre(){
               : (S.type ? vueFormulaire() : vueChoix());
   document.getElementById("tdlev-vol-p").innerHTML = pied();
   c.scrollTop = 0;
-  if (S.mode === "demande" && S.type){
-    U.brancherChips(c, { comm:S.portees, bandes:S.portees });
+
+  /* les portées sont saisies dans deux vues : l'édition et le formulaire */
+  var avecPortees = (S.mode === "edition") || (S.mode === "demande" && S.type);
+  if (avecPortees) U.brancherChips(c, { comm:S.portees, bandes:S.portees });
+
+  if (S.mode === "demande" && S.type)
     c.querySelectorAll('input[name="tdlev-role"]').forEach(function(r){
       r.addEventListener("change", function(){ S.role = r.value; });
     });
-  }
 }
 
 function surClic(e){
@@ -449,7 +484,9 @@ function demanderOuvrir(){
 }
 function editerOuvrir(ev){
   if (!ev || !V.peutEditer(ev)) return;
-  S.mode = "edition"; S.cible = ev; rendre(); ouvrir(true);
+  S.mode = "edition"; S.cible = ev;
+  S.portees = V.cles(ev.portees).map(function(k){ return (ev.portees[k] || {}).nom || k; });
+  rendre(); ouvrir(true);
 }
 function appuiOuvrir(id){
   var d = V.D.demandes.filter(function(x){ return x.id === id; })[0];
