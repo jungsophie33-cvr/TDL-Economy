@@ -324,3 +324,95 @@ font-weight: 700;  line-height: 1.2;
   font-size   : 1em;
   font-weight : bold;
 }
+
+   /* === JAUGES DE TERREBONNE — AJOUTS v2 ===
+   À coller dans jauges.css, à la fin du bloc PANNEAU STAFF.
+   Rien n'est redéclaré : uniquement les nouveaux éléments du panneau. */
+
+/* État réel sous la barre : charge, échéances */
+.tdl-js-etat {
+  display        : flex;
+  flex-wrap      : wrap;
+  gap            : 4px 14px;
+  margin-top     : 6px;
+}
+.tdl-js-etat-i {
+  font-family    : var(--font0);
+  font-size      : 14px;
+  color          : var(--txt);
+}
+
+/* Journal des mouvements */
+.tdl-js-journal {
+  margin-top     : 18px;
+  padding-top    : 14px;
+  border-top     : 1px solid var(--cntr3);
+}
+.tdl-js-journal-h {
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+  margin         : 0 0 8px;
+  color          : var(--dark);
+}
+.tdl-js-journal-v {
+  font-family    : var(--font0);
+  font-size      : 14px;
+  margin         : 0;
+}
+.tdl-js-jl {
+  display               : grid;
+  grid-template-columns : 70px 150px 1fr auto auto;
+  gap                   : 4px 12px;
+  align-items           : baseline;
+  padding               : 6px 0;
+  border-bottom         : 1px solid var(--cntr2);
+  font-family           : var(--font0);
+  font-size             : 14px;
+}
+.tdl-js-jl:last-child { border-bottom: none; }
+.tdl-js-jl-date,
+.tdl-js-jl-jauge,
+.tdl-js-jl-par {
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+}
+.tdl-js-jl-par   { color: var(--dark2); }
+.tdl-js-jl-motif {
+  display        : block;
+  color          : var(--dark2);
+}
+
+/* Motif dans la boîte de confirmation */
+.tdl-js-motif-l {
+  display        : block;
+  text-align     : left;
+  font-family    : var(--txt3);
+  font-size      : 12px;
+  text-transform : uppercase;
+  margin         : 0 0 4px;
+}
+.tdl-js-motif {
+  display        : block;
+  width          : 100%;
+  box-sizing     : border-box;
+  font-family    : var(--font0);
+  font-size      : 14px;
+  padding        : 6px 8px;
+  border         : 1px solid var(--cntr3);
+  border-radius  : 3px;
+  background     : var(--clair1opa7);
+  resize         : vertical;
+}
+.tdl-js-motif-a {
+  text-align     : left;
+  font-family    : var(--font0);
+  font-size      : 14px;
+  margin         : 4px 0 16px;
+}
+.tdl-js-motif-a.est-erreur { color: var(--dark2); }
+
+@media (max-width: 700px) {
+  .tdl-js-jl { grid-template-columns: 1fr 1fr; }
+}
