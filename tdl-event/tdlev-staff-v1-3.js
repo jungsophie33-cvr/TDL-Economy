@@ -77,8 +77,9 @@ function items(sect){
     V.D.evenements.forEach(function(e){
       if (e.statut === "cloture" || e.doublon) return;
       out.push({ nature:"cloture", id:"e:" + e.id, obj:e, titre:e.titre,
-        src:(V.CATEGORIES[e.categorie] || {}).nom + (e.referent ? " · " + e.referent : ""),
-        date:V.ilya(e.cree), tri:e.cree });
+        src:(V.CATEGORIES[e.categorie] || {}).nom + (e.referent ? " · " + e.referent : "")
+          + (e.aClore ? " · " + T.CLORE_DEM : ""),
+        date:V.ilya(e.cree), tri:e.cree, urgent:!!e.aClore });
     });
     /* Une entrée de tableau n'entre dans la file qu'une fois CLOSE chez elle
        et sans conclusion : tant qu'elle se joue, le staff n'a rien à décider. */
@@ -102,7 +103,10 @@ function items(sect){
     });
   }
   /* du plus récent au plus ancien, dans les trois sections */
-  out.sort(function(a, b){ return String(b.tri || "").localeCompare(String(a.tri || "")); });
+  out.sort(function(a, b){
+    if (!!a.urgent !== !!b.urgent) return a.urgent ? -1 : 1;
+    return String(b.tri || "").localeCompare(String(a.tri || ""));
+  });
   return out;
 }
 function parId(id){
@@ -166,7 +170,8 @@ function remplir(i){
 
   if (i.nature === "cloture") return {
     h: W.liens(V.cles(o.rps).map(function(k){ var r = o.rps[k] || {}; return [r.titre, r.url]; }))
-     + W.participants(o, T.PARTS, T.PARTS_N, false) + W.conclusion(o.conclusion),
+     + W.participants(o, T.PARTS, T.PARTS_N, false)
+     + W.conclusion(o.conclusion, o.ampleur === false),
     p: '<span class="tdlev-vol-p-txt">' + T.CLOT_NOTE + '</span>'
      + bouton("liberer", T.LIBERER, 1) + bouton("cloturer", T.CLOTURER) };
 
