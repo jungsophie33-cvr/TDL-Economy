@@ -27,7 +27,8 @@
     LS_PREFIX:     "tdlChatAuteur_",
     LS_DRAFT:      "tdlChatBrouillon_",
     LS_RECENTS:    "tdlChatEmoRecents",
-    RECENTS_MAX:   24
+    RECENTS_MAX:   24,
+    DEBUG:         true  // [DEBUG] logge les échanges d'envoi en console. Passer à false une fois le diagnostic terminé.
   };
 
   /* ===== TEXTES ===== */
@@ -51,7 +52,10 @@
   }
 
   function topicId() {
+    /* URL moderne : /t79-slug — URL classique : /viewtopic?t=79 */
     var m = location.pathname.match(/\/t(\d+)/);
+    if (m) return m[1];
+    m = location.search.match(/[?&]t=(\d+)/);
     return m ? m[1] : null;
   }
 
