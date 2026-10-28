@@ -280,6 +280,10 @@
       });
       rafraichirQuickReply(doc);
       sauverBrouillon("");
+      if (input) {
+        input.value = "";          /* vidage du champ après publication */
+        input.style.height = "auto"; /* et retour à une ligne */
+      }
       CW.scrollBas();
     })
     .catch(function (e) {
