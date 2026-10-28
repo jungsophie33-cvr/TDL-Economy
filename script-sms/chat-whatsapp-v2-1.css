@@ -42,7 +42,7 @@ body.chat-mode .award_more     { display: none !important; }
 
 /* ===== BANDE OPAQUE = FOND DU FIL ===== */
 body.chat-mode .sj-postmsg {
-  background: var(--cw-bg) !important;
+  background: var(--clair1opa8) !important;
   border: 0 !important;
   border-radius: 0 !important;
   margin: 0 !important;
@@ -96,7 +96,7 @@ body.chat-mode .cw-bubble {
   align-self: stretch;
   padding: 10px 15px 5px;
   border-radius: 2px var(--cw-rayon) var(--cw-rayon) var(--cw-rayon);
-  background: var(--cw-bubble-recv);
+  background: var(--cntr4);
   color: var(--cw-txt-recv);
   border: 0.5px solid var(--cntr5);
 }
@@ -161,19 +161,16 @@ body.chat-mode .cw-content {
 body.chat-mode .cw-content blockquote {
   margin: 0 0 6px 0 !important;
   padding: 5px 9px !important;
-  background: var(--clair1opa8) !important;
-  border: 0 !important;
-  border-left: 3px solid var(--dark2) !important;
-  border-radius: 6px !important;
-  width: auto !important;
+  background: var(--clair1opa7) !important;
+  border-left: 4px solid var(--darkopa5) !important;
+  border-radius: 4px !important;
   max-height: 4.5em;
   overflow: hidden;
-  font-size: 13px !important;
+  font-size: 14px !important;
   line-height: 1.4 !important;
   color: var(--txt) !important;
 }
 body.chat-mode .cw-content blockquote::before { display: none !important; }
-body.chat-mode .cw-content blockquote * { color: var(--clair1) !important; }
 body.chat-mode .cw-content blockquote cite {
   display: block !important;
   margin: 0 0 2px 0 !important;
@@ -187,8 +184,12 @@ body.chat-mode .cw-content blockquote cite {
   text-transform: none !important;
   line-height: 1.3 !important;
   width: auto !important;
-  color: var(--dark2) !important;
+  color: var(--darkopa8) !important;
 }
+
+body.chat-mode .cw-content blockquote:has(cite)>div {font-family:var(--font0);}
+
+body.chat-mode .cw-content tdl-separator {display:none;}
 
 /* colonne : bulle empilée au-dessus des réactions */
 body.chat-mode .cw-col {
@@ -244,22 +245,20 @@ body.chat-mode .cw-menu-trig {
 body.chat-mode .cw-menu-pop {
   display: none;
   position: absolute; top: 20px; z-index: 100;
-  background: var(--clair1);
-  border: 0.5px solid var(--darkopa3);
-  border-radius: 10px;
-  padding: 4px 0;
+  background: var(--cntr2);
+  border: 0.5px solid var(--cntr4);
+  border-radius: 5px 0 5px 5px;
   min-width: 120px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.18);
 }
-body.chat-mode .cw-received .cw-menu-pop { left: 0; }
-body.chat-mode .cw-sent     .cw-menu-pop { right: 0; }
+body.chat-mode .cw-received .cw-menu-pop { left: 10px; border-radius: 0 5px 5px 5px; }
+body.chat-mode .cw-sent     .cw-menu-pop { right: 10px; }
 body.chat-mode .cw-menu.cw-open .cw-menu-pop { display: block; }
 body.chat-mode .cw-menu-pop .sj-post-btn a,
 body.chat-mode .cw-menu-pop a {
   display: block;
   padding: 6px 14px;
-  font-size: 13px;
-  color: var(--txt) !important;
+  font-size: 12px; line-height:1; font-family:var(--txt3); text-transform:uppercase;
+  color: var(--darkopa8) !important;
   text-decoration: none !important;
   white-space: nowrap;
 }
@@ -267,40 +266,41 @@ body.chat-mode .cw-menu-pop a:hover { background: var(--cntr3); }
 
 /* ===== SÉPARATEUR DE JOUR ===== */
 body.chat-mode .cw-daysep {
-  background: var(--cw-bg);
+  background: var(--clair1opa8);
   padding: 8px 0;
   text-align: center;
 }
 body.chat-mode .cw-daysep span {
   font-size: 11px;
-  background: var(--cntr);
+  background: var(--cntr5);
   color: var(--txt);
-  padding: 3px 12px;
-  border-radius: 20px;
+  padding: 3px 8px;
+  border-radius: 10px;
+   font-weight:600;
 }
 
 /* ===== EN-TÊTE ===== */
 body.chat-mode .cw-header {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 14px;
-  background: var(--cw-header-bg);
-  color: var(--cw-header-txt);
+  background: var(--bgprof); background-size:cover;
+  color: var(--darkopa8);
    border-radius: 5px 5px 0 0;
   position: sticky; top: 0; z-index: 40; /* [MAJ] retirer si conflit avec le menu fixe FA */
 }
 body.chat-mode .cw-back       { font-size: 18px; cursor: pointer; }
 body.chat-mode .cw-head-txt   { flex: 1; line-height: 1.3; min-width: 0; }
-body.chat-mode .cw-head-title { font-size: 2em; font-family: var(--title3); width: fit-content; margin: 0 auto 5px; border-bottom: 1px solid var(--clair1opa3); padding: 0 100px; }
+body.chat-mode .cw-head-title { font-size: 2em; font-family: var(--title3); width: fit-content; margin: 0 auto 5px; border-bottom: 1px solid var(--darkopa5); padding: 0 100px; }
 body.chat-mode .cw-head-sub   { font-size: 11px; opacity: 0.85; text-align: center; }
 body.chat-mode .cw-head-sub .sub-header-path {
   display: inline-block !important;
-  background: var(--clair1opa2);
+  background: var(--clair1opa5);
   border-radius: 5px;
   padding: 2px 12px;
 }
 body.chat-mode .cw-head-sub a,
 body.chat-mode .cw-head-sub a.nav {
-  color: var(--cw-header-txt) !important;
+  color: var(--darkopa6) !important;
   text-decoration: none !important;
 }
 body.chat-mode .cw-head-sub a:hover { text-decoration: none !important; }
@@ -317,10 +317,10 @@ body.chat-mode .cw-head-pag strong {
   border-radius: 8px;
   text-align: center;
   text-decoration: none !important;
-  color: var(--cw-header-txt) !important;
-  background: rgba(255, 255, 255, 0.12);
+  color: var(--darkopa8) !important;
+  background: var(--clair1opa6);
 }
-body.chat-mode .cw-head-pag a:hover { background: rgba(255, 255, 255, 0.22); }
+body.chat-mode .cw-head-pag a:hover { background: var(--clair1opa8); }
 body.chat-mode .cw-head-pag strong {
   background: var(--clair1) !important;
   color: var(--dark) !important;
@@ -330,7 +330,7 @@ body.chat-mode .cw-head-pag strong {
 body.chat-mode .cw-bar {
   display: flex; align-items: flex-end; gap: 8px;
   padding: 10px 12px;
-  background: var(--cntr);
+  background: var(--bgprof); background-size:cover;
   position: sticky; bottom: 0; z-index: 40;
    border-radius: 0 0 5px 5px;
 }
@@ -364,10 +364,10 @@ body.chat-mode .cw-emoji-pop {
   bottom: calc(100% + 6px);
   left: 8px;
   z-index: 60;
-  width: 324px;
+  width: 330px;
   background: var(--clair1);
   border: 0.5px solid var(--darkopa3);
-  border-radius: 12px;
+  border-radius: 7px;
   padding: 8px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.18);
 }
@@ -378,7 +378,7 @@ body.chat-mode .cw-emoji-search {
   display: block;
   width: 100%;
   box-sizing: border-box;
-  background: var(--cntr);
+  background: var(--cntr2);
   border: 0.5px solid var(--darkopa2);
   border-radius: 8px;
   padding: 5px 10px;
