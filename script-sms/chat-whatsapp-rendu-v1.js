@@ -43,13 +43,17 @@
   }
 
   /* [v11] Arrivée directe en page >1 sans localStorage : on va
-     chercher l'auteur sur la page 1, puis on corrige les côtés. */
+     chercher l'auteur sur la page 1, puis on corrige les côtés.
+     Gère les URL modernes (/t79-slugp2) et classiques (/viewtopic?t=79). */
   function retablirAuteurAsynchrone() {
     if (estPage1()) return;
     var cle = CONFIG.LS_PREFIX + topicId();
     try { if (localStorage.getItem(cle)) return; } catch (e) {}
-    var urlPage1 = location.pathname.replace(/(\/t\d+)p\d+/, "$1");
-    if (!window.fetch || typeof DOMParser === "undefined") return;
+    var id = topicId();
+    if (!id || !window.fetch || typeof DOMParser === "undefined") return;
+    var urlPage1 = /\/viewtopic/.test(location.pathname)
+      ? "/viewtopic?t=" + id
+      : location.pathname.replace(/(\/t\d+)p\d+/, "$1");
     fetch(urlPage1, { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.text() : null; })
       .then(function (html) {
