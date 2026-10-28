@@ -176,6 +176,7 @@
 
   /* ===== ENVOI PRINCIPAL ===== */
   var enCours = false;
+  var cibleRetenue = null;
 
   function envoyer(text, bar, input, btn, idAuteur) {
     text = (text || "").trim();
@@ -189,6 +190,7 @@
     }
 
     enCours = true;
+    cibleRetenue = null;
     if (btn) btn.disabled = true;
     bar.classList.add("cw-busy");
 
@@ -205,21 +207,55 @@
     .then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.text().then(function (html) {
-        return { url: r.url, html: html };
+        return { url: r.url, html: html, statut: r.status };
       });
     })
     .then(function (res) {
-      /* Où est la page du sujet ? Redirection FA ou meta refresh. */
-      var cible = null;
-      if (/\/t\d+/.test(res.url)) cible = res.url;
-      else {
-        var m = res.html.match(/url=([^"'>][^"'>]*)/i);
-        if (m) cible = m[1].replace(/&amp;/g, "&");
+      if (CONFIG.DEBUG) console.log("[CW11] POST termin\u00E9 \u2014 statut:", res.statut, "| URL finale:", res.url);
+
+      /* Une URL de sujet peut prendre deux formes sur FA :
+         moderne (/t79-slug) ou classique (/viewtopic?t=79). */
+      function urlSujetValide(u) {
+        return !!u && (/\/t\d+/.test(u) || /\/viewtopic/.test(u) || /[?&]t=\d/.test(u));
       }
-      if (!cible || cible.indexOf("/t") === -1) throw new Error("REJET");
+
+      /* Où est la page du sujet ? Trois formes possibles chez FA :
+         1. redirection -> l'URL finale est déjà le sujet ;
+         2. page de confirmation avec meta refresh (content="1;url=…") ;
+         3. page de confirmation avec simple lien href ("voir votre message"). */
+      var cible = null;
+      if (urlSujetValide(res.url)) cible = res.url;
+      else {
+        var m = res.html.match(/url=([^"'>\s]+)/i);
+        if (m) cible = m[1].replace(/&amp;/g, "&");
+        else {
+          var l = res.html.match(/href="([^"]*(?:\/t\d+|\/viewtopic)[^"]*)"/i);
+          if (l) cible = l[1].replace(/&amp;/g, "&");
+        }
+      }
+      cibleRetenue = cible;
+      if (CONFIG.DEBUG) console.log("[CW11] cible retenue:", cible);
+
+      if (!urlSujetValide(cible)) {
+        if (CONFIG.DEBUG) {
+          console.log("[CW11] REJET \u2014 analyse de la page renvoy\u00E9e :");
+          console.log("  titre :", (res.html.match(/<title>([^<]*)<\/title>/i) || [])[1]);
+          console.log("  meta refresh :", (res.html.match(/<meta[^>]+refresh[^>]*>/i) || ["aucune"])[0]);
+          console.log("  extraits (600) :", res.html.replace(/\s+/g, " ").slice(0, 600));
+        }
+        /* Derni\u00E8re chance : FA annonce parfois la r\u00E9ussite sans donner d'URL
+           exploitable. Dans ce cas : rechargement direct du sujet. */
+        if (/enregistr\u00E9|succ\u00E8s|successfully|succesfully/i.test(res.html)) {
+          pend.remove();
+          sauverBrouillon("");
+          window.location.replace(cibleRetenue || (location.pathname + location.search));
+          return;
+        }
+        throw new Error("REJET");
+      }
 
       /* La réponse contient-elle déjà le sujet ? */
-      if (/\/t\d+/.test(res.url)) return res.html;
+      if (urlSujetValide(res.url)) return res.html;
       /* Sinon : la page de confirmation pointe vers le sujet. */
       return fetch(cible, { credentials: "same-origin" }).then(function (r2) { return r2.text(); });
     })
@@ -232,7 +268,7 @@
       if (!nouveaux.length) {
         /* Publié mais introuvable (modération, pagination exotique) :
            rechargement direct du sujet, sans page de confirmation. */
-        window.location.replace(location.pathname);
+        window.location.replace(cibleRetenue || (location.pathname + location.search));
         return;
       }
 
