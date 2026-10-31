@@ -493,7 +493,18 @@ function partir() {
     });
   }
 }
-partir();
+/* [v3-1] garde DOM-ready : le script est chargé en fin de page mais on ne
+   part qu'une fois le DOM complet, sinon lirePage peut lire un post absent. */
+function pret(fn){
+  var parti=false;
+  function go(){ if(parti)return; parti=true; fn(); }
+  if(document.readyState==='complete'||document.readyState==='interactive')go();
+  else{
+    global.addEventListener('DOMContentLoaded',go);
+    global.addEventListener('load',go);
+  }
+}
+pret(partir);
 CARNET.ui = CARNETUI;
 global.CARNETUI = CARNETUI;
 })(window);
