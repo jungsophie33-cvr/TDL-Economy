@@ -1,5 +1,9 @@
 /* ============================================================
    carnet/carnet-core.js — Carnet de fragments — phase 3
+   [v3-3] balise couleur : texteLignes conserve <color=#hex> et
+   </color> tels quels (elles passent déjà le filtre des balises
+   quand elles sont échappées par le forum ; ici elles survivent
+   aussi en balises réelles).
    [v3-2] correctif édition : le lien d'édition/suppression était
    cherché par querySelector depuis le parent du post — sur un thème
    où tous les posts partagent le même conteneur, chaque fragment
@@ -179,6 +183,7 @@ function texteLignes(el){
     .replace(/<\/(p|div|li|tr|h[1-6]|ul|ol)>/gi,'\n')
     .replace(/<(\/?)([a-z0-9]+)(?:\s[^>]*)?>/gi,function(m,ferme,nom){
       nom=String(nom).toLowerCase();
+      if(nom==='color')return m;                     /* [v3-3] balise couleur <color=#hex> : conservée telle quelle (attribut conservé) */
       return BALISES.indexOf(nom)>=0 ? '<'+ferme+nom+'>' : '';
     });
   /* décodage des entités HTML sans passer par un <textarea> (son contenu
