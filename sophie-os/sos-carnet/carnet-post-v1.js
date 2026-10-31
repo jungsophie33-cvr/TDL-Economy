@@ -27,7 +27,7 @@ var jrn = journal('post');
 
 /* ------------------------------------------------------- 1. CONFIG */
 var CFG = {
-  formReponse: '#quick_reply form',      /* la réponse rapide FA */
+  formReponse: 'form#quick_reply, #quick_reply form',  /* ta template : le form porte l'id lui-même */
   actionRepli: '/post',
   boutonPublier: '#cf-vol-publier',
   delaiFlood: 10,                        /* secondes — confirmé sur le forum */
