@@ -46,10 +46,11 @@ function extraireBlocs(txt){
 
 /* clés insensibles à la casse et aux accents, normalisées en majuscules ;
    valeurs multi-lignes (lignes de continuation) ; clés répétées accumulées
-   en préservant l'ordre d'écriture — c'est lui qui fait l'intercalage des images. */
+   en préservant l'ordre d'écriture — c'est lui qui fait l'intercalage des images.
+   Les lignes vides séparent les clés : leurs \n de queue ne polluent pas la valeur. */
 function extraireEntrees(lignes){
   var out=[],cle=null,val='';
-  function pousser(){ if(cle!==null)out.push({c:cle,v:val}); }
+  function pousser(){ if(cle!==null)out.push({c:cle,v:val.replace(/\n+$/,'')}); }
   for(var i=0;i<lignes.length;i++){
     var l=lignes[i],m=l.match(RE_CLE);
     if(m){ pousser(); cle=normCle(m[1]); val=trim(m[2]||''); }
@@ -278,10 +279,32 @@ CARNET.charger=function(){
    la brancher en remplacement de pagesDispo/chargerPage (mêmes entrées/sorties) ;
    SOS.util suffit, ni sos-annexe ni sos-manifeste ne sont chargés. */
 
+/* refaire : réassembler le carnet après intégration de nouveaux posts
+   (publication, édition) sans recharger la page — la musique du
+   mini-lecteur continue. Aucune promotion : la une se rafraîchit via
+   CARNETUI.rafraichir, pas via un nouveau carnet:pret. */
+CARNET.refaire=function(coquille,fragments,avatar){
+  var pnj=registrePNJ(fragments);
+  var par=function(t){ return fragments.filter(function(f){ return f.type===t; }); };
+  var mur=par('citation');
+  CARNET.coquille=coquille||CARNET.coquille;
+  if(avatar)CARNET.coquille.avatar=avatar;else if(CARNET.coquille)CARNET.coquille.avatar=CARNET.coquille.avatar||null;
+  CARNET.fragments=fragments;
+  CARNET.registre=pnj;
+  CARNET.donnees={
+    recits:par('recit'), anecdotes:par('anecdote'), souvenirs:triChrono(par('souvenir')),
+    poemes:par('poeme'), pnjs:par('pnj'), objets:par('objet'), citations:mur,
+    playlists:par('playlist'), moodboards:par('moodboard')
+  };
+  CARNET.pensee=tirage(mur);
+  return CARNET;
+};
+
 CARNET.outils={normCle:normCle,normTxt:normTxt,extraireBlocs:extraireBlocs,
   extraireEntrees:extraireEntrees,fragmentDepuis:fragmentDepuis,couperRef:couperRef,
   resoudreRef:resoudreRef,annee:annee,registrePNJ:registrePNJ,triChrono:triChrono,
-  tirage:tirage,urlLecteur:urlLecteur,urlPage:urlPage};
+  tirage:tirage,urlLecteur:urlLecteur,urlPage:urlPage,
+  lirePage:lirePage,fragmentsDe:fragmentsDe,coquilleDe:coquilleDe};
 
 window.CARNET=CARNET;
 })();
