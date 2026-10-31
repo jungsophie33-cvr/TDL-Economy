@@ -3,8 +3,8 @@
    Couches (convention tdlev) : app < roue < vue < lecture
    < voile+volet < toast.
    ============================================================ */
-html:has(.cf-app),body:has(.cf-app){overflow:hidden;height:100%;margin:0:text-align:left;}
-.cf-app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:9000;text-align:left;line-height:1.35;
+html:has(.cf-app), body:has(.cf-app){overflow:hidden;height:100%;margin:0:text-align:left;}
+.cf-app{text-align:left;position:fixed;inset:0;display:flex;flex-direction:column;z-index:9000;text-align:left;line-height:1.35;
   color:var(--txt);font-family:var(--txt2);font-size:16px;
   background:linear-gradient(to bottom,var(--clair1opa8) 0%,var(--clair1opa4) 90%),
              var(--bgimg) center/cover no-repeat,var(--bg)}
