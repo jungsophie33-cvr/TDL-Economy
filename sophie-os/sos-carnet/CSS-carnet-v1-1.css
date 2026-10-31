@@ -959,6 +959,3 @@ ol.cf-bb-list{list-style:decimal}
 .cf-sans-img{background:linear-gradient(135deg,var(--darkopa4),var(--darkopa8));position:relative}
 .cf-sans-img::after{content:'~';position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;font-family:var(--font3);font-size:30px;color:var(--darkopa2)}
-.cf-hero-emblem-init{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
-  border-radius:50%;background:var(--darkopa8);color:var(--clair2);font-family:var(--font3);
-  font-size:40px;letter-spacing:2px;text-transform:uppercase}
