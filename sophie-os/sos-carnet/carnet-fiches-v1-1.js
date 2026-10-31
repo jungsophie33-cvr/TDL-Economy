@@ -1,6 +1,11 @@
 /* =============================================================
    CARNET — FICHES, VUES, RECHERCHE (carnet-fiches.js)
    -------------------------------------------------------------
+   [v1-1] Alignement maquette : corpsFiche produit un <p> par
+   paragraphe (lignes vides) et rend les images en figure.cf-rec-img
+   (classe stylée par carnet.css, alternance cf-rec-img-g) — l'ancien
+   cf-fi-img n'était stylé nulle part et un seul <p> par bloc TEXTE
+   cassait les paragraphes, dont la marge du journal intime.
    [v3-1] Déménagement depuis carnet-shell.js (règle < 500 lignes).
    Contient : enrichir (43 balises en liste blanche, tout le reste échappé), les
    7 fiches de lecture, les vues en cartes et l'index de recherche. Aucune image
@@ -92,12 +97,25 @@ function metaEl(cle, val, simple) {
     (simple ? ' cf-meta-v-simple' : '') + '">' + val + '</span></div>';
 }
 /* corps d'une fiche : TEXTE et IMAGE dans l'ordre d'écriture —
-   c'est lui qui fait l'intercalage des images. */
+   c'est lui qui fait l'intercalage des images.
+   [v1-1] Conforme maquette : une ligne vide sépare deux paragraphes
+   (un <p> chacun, comme le corpsRecit de la maquette — un simple
+   retour à la ligne reste un <br> dans le paragraphe) ; les images
+   portent les classes maquette figure.cf-rec-img / img.cf-rec-img-img,
+   alternées droite / gauche (cf-rec-img-g) — cf-fi-img n'est stylé
+   nulle part. */
 function corpsFiche(f) {
-  var html = '';
+  var html = '', nimg = 0;
   f.entrees.forEach(function (e) {
-    if (e.c === 'TEXTE') html += '<p>' + enrichir(e.v) + '</p>';
-    else if (e.c === 'IMAGE' && e.v) html += '<figure class="cf-fi-img"><img src="' + esc(e.v) + '" alt="" loading="lazy"></figure>';
+    if (e.c === 'TEXTE') {
+      String(e.v == null ? '' : e.v).split(/\n[ \t]*\n+/).forEach(function (p) {
+        if (trim(p) !== '') html += '<p>' + enrichir(p) + '</p>';
+      });
+    } else if (e.c === 'IMAGE' && e.v) {
+      nimg++;
+      html += '<figure class="cf-rec-img' + (nimg % 2 ? '' : ' cf-rec-img-g') +
+        '"><img class="cf-rec-img-img" src="' + esc(e.v) + '" alt="" loading="lazy"></figure>';
+    }
   });
   return html;
 }
