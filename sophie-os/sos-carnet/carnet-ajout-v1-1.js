@@ -1,9 +1,17 @@
 /* =============================================================
-   CARNET — FORMULAIRE D'AJOUT (carnet-ajout.js)
+   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-1.js)
    -------------------------------------------------------------
-   [v2] Réécriture alignée dépôt : libellés centralisés dans CFG,
-   header boîte, sections numérotées, export en pied. Moins de
-   500 lignes, aucun SVG, aucune couleur en JS.
+   [v1-2] Gabarits alignés sur la maquette v5 : le volet émet
+   désormais les classes que stylise CSS-carnet (cf-opts/cf-opt,
+   cf-champ/cf-aide, cf-palette/cf-pal/cf-pal-cache, cf-imgrows/
+   cf-imgrow/cf-img-add, cf-teinte, cf-pnj-tete/cf-pnjs-cache,
+   cf-chips/cf-chip) — plus aucune classe cf-aj-*. Les images se
+   saisissent par lignes (une URL par ligne, bouton +), les PNJ
+   déclarés se cochent en pastilles, la teinte du post-it se
+   choisit en pastilles, les PJ se saisissent à la virgule.
+   [v1-1] Sélecteur réponse rapide double (form#quick_reply,
+   #quick_reply form) : la template du forum porte l'id sur le
+   form lui-même.
    Rôle : le vol d'ajout. Le membre choisit une catégorie (9),
    remplit le formulaire ; l'interface écrit les marqueurs
    (=== FRAGMENT: type … === FIN) et publie par la réponse rapide
@@ -31,8 +39,15 @@ var CFG = {
     texte: 'Texte', description: 'Description', source: 'De qui', lien: 'Lien (YouTube ou Spotify)',
     humeur: 'Humeur', n: 'Nombre de titres', depuis: 'Depuis', lieA: 'Lié à', legende: 'Légende',
     age: 'Âge', metier: 'Métier', rencontre: 'Rencontre', relation: 'Relation', temperament: 'Tempérament',
-    image: 'Images (une adresse par ajout)', pnj: 'PNJ présents', pj: 'En compagnie de (libre)',
+    image: 'Images', pnj: 'Mentionner des PNJ', pj: 'En compagnie de',
     journal: 'Journal intime — fragment discret', hero: 'Première image en fond de fiche'
+  },
+  aides: {
+    pj: 'Séparez les pseudos par des virgules — la clé PJ: est écrite automatiquement.',
+    pnj: 'Tirés de la liste des PNJ déclarés dans ce carnet — la clé PNJ: est écrite automatiquement.',
+    pnjVide: 'Aucun PNJ déclaré dans ce carnet pour l\u2019instant.',
+    images: 'Une URL par ligne — elles s\u2019intercalent entre les paragraphes.',
+    imageUnique: 'Collez l\u2019adresse de l\u2019image…'
   },
   cats: {
     recit: { titre: 'Récit', ic: 'fi-sr-book-open-cover', ent: 'un chapitre vécu' },
@@ -46,21 +61,17 @@ var CFG = {
     playlist: { titre: 'Playlist', ic: 'fi-sr-music-note', ent: 'la bande-son' }
   },
   maxImages: { recit: 3, anecdote: 3, souvenir: 1, objet: 1, pnj: 1, moodboard: 30 },
-  palette: [
-    { tag: 'b', lib: 'B' }, { tag: 'i', lib: 'I' }, { tag: 'u', lib: 'U' }, { tag: 'strike', lib: ' barré' },
-    { tag: 'list', lib: 'liste' }, { tag: 'nlist', lib: 'liste numérotée' },
-    { tag: 'left', lib: 'gauche' }, { tag: 'center', lib: 'centre' }, { tag: 'right', lib: 'droite' }, { tag: 'justify', lib: 'justifier' }],
   plusBalises: '+ balises',
   teintes: ['gr1-20', 'gr2-20', 'gr3-20', 'gr4-20', 'gr5-20', 'gr6-20'],
   messages: {
     obligatoire: 'Il manque un titre ou du texte — le fragment resterait muet.',
     publie: 'Fragment publié — le carnet se rafraîchit…',
     modifie: 'Tableau mis à jour.',
-    flood: 'Trop rapide — ForumActif demande d\u2019attendre un instant.', /* coquille corrigée au dépôt si besoin */
+    flood: 'Trop rapide — ForumActif demande d\u2019attendre un instant.',
     erreur: 'Le forum a refusé — repli sur la réponse classique, rien ne se perd.',
     reseau: 'Le forum n\u2019a pas répondu — repli sur la réponse classique.',
     rafraichi: 'Carnet à jour.',
-    invHors: 'Seul le propriétaire du compte ajoute ici.',
+    invHors: 'Réponse rapide introuvable sur cette page — vérifiez la connexion et le fil du sujet.',
     maxImages: 'Nombre maximum d\u2019images atteint pour ce fragment.'
   },
   brouillonPrefixe: 'cf-brouillon-'
@@ -71,88 +82,122 @@ var MAISON = ('i1 i2 i3 i4 b1 b2 b3 b4 u1 u2 u3 u4 s1 s2 s3 f f1 f2 f3 f4 ' +
 
 /* ------------------------------------------------------- 2. OUTILS */
 function $  (s) { return document.querySelector(s); }
+function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function trim(s) { return String(s == null ? '' : s).replace(/^\s+|\s+$/g, ''); }
 var enCours = null;   /* {cat, v, editUrl} */
 function D() { return CARNET.donnees || { pnjs: [], moodboards: [] }; }
-function champ(k, lib, ph) {
-  return '<label class="cf-aj-champ"><span class="cf-aj-lib">' + lib + '</span>' +
-    '<input type="text" data-k="' + k + '" placeholder="' + esc(ph || '') + '"></label>';
+
+/* gabarits maquette v5 : cf-champ, cf-aide, cf-check, cf-palette… */
+function aide(txt) { return txt ? '<span class="cf-aide">' + txt + '</span>' : ''; }
+function champIn(k, lib, ph, aid) {
+  return '<label>' + lib + '</label>' +
+    '<input type="text" data-k="' + k + '" placeholder="' + esc(ph || '') + '">' + aide(aid);
 }
-function champM(l) { return l.join(''); }
+function champ(k, lib, ph, aid) { return '<div class="cf-champ">' + champIn(k, lib, ph, aid) + '</div>'; }
+function champM(l) {
+  return '<div class="cf-champ"><div style="display:grid;grid-template-columns:repeat(' + l.length + ',1fr);gap:12px">' +
+    l.join('') + '</div></div>';
+}
 function caseACocher(k, lib) {
-  return '<label class="cf-aj-check"><input type="checkbox" data-k="' + k + '"><span>' + lib + '</span></label>';
+  return '<div class="cf-champ"><label class="cf-check"><input type="checkbox" data-k="' + k + '"><span>' + lib + '</span></label></div>';
+}
+/* palette : l'effet de chaque balise se voit dans la case (maquette) */
+var PAL_EFFET = {
+  b: '<b>G</b>', i: '<i>I</i>', u: '<u>u</u>', strike: '<strike>b</strike>',
+  left: 'gauche', center: 'centre', right: 'droite', justify: 'justifié',
+  list: '\u2022 liste', nlist: '1. liste'
+};
+var PAL_TITRE = {
+  b: 'Gras', i: 'Italique', u: 'Souligné', strike: 'Barré',
+  left: 'Aligner à gauche', center: 'Centrer', right: 'Aligner à droite', justify: 'Justifier',
+  list: 'Liste à puces', nlist: 'Liste numérotée'
+};
+function palBouton(tag, maison) {
+  var effet = maison ? '<' + tag + '>' + tag + '</' + tag + '>' : (PAL_EFFET[tag] || tag);
+  return '<button type="button" class="cf-pal' + ((maison || !PAL_EFFET[tag]) ? ' cf-pal-maison' : '') +
+    '" data-tag="' + esc(tag) + '" title="' + esc(PAL_TITRE[tag] || 'Balise ' + tag) + '">' + effet + '</button>';
 }
 function zoneTexte(k, lib) {
-  return '<div class="cf-aj-zone"><span class="cf-aj-lib">' + lib + '</span>' +
-    '<div class="cf-pal">' + CFG.palette.map(function (p) { return paletBouton(p); }).join('') +
-    '<button type="button" class="cf-pal-plus">' + CFG.plusBalises + '</button></div>' +
-    '<div class="cf-pal-maison" hidden>' + MAISON.map(function (t) { return paletBouton({ tag: t, lib: t }); }).join('') + '</div>' +
+  return '<div class="cf-champ"><label>' + lib + '</label>' +
+    '<div class="cf-palette">' + Object.keys(PAL_EFFET).map(function (t) { return palBouton(t); }).join('') +
+    '<button type="button" class="cf-pal cf-pal-plus" data-palplus aria-expanded="false" title="Plus de balises">' +
+    CFG.plusBalises + '<i class="fi fi-tr-angle-small-down"></i></button>' +
+    '<span class="cf-pal-cache" hidden>' + MAISON.map(function (t) { return palBouton(t, true); }).join('') + '</span></div>' +
     '<textarea data-k="' + k + '" rows="8"></textarea></div>';
 }
-function paletBouton(p) {
-  return '<button type="button" class="cf-pal-b" data-tag="' + esc(p.tag) + '">' + esc(p.lib) + '</button>';
+/* images : lignes, une URL par ligne, bouton « + » (maquette) */
+function lignesImages(v, k, max) {
+  var arr = (v[k] && v[k].length) ? v[k].slice() : [''];
+  max = max || 1;
+  var plus = (max > 1 && arr.length < max) ?
+    '<button type="button" class="cf-img-add" data-addrow="' + k + '" title="Ajouter une image"><i class="fi fi-sr-plus"></i></button>' : '';
+  var rows = arr.map(function (u, i) {
+    var dernier = i === arr.length - 1;
+    return '<div class="cf-imgrow"><input type="text" class="cf-img-url" data-k="' + k +
+      '" data-i="' + i + '" placeholder="' + esc(max > 1 ? CFG.aides.images : CFG.aides.imageUnique) +
+      '" value="' + esc(u || '') + '">' + (dernier ? plus : '') + '</div>';
+  }).join('');
+  return '<div class="cf-imgrows' + (arr.length >= max ? ' plein' : '') + '" data-k="' + k + '" data-max="' + max + '">' + rows + '</div>';
 }
-function zoneImages(k, max) {
-  return '<div class="cf-aj-zone"><span class="cf-aj-lib">' + CFG.champs.image + '</span>' +
-    '<div class="cf-aj-imgs" data-k="' + k + '"></div>' +
-    '<div class="cf-aj-img-aj"><input type="text" data-img="' + k + '" placeholder="https://…">' +
-    '<button type="button" data-ajimg="' + k + '">+</button></div>' +
-    (max ? '<span class="cf-aj-max" data-max="' + k + '">' + max + '</span>' : '') + '</div>';
-}
-function zoneChips(k, lib, aide) {
-  return '<div class="cf-aj-zone"><span class="cf-aj-lib">' + lib + '</span>' +
-    '<div class="cf-aj-chips" data-k="' + k + '"></div>' +
-    '<input type="text" data-chip="' + k + '" placeholder="' + esc(aide || '') + '"></div>';
-}
+function zoneImages(k, max) { return '<div class="cf-champ"><label>' + CFG.champs.image + '</label>' + lignesImages({}, k, max) + '</div>'; }
 function zoneTeinte() {
-  return '<label class="cf-aj-champ"><span class="cf-aj-lib">Teinte</span><select data-k="TEINTE">' +
-    CFG.teintes.map(function (t) { return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select></label>';
+  return '<div class="cf-champ"><label>Voile du post-it</label><div class="cf-chips">' +
+    CFG.teintes.map(function (t) {
+      return '<button type="button" class="cf-teinte" data-k="TEINTE" data-teinte="' + t +
+        '" style="--tint:var(--' + t + ')" title="' + t + '" aria-pressed="false"></button>';
+    }).join('') + '</div><span class="cf-aide">Fond crème, voile de couleur au choix du joueur.</span></div>';
 }
+/* PNJ déclarés : pastilles cochables derrière un « + » (maquette) */
 function zonePnj() {
-  var liste = D().pnjs.map(function (f) {
-    return '<button type="button" class="cf-aj-pnj-pick" data-ref="' + esc(f.post.id + ' | ' + f.val('NOM')) + '">' +
-      esc(f.val('NOM')) + '</button>'; }).join('');
-  return zoneChips('PNJ', CFG.champs.pnj, 'nom libre ou entrée') +
-    (liste ? '<details class="cf-aj-pnj-liste"><summary>' + CFG.champs.pnj + '</summary>' + liste + '</details>' : '');
-}
-
-/* ------------------------------------------------------- 3. FORMULAIRES */
-function FIELDS() {
-  var f = {
-    recit: champM([champ('TITRE', CFG.champs.titre), champ('QUAND', CFG.champs.quand), champ('LIEU', CFG.champs.lieu)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) + caseACocher('JOURNAL', CFG.champs.journal) +
-      caseACocher('HERO', CFG.champs.hero) + zoneImages('IMAGE', CFG.maxImages.recit),
-    anecdote: champM([champ('TITRE', CFG.champs.titre), champ('QUAND', CFG.champs.quand), champ('LIEU', CFG.champs.lieu)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) + zonePnj() + zoneChips('PJ', CFG.champs.pj, 'prénom, surnom…') +
-      champ('LIEN', 'Lien vers le RP', 'https://…') + zoneImages('IMAGE', CFG.maxImages.anecdote),
-    souvenir: champM([champ('TITRE', CFG.champs.titre), champ('QUAND', CFG.champs.quand)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) + zoneChips('PJ', CFG.champs.pj, 'prénom, surnom…') +
-      zoneImages('IMAGE', CFG.maxImages.souvenir),
-    objet: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte) +
-      zoneImages('IMAGE', CFG.maxImages.objet) + champM([champ('DEPUIS', CFG.champs.depuis), champ('LIE_A', CFG.champs.lieA)]),
-    citation: zoneTexte('TEXTE', CFG.champs.texte) + champ('SOURCE', CFG.champs.source) + zoneTeinte(),
-    poeme: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte),
-    pnj: champ('NOM', CFG.champs.nom) + champM([champ('AGE', CFG.champs.age), champ('METIER', CFG.champs.metier)]) +
-      champM([champ('RENCONTRE', CFG.champs.rencontre), champ('RELATION', CFG.champs.relation)]) +
-      champ('TEMPERAMENT', CFG.champs.temperament) + zoneTexte('DESCRIPTION', CFG.champs.description) +
-      zoneImages('IMAGE', CFG.maxImages.pnj),
-    playlist: champ('TITRE', CFG.champs.titre) + champM([champ('LIEN', CFG.champs.lien, 'https://…'), champ('HUMEUR', CFG.champs.humeur)]) +
-      champ('N', CFG.champs.n, '12'),
-    moodboard: champ('TITRE', CFG.champs.titre) + champ('LEGENDE', CFG.champs.legende) +
-      zoneImages('IMAGE', CFG.maxImages.moodboard)
-  };
-  return f;
+  var chips = D().pnjs.map(function (f) {
+    var ref = f.post.id + ' | ' + f.val('NOM');
+    return '<button type="button" class="cf-chip" data-ref="' + esc(ref) + '">' + esc(f.val('NOM')) + '</button>';
+  }).join('');
+  return '<div class="cf-champ"><div class="cf-pnj-tete"><label>' + CFG.champs.pnj + '</label>' +
+    (chips ? '<button type="button" class="cf-img-add cf-pnj-add" data-pnjadd aria-expanded="false" title="Déplier la liste des PNJ"><i class="fi fi-sr-plus"></i></button>' : '') +
+    '</div>' +
+    (chips ? '<div class="cf-pnjs-cache" hidden><div class="cf-chips">' + chips + '</div>' + aide(CFG.aides.pnj) + '</div>'
+           : aide(CFG.aides.pnjVide)) + '</div>';
 }
 /* moodboard existant : chips de sélection, édition par page FA */
 function zoneMoodExistants() {
   var boards = D().moodboards || [];
   if (!boards.length) return '';
-  return '<div class="cf-aj-zone"><span class="cf-aj-lib">Modifier un tableau existant</span>' +
+  return '<div class="cf-champ"><label>Modifier un tableau existant</label><div class="cf-chips">' +
     boards.map(function (f) {
-      return '<button type="button" class="cf-aj-pnj-pick" data-mood="' + esc(f.post.id) + '"' +
+      return '<button type="button" class="cf-chip" data-mood="' + esc(f.post.id) + '"' +
         (f.post.editUrl ? '' : ' disabled') + '>' + esc(f.val('TITRE') || CFG.cats.moodboard.titre) + '</button>';
-    }).join('') + '</div>';
+    }).join('') + '</div></div>';
+}
+
+/* ------------------------------------------------------- 3. FORMULAIRES */
+function FIELDS() {
+  var f = {
+    recit: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand), champIn('LIEU', CFG.champs.lieu)]) +
+      zoneTexte('TEXTE', CFG.champs.texte) + caseACocher('JOURNAL', CFG.champs.journal) +
+      caseACocher('HERO', CFG.champs.hero) + zoneImages('IMAGE', CFG.maxImages.recit),
+    anecdote: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand), champIn('LIEU', CFG.champs.lieu)]) +
+      zoneTexte('TEXTE', CFG.champs.texte) + zonePnj() +
+      champ('PJ', CFG.champs.pj, 'prénom, surnom…', CFG.aides.pj) +
+      champ('LIEN', 'Lien vers le RP', 'https://…') + zoneImages('IMAGE', CFG.maxImages.anecdote),
+    souvenir: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand)]) +
+      zoneTexte('TEXTE', CFG.champs.texte) +
+      champ('PJ', CFG.champs.pj, 'prénom, surnom…', CFG.aides.pnj) + zoneImages('IMAGE', CFG.maxImages.souvenir),
+    objet: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte) +
+      zoneImages('IMAGE', CFG.maxImages.objet) + champM([champIn('DEPUIS', CFG.champs.depuis), champIn('LIE_A', CFG.champs.lieA)]),
+    citation: zoneTexte('TEXTE', CFG.champs.texte) + champ('SOURCE', CFG.champs.source) + zoneTeinte(),
+    poeme: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte),
+    pnj: champ('NOM', CFG.champs.nom) + champM([champIn('AGE', CFG.champs.age), champIn('METIER', CFG.champs.metier)]) +
+      champM([champIn('RENCONTRE', CFG.champs.rencontre), champIn('RELATION', CFG.champs.relation)]) +
+      champ('TEMPERAMENT', CFG.champs.temperament) + zoneTexte('DESCRIPTION', CFG.champs.description) +
+      zoneImages('IMAGE', CFG.maxImages.pnj),
+    playlist: champ('TITRE', CFG.champs.titre) + champM([champIn('LIEN', CFG.champs.lien, 'https://…'), champIn('HUMEUR', CFG.champs.humeur)]) +
+      champ('N', CFG.champs.n, '12'),
+    moodboard: champ('TITRE', CFG.champs.titre) + champ('LEGENDE', CFG.champs.legende) +
+      zoneMoodExistants() + zoneImages('IMAGE', CFG.maxImages.moodboard)
+  };
+  return f;
 }
 
 /* ------------------------------------------------------- 4. LE VOL */
@@ -162,14 +207,14 @@ function ouvrir() {
   $('#cf-vol-back').style.display = 'none';
   $('#cf-vol-p').style.display = 'none';
   $('#cf-vol-titre').textContent = CFG.volTitre;
-  $('#cf-vol-c').innerHTML = Object.keys(CFG.cats).map(function (cat) {
-    return '<button type="button" class="cf-aj-cat" data-cat="' + cat + '"><i class="fi ' + CFG.cats[cat].ic + '"></i>' +
-      '<span class="cf-aj-cat-t">' + CFG.cats[cat].titre + '</span><span class="cf-aj-cat-e">' + CFG.cats[cat].ent + '</span></button>';
-  }).join('');
+  $('#cf-vol-c').innerHTML = '<div class="cf-opts">' + Object.keys(CFG.cats).map(function (cat) {
+    var c = CFG.cats[cat];
+    return '<button type="button" class="cf-opt" data-cat="' + cat + '"><i class="fi ' + c.ic + '"></i>' +
+      '<span><span class="cf-opt-n">' + c.titre + '</span><span class="cf-opt-d">' + c.ent + '</span></span></button>';
+  }).join('') + '</div>';
 }
 function formulaire(cat, fragment, editUrl) {
-  var html = (FIELDS()[cat] || '') + (cat === 'moodboard' ? zoneMoodExistants() : '');
-  $('#cf-vol-c').innerHTML = html;
+  $('#cf-vol-c').innerHTML = (FIELDS()[cat] || '');
   $('#cf-vol-titre').textContent = CFG.cats[cat].titre || CFG.volTitre;
   $('#cf-vol-back').style.display = '';
   $('#cf-vol-p').style.display = '';
@@ -184,43 +229,39 @@ function formulaire(cat, fragment, editUrl) {
 function peindreChamps() {
   var v = enCours.v;
   $$('#cf-vol-c [data-k]').forEach(function (e) {
+    if (e.classList.contains('cf-teinte')) {
+      e.setAttribute('aria-pressed', e.dataset.teinte === v.TEINTE ? 'true' : 'false'); return;
+    }
+    if (e.dataset.i != null) return;                   /* lignes d'images : repeintes en bloc */
+    if (e.dataset.k === 'PJ') { e.value = (v.PJ || []).join(', '); return; }
     if (e.type === 'checkbox') e.checked = !!v[e.dataset.k];
     else if (e.tagName === 'SELECT' && v[e.dataset.k]) e.value = v[e.dataset.k];
     else if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA') e.value = v[e.dataset.k] || '';
   });
-  ['IMAGE', 'PNJ', 'PJ'].forEach(function (k) {
-    var z = $('#cf-vol-c .cf-aj-chips[data-k="' + k + '"], #cf-vol-c .cf-aj-imgs[data-k="' + k + '"]');
-    if (z) z.innerHTML = (v[k] || []).map(puce).join('');
+  $$('#cf-vol-c .cf-chip[data-ref]').forEach(function (b) {
+    b.setAttribute('aria-pressed', (v.PNJ || []).indexOf(b.dataset.ref) >= 0 ? 'true' : 'false');
+  });
+  $$('#cf-vol-c .cf-imgrows').forEach(function (z) {
+    z.outerHTML = lignesImages(v, z.dataset.k, +z.dataset.max || 1);
   });
 }
-function puce(val, i, liste) {
-  var k = enCours.cat;
-  return '<span class="cf-aj-puce" data-puce="' + esc(val) + '">' + esc(val) +
-    ' <button type="button" data-retire="' + esc(val) + '">×</button></span>';
-}
-function $$(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
 
 /* ------------------------------------------------------- 5. INTERACTIONS */
-function retirerPuce(k, val) {
-  var v = enCours.v;
-  v[k] = (v[k] || []).filter(function (x) { return x !== val; });
-  peindreChamps(); brouillon(enCours.cat, v);
-}
-function ajouterPuce(k, val) {
-  var v = enCours.v, max = CFG.maxImages[enCours.cat];
-  val = trim(val);
-  if (!val) return;
-  if (k === 'IMAGE' && max && (v[k] || []).length >= max) { UI.toast(CFG.messages.maxImages); return; }
-  v[k] = (v[k] || []).indexOf(val) < 0 ? (v[k] || []).concat([val]) : v[k];
-  peindreChamps(); brouillon(enCours.cat, v);
-}
 function majValeur(e) {
   var t = e.target;
   if (!t || !t.dataset || !enCours) return;
   var k = t.dataset.k;
   if (!k) return;
-  enCours.v[k] = t.type === 'checkbox' ? (t.checked ? 'oui' : '') : t.value;
-  brouillon(enCours.cat, enCours.v);
+  var v = enCours.v;
+  if (t.dataset.i != null) {                          /* ligne d'image : tableau par index */
+    var arr = v[k] || (v[k] = []);
+    arr[+t.dataset.i] = t.value;
+  } else if (k === 'PJ') {
+    v.PJ = t.value.split(',').map(trim).filter(function (x) { return x !== ''; });
+  } else {
+    v[k] = t.type === 'checkbox' ? (t.checked ? 'oui' : '') : t.value;
+  }
+  brouillon(enCours.cat, v);
 }
 function brancheClicks() {
   $('#cf-vol-c').addEventListener('click', function (e) {
@@ -233,34 +274,64 @@ function brancheClicks() {
       if (f && f.post.editUrl) formulaire('moodboard', f, f.post.editUrl);
       return;
     }
-    var pick = t.closest ? t.closest('[data-ref]') : null;
-    if (pick) { ajouterPuce('PNJ', pick.dataset.ref); return; }
-    var ajimg = t.closest ? t.closest('[data-ajimg]') : null;
-    if (ajimg) { var i = $('[data-img="' + ajimg.dataset.ajimg + '"]'); if (i) { ajouterPuce(ajimg.dataset.ajimg, i.value); i.value = ''; } return; }
-    var retire = t.closest ? t.closest('[data-retire]') : null;
-    if (retire) {
-      ['IMAGE', 'PNJ', 'PJ'].forEach(function (k) { if ((enCours.v[k] || []).indexOf(retire.dataset.retire) >= 0) retirerPuce(k, retire.dataset.retire); });
+    var plus = t.closest ? t.closest('[data-palplus]') : null;
+    if (plus) {
+      var cache = plus.parentElement ? plus.parentElement.querySelector('.cf-pal-cache') : null;
+      if (cache) { cache.hidden = !cache.hidden; plus.setAttribute('aria-expanded', cache.hidden ? 'false' : 'true'); }
       return;
     }
-    var plus = t.closest ? t.closest('.cf-pal-plus') : null;
-    if (plus) { var m = $('.cf-pal-maison'); if (m) m.hidden = !m.hidden; return; }
-    var bal = t.closest ? t.closest('.cf-pal-b') : null;
+    var bal = t.closest ? t.closest('.cf-pal[data-tag]') : null;
     if (bal) { entourer(bal.dataset.tag); return; }
+    var pnjadd = t.closest ? t.closest('[data-pnjadd]') : null;
+    if (pnjadd) {
+      var champP = pnjadd.closest('.cf-champ');
+      var cacheP = champP ? champP.querySelector('.cf-pnjs-cache') : null;
+      if (cacheP) { cacheP.hidden = !cacheP.hidden; pnjadd.setAttribute('aria-expanded', cacheP.hidden ? 'false' : 'true'); }
+      return;
+    }
+    var ref = t.closest ? t.closest('.cf-chip[data-ref]') : null;
+    if (ref && enCours) {                             /* pastille PNJ : coche ou décoche */
+      var liste = enCours.v.PNJ || (enCours.v.PNJ = []);
+      var i = liste.indexOf(ref.dataset.ref);
+      if (i >= 0) liste.splice(i, 1); else liste.push(ref.dataset.ref);
+      ref.setAttribute('aria-pressed', i >= 0 ? 'false' : 'true');
+      brouillon(enCours.cat, enCours.v);
+      return;
+    }
+    var teinte = t.closest ? t.closest('.cf-teinte') : null;
+    if (teinte && enCours) {
+      enCours.v.TEINTE = teinte.dataset.teinte;
+      $$('#cf-vol-c .cf-teinte').forEach(function (b) {
+        b.setAttribute('aria-pressed', b === teinte ? 'true' : 'false');
+      });
+      brouillon(enCours.cat, enCours.v);
+      return;
+    }
+    var addRow = t.closest ? t.closest('[data-addrow]') : null;
+    if (addRow && enCours) {                          /* + : une ligne d'image de plus */
+      var kk = addRow.dataset.addrow;
+      var vv = enCours.v;
+      var arr = (vv[kk] || []).map(trim).filter(function (x) { return x !== ''; });
+      var zr = addRow.closest('.cf-imgrows');
+      var max = (zr && +zr.dataset.max) || CFG.maxImages[enCours.cat] || 1;
+      if (max && arr.length >= max) { UI.toast(CFG.messages.maxImages); return; }
+      arr.push('');
+      vv[kk] = arr;
+      if (zr) zr.outerHTML = lignesImages(vv, kk, max);
+      var last = $('#cf-vol-c .cf-imgrows[data-k="' + kk + '"] .cf-imgrow:last-child input');
+      if (last && last.focus) last.focus();
+      return;
+    }
   });
   $('#cf-vol-c').addEventListener('input', majValeur);
   $('#cf-vol-c').addEventListener('change', majValeur);
-  $('#cf-vol-c').addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' || !e.target.dataset || !e.target.dataset.chip && !e.target.dataset.img) return;
-    var k = e.target.dataset.chip || e.target.dataset.img;
-    ajouterPuce(k, e.target.value); e.target.value = '';
-  });
   $('#cf-vol-back').addEventListener('click', function () { ouvrir(); enCours = null; });
   $('#cf-vol-publier').addEventListener('click', publier);
 }
 function parId(liste, id) { return (liste || []).filter(function (f) { return String(f.post.id) === String(id); })[0] || null; }
 /* la palette écrit des balises pointées autour de la sélection */
 function entourer(tag) {
-  var ta = $('#cf-vol-c textarea[data-k="TEXTE"], #cf-vol-c textarea[data-k="DESCRIPTION"]')[0];
+  var ta = $('#cf-vol-c textarea[data-k="TEXTE"], #cf-vol-c textarea[data-k="DESCRIPTION"]');
   if (!ta) return;
   var a = ta.selectionStart || 0, b = ta.selectionEnd || 0;
   var sel = ta.value.slice(a, b);
@@ -327,6 +398,7 @@ function corpsEnvoye(cat, v) {
 function publier() {
   if (!enCours) return;
   var cat = enCours.cat, v = enCours.v;
+  v.IMAGE = (v.IMAGE || []).map(trim).filter(function (x) { return x !== ''; });   /* lignes vides ignorées */
   var nom = v.TITRE || v.NOM || v.SOURCE;
   if (!nom && !v.TEXTE && !v.DESCRIPTION) { UI.toast(CFG.messages.obligatoire); return; }
   var corps = corpsEnvoye(cat, v);
@@ -355,8 +427,8 @@ function publier() {
 /* ------------------------------------------------------- 9. EXPORT */
 UI.ajout = { ouvrir: ouvrir };
 global.CARNETAJOUT = { CFG: CFG, ouvrir: ouvrir, corpsEnvoye: corpsEnvoye, corpsIntercale: corpsIntercale,
-  _t: { corpsEnvoye: corpsEnvoye, corpsIntercale: corpsIntercale, ajouterPuce: ajouterPuce,
-    restaurer: restaurer, brouillon: brouillon, viderBrouillon: viderBrouillon, cats: Object.keys(CFG.cats) } };
+  _t: { corpsEnvoye: corpsEnvoye, corpsIntercale: corpsIntercale, peindreChamps: peindreChamps,
+    lignesImages: lignesImages, restaurer: restaurer, brouillon: brouillon, viderBrouillon: viderBrouillon, cats: Object.keys(CFG.cats) } };
 
 /* amorçage : le vol n'existe qu'une fois la une montée */
 function partir() {
