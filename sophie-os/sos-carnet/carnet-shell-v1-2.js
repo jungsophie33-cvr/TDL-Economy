@@ -195,9 +195,9 @@ function remplirHero() {
   if (cq.val('METIER')) mc.push('<span>' + esc(cq.val('METIER')) + '</span>');
   if (cq.val('VILLE')) mc.push('<span>' + esc(cq.val('VILLE')) + '</span>');
   $('#cf-hero-mc').innerHTML = mc.join('');
-  /* avatar : l'image du compte, sinon les initiales — jamais de SVG */
-  var img = $('#cf-hero-emblem-img'), ini = $('#cf-hero-emblem-init');
-  if (cq.avatar) { img.src = cq.avatar; img.hidden = false; ini.hidden = true; }
+    /* avatar du compte — jamais de SVG, jamais de repli initiales */
+  var img = $('#cf-hero-emblem-img');
+  if (cq.avatar) { img.src = cq.avatar; img.hidden = false; }
   if (cq.val('HERO')) $('#cf-hero-img').style.backgroundImage = 'url(\'' + cq.val('HERO') + '\')';
   var n = D.recits.length + D.anecdotes.length + D.souvenirs.length + D.poemes.length + D.objets.length + D.citations.length;
   $('#cf-stats').innerHTML =
