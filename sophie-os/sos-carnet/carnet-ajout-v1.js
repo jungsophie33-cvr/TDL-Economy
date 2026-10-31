@@ -157,7 +157,7 @@ function zoneMoodExistants() {
 
 /* ------------------------------------------------------- 4. LE VOL */
 function ouvrir() {
-  if (!document.querySelector('#quick_reply form')) { UI.toast(CFG.messages.invHors); return; }
+  if (!document.querySelector('form#quick_reply, #quick_reply form')) { UI.toast(CFG.messages.invHors); return; }
   UI.ouvrir('vol');
   $('#cf-vol-back').style.display = 'none';
   $('#cf-vol-p').style.display = 'none';
