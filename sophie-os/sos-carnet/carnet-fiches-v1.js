@@ -69,7 +69,7 @@ function enrichir(t) {
     out += htmlTxt(t.slice(last, m.index));
     var ferme = m[1] === '/', nom = String(m[2]).toLowerCase();
     if (BAL_SIMPLE[nom]) out += ferme ? '</' + BAL_SIMPLE[nom] + '>' : '<' + BAL_SIMPLE[nom] + '>';
-    else if (BAL_MAISON.indexOf(nom) >= 0) out += ferme ? '</span>' : '<span class="cf-bb-' + nom + '">';
+    else if (BAL_MAISON.indexOf(nom) >= 0) out += ferme ? '</' + nom + '>' : '<' + nom + '>';
     else if (BAL_ALIGN[nom]) out += ferme ? '</span>' : '<span class="cf-al-' + BAL_ALIGN[nom] + '">';
     else if (nom === 'list' || nom === 'nlist') out += ferme ? '</' + (nom === 'list' ? 'ul' : 'ol') + '>' : '<' + (nom === 'list' ? 'ul' : 'ol') + ' class="cf-bb-list">';
     else out += htmlTxt(m[0]);
