@@ -1,5 +1,11 @@
 /* ============================================================
    carnet/carnet-core.js — Carnet de fragments — phase 3
+   [v3-1] correctif de lecture : le contenu du post était lu via
+   textContent, qui colle les lignes sans retours à la ligne — aucun
+   marqueur n était vu, charger() rejetait « pas un carnet ». Nouvelle
+   lecture texteLignes() : <br> et fins de blocs deviennent des \n,
+   les balises maison (i1, f4, d…) restent telles quelles dans le
+   texte — le CSS du forum les stylise déjà partout dans la page.
    Collecte des posts du sujet (toutes pages), parse des marqueurs,
    normalisation, tri, tirage de la pensée du jour, registre des PNJ.
    Charge après sos-core ; expose window.CARNET.
@@ -149,6 +155,36 @@ CARNET.CATS={
   playlist:  {cles:['LIEN','HUMEUR','TEXTE']}
 };
 
+/* --- lecture texte avec vraies lignes -------------------------------
+   Sur ForumActif, les retours à la ligne sont des <br> : textContent
+   colle tout en une seule ligne et les marqueurs deviennent illisibles.
+   On convertit donc le HTML en texte ligne par ligne. Les balises maison
+   (i1, f4, d…) sont CONSERVÉES telles quelles : le CSS de référence du
+   forum stylise déjà ces éléments dans toute la page, coquille comprise.
+   Tout autre tag (liens auto, smileys <img>, conteneurs FA) est retiré. */
+var BALISES=('i1 i2 i3 i4 b1 b2 b3 b4 u1 u2 u3 u4 s1 s2 s3 f f1 f2 f3 f4 '+
+  'fb fb1 fb2 fb3 d d1 d2 d3 t t1 t2 t3 t4 b i u s strike').split(' ');
+function texteLignes(el){
+  var c=el.cloneNode(true);
+  Array.prototype.forEach.call(c.querySelectorAll('code, .cont_code, blockquote, .quote, .post-wordcount'),function(n){
+    if(n.parentNode)n.parentNode.removeChild(n);
+  });
+  var h=c.innerHTML
+    .replace(/<br\s*\/?>/gi,'\n')
+    .replace(/<\/(p|div|li|tr|h[1-6]|ul|ol)>/gi,'\n')
+    .replace(/<(\/?)([a-z0-9]+)(?:\s[^>]*)?>/gi,function(m,ferme,nom){
+      nom=String(nom).toLowerCase();
+      return BALISES.indexOf(nom)>=0 ? '<'+ferme+nom+'>' : '';
+    });
+  /* décodage des entités HTML sans passer par un <textarea> (son contenu
+     RCDATA n'est pas fiable hors navigateur) */
+  return h.replace(/&nbsp;/gi,' ')
+    .replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+    .replace(/&quot;/gi,'"').replace(/&#0?39;/g,"'")
+    .replace(/&amp;/gi,'&')
+    .replace(/\u00a0/g,' ');
+}
+
 /* ============ 7. lecture du DOM réel ============ */
 function idDepuisUrl(u){
   var m=String(u||'').match(/[?&]p=(\d+)/);
@@ -167,7 +203,7 @@ function lirePost(bloc){
   if(!id)id=idDepuisUrl(editUrl);                   /* repli : paramètre p du lien d'édition */
   return {
     id:id,
-    contenu:bloc.textContent||'',
+    contenu:texteLignes(bloc),
     avatar:av?av.getAttribute('src'):null,
     editUrl:editUrl,
     supprUrl:supprUrl,
