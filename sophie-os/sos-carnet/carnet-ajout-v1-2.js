@@ -1,24 +1,27 @@
 /* =============================================================
-   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-1.js)
+   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-2.js)
    -------------------------------------------------------------
-   [v1-2] Gabarits alignés sur la maquette v5 : le volet émet
-   désormais les classes que stylise CSS-carnet (cf-opts/cf-opt,
-   cf-champ/cf-aide, cf-palette/cf-pal/cf-pal-cache, cf-imgrows/
-   cf-imgrow/cf-img-add, cf-teinte, cf-pnj-tete/cf-pnjs-cache,
-   cf-chips/cf-chip) — plus aucune classe cf-aj-*. Les images se
-   saisissent par lignes (une URL par ligne, bouton +), les PNJ
-   déclarés se cochent en pastilles, la teinte du post-it se
-   choisit en pastilles, les PJ se saisissent à la virgule.
+   [v1-3] Reproduction exacte de la maquette v5 (voletForm) :
+   ordre des catégories, icônes, libellés et descriptions de
+   l'écran de choix ; formulaires catégorie par catégorie —
+   fTrio 2fr/1fr/1fr et fDuo de la maquette, champ Trigger
+   warnings, PNJ en pastilles cochables, journal intime avec
+   son aide, zones de texte libellées (Récit, Anecdote, Souvenir,
+   Vers, Pensée, Note) avec placeholders et aides de la maquette,
+   images contextuelles (label + aide + max par champ), champ
+   « Image du hero » séparé (clé HERO:), playlist sans champ N.
+   corpsEnvoye écrit désormais TW: et HERO: (lus par ficheRecit).
+   [v1-2] Gabarits maquette : cf-opts/cf-opt, cf-champ/cf-aide,
+   cf-palette/cf-pal/cf-pal-cache, cf-imgrows/cf-imgrow,
+   cf-teinte, cf-pnj-tete/cf-pnjs-cache, cf-chips/cf-chip.
    [v1-1] Sélecteur réponse rapide double (form#quick_reply,
-   #quick_reply form) : la template du forum porte l'id sur le
-   form lui-même.
-   Rôle : le vol d'ajout. Le membre choisit une catégorie (9),
-   remplit le formulaire ; l'interface écrit les marqueurs
-   (=== FRAGMENT: type … === FIN) et publie par la réponse rapide
-   via carnet-post.js. Brouillons en localStorage, anti-flood 10 s
-   armé avant l'envoi, repli sur la réponse classique si le moteur
-   échoue. Moodboard : un tableau existant s'édite par sa page
-   FA native (editerTableau), un nouveau se publie comme un post.
+   #quick_reply form).
+   Rôle : le vol d'ajout. Choix de catégorie (9), formulaire ;
+   l'interface écrit les marqueurs (=== FRAGMENT: type … === FIN)
+   et publie par la réponse rapide via carnet-post.js. Brouillons
+   en localStorage, anti-flood 10 s, repli classique si le moteur
+   échoue. Moodboard : un tableau existant s'édite par sa page FA
+   native, un nouveau se publie comme un post.
    Charge après carnet-post.js ; pose CARNETUI.ajout = {ouvrir}.
    ============================================================= */
 (function (global) {
@@ -34,35 +37,57 @@ var jrn = journal('ajout');
 /* ------------------------------------------------------- 1. CONFIG */
 var CFG = {
   volTitre: 'Ajouter un fragment',
-  champs: {
-    titre: 'Titre', nom: 'Nom', quand: 'Quand (date ou année)', lieu: 'Lieu',
-    texte: 'Texte', description: 'Description', source: 'De qui', lien: 'Lien (YouTube ou Spotify)',
-    humeur: 'Humeur', n: 'Nombre de titres', depuis: 'Depuis', lieA: 'Lié à', legende: 'Légende',
-    age: 'Âge', metier: 'Métier', rencontre: 'Rencontre', relation: 'Relation', temperament: 'Tempérament',
-    image: 'Images', pnj: 'Mentionner des PNJ', pj: 'En compagnie de',
-    journal: 'Journal intime — fragment discret', hero: 'Première image en fond de fiche'
-  },
-  aides: {
-    pj: 'Séparez les pseudos par des virgules — la clé PJ: est écrite automatiquement.',
-    pnj: 'Tirés de la liste des PNJ déclarés dans ce carnet — la clé PNJ: est écrite automatiquement.',
-    pnjVide: 'Aucun PNJ déclaré dans ce carnet pour l\u2019instant.',
-    images: 'Une URL par ligne — elles s\u2019intercalent entre les paragraphes.',
-    imageUnique: 'Collez l\u2019adresse de l\u2019image…'
-  },
+  /* cats : ordre, icônes, libellés et descriptions de la maquette v5 */
   cats: {
-    recit: { titre: 'Récit', ic: 'fi-sr-book-open-cover', ent: 'un chapitre vécu' },
-    anecdote: { titre: 'Anecdote', ic: 'fi-sr-theater-masks', ent: 'une scène en marge' },
-    souvenir: { titre: 'Souvenir', ic: 'fi-sr-time-past', ent: 'une page épinglée' },
-    objet: { titre: 'Objet', ic: 'fi-sr-cube', ent: 'ce qui reste' },
-    citation: { titre: 'Pensée', ic: 'fi-sr-comment-quote', ent: 'à épingler sur le mur' },
-    poeme: { titre: 'Poème', ic: 'fi-sr-feather', ent: 'à voix basse' },
-    pnj: { titre: 'PNJ', ic: 'fi-sr-user', ent: 'une figure de l\u2019entourage' },
-    moodboard: { titre: 'Moodboard', ic: 'fi-sr-pictures', ent: 'un tableau d\u2019images' },
-    playlist: { titre: 'Playlist', ic: 'fi-sr-music-note', ent: 'la bande-son' }
+    recit:     { titre: 'Récit', ic: 'fi-sr-book-open-cover', ent: 'Un RP narratif solo ou une page de journal intime.' },
+    anecdote:  { titre: 'Anecdote', ic: 'fi-sr-theater-masks', ent: 'Ce qui s\u2019est passé sur un RP, et qui était là.' },
+    souvenir:  { titre: 'Souvenir', ic: 'fi-sr-time-past', ent: 'Un événement passé, en quelques lignes.' },
+    poeme:     { titre: 'Poème', ic: 'fi-sr-quill-pen-story', ent: 'Un texte en vers.' },
+    pnj:       { titre: 'PNJ', ic: 'fi-sr-users-alt', ent: 'Un personnage récurrent de sa vie.' },
+    objet:     { titre: 'Objet', ic: 'fi-sr-box-open', ent: 'Un objet qui compte, et pourquoi.' },
+    citation:  { titre: 'Pensée', ic: 'fi-sr-block-quote', ent: 'Une citation, un post-it de pensée.' },
+    moodboard: { titre: 'Image du moodboard', ic: 'fi-sr-picture', ent: 'Une ambiance, une image de plus dans un tableau.' },
+    playlist:  { titre: 'Playlist', ic: 'fi-sr-music-note', ent: 'Une playlist, une humeur.' }
   },
-  maxImages: { recit: 3, anecdote: 3, souvenir: 1, objet: 1, pnj: 1, moodboard: 30 },
+  maxImages: { recit: 3, anecdote: 3, souvenir: 1, objet: 1, pnj: 1, moodboard: 30, hero: 1 },
   plusBalises: '+ balises',
   teintes: ['gr1-20', 'gr2-20', 'gr3-20', 'gr4-20', 'gr5-20', 'gr6-20'],
+  ph: { /* placeholders de la maquette v5 */
+    titre: 'La nuit du chenal…', date: 'mars 1926', lieu: 'Houma…',
+    tw: 'alcoolisme, violence…', pj: 'Alma Ledoux, …', lienRp: 'https://… / /t300-…',
+    recit: 'Il était une fois, sur le chenal…', anecdote: 'Ce qui s\u2019est passé sur un RP, et qui était là…',
+    souvenir: 'Père m\u2019a emmené voir la première cheminée de la Company…',
+    poeme: 'Marée basse…', vers: 'L\u2019eau se retire, polie, comme une dette payée…',
+    nom: 'Iryna Blackford…', age: '17', rencontre: '1909', metier: '—', relation: 'sa fille…',
+    temperament: 'Curieuse, têtue…', description: 'Elle veut apprendre le métier depuis ses dix ans…',
+    objetTitre: 'La montre en gousset de Richard…', depuis: '1889', lieA: 'la lignée des Blackford…',
+    texteObjet: 'Elle retarde de quatre minutes…',
+    pensee: 'Le fleuve ne dit rien. C\u2019est bien là son métier…', source: 'carnet, 1926…',
+    plTitre: 'Blackford Nights…', plLien: 'https://open.spotify.com/…', plHumeur: 'après comité…',
+    plNote: 'Pour les fins de comité, quand le fleuve fait le silence.',
+    img: 'Collez l\u2019URL de l\u2019image…'
+  },
+  aides: { /* aides de la maquette v5 */
+    tw: 'Séparez par des virgules — laissez vide s\u2019il n\u2019y en a aucun.',
+    journal: 'Papier réglé, marge rouge — la date s\u2019écrit à la main en tête du texte.',
+    recit: 'Palette usuelle + balises maison.',
+    imgsRecit: 'Jusqu\u2019à 3 images — elles s\u2019intercalent entre les paragraphes, mode « carré ».',
+    hero: 'Remplace le fond de la fiche de lecture — laissez vide pour l\u2019image de base.',
+    lienRp: 'Collez l\u2019adresse du sujet — la clé LIEN: est écrite automatiquement.',
+    pj: 'Séparez les pseudos par des virgules.',
+    anecdote: 'Les versions partagées des autres joueurs s\u2019ajoutent après publication.',
+    imgsAnecdote: 'Jusqu\u2019à 3 images — elles s\u2019intercalent entre les paragraphes, comme dans un récit.',
+    souvenir: 'Un souvenir est court : quelques lignes suffisent.',
+    imgSouvenir: 'Une seule image — elle remplit le tirage photographique, légendé par la date.',
+    vers: 'Un vers par ligne — les retours à la ligne sont conservés.',
+    pnj: 'Tirés de la liste des PNJ déclarés dans ce carnet — la clé PNJ: est écrite automatiquement.',
+    pnjVide: 'Aucun PNJ déclaré dans ce carnet pour l\u2019instant.',
+    imgPnj: 'Associer une image au PNJ.',
+    imgObjet: 'Une seule image — l\u2019objet dans sa vitrine.',
+    plLien: 'Lecteur embed Spotify ou YouTube — la clé LIEN: est écrite automatiquement.',
+    mood: 'Un tableau vit dans son propre sujet : ajouter ici revient à modifier le message unique du tableau — ou à ouvrir le sujet d\u2019un nouveau tableau.',
+    imgsMood: 'Une URL par ligne — jusqu\u2019à 30 images pour ce tableau.'
+  },
   messages: {
     obligatoire: 'Il manque un titre ou du texte — le fragment resterait muet.',
     publie: 'Fragment publié — le carnet se rafraîchit…',
@@ -88,19 +113,22 @@ function trim(s) { return String(s == null ? '' : s).replace(/^\s+|\s+$/g, ''); 
 var enCours = null;   /* {cat, v, editUrl} */
 function D() { return CARNET.donnees || { pnjs: [], moodboards: [] }; }
 
-/* gabarits maquette v5 : cf-champ, cf-aide, cf-check, cf-palette… */
+/* gabarits maquette v5 : fTxt, fTxtB, fDuo, fTrio, fZone, fPaletteZone, fImgs */
 function aide(txt) { return txt ? '<span class="cf-aide">' + txt + '</span>' : ''; }
-function champIn(k, lib, ph, aid) {
-  return '<label>' + lib + '</label>' +
-    '<input type="text" data-k="' + k + '" placeholder="' + esc(ph || '') + '">' + aide(aid);
+function fTxt(k, lb, ph, aid) {
+  return '<div class="cf-champ"><label>' + lb + '</label>' +
+    '<input type="text" data-k="' + k + '" placeholder="' + esc(ph || '') + '">' + aide(aid) + '</div>';
 }
-function champ(k, lib, ph, aid) { return '<div class="cf-champ">' + champIn(k, lib, ph, aid) + '</div>'; }
-function champM(l) {
-  return '<div class="cf-champ"><div style="display:grid;grid-template-columns:repeat(' + l.length + ',1fr);gap:12px">' +
-    l.join('') + '</div></div>';
+function fTxtB(k, lb, ph) { return '<div><label>' + lb + '</label><input type="text" data-k="' + k + '" placeholder="' + esc(ph || '') + '"></div>'; }
+function fDuo(a, b) {
+  return '<div class="cf-champ"><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' + a + b + '</div></div>';
 }
-function caseACocher(k, lib) {
-  return '<div class="cf-champ"><label class="cf-check"><input type="checkbox" data-k="' + k + '"><span>' + lib + '</span></label></div>';
+function fTrio(a, b, c) {
+  return '<div class="cf-champ"><div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px">' + a + b + c + '</div></div>';
+}
+function fZone(k, lb, ph, h, aid) {
+  return '<div class="cf-champ"><label>' + lb + '</label><textarea data-k="' + k + '" placeholder="' + esc(ph || '') +
+    '" style="min-height:' + (h || 130) + 'px"></textarea>' + aide(aid) + '</div>';
 }
 /* palette : l'effet de chaque balise se voit dans la case (maquette) */
 var PAL_EFFET = {
@@ -118,43 +146,47 @@ function palBouton(tag, maison) {
   return '<button type="button" class="cf-pal' + ((maison || !PAL_EFFET[tag]) ? ' cf-pal-maison' : '') +
     '" data-tag="' + esc(tag) + '" title="' + esc(PAL_TITRE[tag] || 'Balise ' + tag) + '">' + effet + '</button>';
 }
-function zoneTexte(k, lib) {
-  return '<div class="cf-champ"><label>' + lib + '</label>' +
+function fPaletteZone(k, lb, ph, h, aid) {
+  return '<div class="cf-champ"><label>' + lb + '</label>' +
     '<div class="cf-palette">' + Object.keys(PAL_EFFET).map(function (t) { return palBouton(t); }).join('') +
     '<button type="button" class="cf-pal cf-pal-plus" data-palplus aria-expanded="false" title="Plus de balises">' +
     CFG.plusBalises + '<i class="fi fi-tr-angle-small-down"></i></button>' +
     '<span class="cf-pal-cache" hidden>' + MAISON.map(function (t) { return palBouton(t, true); }).join('') + '</span></div>' +
-    '<textarea data-k="' + k + '" rows="8"></textarea></div>';
+    '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" style="min-height:' + (h || 130) + 'px"></textarea>' +
+    aide(aid) + '</div>';
 }
-/* images : lignes, une URL par ligne, bouton « + » (maquette) */
+/* images : lignes, une URL par ligne, bouton « + » (maquette fImgs) */
 function lignesImages(v, k, max) {
-  var arr = (v[k] && v[k].length) ? v[k].slice() : [''];
+  var src = v[k];
+  var arr = Array.isArray(src) ? src.slice() : (src ? [src] : ['']);
   max = max || 1;
   var plus = (max > 1 && arr.length < max) ?
     '<button type="button" class="cf-img-add" data-addrow="' + k + '" title="Ajouter une image"><i class="fi fi-sr-plus"></i></button>' : '';
   var rows = arr.map(function (u, i) {
     var dernier = i === arr.length - 1;
     return '<div class="cf-imgrow"><input type="text" class="cf-img-url" data-k="' + k +
-      '" data-i="' + i + '" placeholder="' + esc(max > 1 ? CFG.aides.images : CFG.aides.imageUnique) +
-      '" value="' + esc(u || '') + '">' + (dernier ? plus : '') + '</div>';
+      '" data-i="' + i + '" placeholder="' + esc(CFG.ph.img) + '" value="' + esc(u || '') + '">' +
+      (dernier ? plus : '') + '</div>';
   }).join('');
   return '<div class="cf-imgrows' + (arr.length >= max ? ' plein' : '') + '" data-k="' + k + '" data-max="' + max + '">' + rows + '</div>';
 }
-function zoneImages(k, max) { return '<div class="cf-champ"><label>' + CFG.champs.image + '</label>' + lignesImages({}, k, max) + '</div>'; }
-function zoneTeinte() {
+function fImgs(lb, aid, max, k) {
+  return '<div class="cf-champ"><label>' + lb + '</label>' + lignesImages({}, k, max) + aide(aid) + '</div>';
+}
+function fTeintes() {
   return '<div class="cf-champ"><label>Voile du post-it</label><div class="cf-chips">' +
     CFG.teintes.map(function (t) {
       return '<button type="button" class="cf-teinte" data-k="TEINTE" data-teinte="' + t +
         '" style="--tint:var(--' + t + ')" title="' + t + '" aria-pressed="false"></button>';
     }).join('') + '</div><span class="cf-aide">Fond crème, voile de couleur au choix du joueur.</span></div>';
 }
-/* PNJ déclarés : pastilles cochables derrière un « + » (maquette) */
-function zonePnj() {
+/* PNJ déclarés : pastilles cochables derrière un « + » (maquette fPnjChips) */
+function fPnjChips() {
   var chips = D().pnjs.map(function (f) {
     var ref = f.post.id + ' | ' + f.val('NOM');
     return '<button type="button" class="cf-chip" data-ref="' + esc(ref) + '">' + esc(f.val('NOM')) + '</button>';
   }).join('');
-  return '<div class="cf-champ"><div class="cf-pnj-tete"><label>' + CFG.champs.pnj + '</label>' +
+  return '<div class="cf-champ"><div class="cf-pnj-tete"><label>Mentionner des PNJ</label>' +
     (chips ? '<button type="button" class="cf-img-add cf-pnj-add" data-pnjadd aria-expanded="false" title="Déplier la liste des PNJ"><i class="fi fi-sr-plus"></i></button>' : '') +
     '</div>' +
     (chips ? '<div class="cf-pnjs-cache" hidden><div class="cf-chips">' + chips + '</div>' + aide(CFG.aides.pnj) + '</div>'
@@ -164,40 +196,67 @@ function zonePnj() {
 function zoneMoodExistants() {
   var boards = D().moodboards || [];
   if (!boards.length) return '';
-  return '<div class="cf-champ"><label>Modifier un tableau existant</label><div class="cf-chips">' +
+  return '<div class="cf-champ"><label>Tableau</label><div class="cf-chips">' +
     boards.map(function (f) {
       return '<button type="button" class="cf-chip" data-mood="' + esc(f.post.id) + '"' +
         (f.post.editUrl ? '' : ' disabled') + '>' + esc(f.val('TITRE') || CFG.cats.moodboard.titre) + '</button>';
-    }).join('') + '</div></div>';
+    }).join('') + '</div>' + aide(CFG.aides.mood) + '</div>';
 }
 
-/* ------------------------------------------------------- 3. FORMULAIRES */
+/* ------------------------------------------------------- 3. FORMULAIRES (maquette voletForm) */
 function FIELDS() {
-  var f = {
-    recit: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand), champIn('LIEU', CFG.champs.lieu)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) + caseACocher('JOURNAL', CFG.champs.journal) +
-      caseACocher('HERO', CFG.champs.hero) + zoneImages('IMAGE', CFG.maxImages.recit),
-    anecdote: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand), champIn('LIEU', CFG.champs.lieu)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) + zonePnj() +
-      champ('PJ', CFG.champs.pj, 'prénom, surnom…', CFG.aides.pj) +
-      champ('LIEN', 'Lien vers le RP', 'https://…') + zoneImages('IMAGE', CFG.maxImages.anecdote),
-    souvenir: champM([champIn('TITRE', CFG.champs.titre), champIn('QUAND', CFG.champs.quand)]) +
-      zoneTexte('TEXTE', CFG.champs.texte) +
-      champ('PJ', CFG.champs.pj, 'prénom, surnom…', CFG.aides.pnj) + zoneImages('IMAGE', CFG.maxImages.souvenir),
-    objet: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte) +
-      zoneImages('IMAGE', CFG.maxImages.objet) + champM([champIn('DEPUIS', CFG.champs.depuis), champIn('LIE_A', CFG.champs.lieA)]),
-    citation: zoneTexte('TEXTE', CFG.champs.texte) + champ('SOURCE', CFG.champs.source) + zoneTeinte(),
-    poeme: champ('TITRE', CFG.champs.titre) + zoneTexte('TEXTE', CFG.champs.texte),
-    pnj: champ('NOM', CFG.champs.nom) + champM([champIn('AGE', CFG.champs.age), champIn('METIER', CFG.champs.metier)]) +
-      champM([champIn('RENCONTRE', CFG.champs.rencontre), champIn('RELATION', CFG.champs.relation)]) +
-      champ('TEMPERAMENT', CFG.champs.temperament) + zoneTexte('DESCRIPTION', CFG.champs.description) +
-      zoneImages('IMAGE', CFG.maxImages.pnj),
-    playlist: champ('TITRE', CFG.champs.titre) + champM([champIn('LIEN', CFG.champs.lien, 'https://…'), champIn('HUMEUR', CFG.champs.humeur)]) +
-      champ('N', CFG.champs.n, '12'),
-    moodboard: champ('TITRE', CFG.champs.titre) + champ('LEGENDE', CFG.champs.legende) +
-      zoneMoodExistants() + zoneImages('IMAGE', CFG.maxImages.moodboard)
+  var P = CFG.ph;
+  return {
+    recit:
+      fTrio(fTxtB('TITRE', 'Titre', P.titre), fTxtB('QUAND', 'Date', P.date), fTxtB('LIEU', 'Lieu', P.lieu)) +
+      fTxt('TW', 'Trigger warnings', P.tw, CFG.aides.tw) +
+      fPnjChips() +
+      '<div class="cf-champ"><label class="cf-check"><input type="checkbox" data-k="JOURNAL"><span>Journal intime</span></label>' +
+      aide(CFG.aides.journal) + '</div>' +
+      fPaletteZone('TEXTE', 'Récit', P.recit, 150, CFG.aides.recit) +
+      fImgs('Images du récit', CFG.aides.imgsRecit, CFG.maxImages.recit, 'IMAGE') +
+      fImgs('Image du hero', CFG.aides.hero, CFG.maxImages.hero, 'HERO'),
+    anecdote:
+      fTrio(fTxtB('TITRE', 'Titre', P.titre), fTxtB('QUAND', 'Date', P.date), fTxtB('LIEU', 'Lieu', P.lieu)) +
+      fTxt('LIEN', 'Lien du RP', P.lienRp, CFG.aides.lienRp) +
+      fTxt('PJ', 'PJ présents', P.pj, CFG.aides.pj) +
+      fPnjChips() +
+      fPaletteZone('TEXTE', 'Anecdote', P.anecdote, 150, CFG.aides.anecdote) +
+      fImgs('Images de l\u2019anecdote', CFG.aides.imgsAnecdote, CFG.maxImages.anecdote, 'IMAGE'),
+    souvenir:
+      fDuo(fTxtB('TITRE', 'Titre', P.titre), fTxtB('QUAND', 'Date', P.date)) +
+      fPaletteZone('TEXTE', 'Souvenir', P.souvenir, 110, CFG.aides.souvenir) +
+      fImgs('Image du souvenir', CFG.aides.imgSouvenir, CFG.maxImages.souvenir, 'IMAGE'),
+    poeme:
+      fTxt('TITRE', 'Titre', P.poeme) +
+      fPaletteZone('TEXTE', 'Vers', P.vers, 150, CFG.aides.vers),
+    pnj:
+      fTxt('NOM', 'Nom', P.nom) +
+      fDuo(fTxtB('AGE', '\u00c2ge', P.age), fTxtB('RENCONTRE', 'Rencontré en', P.rencontre)) +
+      fDuo(fTxtB('METIER', 'Métier', P.metier), fTxtB('RELATION', 'Relation', P.relation)) +
+      fZone('TEMPERAMENT', 'Tempérament', P.temperament, 80) +
+      fZone('DESCRIPTION', 'Description', P.description, 120) +
+      fImgs('Image du PNJ', CFG.aides.imgPnj, CFG.maxImages.pnj, 'IMAGE'),
+    objet:
+      fTxt('TITRE', 'Titre', P.objetTitre) +
+      fDuo(fTxtB('DEPUIS', 'Depuis', P.depuis), fTxtB('LIE_A', 'Lié à', P.lieA)) +
+      fPaletteZone('TEXTE', 'Texte', P.texteObjet, 110) +
+      fImgs('Image de l\u2019objet', CFG.aides.imgObjet, CFG.maxImages.objet, 'IMAGE'),
+    citation:
+      fPaletteZone('TEXTE', 'Pensée', P.pensee, 90) +
+      fTxt('SOURCE', 'Source', P.source) +
+      fTeintes(),
+    moodboard:
+      zoneMoodExistants() +
+      fTxt('TITRE', 'Titre du tableau', P.titre) +
+      fTxt('LEGENDE', 'Légende', '') +
+      fImgs('Images du tableau', CFG.aides.imgsMood, CFG.maxImages.moodboard, 'IMAGE'),
+    playlist:
+      fTxt('TITRE', 'Titre', P.plTitre) +
+      fTxt('LIEN', 'Lien', P.plLien, CFG.aides.plLien) +
+      fTxt('HUMEUR', 'Humeur', P.plHumeur) +
+      fZone('TEXTE', 'Note', P.plNote, 80)
   };
-  return f;
 }
 
 /* ------------------------------------------------------- 4. LE VOL */
@@ -215,7 +274,7 @@ function ouvrir() {
 }
 function formulaire(cat, fragment, editUrl) {
   $('#cf-vol-c').innerHTML = (FIELDS()[cat] || '');
-  $('#cf-vol-titre').textContent = CFG.cats[cat].titre || CFG.volTitre;
+  $('#cf-vol-titre').textContent = 'Ajouter — ' + (CFG.cats[cat].titre || CFG.volTitre);
   $('#cf-vol-back').style.display = '';
   $('#cf-vol-p').style.display = '';
   enCours = { cat: cat, v: restaurer(cat), editUrl: editUrl || null };
@@ -313,7 +372,7 @@ function brancheClicks() {
       var vv = enCours.v;
       var arr = (vv[kk] || []).map(trim).filter(function (x) { return x !== ''; });
       var zr = addRow.closest('.cf-imgrows');
-      var max = (zr && +zr.dataset.max) || CFG.maxImages[enCours.cat] || 1;
+      var max = (zr && +zr.dataset.max) || 1;
       if (max && arr.length >= max) { UI.toast(CFG.messages.maxImages); return; }
       arr.push('');
       vv[kk] = arr;
@@ -331,7 +390,7 @@ function brancheClicks() {
 function parId(liste, id) { return (liste || []).filter(function (f) { return String(f.post.id) === String(id); })[0] || null; }
 /* la palette écrit des balises pointées autour de la sélection */
 function entourer(tag) {
-  var ta = $('#cf-vol-c textarea[data-k="TEXTE"], #cf-vol-c textarea[data-k="DESCRIPTION"]');
+  var ta = $('#cf-vol-c textarea[data-k="TEXTE"], #cf-vol-c textarea[data-k="DESCRIPTION"], #cf-vol-c textarea[data-k="TEMPERAMENT"]');
   if (!ta) return;
   var a = ta.selectionStart || 0, b = ta.selectionEnd || 0;
   var sel = ta.value.slice(a, b);
@@ -370,11 +429,11 @@ function corpsIntercale(texte, images) {
 }
 function corpsEnvoye(cat, v) {
   var L = ['=== FRAGMENT: ' + cat + ' ==='];
-  var simples = ['TITRE', 'NOM', 'QUAND', 'LIEU', 'AGE', 'METIER', 'RENCONTRE', 'RELATION',
-    'TEMPERAMENT', 'SOURCE', 'TEINTE', 'LIEN', 'HUMEUR', 'N', 'DEPUIS', 'LIE_A'];
+  var simples = ['TITRE', 'NOM', 'QUAND', 'LIEU', 'TW', 'AGE', 'METIER', 'RENCONTRE', 'RELATION',
+    'TEMPERAMENT', 'SOURCE', 'TEINTE', 'LIEN', 'HUMEUR', 'N', 'DEPUIS', 'LIE_A', 'LEGENDE'];
   simples.forEach(function (k) { if (v[k]) L.push(k + ': ' + v[k]); });
   if (v.JOURNAL) L.push('JOURNAL: oui');
-  if (v.HERO && (v.IMAGE || [])[0]) L.push('HERO: ' + v.IMAGE[0]);
+  if (v.HERO && v.HERO[0]) L.push('HERO: ' + v.HERO[0]);
   (v.PNJ || []).forEach(function (r) { L.push('PNJ: ' + r); });
   (v.PJ || []).forEach(function (r) { L.push('PJ: ' + r); });
   var texte = cat === 'pnj' ? (v.DESCRIPTION || '') : (v.TEXTE || '');
@@ -382,13 +441,11 @@ function corpsEnvoye(cat, v) {
   var imgs = v.IMAGE || [];
   if (cat === 'moodboard') {
     imgs.forEach(function (u) { L.push('IMAGE: ' + u); });
-    if (v.LEGENDE) L.push('LEGENDE: ' + v.LEGENDE);
   } else if ((cat === 'recit' || cat === 'anecdote') && texte && imgs.length) {
     L.push(corpsIntercale(texte, imgs));
   } else {
     if (texte) L.push(cleTxt + ':\n' + texte);
     imgs.forEach(function (u) { L.push('IMAGE: ' + u); });
-    if (v.LEGENDE) L.push('LEGENDE: ' + v.LEGENDE);
   }
   L.push('=== FIN ===');
   return L.join('\n\n');
@@ -398,7 +455,9 @@ function corpsEnvoye(cat, v) {
 function publier() {
   if (!enCours) return;
   var cat = enCours.cat, v = enCours.v;
-  v.IMAGE = (v.IMAGE || []).map(trim).filter(function (x) { return x !== ''; });   /* lignes vides ignorées */
+  ['IMAGE', 'HERO'].forEach(function (k) {            /* lignes vides ignorées */
+    v[k] = (v[k] || []).map(trim).filter(function (x) { return x !== ''; });
+  });
   var nom = v.TITRE || v.NOM || v.SOURCE;
   if (!nom && !v.TEXTE && !v.DESCRIPTION) { UI.toast(CFG.messages.obligatoire); return; }
   var corps = corpsEnvoye(cat, v);
@@ -428,7 +487,7 @@ function publier() {
 UI.ajout = { ouvrir: ouvrir };
 global.CARNETAJOUT = { CFG: CFG, ouvrir: ouvrir, corpsEnvoye: corpsEnvoye, corpsIntercale: corpsIntercale,
   _t: { corpsEnvoye: corpsEnvoye, corpsIntercale: corpsIntercale, peindreChamps: peindreChamps,
-    lignesImages: lignesImages, restaurer: restaurer, brouillon: brouillon, viderBrouillon: viderBrouillon, cats: Object.keys(CFG.cats) } };
+    lignesImages: lignesImages, FIELDS: FIELDS, restaurer: restaurer, brouillon: brouillon, viderBrouillon: viderBrouillon, cats: Object.keys(CFG.cats) } };
 
 /* amorçage : le vol n'existe qu'une fois la une montée */
 function partir() {
