@@ -421,43 +421,6 @@ tw{background:var(--clair1);font-family:var(--txt3);text-transform:uppercase;fon
 .cf-musique-cadre iframe{display:block;width:100%;height:100%;border:0}
 
 /* ============================================================
-   BALISES MAISON DU FORUM — collé du CSS de référence.
-   Sert aussi au rendu des boutons de la palette : l'effet
-   de chaque balise se voit dans la petite case.
-   ============================================================ */
-i1, i2, i3, i4 {font-family:var(--txt1); font-style:italic; font-weight:500;font-size:1.08em;}
-b1, b2, b3, b4 {font-family: var(--font1);color: var(--darkopa8); letter-spacing:0.5px;font-size:1.08em;}
-i2, b2 {color:var(--cntr0); background:var(--gradark);background-clip:text; -webkit-background-clip:text;}
-i3, b3 {color:var(--cntr0); background:var(--gradoc1); background-clip:text; -webkit-background-clip:text;}
-i4, b4 {color:var(--dark2);}
-u {background: var(--gradark1);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-font-weight: 600;
-text-decoration: underline;
-text-decoration-color: var(--cntr);
-text-decoration-style: dashed;
-text-decoration-thickness: 1px;
-text-underline-offset: 3px;
-filter: contrast(0.6);
-font-family: var(--txt2);
-font-size: 17px;}
-u1, u2, u3 {text-decoration:none;}
-u1 {box-shadow:inset 0 -2px 0 var(--clair2);} u2 {box-shadow:inset 0 -2px 0 var(--cntr);} u3 {box-shadow:inset 0 -2px 0 var(--dark2);} u4 {box-shadow:inset 0 -2px 0 var(--clair1);}
-strike, s1, s2, s3 {text-decoration-line: line-through;font-family: var(--title3); font-size: 1.2em;}
-s1 {text-decoration-color:var(--clair2);} s2 {text-decoration-color:var(--cntr);} s3 {text-decoration-color:var(--dark2);}
-f, f1, f2, f3, f4 {display:inline-block;color:var(--clair1);font-family:var(--txt1);font-size:12px;line-height:1.5;text-transform:uppercase;letter-spacing:1px;font-weight:600; padding:0 6px; margin: 0; border-radius:3px; background:var(--clair2);}
-f1 {background-color:var(--cntr);} f2 {background-color:var(--dark2);} f3 {background:var(--gradoc1);} f4 {background:var(--gradark);}
-fb, fb1 {background:var(--cntr3);padding:2px 5px; border-left:3px solid var(--dark2);border-radius:8px; font-size:0.8em; font-family:var(--txt3);text-transform: uppercase;font-weight: 900;}
-fb1 {border-color:var(--clair2);}
-fb2, fb3 {font-style: italic;background: var(--darkopa6);padding: 1px 3px;font-size: 0.9em; font-family: var(--font1);color: var(--clair1);border-radius: 2px;}
-fb3 {background:var(--cntr);}
-d, d1, d2, d3 {font-weight:400;text-transform: uppercase;color: var(--darkopa8);font-family: var(--font1);font-size: 0.9em;letter-spacing: 0.5px;}
-d1 {color:var(--dark2opa8);} d2 {background:var(--gradark);background-clip:text; -webkit-background-clip:text;color:transparent;} d3 {background:var(--gradoc1); background-clip:text; -webkit-background-clip:text;color:transparent;}
-t {font-family:var(--txt1); font-size:1.1em;} t1 {font-family:var(--txt2); font-size:1.1em;} t2 {font-family:var(--txt3);} t3 {font-family:var(--font2); font-size:1.05em;} t4 {font-family:Times New Roman; font-size:1.1em;}
-t1 i, t1 i2, t1 i3, t1 i4, t2 i, t2 i1, t2 i2, t2 i3, t2 i4 {font-size:0.9em;}
-
-/* ============================================================
    FICHES DE LECTURE — anecdote, souvenir, objet
    Chaque type a son objet de référence :
    anecdote = programme de scène (distribution à points de suite),
@@ -970,44 +933,6 @@ body.cf-carnet.cf-repli .cf-lecture,body.cf-carnet.cf-repli .cf-vol{display:none
    l'esprit du CSS maison du forum : à ajuster au dépôt si les
    règles originales (i1, b2, f4…) doivent être reprises au pixel.
    ============================================================ */
-.cf-bb-i1,.cf-bb-i2,.cf-bb-i3,.cf-bb-i4{font-style:italic}
-.cf-bb-i2{color:var(--clair2)}
-.cf-bb-i3{color:var(--dark2)}
-.cf-bb-i4{color:var(--darkopa8)}
-.cf-bb-b1,.cf-bb-b2,.cf-bb-b3,.cf-bb-b4{display:block;font-family:var(--title1);
-  font-size:19px;margin:14px 0 6px;color:var(--dark)}
-.cf-bb-b2{color:var(--clair2)}
-.cf-bb-b3{color:var(--dark2)}
-.cf-bb-b4{color:var(--darkopa8);font-size:17px}
-.cf-bb-u1{text-decoration:underline;color:var(--darkopa7)}
-.cf-bb-u2{text-decoration:underline;color:var(--dark2)}
-.cf-bb-u3{text-decoration:underline;color:#a33}
-.cf-bb-u4{text-decoration:underline;color:var(--clair1)}
-.cf-bb-s1,.cf-bb-s2,.cf-bb-s3{text-decoration:line-through}
-.cf-bb-s2{text-decoration-color:var(--dark2)}
-.cf-bb-s3{text-decoration-color:#a33}
-.cf-bb-f,.cf-bb-f1,.cf-bb-f2,.cf-bb-f3,.cf-bb-f4{display:inline-block;padding:2px 10px;
-  border-radius:3px;font-family:var(--font0);font-size:13px;letter-spacing:.4px;
-  text-transform:uppercase;background:var(--cntr4);color:var(--dark)}
-.cf-bb-f1{background:var(--dark2);color:var(--clair1)}
-.cf-bb-f2{background:var(--dark);color:var(--clair1)}
-.cf-bb-f3{background:var(--clair2);color:var(--dark)}
-.cf-bb-f4{background:var(--darkopa8);color:var(--clair1)}
-.cf-bb-fb,.cf-bb-fb1,.cf-bb-fb2,.cf-bb-fb3{display:block;margin:12px 0;padding:10px 14px;
-  border-left:3px solid var(--cntr5);background:var(--cntr1);font-size:15px}
-.cf-bb-fb1{border-left-color:var(--clair2opa5);background:var(--clair1opa3)}
-.cf-bb-fb2{font-style:italic;color:var(--darkopa8)}
-.cf-bb-fb3{font-style:italic;color:var(--dark2);background:var(--dark2opa2)}
-.cf-bb-d,.cf-bb-d1,.cf-bb-d2,.cf-bb-d3{font-family:var(--font0);font-size:14px;
-  letter-spacing:.5px;color:var(--darkopa6)}
-.cf-bb-d1{color:#a33}
-.cf-bb-d2{color:var(--clair2)}
-.cf-bb-d3{color:var(--dark2)}
-.cf-bb-t{font-family:var(--txt1)}
-.cf-bb-t1{font-family:var(--txt2)}
-.cf-bb-t2{font-family:var(--font0)}
-.cf-bb-t3{font-family:var(--font2)}
-.cf-bb-t4{font-family:serif}
 .cf-al-left,.cf-al-center,.cf-al-right,.cf-al-justify{display:block}
 .cf-al-left{text-align:left}
 .cf-al-center{text-align:center}
