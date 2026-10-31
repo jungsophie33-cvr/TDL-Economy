@@ -1,6 +1,11 @@
 /* =============================================================
-   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-2.js)
+   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-3.js)
    -------------------------------------------------------------
+   [v1-4] Paragraphes : chaque retour à la ligne crée un paragraphe
+   (corpsIntercale suit la même règle que le rendu). Sélecteur de
+   couleurs dans la palette : les 32 teintes officielles de
+   l'éditeur du forum + choix libre — la sélection est entourée de
+   <color=#hex>…</color>, rendue en couleur par les fiches.
    [v1-3] Reproduction exacte de la maquette v5 (voletForm) :
    ordre des catégories, icônes, libellés et descriptions de
    l'écran de choix ; formulaires catégorie par catégorie —
@@ -146,12 +151,37 @@ function palBouton(tag, maison) {
   return '<button type="button" class="cf-pal' + ((maison || !PAL_EFFET[tag]) ? ' cf-pal-maison' : '') +
     '" data-tag="' + esc(tag) + '" title="' + esc(PAL_TITRE[tag] || 'Balise ' + tag) + '">' + effet + '</button>';
 }
+/* [v1-4] sélecteur de couleurs : la liste officielle de l'éditeur du
+   forum (palette « simple » de ForumActif, 32 teintes nommées), plus
+   un choix libre au format hexadécimal. La teinte choisie entoure
+   la sélection de <color=#hex>…</color>, rendu en couleur par les
+   fiches. */
+var FA_COULEURS = [
+  ['Noir', '#000000'], ['Bleu foncé', '#00008B'], ['Sarcelle', '#008080'], ['Vert foncé', '#006400'],
+  ['Indigo', '#4B0082'], ['Cramoisi', '#DC143C'], ['Orange', '#FF4500'], ['Marron', '#663300'],
+  ['Gris foncé', '#666666'], ['Bleu royal', '#4169E1'], ['Turquoise foncé', '#00CED1'], ['Vert', '#008000'],
+  ['Pourpre', '#9400D3'], ['Rouge', '#FF0000'], ['Orange clair', '#FF9933'], ['Sienne', '#A0522D'],
+  ['Gris clair', '#D3D3D3'], ['Bleu ciel', '#87CEEB'], ['Cyan', '#00FFFF'], ['Vert pomme', '#32CD32'],
+  ['Mauve', '#DA70D6'], ['Saumon', '#FA8072'], ['Or', '#FFD700'], ['Brun clair', '#CD853F'],
+  ['Blanc', '#FFFFFF'], ['Turquoise pâle', '#AFEEEE'], ['Bleu vert', '#7FFFD4'], ['Vert pâle', '#98FB98'],
+  ['Rose', '#FFC0CB'], ['Pêche', '#FFDAB9'], ['Jaune', '#FFFF00'], ['Bois', '#DEB887']
+];
+function grilleCouleurs() {
+  return '<button type="button" class="cf-pal cf-pal-maison" data-palcoul aria-expanded="false" title="Couleur du texte">' +
+    '<span class="cf-pal-rond"></span>couleur</button>' +
+    '<button type="button" class="cf-pal cf-pal-plus" data-palplus aria-expanded="false" title="Plus de balises">' +
+    CFG.plusBalises + '<i class="fi fi-tr-angle-small-down"></i></button>' +
+    '<span class="cf-pal-cache" hidden>' + MAISON.map(function (t) { return palBouton(t, true); }).join('') + '</span>' +
+    '<span class="cf-couleurs" hidden>' +
+    FA_COULEURS.map(function (c) {
+      return '<button type="button" class="cf-coul" data-coul="' + esc(c[1]) + '" title="' + esc(c[0]) + '" style="--c:' + esc(c[1]) + '"></button>';
+    }).join('') +
+    '<label class="cf-coul-perso"><input type="color" data-coul-perso value="#8B4513">Autre…</label></span>';
+}
 function fPaletteZone(k, lb, ph, h, aid) {
   return '<div class="cf-champ"><label>' + lb + '</label>' +
     '<div class="cf-palette">' + Object.keys(PAL_EFFET).map(function (t) { return palBouton(t); }).join('') +
-    '<button type="button" class="cf-pal cf-pal-plus" data-palplus aria-expanded="false" title="Plus de balises">' +
-    CFG.plusBalises + '<i class="fi fi-tr-angle-small-down"></i></button>' +
-    '<span class="cf-pal-cache" hidden>' + MAISON.map(function (t) { return palBouton(t, true); }).join('') + '</span></div>' +
+    grilleCouleurs() + '</div>' +
     '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" style="min-height:' + (h || 130) + 'px"></textarea>' +
     aide(aid) + '</div>';
 }
@@ -339,6 +369,19 @@ function brancheClicks() {
       if (cache) { cache.hidden = !cache.hidden; plus.setAttribute('aria-expanded', cache.hidden ? 'false' : 'true'); }
       return;
     }
+    var pcoul = t.closest ? t.closest('[data-palcoul]') : null;
+    if (pcoul) {
+      var grille = pcoul.parentElement ? pcoul.parentElement.querySelector('.cf-couleurs') : null;
+      if (grille) { grille.hidden = !grille.hidden; pcoul.setAttribute('aria-expanded', grille.hidden ? 'false' : 'true'); }
+      return;
+    }
+    var coul = t.closest ? t.closest('.cf-coul[data-coul]') : null;
+    if (coul) {
+      entourerCouleur(coul.dataset.coul);
+      var g = coul.closest('.cf-couleurs');
+      if (g) { g.hidden = true; var bp = g.parentElement.querySelector('[data-palcoul]'); if (bp) bp.setAttribute('aria-expanded', 'false'); }
+      return;
+    }
     var bal = t.closest ? t.closest('.cf-pal[data-tag]') : null;
     if (bal) { entourer(bal.dataset.tag); return; }
     var pnjadd = t.closest ? t.closest('[data-pnjadd]') : null;
@@ -384,6 +427,10 @@ function brancheClicks() {
   });
   $('#cf-vol-c').addEventListener('input', majValeur);
   $('#cf-vol-c').addEventListener('change', majValeur);
+  $('#cf-vol-c').addEventListener('change', function (e) {          /* [v1-4] couleur libre : sélecteur natif */
+    var inp = e.target;
+    if (inp && inp.matches && inp.matches('input[data-coul-perso]')) entourerCouleur(inp.value);
+  });
   $('#cf-vol-back').addEventListener('click', function () { ouvrir(); enCours = null; });
   $('#cf-vol-publier').addEventListener('click', publier);
 }
@@ -400,6 +447,18 @@ function entourer(tag) {
   majValeur({ target: ta });
   ta.focus();
 }
+/* [v1-4] couleur : entoure la sélection de <color=#hex>…</color> —
+   même ciblage de zone que entourer, majValeur sauvegarde le brouillon. */
+function entourerCouleur(hex) {
+  var ta = $('#cf-vol-c textarea[data-k="TEXTE"], #cf-vol-c textarea[data-k="DESCRIPTION"], #cf-vol-c textarea[data-k="TEMPERAMENT"]');
+  if (!ta) return;
+  var a = ta.selectionStart || 0, b = ta.selectionEnd || 0;
+  var ouv = '<color=' + hex + '>';
+  ta.value = ta.value.slice(0, a) + ouv + ta.value.slice(a, b) + '</color>' + ta.value.slice(b);
+  ta.selectionStart = a + ouv.length; ta.selectionEnd = ta.selectionStart + (b - a);
+  majValeur({ target: ta });
+  ta.focus();
+}
 
 /* ------------------------------------------------------- 6. BROUILLONS */
 function cleBrouillon(cat) { return CFG.brouillonPrefixe + cat; }
@@ -413,9 +472,11 @@ function viderBrouillon(cat) { try { localStorage.removeItem(cleBrouillon(cat));
 
 /* ------------------------------------------------------- 7. CORPS DU MESSAGE */
 /* images réparties dans les interstices ENTRE paragraphes — jamais
-   avant le premier : TEXTE et IMAGE alternent dans l'ordre d'écriture. */
+   avant le premier : TEXTE et IMAGE alternent dans l'ordre d'écriture.
+   [v1-4] Même règle que le rendu : chaque retour à la ligne crée un
+   paragraphe — les lignes vides sont simplement ignorées. */
 function corpsIntercale(texte, images) {
-  var paras = String(texte || '').split(/\n[ \t]*\n+/).map(function (s) { return trim(s); })
+  var paras = String(texte || '').split(/\n/).map(function (s) { return trim(s); })
     .filter(function (s) { return s !== ''; });
   if (!paras.length) paras = [''];
   var n = paras.length, m = images.length, out = [];
