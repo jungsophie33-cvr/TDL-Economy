@@ -1,6 +1,10 @@
 /* =============================================================
    CARNET — LA UNE / COQUILLE (carnet-shell.js)
    -------------------------------------------------------------
+   [v1-3] Verrou propriétaire : « Ajouter un fragment » n'apparaît
+   que pour l'auteur du carnet (pseudo courant vs PROPRIETAIRE de
+   l'en-tête, _userdata d'abord, EcoCore en repli). Les autres
+   membres connectés voient à la place « Déposer une carte postale ».
    [v3-1] Alignement dépôt : libellés centralisés dans CFG ; plus aucune
    couleur en JS (teinteDe rend des var(--grN-…) du :root du forum) ;
    substitut SVG remplacé par des états vides stylés par carnet.css ;
@@ -30,6 +34,8 @@ var CFG = {
   accueil: 'Accueil du forum',
   avatarAlt: 'Avatar',
   ajouter: 'Ajouter un fragment',
+  carte: 'Déposer une carte postale',
+  ajoutPrive: 'Seul le propriétaire du carnet peut y ajouter des fragments.',
   publier: 'Publier',
   volAide: 'L\u2019interface écrit les marqueurs — le membre écrit le contenu.',
   playlistAttente: 'en attente d\u2019une playlist',
@@ -145,7 +151,8 @@ function squelette() {
   '<div class="cf-hero-emblem"><img id="cf-hero-emblem-img" src="" alt="' + CFG.avatarAlt + '" hidden></div>' +
   '<div class="cf-hero-id"><h2 id="cf-hero-nom"></h2><div class="cf-hero-mc" id="cf-hero-mc"></div></div></div>' +
   '<div class="cf-hero-d"><div class="cf-hero-stats" id="cf-stats"></div>' +
-  '<button class="cf-add" id="cf-add"><i class="fi ' + CFG.ajoutBoutonIc + '"></i>' + CFG.ajouter + '</button></div></div></section>' +
+  '<button class="cf-add" id="cf-add"><i class="fi ' + CFG.ajoutBoutonIc + '"></i>' + CFG.ajouter + '</button>' +
+  '<button class="cf-add" id="cf-carte" style="display:none"><i class="fi fi-sr-envelope"></i>' + CFG.carte + '</button></div></div></section>' +
   '<main class="cf-grille" id="cf-grille">' + cases +
   '<article class="cf-case cf-case-mood" data-cat="mood" title="Moodboard">' +
   '<div class="cf-mood-img cf-mood-img1"></div><div class="cf-mood-img cf-mood-img2"></div><div class="cf-mood-img cf-mood-img3"></div>' +
@@ -185,6 +192,24 @@ function squelette() {
   '<div class="cf-musique-cadre" id="cf-musique-cadre"></div></div>';
 }
 /* ------------------------------------------------------- 4. REMPLISSAGE */
+/* [v1-3] propriétaire du carnet : lui seul peut ajouter des fragments —
+   les autres membres voient à la place le bouton « Déposer une carte
+   postale ». Le pseudo courant vient de _userdata (global ForumActif),
+   en repli de l'identité de session EcoCore. */
+function pseudoCourant() {
+  var u = window._userdata;
+  if (u && u.username) return String(u.username);
+  var m = (CARNETUI.contrib && CARNETUI.contrib.moi) ? CARNETUI.contrib.moi() : null;
+  return (m && (m.pseudo || m.nom)) || '';
+}
+function estProprietaire() {
+  if (!PROPRIETAIRE) return true;             /* carnet sans en-tête : on ne verrouille pas */
+  if (!CONNECTE) return false;
+  var moi = pseudoCourant();
+  if (!moi) return false;                     /* connecté sans pseudo connu : prudence */
+  var n = function (s) { return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  return n(moi) === n(PROPRIETAIRE);
+}
 function remplirHero() {
   var cq = CARNET.coquille;
   PROPRIETAIRE = cq.val('PROPRIETAIRE') || '';
@@ -208,7 +233,10 @@ function remplirHero() {
   var pl = D.playlists[0];
   $('#cf-playlist-btn').querySelector('.cf-playlist-t').textContent =
     pl ? titrePlaylist(pl) + ' · ' + (pl.val('N') || '?') + ' titres' : CFG.playlistAttente;
-  if (!CONNECTE) { var a = $('#cf-add'); if (a) a.style.display = 'none'; }
+  var proprio = estProprietaire();               /* [v1-3] ajout : propriétaire seulement */
+  var a = $('#cf-add'), c = $('#cf-carte');
+  if (a) a.style.display = (CONNECTE && proprio) ? '' : 'none';
+  if (c) c.style.display = (CONNECTE && !proprio) ? '' : 'none';
 }
 function elListe(type, f) {
   var chips = '';
@@ -424,7 +452,12 @@ function brancher() {
   });
   $('#cf-lect-une').addEventListener('click', function () { fermer('lecture'); if (vueOuverte) fermer('vue'); });
   $('#cf-add').addEventListener('click', function () {
+    if (!estProprietaire()) { toast(CFG.ajoutPrive); return; }      /* [v1-3] double verrou */
     if (CARNETUI.ajout && typeof CARNETUI.ajout.ouvrir === 'function') CARNETUI.ajout.ouvrir();
+    else toast(CFG.toastModule);
+  });
+  $('#cf-carte').addEventListener('click', function () {           /* [v1-3] membre visiteur : carte postale */
+    if (CARNETUI.contrib && typeof CARNETUI.contrib.carte === 'function') CARNETUI.contrib.carte();
     else toast(CFG.toastModule);
   });
   /* rafraîchissement des contributions (carnet-contrib.js) */
