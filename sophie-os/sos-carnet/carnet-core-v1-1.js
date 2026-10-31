@@ -1,5 +1,10 @@
 /* ============================================================
    carnet/carnet-core.js — Carnet de fragments — phase 3
+   [v3-2] correctif édition : le lien d'édition/suppression était
+   cherché par querySelector depuis le parent du post — sur un thème
+   où tous les posts partagent le même conteneur, chaque fragment
+   récupérait le lien du PREMIER message. Les liens natifs sont
+   désormais apparés au post par leur paramètre p=.
    [v3-1] correctif de lecture : le contenu du post était lu via
    textContent, qui colle les lignes sans retours à la ligne — aucun
    marqueur n était vu, charger() rejetait « pas un carnet ». Nouvelle
@@ -190,16 +195,36 @@ function idDepuisUrl(u){
   var m=String(u||'').match(/[?&]p=(\d+)/);
   return m?m[1]:null;
 }
+function lienDuPost(doc,sel,id){
+  /* [v3-2] Les liens natifs sont reconnus par leur paramètre p= : le
+     conteneur du post n'est pas fiable — sur certains thèmes tous les
+     posts partagent le même parent, et un querySelector depuis ce parent
+     renvoie le lien d'édition du PREMIER message pour chaque fragment. */
+  var as=doc.querySelectorAll(sel);
+  for(var i=0;i<as.length;i++){
+    var h=as[i].getAttribute&&as[i].getAttribute('href');
+    if(h&&idDepuisUrl(h)===id)return h;
+  }
+  return null;
+}
 function lirePost(bloc){
   /* .sj-postmsg porte l'id du post : id="550" */
   var id=(bloc.getAttribute&&bloc.getAttribute('id'))||(bloc.id!=null?String(bloc.id):null);
   if(id&&!/^\d+$/.test(id))id=null;
-  var racine=bloc.parentNode||bloc;                 /* conteneur du post : avatar + liens natifs */
-  var edit=racine.querySelector(SEL.edit);
-  var suppr=racine.querySelector(SEL.suppr);
-  var editUrl=edit?edit.getAttribute('href'):null;
-  var supprUrl=suppr?suppr.getAttribute('href'):null;
-  var av=racine.querySelector(SEL.avatar);
+  var doc=bloc.ownerDocument||document;
+  var editUrl=null,supprUrl=null;
+  if(id){
+    editUrl=lienDuPost(doc,SEL.edit,id);
+    supprUrl=lienDuPost(doc,SEL.suppr,id);
+  }
+  if(!editUrl||!supprUrl){                       /* repli : liens dans le conteneur du post */
+    var racine=bloc.parentNode||bloc;
+    var edit=racine.querySelector(SEL.edit);
+    var suppr=racine.querySelector(SEL.suppr);
+    if(!editUrl&&edit)editUrl=edit.getAttribute('href');
+    if(!supprUrl&&suppr)supprUrl=suppr.getAttribute('href');
+  }
+  var av=(bloc.parentNode||bloc).querySelector(SEL.avatar);
   if(!id)id=idDepuisUrl(editUrl);                   /* repli : paramètre p du lien d'édition */
   return {
     id:id,
