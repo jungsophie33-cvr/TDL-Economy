@@ -1,6 +1,8 @@
 /* =============================================================
    CARNET — FICHES, VUES, RECHERCHE (carnet-fiches.js)
    -------------------------------------------------------------
+   [v1-3] Vue cartes : bouton « Déposer une carte postale » pour
+   les membres connectés (data-contrib="carte", modal contrib).
    [v1-2] Chaque retour à la ligne crée un paragraphe (plus besoin
    de sauter une ligne) ; la balise maison <color=#hex>…</color> est
    rendue en couleur (hexadécimal validé, sinon échappé).
@@ -53,6 +55,7 @@ var CFG = {
     pnjs: 'L\u2019entourage', playlists: 'Playlists', mood: 'Moodboard', souvenirs: 'Souvenirs' },
   aide: { cartes: 'Cliquez sur une carte pour la retourner.',
     cartesVide: 'Aucune carte reçue pour l\u2019instant — les autres membres peuvent en envoyer depuis un fragment du carnet.',
+    deposer: 'Déposer une carte postale',
     moodVide: 'Aucun tableau — ajoutez-en un depuis le bouton d\u2019ajout.',
     souvenirsVide: 'Aucune souvenir — le premier viendra bien assez tôt.', versDePlus: ' vers de plus' },
   album: { decennie: 'Années ', sansDate: 'Sans date', partage: 'partagé' },
@@ -358,8 +361,11 @@ function VUES() {
       (vers.length > 4 ? '<span class="cf-feuillet-suite">' + (vers.length - 4) + CFG.aide.versDePlus + '</span>' : '') + '</div></div></button>'; }).join('') + '</div>'; } },
   cartes: { t: CFG.vues.cartes, corps: function () {
     var ks = cartesRecues();
-    if (!ks.length) return '<p class="cf-cp-aide">' + CFG.aide.cartesVide + '</p>';
-    return '<p class="cf-cp-aide">' + CFG.aide.cartes + '</p><div class="cf-cpwall">' + ks.map(function (k) {
+    /* [v1-3] membre connecté : bouton de dépôt de carte postale (modal contrib) */
+    var deposer = st.connecte ? '<button type="button" class="cf-btn cf-cp-deposer" data-contrib="carte">' +
+      '<i class="fi fi-sr-envelope"></i>' + CFG.aide.deposer + '</button>' : '';
+    if (!ks.length) return '<p class="cf-cp-aide">' + CFG.aide.cartesVide + '</p>' + deposer;
+    return '<p class="cf-cp-aide">' + CFG.aide.cartes + '</p>' + deposer + '<div class="cf-cpwall">' + ks.map(function (k) {
       return '<button type="button" class="cf-cp" aria-label="Carte de ' + esc(k.pseudo || k.de) + ', retourner"><div class="cf-cp-in">' +
       '<div class="cf-cp-face cf-cp-recto"><div class="cf-cp-photo" style="background-image:url(\'' + esc(k.img) + '\')"></div>' +
       '<span class="cf-cp-tourne"><i class="fi fi-tr-refresh"></i></span></div>' +
