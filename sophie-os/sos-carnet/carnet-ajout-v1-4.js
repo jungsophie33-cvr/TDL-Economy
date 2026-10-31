@@ -1,10 +1,12 @@
 /* =============================================================
-   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-3.js)
+   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-4.js)
    -------------------------------------------------------------
+   [v1-5] Verrou propriétaire dans ouvrir() ; sélecteur de couleurs
+   calqué sur la palette moderne du forum : teintes de base,
+   grille complète des nuances, roue des couleurs (sélecteur natif).
    [v1-4] Paragraphes : chaque retour à la ligne crée un paragraphe
    (corpsIntercale suit la même règle que le rendu). Sélecteur de
-   couleurs dans la palette : les 32 teintes officielles de
-   l'éditeur du forum + choix libre — la sélection est entourée de
+   couleurs dans la palette : la sélection est entourée de
    <color=#hex>…</color>, rendue en couleur par les fiches.
    [v1-3] Reproduction exacte de la maquette v5 (voletForm) :
    ordre des catégories, icônes, libellés et descriptions de
@@ -94,6 +96,7 @@ var CFG = {
     imgsMood: 'Une URL par ligne — jusqu\u2019à 30 images pour ce tableau.'
   },
   messages: {
+    prive: 'Seul le propriétaire du carnet peut y ajouter des fragments.',
     obligatoire: 'Il manque un titre ou du texte — le fragment resterait muet.',
     publie: 'Fragment publié — le carnet se rafraîchit…',
     modifie: 'Tableau mis à jour.',
@@ -151,21 +154,36 @@ function palBouton(tag, maison) {
   return '<button type="button" class="cf-pal' + ((maison || !PAL_EFFET[tag]) ? ' cf-pal-maison' : '') +
     '" data-tag="' + esc(tag) + '" title="' + esc(PAL_TITRE[tag] || 'Balise ' + tag) + '">' + effet + '</button>';
 }
-/* [v1-4] sélecteur de couleurs : la liste officielle de l'éditeur du
-   forum (palette « simple » de ForumActif, 32 teintes nommées), plus
-   un choix libre au format hexadécimal. La teinte choisie entoure
-   la sélection de <color=#hex>…</color>, rendu en couleur par les
+/* [v1-5] sélecteur de couleurs, calqué sur la palette moderne de
+   l'éditeur du forum : barre de teintes de base, grille complète des
+   nuances (chaque teinte déclinée du clair au sombre + ligne de
+   gris), et « Roue des couleurs » — le sélecteur natif du navigateur
+   donne accès à toute la roue. La teinte choisie entoure la
+   sélection de <color=#hex>…</color>, rendu en couleur par les
    fiches. */
-var FA_COULEURS = [
-  ['Noir', '#000000'], ['Bleu foncé', '#00008B'], ['Sarcelle', '#008080'], ['Vert foncé', '#006400'],
-  ['Indigo', '#4B0082'], ['Cramoisi', '#DC143C'], ['Orange', '#FF4500'], ['Marron', '#663300'],
-  ['Gris foncé', '#666666'], ['Bleu royal', '#4169E1'], ['Turquoise foncé', '#00CED1'], ['Vert', '#008000'],
-  ['Pourpre', '#9400D3'], ['Rouge', '#FF0000'], ['Orange clair', '#FF9933'], ['Sienne', '#A0522D'],
-  ['Gris clair', '#D3D3D3'], ['Bleu ciel', '#87CEEB'], ['Cyan', '#00FFFF'], ['Vert pomme', '#32CD32'],
-  ['Mauve', '#DA70D6'], ['Saumon', '#FA8072'], ['Or', '#FFD700'], ['Brun clair', '#CD853F'],
-  ['Blanc', '#FFFFFF'], ['Turquoise pâle', '#AFEEEE'], ['Bleu vert', '#7FFFD4'], ['Vert pâle', '#98FB98'],
-  ['Rose', '#FFC0CB'], ['Pêche', '#FFDAB9'], ['Jaune', '#FFFF00'], ['Bois', '#DEB887']
+var FA_BASE = [
+  ['Noir', '#000000'], ['Gris', '#808080'], ['Blanc', '#FFFFFF'], ['Jaune', '#FFFF00'],
+  ['Magenta', '#FF00FF'], ['Cyan', '#00FFFF'], ['Bleu', '#0000FF'], ['Vert', '#008000'], ['Rouge', '#FF0000']
 ];
+function hslHex(h, s, l) {
+  s /= 100; l /= 100;
+  var k = function (n) { return (n + h / 30) % 12; },
+      a = s * Math.min(l, 1 - l),
+      f = function (n) { return Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))))); },
+      hx = function (v) { return ('0' + v.toString(16)).slice(-2); };
+  return '#' + hx(f(0)) + hx(f(8)) + hx(f(4));
+}
+/* nuances : 12 teintes × 8 déclinaisons clair → sombre, + ligne de gris */
+var NUANCES_L = [94, 86, 74, 60, 48, 36, 26, 16];
+var FA_NUANCES = (function () {
+  var out = [];
+  for (var h = 0; h < 360; h += 30) out.push(NUANCES_L.map(function (l) { return hslHex(h, 82, l); }));
+  out.push(NUANCES_L.map(function (l) { return hslHex(0, 0, l); }));
+  return out;
+})();
+function pastille(hex, titre) {
+  return '<button type="button" class="cf-coul" data-coul="' + esc(hex) + '" title="' + esc(titre || hex) + '" style="--c:' + esc(hex) + '"></button>';
+}
 function grilleCouleurs() {
   return '<button type="button" class="cf-pal cf-pal-maison" data-palcoul aria-expanded="false" title="Couleur du texte">' +
     '<span class="cf-pal-rond"></span>couleur</button>' +
@@ -173,10 +191,11 @@ function grilleCouleurs() {
     CFG.plusBalises + '<i class="fi fi-tr-angle-small-down"></i></button>' +
     '<span class="cf-pal-cache" hidden>' + MAISON.map(function (t) { return palBouton(t, true); }).join('') + '</span>' +
     '<span class="cf-couleurs" hidden>' +
-    FA_COULEURS.map(function (c) {
-      return '<button type="button" class="cf-coul" data-coul="' + esc(c[1]) + '" title="' + esc(c[0]) + '" style="--c:' + esc(c[1]) + '"></button>';
-    }).join('') +
-    '<label class="cf-coul-perso"><input type="color" data-coul-perso value="#8B4513">Autre…</label></span>';
+    '<span class="cf-coul-presets">' + FA_BASE.map(function (c) { return pastille(c[1], c[0]); }).join('') + '</span>' +
+    '<span class="cf-coul-grille">' + FA_NUANCES.map(function (ligne) {
+      return '<span class="cf-coul-ligne">' + ligne.map(function (hex) { return pastille(hex); }).join('') + '</span>';
+    }).join('') + '</span>' +
+    '<label class="cf-coul-perso"><input type="color" data-coul-perso value="#8B4513">Roue des couleurs</label></span>';
 }
 function fPaletteZone(k, lb, ph, h, aid) {
   return '<div class="cf-champ"><label>' + lb + '</label>' +
@@ -290,7 +309,20 @@ function FIELDS() {
 }
 
 /* ------------------------------------------------------- 4. LE VOL */
+/* [v1-5] verrou propriétaire : le vol d'ajout n'est que pour
+   l'auteur du carnet. Le shell masque déjà le bouton pour les
+   autres membres ; ce second contrôle tient lieu de filet. */
+function estProprietaire() {
+  var st = UI.etat ? UI.etat() : null;
+  var prop = st ? st.proprietaire : '';
+  if (!prop) return true;
+  var u = window._userdata, moi = (u && u.username) ? String(u.username) : '';
+  if (!moi) return false;
+  var n = function (s) { return String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  return n(moi) === n(prop);
+}
 function ouvrir() {
+  if (!estProprietaire()) { UI.toast(CFG.messages.prive); return; }   /* [v1-5] verrou propriétaire */
   if (!document.querySelector('form#quick_reply, #quick_reply form')) { UI.toast(CFG.messages.invHors); return; }
   UI.ouvrir('vol');
   $('#cf-vol-back').style.display = 'none';
