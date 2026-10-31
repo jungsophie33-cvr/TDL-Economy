@@ -1,5 +1,10 @@
 /* ============================================================
    carnet/carnet-contrib.js — Carnet de fragments — phase 3
+   [v1-1] Cartes postales : la saisie accepte une image (champ URL)
+   ; UI.contrib.carte() ouvre le formulaire depuis n'importe quel
+   bouton, la branche data-contrib="carte" est branchée, et
+   UI.contrib.moi() expose le profil courant (repli pseudo du
+   shell pour le verrou propriétaire).
    Contributions des visiteurs via EcoCore (Firebase) :
    commentaires des récits, versions partagées des anecdotes et
    souvenirs, cartes postales reçues. Nœud carnet_contrib, entrées
@@ -155,23 +160,27 @@ function ecrire(type,postId,texte,img){
 
 /* ============ 6. petit modal de saisie (sans dépendance au volet d'ajout) ============ */
 var MODAL_ID='cf-contrib-modal';
-function ouvrirSaisie(titre,envoyer){
+function ouvrirSaisie(titre,envoyer,avecImage){
   fermerSaisie();
   var d=document.createElement('div');
   d.id=MODAL_ID; d.className='cf-voile cf-ouverte';
   d.innerHTML='<div class="cf-contrib-box"><h3>'+titre+'</h3>'+
     '<textarea class="cf-contrib-txt" placeholder="Votre texte…"></textarea>'+
+    (avecImage?'<input type="text" class="cf-contrib-img" placeholder="URL de l\u2019image de la carte — vide = carte sans photo">'+
+      '<span class="cf-contrib-aide">La photo occupe le recto de la carte, le texte s\u2019écrit au verso.</span>':'')+
     '<div class="cf-contrib-boutons"><button type="button" class="cf-btn" data-cenvoyer>Envoyer</button>'+
     '<button type="button" class="cf-btn cf-btn-vert" data-cfermer>Annuler</button></div></div>';
   d.addEventListener('click',function(e){
     if(e.target===d||e.target.closest('[data-cfermer]')){ fermerSaisie(); return; }
     if(e.target.closest('[data-cenvoyer]')){
       var ta=d.querySelector('.cf-contrib-txt');
-      envoyer(ta?ta.value:'');
+      var ii=d.querySelector('.cf-contrib-img');
+      envoyer(ta?ta.value:'',ii?ii.value:'');
       fermerSaisie();
     }
   });
   document.body.appendChild(d);
+  var t0=d.querySelector('.cf-contrib-txt'); if(t0&&t0.focus)t0.focus();
 }
 function fermerSaisie(){ var d=document.getElementById(MODAL_ID); if(d&&d.parentNode)d.parentNode.removeChild(d); }
 
@@ -183,10 +192,13 @@ document.addEventListener('click',function(e){
   var type=v[0],postId=v[1]||'';
   if(type==='commentaire'){ ouvrirSaisie('Commenter',function(t){ ecrire('commentaire',postId,t,''); }); }
   else if(type==='partage'){ ouvrirSaisie('Ajouter ma version',function(t){ ecrire('partage',postId,t,''); }); }
+  else if(type==='carte'){ ouvrirSaisie('Déposer une carte postale',function(t,img){ ecrire('carte','',t,img); },true); }
 },true);
 
 /* ============ 8. amorçage ============ */
 UI.contrib={ecrire:ecrire,charger:charger,
+  carte:function(){ ouvrirSaisie('Déposer une carte postale',function(t,img){ ecrire('carte','',t,img); },true); },
+  moi:profilCourant,
   retirer:function(cle){ /* retrait manuel : author, propriétaire, staff */
     if(!ECO.dispo||!cle)return Promise.resolve(false);
     var maj={}; maj[NOEUD+'/'+cle]=null;
