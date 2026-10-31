@@ -142,8 +142,7 @@ function squelette() {
   '<div class="cf-cherche"><input id="cf-cherche" type="search" placeholder="' + CFG.recherche + '" autocomplete="off">' +
   '<div class="cf-resultats" id="cf-resultats"></div></div></div>' +
   '<div class="cf-hero-bas"><div class="cf-hero-main">' +
-  '<div class="cf-hero-emblem"><img id="cf-hero-emblem-img" src="" alt="' + CFG.avatarAlt + '" hidden>' +
-  '<span class="cf-hero-emblem-init" id="cf-hero-emblem-init" hidden></span></div>' +
+  '<div class="cf-hero-emblem"><img id="cf-hero-emblem-img" src="" alt="' + CFG.avatarAlt + '" hidden></div>' +
   '<div class="cf-hero-id"><h2 id="cf-hero-nom"></h2><div class="cf-hero-mc" id="cf-hero-mc"></div></div></div>' +
   '<div class="cf-hero-d"><div class="cf-hero-stats" id="cf-stats"></div>' +
   '<button class="cf-add" id="cf-add"><i class="fi ' + CFG.ajoutBoutonIc + '"></i>' + CFG.ajouter + '</button></div></div></section>' +
@@ -199,7 +198,6 @@ function remplirHero() {
   /* avatar : l'image du compte, sinon les initiales — jamais de SVG */
   var img = $('#cf-hero-emblem-img'), ini = $('#cf-hero-emblem-init');
   if (cq.avatar) { img.src = cq.avatar; img.hidden = false; ini.hidden = true; }
-  else { img.hidden = true; ini.textContent = initiales(PROPRIETAIRE); ini.hidden = false; }
   if (cq.val('HERO')) $('#cf-hero-img').style.backgroundImage = 'url(\'' + cq.val('HERO') + '\')';
   var n = D.recits.length + D.anecdotes.length + D.souvenirs.length + D.poemes.length + D.objets.length + D.citations.length;
   $('#cf-stats').innerHTML =
