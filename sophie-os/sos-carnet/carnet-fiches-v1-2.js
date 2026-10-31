@@ -1,6 +1,9 @@
 /* =============================================================
    CARNET — FICHES, VUES, RECHERCHE (carnet-fiches.js)
    -------------------------------------------------------------
+   [v1-2] Chaque retour à la ligne crée un paragraphe (plus besoin
+   de sauter une ligne) ; la balise maison <color=#hex>…</color> est
+   rendue en couleur (hexadécimal validé, sinon échappé).
    [v1-1] Alignement maquette : corpsFiche produit un <p> par
    paragraphe (lignes vides) et rend les images en figure.cf-rec-img
    (classe stylée par carnet.css, alternance cf-rec-img-g) — l'ancien
@@ -67,13 +70,18 @@ var BAL_MAISON = ('i1 i2 i3 i4 b1 b2 b3 b4 u1 u2 u3 u4 s1 s2 s3 f f1 f2 f3 f4 ' 
   'fb fb1 fb2 fb3 d d1 d2 d3 t t1 t2 t3 t4').split(' ');
 var BAL_ALIGN = { left: 'left', center: 'center', right: 'right', justify: 'justify' };
 function htmlTxt(s) { return esc(s).replace(/\n/g, '<br>'); }
+/* [v1-2] balise couleur du carnet : <color=#DC143C>…</color> écrite par
+   la palette du formulaire. La valeur doit être un code hexadécimal,
+   sinon la balise est échappée comme n'importe quel texte. */
+var RE_COUL = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 function enrichir(t) {
   t = String(t == null ? '' : t);
-  var out = '', last = 0, re = /<(\/?)([a-z0-9]+)>/gi, m;
+  var out = '', last = 0, re = /<(\/?)([a-z0-9]+)(=[^<>]*)?>/gi, m;
   while ((m = re.exec(t))) {
     out += htmlTxt(t.slice(last, m.index));
-    var ferme = m[1] === '/', nom = String(m[2]).toLowerCase();
-    if (BAL_SIMPLE[nom]) out += ferme ? '</' + BAL_SIMPLE[nom] + '>' : '<' + BAL_SIMPLE[nom] + '>';
+    var ferme = m[1] === '/', nom = String(m[2]).toLowerCase(), val = (m[3] || '').slice(1);
+    if (nom === 'color' && (ferme || RE_COUL.test(val))) out += ferme ? '</span>' : '<span style="color:' + val + '">';
+    else if (BAL_SIMPLE[nom]) out += ferme ? '</' + BAL_SIMPLE[nom] + '>' : '<' + BAL_SIMPLE[nom] + '>';
     else if (BAL_MAISON.indexOf(nom) >= 0) out += ferme ? '</' + nom + '>' : '<' + nom + '>';
     else if (BAL_ALIGN[nom]) out += ferme ? '</span>' : '<span class="cf-al-' + BAL_ALIGN[nom] + '">';
     else if (nom === 'list' || nom === 'nlist') out += ferme ? '</' + (nom === 'list' ? 'ul' : 'ol') + '>' : '<' + (nom === 'list' ? 'ul' : 'ol') + ' class="cf-bb-list">';
@@ -98,20 +106,20 @@ function metaEl(cle, val, simple) {
 }
 /* corps d'une fiche : TEXTE et IMAGE dans l'ordre d'écriture —
    c'est lui qui fait l'intercalage des images.
-   [v1-1] Conforme maquette : une ligne vide sépare deux paragraphes
-   (un <p> chacun, comme le corpsRecit de la maquette — un simple
-   retour à la ligne reste un <br> dans le paragraphe) ; les images
-   portent les classes maquette figure.cf-rec-img / img.cf-rec-img-img,
-   alternées droite / gauche (cf-rec-img-g) — cf-fi-img n'est stylé
-   nulle part. */
+   [v1-2] Chaque retour à la ligne crée un paragraphe : plus besoin
+   de sauter une ligne (les lignes vides sont simplement ignorées).
+   Les images portent les classes maquette figure.cf-rec-img /
+   img.cf-rec-img-img, alternées droite / gauche (cf-rec-img-g). */
+function parasTxt(t, cls) {
+  return String(t == null ? '' : t).split(/\n/).map(function (p) { return trim(p); })
+    .filter(function (p) { return p !== ''; })
+    .map(function (p) { return '<p' + (cls ? ' class="' + cls + '"' : '') + '>' + enrichir(p) + '</p>'; }).join('');
+}
 function corpsFiche(f) {
   var html = '', nimg = 0;
   f.entrees.forEach(function (e) {
-    if (e.c === 'TEXTE') {
-      String(e.v == null ? '' : e.v).split(/\n[ \t]*\n+/).forEach(function (p) {
-        if (trim(p) !== '') html += '<p>' + enrichir(p) + '</p>';
-      });
-    } else if (e.c === 'IMAGE' && e.v) {
+    if (e.c === 'TEXTE') html += parasTxt(e.v);
+    else if (e.c === 'IMAGE' && e.v) {
       nimg++;
       html += '<figure class="cf-rec-img' + (nimg % 2 ? '' : ' cf-rec-img-g') +
         '"><img class="cf-rec-img-img" src="' + esc(e.v) + '" alt="" loading="lazy"></figure>';
@@ -157,7 +165,7 @@ function suite(type, liste, k) {
   if (liste.length < 2) return '';
   return '<nav class="cf-suite">' + pas(liste[k - 1], 'cf-suite-prec', 'left') + pas(liste[k + 1], 'cf-suite-suiv', 'right') + '</nav>';
 }
-function noteDe(f) { return f.a('NOTE') ? '<p class="cf-fi-note">' + enrichir(f.val('NOTE')) + '</p>' : ''; }
+function noteDe(f) { return f.a('NOTE') ? parasTxt(f.val('NOTE'), 'cf-fi-note') : ''; }
 function commentaires(f) {
   var l = commentairesDe(f);
   return '<section class="cf-coms"><div class="cf-voix-tete"><span class="cf-fi-cle">' + CFG.voix.commentaires + '</span>' +
@@ -272,7 +280,7 @@ function fichePnj(f) {
     '<dt class="cf-fi-cle">' + CFG.pnj.rencontre + '</dt><dd>' + esc(f.val('RENCONTRE')) + '</dd></dl></div>' +
     '<div class="cf-pnjfi-corps"><div class="cf-pnjfi-temp"><span class="cf-pnjfi-temp-lib">' + CFG.pnj.temperament + '</span>' +
     '<p class="cf-pnjfi-temp-t">' + enrichir(f.val('TEMPERAMENT')) + '</p></div>' +
-    '<div class="cf-pnjfi-desc"><span class="cf-fi-cle">' + CFG.pnj.description + '</span><div class="cf-fi-texte">' + enrichir(f.val('DESCRIPTION')) + '</div></div>' +
+    '<div class="cf-pnjfi-desc"><span class="cf-fi-cle">' + CFG.pnj.description + '</span><div class="cf-fi-texte">' + parasTxt(f.val('DESCRIPTION')) + '</div></div>' +
     '<div class="cf-pnjfi-bas"><div>' +
     (anecs.length ? '<span class="cf-fi-cle">' + CFG.pnj.anecdotes + '</span><ul class="cf-pnjfi-anecs">' +
       anecs.map(function (a) { return '<li>' + enrichir(a) + '</li>'; }).join('') + '</ul>' : '') +
