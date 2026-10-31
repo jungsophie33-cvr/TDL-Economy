@@ -1,10 +1,12 @@
+/* CSS-carnet-v1-2.css — [v1-2] sélecteur de couleurs de la palette (cf-pal-rond, cf-couleurs, cf-coul, cf-coul-perso) */
+
 /* ============================================================
    SQUELETTE — plein écran fixe, jamais défilant (la une).
    Couches (convention tdlev) : app < roue < vue < lecture
    < voile+volet < toast.
    ============================================================ */
-html:has(.cf-app), body:has(.cf-app){overflow:hidden;height:100%;margin:0:text-align:left;}
-.cf-app{text-align:left;position:fixed;inset:0;display:flex;flex-direction:column;z-index:9000;text-align:left;line-height:1.35;
+html:has(.cf-app),body:has(.cf-app){overflow:hidden;height:100%;margin:0;text-align:left;}
+.cf-app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:9000;text-align:left;line-height:1.35;
   color:var(--txt);font-family:var(--txt2);font-size:16px;
   background:linear-gradient(to bottom,var(--clair1opa8) 0%,var(--clair1opa4) 90%),
              var(--bgimg) center/cover no-repeat,var(--bg)}
@@ -367,6 +369,21 @@ tw{background:var(--clair1);font-family:var(--txt3);text-transform:uppercase;fon
   cursor:pointer;font-size:13px;line-height:1;color:var(--dark);display:inline-flex;align-items:center;justify-content:center}
 .cf-pal:hover{background:var(--cntr2)}
 .cf-pal.cf-pal-maison{padding:0 10px;font-family:var(--txt3);font-size:12px;font-weight:600;letter-spacing:.05em}
+/* [v1-2] sélecteur de couleurs de la palette — teintes officielles de l'éditeur du forum */
+.cf-pal-rond{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;flex:none;
+  background:conic-gradient(#DC143C,#FF4500,#FFD700,#32CD32,#00CED1,#4169E1,#9400D3,#DC143C);
+  box-shadow:0 0 0 1px var(--clair2)}
+.cf-pal[data-palcoul][aria-expanded="true"]{background:var(--cntr2)}
+.cf-couleurs{display:flex;flex-wrap:wrap;gap:5px;align-items:center;flex-basis:100%;padding:8px;
+  border:1px solid var(--cntr4);border-radius:4px;background:var(--clair1)}
+.cf-couleurs[hidden]{display:none}
+.cf-coul{width:22px;height:22px;padding:0;border:1px solid var(--clair2);border-radius:3px;cursor:pointer;
+  background:var(--c);transition:transform .12s}
+.cf-coul:hover{transform:scale(1.15)}
+.cf-coul-perso{display:inline-flex;align-items:center;gap:6px;margin-left:6px;cursor:pointer;
+  font-family:var(--txt3);font-size:12px;letter-spacing:.05em;color:var(--darkopa7)}
+.cf-coul-perso input{width:26px;height:26px;padding:0;border:1px solid var(--cntr5);border-radius:4px;
+  background:var(--clair1);cursor:pointer}
 /* pastille de voile du post-it (création d'une pensée) */
 .cf-teinte{width:30px;height:30px;border-radius:50%;border:1px solid var(--cntr5);cursor:pointer;
   background-color:var(--clair1);background-image:linear-gradient(0deg,var(--tint),var(--tint));transition:.15s}
