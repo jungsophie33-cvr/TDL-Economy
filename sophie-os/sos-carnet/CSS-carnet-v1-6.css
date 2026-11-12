@@ -376,12 +376,11 @@ tw{background:var(--clair1);font-family:var(--txt3);text-transform:uppercase;fon
   box-shadow:0 0 0 1px var(--clair2)}
 .cf-pal[data-palcoul][aria-expanded="true"]{background:var(--cntr2)}
 .cf-couleurs{flex-basis:100%;display:flex;flex-wrap:wrap;align-content:start;gap:6px;padding:8px;
-  border:1px solid var(--cntr4);border-radius:4px;background:var(--clair1);
-  max-height:200px;overflow-y:auto}
+  border:1px solid var(--cntr4);border-radius:4px;background:var(--clair1)}
 .cf-couleurs[hidden]{display:none}
 .cf-coul-presets{display:grid;grid-template-columns:repeat(9,22px);gap:4px;flex-basis:100%}
-.cf-coul-grille{display:flex;flex-direction:column;gap:4px;flex-basis:100%}
-.cf-coul-ligne{display:grid;grid-template-columns:repeat(8,22px);gap:4px}
+.cf-coul-grille{display:flex;flex-direction:row;gap:4px;flex-basis:100%}
+.cf-coul-ligne{display:grid;grid-template-rows:repeat(8,22px);gap:4px}
 .cf-coul{width:22px;height:22px;padding:0;border:1px solid var(--clair2);border-radius:3px;cursor:pointer;
   background:var(--c);transition:transform .12s}
 .cf-coul:hover{transform:scale(1.18)}
