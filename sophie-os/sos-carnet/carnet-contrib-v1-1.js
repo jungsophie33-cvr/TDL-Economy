@@ -1,5 +1,8 @@
 /* ============================================================
    carnet/carnet-contrib.js — Carnet de fragments — phase 3
+   [v1-2] Cartes postales : champ signature optionnel ; vide, la carte
+   est signée du pseudo du membre qui envoie (profil EcoCore, puis
+   _userdata.username — plus jamais « ? »).
    [v1-1] Cartes postales : la saisie accepte une image (champ URL)
    ; UI.contrib.carte() ouvre le formulaire depuis n'importe quel
    bouton, la branche data-contrib="carte" est branchée, et
@@ -132,15 +135,19 @@ function profilCourant(){
   var m=ECO.dispo?ECO.moi():null;
   return m&&typeof m==='object'?m:null;
 }
-function ecrire(type,postId,texte,img){
+function ecrire(type,postId,texte,img,sig){
   if(!connecte()){ UI.toast('Connectez-vous pour participer.'); return; }
   if(!ECO.dispo){ UI.toast('Les contributions ne sont pas actives ici.'); return; }
   texte=String(texte||'').replace(/^\s+|\s+$/g,'');
   if(!texte&&!img){ UI.toast('Écrivez d\'abord quelque chose.'); return; }
+  /* signature : champ du formulaire, sinon profil EcoCore, sinon pseudo
+     de session du forum — jamais de « ? » orphelin */
+  sig=String(sig||'').replace(/^\s+|\s+$/g,'');
+  var u=(window._userdata&&window._userdata.username)?String(window._userdata.username).replace(/^\s+|\s+$/g,''):'';
   var p=profilCourant()||{};
   var entree={
     topic:String(C.sujet),post:normId(postId),type:type,
-    uid:p.uid||p.id||'',pseudo:p.pseudo||p.nom||'?',
+    uid:p.uid||p.id||'',pseudo:sig||p.pseudo||p.nom||u||'?',
     t:texte,x:0,img:img||'',cree:Date.now(),
     groupe:p.groupe||p.communaute||p.communaute||'' /* greffon : nom du champ à aligner */
   };
@@ -160,7 +167,7 @@ function ecrire(type,postId,texte,img){
 
 /* ============ 6. petit modal de saisie (sans dépendance au volet d'ajout) ============ */
 var MODAL_ID='cf-contrib-modal';
-function ouvrirSaisie(titre,envoyer,avecImage){
+function ouvrirSaisie(titre,envoyer,avecImage,avecSignature){
   fermerSaisie();
   var d=document.createElement('div');
   d.id=MODAL_ID; d.className='cf-voile cf-ouverte';
@@ -168,6 +175,7 @@ function ouvrirSaisie(titre,envoyer,avecImage){
     '<textarea class="cf-contrib-txt" placeholder="Votre texte…"></textarea>'+
     (avecImage?'<input type="text" class="cf-contrib-img" placeholder="URL de l\u2019image de la carte — vide = carte sans photo">'+
       '<span class="cf-contrib-aide">La photo occupe le recto de la carte, le texte s\u2019écrit au verso.</span>':'')+
+    (avecSignature?'<input type="text" class="cf-contrib-sig" placeholder="Signature — vide = votre pseudo">':'')+
     '<div class="cf-contrib-boutons"><button type="button" class="cf-btn" data-cenvoyer>Envoyer</button>'+
     '<button type="button" class="cf-btn cf-btn-vert" data-cfermer>Annuler</button></div></div>';
   d.addEventListener('click',function(e){
@@ -175,7 +183,8 @@ function ouvrirSaisie(titre,envoyer,avecImage){
     if(e.target.closest('[data-cenvoyer]')){
       var ta=d.querySelector('.cf-contrib-txt');
       var ii=d.querySelector('.cf-contrib-img');
-      envoyer(ta?ta.value:'',ii?ii.value:'');
+      var sg=d.querySelector('.cf-contrib-sig');
+      envoyer(ta?ta.value:'',ii?ii.value:'',sg?sg.value:'');
       fermerSaisie();
     }
   });
@@ -192,12 +201,12 @@ document.addEventListener('click',function(e){
   var type=v[0],postId=v[1]||'';
   if(type==='commentaire'){ ouvrirSaisie('Commenter',function(t){ ecrire('commentaire',postId,t,''); }); }
   else if(type==='partage'){ ouvrirSaisie('Ajouter ma version',function(t){ ecrire('partage',postId,t,''); }); }
-  else if(type==='carte'){ ouvrirSaisie('Déposer une carte postale',function(t,img){ ecrire('carte','',t,img); },true); }
+  else if(type==='carte'){ ouvrirSaisie('Déposer une carte postale',function(t,img,s){ ecrire('carte','',t,img,s); },true,true); }
 },true);
 
 /* ============ 8. amorçage ============ */
 UI.contrib={ecrire:ecrire,charger:charger,
-  carte:function(){ ouvrirSaisie('Déposer une carte postale',function(t,img){ ecrire('carte','',t,img); },true); },
+  carte:function(){ ouvrirSaisie('Déposer une carte postale',function(t,img,s){ ecrire('carte','',t,img,s); },true,true); },
   moi:profilCourant,
   retirer:function(cle){ /* retrait manuel : author, propriétaire, staff */
     if(!ECO.dispo||!cle)return Promise.resolve(false);
