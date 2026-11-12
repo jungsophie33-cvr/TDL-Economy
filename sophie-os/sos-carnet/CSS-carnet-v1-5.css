@@ -1,4 +1,4 @@
-/* CSS-carnet-v1-4.css — [v1-4] palette moderne (presets + nuances + roue), champ image du modal carte postale */
+/* CSS-carnet-v1-5.css — [v1-5] bordure du champ d'ajout sous la voix d'honneur, garde .cf-liste::before ; [v1-4] palette moderne (presets + nuances + roue), champ image du modal carte postale */
 
 /* ============================================================
    SQUELETTE — plein écran fixe, jamais défilant (la une).
@@ -833,6 +833,7 @@ tw{background:var(--clair1);font-family:var(--txt3);text-transform:uppercase;fon
 .cf-com-date{font-family:var(--txt3);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--darkopa6)}
 .cf-com-txt{margin-top:4px;font-family:var(--font0);font-size:15px;line-height:1.65;color:var(--txt)}
 .cf-com-ajout{display:flex;align-items:center;gap:12px;padding:12px 0 0;border-top:1px solid var(--cntr4)}
+.cf-voix-tete + .cf-com-ajout{border-top:0}
 .cf-com-champ{flex:1;min-height:40px;display:flex;align-items:center;padding:0 14px;border:1px solid var(--cntr4);border-radius:3px;
   background:var(--clair1opa8);font-family:var(--font0);font-size:14px;color:var(--darkopa6);cursor:text}
 
@@ -986,3 +987,11 @@ ol.cf-bb-list{list-style:decimal}
 .cf-sans-img{background:linear-gradient(135deg,var(--darkopa4),var(--darkopa8));position:relative}
 .cf-sans-img::after{content:'~';position:absolute;inset:0;display:flex;align-items:center;
   justify-content:center;font-family:var(--font3);font-size:30px;color:var(--darkopa2)}
+
+/* ============================================================
+   PRODUCTION — neutralisations explicites
+   ============================================================ */
+/* Aucune règle .cf-liste::before n'existe dans cette feuille : cette
+   garde couvre tout ::before hérité du thème du forum ou d'un autre
+   script qui ciblerait la même classe. */
+.cf-liste::before{content:none;display:none}
