@@ -1,5 +1,8 @@
 /* ============================================================
    carnet/carnet-core.js — Carnet de fragments — phase 3
+   [v3-4] registre CATS : pnj documente ANECDOTE et NOTE (le post-it
+   de la fiche), playlist documente TITRE et N (le nombre de titres
+   affiché sur la une) — validation douce, rien d'autre ne change.
    [v3-3] balise couleur : texteLignes conserve <color=#hex> et
    </color> tels quels (elles passent déjà le filtre des balises
    quand elles sont échappées par le forum ; ici elles survivent
@@ -157,11 +160,11 @@ CARNET.CATS={
   anecdote:  {cles:['TITRE','QUAND','LIEU','LIEN','PJ','PNJ','TEXTE','IMAGE','NOTE']},
   souvenir:  {cles:['TITRE','QUAND','LIEU','PJ','TEXTE','IMAGE','NOTE']},
   poeme:     {cles:['TITRE','TEXTE','NOTE']},
-  pnj:       {cles:['NOM','AGE','IMAGE','METIER','RENCONTRE','RELATION','TEMPERAMENT','DESCRIPTION']},
+  pnj:       {cles:['NOM','AGE','IMAGE','METIER','RENCONTRE','RELATION','TEMPERAMENT','DESCRIPTION','ANECDOTE','NOTE']},
   objet:     {cles:['TITRE','IMAGE','TEXTE','DEPUIS','LIE_A']},
   citation:  {cles:['TEXTE','SOURCE']},
   moodboard: {cles:['TITRE','IMAGE','LEGENDE']},
-  playlist:  {cles:['LIEN','HUMEUR','TEXTE']}
+  playlist:  {cles:['TITRE','LIEN','HUMEUR','N','TEXTE']}
 };
 
 /* --- lecture texte avec vraies lignes -------------------------------
