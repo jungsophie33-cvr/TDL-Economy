@@ -1,6 +1,9 @@
 /* =============================================================
    CARNET — LA UNE / COQUILLE (carnet-shell.js)
    -------------------------------------------------------------
+   [v1-4] Le bouton playlist de la une branche enfin : il ouvre la
+   fiche de lecture de la première playlist (et son mini-lecteur) ;
+   sans playlist, il reste un toast d'attente.
    [v1-3] Verrou propriétaire : « Ajouter un fragment » n'apparaît
    que pour l'auteur du carnet (pseudo courant vs PROPRIETAIRE de
    l'en-tête, _userdata d'abord, EcoCore en repli). Les autres
@@ -459,6 +462,11 @@ function brancher() {
   $('#cf-carte').addEventListener('click', function () {           /* [v1-3] membre visiteur : carte postale */
     if (CARNETUI.contrib && typeof CARNETUI.contrib.carte === 'function') CARNETUI.contrib.carte();
     else toast(CFG.toastModule);
+  });
+  $('#cf-playlist-btn').addEventListener('click', function () {    /* [v1-4] playlist : lecture du disque */
+    var pl = D.playlists[0];
+    if (pl && typeof CARNETUI.ouvrirLecture === 'function') CARNETUI.ouvrirLecture('playlists', pl.post.id);
+    else toast(CFG.playlistAttente);
   });
   /* rafraîchissement des contributions (carnet-contrib.js) */
   document.addEventListener('carnet:contrib', function () {
