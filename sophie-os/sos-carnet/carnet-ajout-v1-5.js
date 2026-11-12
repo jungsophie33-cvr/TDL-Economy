@@ -1,6 +1,10 @@
 /* =============================================================
-   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-4.js)
+   CARNET — FORMULAIRE D'AJOUT (carnet-ajout-v1-6.js)
    -------------------------------------------------------------
+   [v1-6] Playlist : retour du champ « Nombre de titres » (clé
+   N:, relue par la une « · N titres »). PNJ : champs Anecdotes
+   (une par ligne, clé ANECDOTE: répétée, lue par la fiche) et
+   Note personnelle (clé NOTE:, le post-it de la fiche PNJ).
    [v1-5] Verrou propriétaire dans ouvrir() ; sélecteur de couleurs
    calqué sur la palette moderne du forum : teintes de base,
    grille complète des nuances, roue des couleurs (sélecteur natif).
@@ -71,6 +75,8 @@ var CFG = {
     texteObjet: 'Elle retarde de quatre minutes…',
     pensee: 'Le fleuve ne dit rien. C\u2019est bien là son métier…', source: 'carnet, 1926…',
     plTitre: 'Blackford Nights…', plLien: 'https://open.spotify.com/…', plHumeur: 'après comité…',
+    plNb: '12',
+    pnjAnecs: 'Une anecdote par ligne…', pnjNote: 'Ce que le hero en pense vraiment…',
     plNote: 'Pour les fins de comité, quand le fleuve fait le silence.',
     img: 'Collez l\u2019URL de l\u2019image…'
   },
@@ -90,6 +96,8 @@ var CFG = {
     pnj: 'Tirés de la liste des PNJ déclarés dans ce carnet — la clé PNJ: est écrite automatiquement.',
     pnjVide: 'Aucun PNJ déclaré dans ce carnet pour l\u2019instant.',
     imgPnj: 'Associer une image au PNJ.',
+    pnjAnecs: 'Une anecdote par ligne — chaque ligne devient une anecdote de la fiche PNJ.',
+    pnjNote: 'Le post-it de la fiche — votre note personnelle sur ce PNJ.',
     imgObjet: 'Une seule image — l\u2019objet dans sa vitrine.',
     plLien: 'Lecteur embed Spotify ou YouTube — la clé LIEN: est écrite automatiquement.',
     mood: 'Un tableau vit dans son propre sujet : ajouter ici revient à modifier le message unique du tableau — ou à ouvrir le sujet d\u2019un nouveau tableau.',
@@ -285,6 +293,8 @@ function FIELDS() {
       fDuo(fTxtB('METIER', 'Métier', P.metier), fTxtB('RELATION', 'Relation', P.relation)) +
       fZone('TEMPERAMENT', 'Tempérament', P.temperament, 80) +
       fZone('DESCRIPTION', 'Description', P.description, 120) +
+      fZone('ANECS', 'Anecdotes', P.pnjAnecs, 80, CFG.aides.pnjAnecs) +
+      fZone('NOTE', 'Note personnelle', P.pnjNote, 60, CFG.aides.pnjNote) +
       fImgs('Image du PNJ', CFG.aides.imgPnj, CFG.maxImages.pnj, 'IMAGE'),
     objet:
       fTxt('TITRE', 'Titre', P.objetTitre) +
@@ -303,6 +313,7 @@ function FIELDS() {
     playlist:
       fTxt('TITRE', 'Titre', P.plTitre) +
       fTxt('LIEN', 'Lien', P.plLien, CFG.aides.plLien) +
+      fTxt('N', 'Nombre de titres', P.plNb) +
       fTxt('HUMEUR', 'Humeur', P.plHumeur) +
       fZone('TEXTE', 'Note', P.plNote, 80)
   };
@@ -529,6 +540,9 @@ function corpsEnvoye(cat, v) {
   if (v.HERO && v.HERO[0]) L.push('HERO: ' + v.HERO[0]);
   (v.PNJ || []).forEach(function (r) { L.push('PNJ: ' + r); });
   (v.PJ || []).forEach(function (r) { L.push('PJ: ' + r); });
+  (String(v.ANECS || '')).split('\n').map(trim).filter(function (x) { return x !== ''; })
+    .forEach(function (a) { L.push('ANECDOTE: ' + a); });
+  if (v.NOTE) L.push('NOTE:\n' + trim(v.NOTE));
   var texte = cat === 'pnj' ? (v.DESCRIPTION || '') : (v.TEXTE || '');
   var cleTxt = cat === 'pnj' ? 'DESCRIPTION' : 'TEXTE';
   var imgs = v.IMAGE || [];
