@@ -112,7 +112,7 @@ html:has(.cf-app),body:has(.cf-app){overflow:hidden;height:100%;margin:0;text-al
 /* aperçu replié */
 .cf-apercu{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:12px;padding:14px 18px;overflow:hidden}
 /* liste déployée */
-.cf-liste{display:none;flex:1;min-height:0;overflow-y:auto;padding:14px 18px;gap:10px;flex-direction:column}
+.cf-case .cf-liste{display:none;flex:1;min-height:0;overflow-y:auto;padding:14px 18px;gap:10px;flex-direction:column}
 .cf-case.cf-ouvert .cf-apercu{display:none}
 .cf-case.cf-ouvert .cf-liste{display:flex}
 /* récits : la liste déployée s'affiche sur deux colonnes, sans le lieu */
