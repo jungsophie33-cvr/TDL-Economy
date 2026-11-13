@@ -178,29 +178,28 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
     }
     const auth = firebase.auth();
 
-    // [MAJ v1-11] Migration + rafraîchissement des claims.
-    //   - Une session ANONYME persistée de l'ancien dispositif est déconnectée
-    //     (uid non préfixé fa_) : elle ne serait plus valide avec les règles à
-    //     venir, et masquerait le passage par le pont.
-    //   - Les claims d'un custom token sont FIGÉS à la signature : le SDK les
-    //     reconduit au renouvellement du token au lieu de les recalculer. On
-    //     repasse donc par le pont (signOut puis re-authentification) après
-    //     55 min, pour que bandes et communautés restent à jour.
-    try {
-      const u = auth.currentUser;
-      const dernier = parseInt(localStorage.getItem("eco_pont_last") || "0");
-      if (u && (!u.uid.startsWith("fa_") || (dernier && Date.now() - dernier > 55 * 60 * 1000))) {
-        log("Pont : session à renouveler, déconnexion avant re-authentification");
-        await auth.signOut();
-      }
-    } catch(e) { /* pas de session : rien à faire */ }
-
     // [MAJ] onIdTokenChanged, et NON onAuthStateChanged : ce dernier ignore les
     // renouvellements de token et laissait _authToken périmer au bout d'1 h.
     // Le callback se déclenche aussi immédiatement à l'inscription, avec l'état
     // courant (user ou null) : c'est lui qui lance le pont si besoin.
+    //
+    // [MAJ v1-11] Migration + rafraîchissement des claims, DANS le callback :
+    // la session persistée n'est restaurée qu'asynchronement par le SDK, la
+    // vérifier avant l'inscription du listener passerait toujours à côté.
+    //   - session ANONYME de l'ancien dispositif (uid non préfixé fa_) : on la
+    //     déconnecte ; le null qui suit relance le pont et rebascule sur une
+    //     identité vérifiée ;
+    //   - session fa_* de plus de 55 min : les claims (bandes, communautés)
+    //     sont FIGÉS à la signature du token et reconduits au renouvellement —
+    //     on repasse par le pont pour les rafraîchir.
     auth.onIdTokenChanged(async user => {
       if (user) {
+        const dernier = parseInt(localStorage.getItem("eco_pont_last") || "0");
+        if (!user.uid.startsWith("fa_") || (dernier && Date.now() - dernier > 55 * 60 * 1000)) {
+          log("Pont : session à renouveler, déconnexion avant re-authentification");
+          await auth.signOut();   // onIdTokenChanged repartira sur null → pont
+          return;
+        }
         _authUser  = user;
         _authToken = await user.getIdToken();
         _authReady = true;
