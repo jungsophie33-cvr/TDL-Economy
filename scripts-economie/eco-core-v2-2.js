@@ -1,5 +1,5 @@
-// === ECONOMIE V2 – CORE (Firebase) ===
-// Auteur : Claude x THE DROWNED LANDS
+// === ECONOMIE – CORE (Firebase) ===
+// Auteur : THE DROWNED LANDS
 //
 // [MAJ v1-9] RENOUVELLEMENT DU TOKEN.
 //   L'ancienne version capturait _authToken une seule fois via
@@ -567,7 +567,20 @@ function firebaseGet(path) {
   // par firebaseTransaction("membres/<pseudo>/dollars", …) en direct.
 
   // ---------- Extractors ----------
-  function getPseudo(){ try{ return _userdata?.username?.trim()||null; }catch(e){ return null; } }
+  /* [MAJ v1-12] Un invité Forumactif a _userdata.username = "Anonymous" : une
+     chaîne non vide. Tout script testant « si j'ai un pseudo, je suis
+     connecté » affichait donc ses boutons d'action aux invités. getPseudo
+     rend désormais null pour un invité (pseudo "anonymous" ou uid <= 0) :
+     c'est LE test « connecté » partagé par la boutique, le Courier, les
+     notifications et les fiches. */
+  function getPseudo(){
+    try{
+      var p = _userdata?.username?.trim();
+      if (!p || p.toLowerCase() === "anonymous") return null;
+      if ((parseInt(_userdata?.user_id) || 0) <= 0) return null;
+      return p;
+    }catch(e){ return null; }
+  }
   function getUserId(){ try{ return parseInt(_userdata?.user_id)||0; }catch(e){ return 0; } }
   function getMessagesCount(){ try{ return parseInt(_userdata?.user_posts)||0; }catch(e){ return 0; } }
 
