@@ -20,6 +20,19 @@
 //   transfererDollars remplacent les crediterDollars locaux des tableaux, qui
 //   plafonnaient à zéro et CRÉAIENT de la monnaie quand le solde ne couvrait
 //   pas le prélèvement.
+//
+// [MAJ v1-11] PONT D'IDENTITÉ (fa-bridge).
+//   L'authentification anonyme est remplacée par le pont d'identité : le
+//   script envoie UNIQUEMENT le cookie de session Forumactif
+//   (fa_thedrownedlands_forumactif_com_data) à la fonction faBridge, qui le
+//   présente au forum, lit l'identité rendue par le serveur phpBB (pseudo,
+//   uid, niveau, bandes, communautés) et frappe un custom token Firebase.
+//   - signInWithCustomToken remplace signInAnonymously ;
+//   - une session anonyme persistée de l'ancien dispositif est déconnectée ;
+//   - les claims sont figés à la signature du token : on repasse par le pont
+//     après 55 min (horodatage localStorage eco_pont_last) pour les rafraîchir ;
+//   - membre sans « Connexion automatique » : bandeau + lecture seule ;
+//   - invité FA : inchangé (maybeInitAuth court-circuite, aucun token).
 console.log("[EcoV2] >>> eco-core chargé (Firebase)");
 
 (function(){
@@ -74,13 +87,16 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
   function warn(...a) { try { console.warn("[EcoV2]", ...a); } catch(e){} }
   function err(...a)  { try { console.error("[EcoV2]",...a); } catch(e){} }
 
-  // ---------- AUTH FIREBASE (token anonyme) ----------
+  // ---------- AUTH FIREBASE (pont d'identité fa-bridge) ----------
   // On charge le SDK Firebase via le CDN compat (v9 compat = même API que v8)
   let _authToken = null;
   let _authUser  = null;        // [MAJ] l'objet user, pour pouvoir redemander un token
   let _authReady = false;
   let _authResolve = null;
   const _authPromise = new Promise(r => { _authResolve = r; });
+
+  // [MAJ v1-11] Pont d'identité : URL de la fonction faBridge.
+  const PONT_URL = "https://europe-west1-thedrownedlands-b35b4.cloudfunctions.net/faBridge";
 
   function loadFirebaseSDK() {
     return new Promise((resolve) => {
@@ -100,14 +116,89 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
     });
   }
 
+  // [MAJ v1-11] Extrait UNIQUEMENT le cookie de session Forumactif — jamais
+  // document.cookie entier, et jamais le cookie lui-même dans un log.
+  function cookiePont() {
+    const m = document.cookie.match(/fa_thedrownedlands_forumactif_com_data=[^;]+/);
+    return m ? m[0] : null;
+  }
+
+  // [MAJ v1-11] Bandeau « Connexion automatique » : un membre du forum sans la
+  // coche est traité en invité par l'outillage (lecture seule, pas de dollars).
+  // Sans explication, c'est un bug incompréhensible : on prévient.
+  function bandeauAutologin() {
+    if (bandeauAutologin._vu) return;
+    bandeauAutologin._vu = true;
+    const b = document.createElement("div");
+    b.textContent = "Tes outils TDL sont en veille : coche « Connexion automatique » à ta prochaine connexion, puis recharge la page.";
+    b.style.cssText =
+      "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;" +
+      "background:#3a2f25;color:#f4e9d8;padding:10px 18px;border-radius:8px;" +
+      "z-index:99999;font-size:13px;box-shadow:0 2px 12px rgba(0,0,0,.35);";
+    document.body.appendChild(b);
+    setTimeout(() => b.remove(), 15000);
+  }
+
+  // [MAJ v1-11] Appelle le pont et ouvre la session Firebase avec le custom
+  // token reçu. Rend true si la session est ouverte, false sinon (l'appelant
+  // continue alors en lecture seule, sans erreur bloquante).
+  async function authentifierViaPont(auth) {
+    const cookie = cookiePont();
+    if (!cookie) {
+      // Membre du forum SANS « Connexion automatique » : bandeau + lecture seule
+      if (getPseudo()) bandeauAutologin();
+      log("Pont : pas de cookie autologin — lecture seule");
+      return false;
+    }
+    try {
+      const r = await fetch(PONT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cookie: cookie })
+      });
+      if (r.status === 403) { log("Pont : session refusée — lecture seule"); return false; }
+      if (!r.ok) { warn("Pont : erreur", r.status, "— lecture seule"); return false; }
+      const rep = await r.json();
+      if (!rep || !rep.token) { warn("Pont : réponse sans token — lecture seule"); return false; }
+      await auth.signInWithCustomToken(rep.token);
+      // le sign-in déclenche onIdTokenChanged, qui prend le relais
+      localStorage.setItem("eco_pont_last", Date.now().toString());
+      log("Pont : identité FA → Firebase OK");
+      return true;
+    } catch (e) {
+      err("Pont : échec", e);
+      return false;
+    }
+  }
+
   async function initFirebase() {
     await loadFirebaseSDK();
     if (!firebase.apps.length) {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
     const auth = firebase.auth();
+
+    // [MAJ v1-11] Migration + rafraîchissement des claims.
+    //   - Une session ANONYME persistée de l'ancien dispositif est déconnectée
+    //     (uid non préfixé fa_) : elle ne serait plus valide avec les règles à
+    //     venir, et masquerait le passage par le pont.
+    //   - Les claims d'un custom token sont FIGÉS à la signature : le SDK les
+    //     reconduit au renouvellement du token au lieu de les recalculer. On
+    //     repasse donc par le pont (signOut puis re-authentification) après
+    //     55 min, pour que bandes et communautés restent à jour.
+    try {
+      const u = auth.currentUser;
+      const dernier = parseInt(localStorage.getItem("eco_pont_last") || "0");
+      if (u && (!u.uid.startsWith("fa_") || (dernier && Date.now() - dernier > 55 * 60 * 1000))) {
+        log("Pont : session à renouveler, déconnexion avant re-authentification");
+        await auth.signOut();
+      }
+    } catch(e) { /* pas de session : rien à faire */ }
+
     // [MAJ] onIdTokenChanged, et NON onAuthStateChanged : ce dernier ignore les
     // renouvellements de token et laissait _authToken périmer au bout d'1 h.
+    // Le callback se déclenche aussi immédiatement à l'inscription, avec l'état
+    // courant (user ou null) : c'est lui qui lance le pont si besoin.
     auth.onIdTokenChanged(async user => {
       if (user) {
         _authUser  = user;
@@ -116,19 +207,12 @@ console.log("[EcoV2] >>> eco-core chargé (Firebase)");
         _authResolve();
         log("Auth Firebase OK (uid:", user.uid, ")");
       } else {
-        // Première visite ou session expirée → token anonyme
-        try {
-          const cred = await auth.signInAnonymously();
-          _authUser  = cred.user;
-          _authToken = await cred.user.getIdToken();
-          _authReady = true;
-          _authResolve();
-          log("Auth anonyme Firebase OK");
-        } catch(e) {
-          err("signInAnonymously échoué", e);
-          _authReady = true; // on continue quand même en lecture
-          _authResolve();
-        }
+        // Session absente ou expirée → passer par le pont d'identité.
+        // [MAJ v1-11] signInAnonymously est retiré : plus aucune session sans
+        // identité vérifiée par le forum.
+        await authentifierViaPont(auth);
+        _authReady = true;   // pont refusé ou absent → lecture seule, pas d'erreur bloquante
+        _authResolve();
       }
     });
   }
