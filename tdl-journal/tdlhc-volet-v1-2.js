@@ -363,6 +363,9 @@
 
   /* ===================== INIT ===================== */
   function poserBouton(n){
+    /* [MAJ v1-2] Aucun bouton pour les invités : _userdata vaut "Anonymous"
+       chez Forumactif, getPseudo() renvoie donc null. */
+    if (!A.pseudo()) return;
     var slot = A.slot("d");
     if (!slot) { if ((n||0) < 80) setTimeout(function(){ poserBouton((n||0)+1); }, 250); return; }
     slot.insertAdjacentHTML("beforeend", '<button class="tdlhc-btn" type="button" data-soumettre=""><i class="fi fi-tr-envelope-plus"></i> '
