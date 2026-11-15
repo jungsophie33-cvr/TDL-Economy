@@ -1,6 +1,13 @@
 /* ============================================================
-   chat-whatsapp-actions-v2.js — FICHIER 4 : ACTIONS
+   chat-whatsapp-actions-v3.js — FICHIER 4 : ACTIONS
    Réactions émoji, lignes système, icône de conversation.
+
+   v3 : la ligne de position affiche aussi le pseudo
+   ("Pseudo a partagé sa position : texte") ; les refus
+   d'écriture distinguent désormais la cause : token absent
+   (pont/eco-core non prêt) contre règles RTDB refusantes
+   (reactions et icones pas encore déployés — firebase deploy
+   --only database est requis après l'ajout de ces nœuds).
 
    v2 : le "vu" quitte le menu des messages et rejoint la barre
    d'actions ; le bouton d'actions vit à DROITE du champ de saisie
@@ -13,7 +20,7 @@
      1. chat-whatsapp-v11-1-commun.js
      2. chat-whatsapp-v11-2-envoi.js
      3. chat-whatsapp-v11-3-rendu.js
-     4. chat-whatsapp-actions-v2.js   <- ce fichier
+     4. chat-whatsapp-actions-v3.js   <- ce fichier
    Dépend du namespace window.CW11 et, pour Firebase, de
    EcoCore (eco-core-v2-2). Aucun style ici : tout va dans la
    page CSS dédiée du forum (section v2 du patch).
@@ -67,13 +74,28 @@
   var iconePerso = null;   /* URL personnalisée, si définie */
 
   /* ===== TEXTES DES LIGNES SYSTÈME ===== */
-  function texteSysteme(cle, pseudo) {
-    if (cle === "vu")      return pseudo + " a laissé un vu";
-    if (cle === "appel")   return "Appel manqué de " + pseudo;
-    if (cle === "rejoint") return pseudo + " a rejoint le groupe";
-    if (cle === "quitte")  return pseudo + " a quitté le groupe";
-    if (cle === "icone")   return pseudo + " a changé l'icône du groupe";
+  function texteSysteme(cle, pseudo, reste) {
+    if (cle === "vu")        return pseudo + " a laissé un vu";
+    if (cle === "appel")     return "Appel manqué de " + pseudo;
+    if (cle === "rejoint")   return pseudo + " a rejoint le groupe";
+    if (cle === "quitte")    return pseudo + " a quitté le groupe";
+    if (cle === "icone")     return pseudo + " a changé l'icône du groupe";
+    if (cle === "position")  return "📍 " + pseudo + " a partagé sa position : " + (reste || "ailleurs dans le bayou");
     return "";
+  }
+
+  /* Message de refus selon la cause réelle : token absent ou
+     règles RTDB refusantes. Évite le faux diagnostic "session
+     expirée" quand ce sont les règles qui ne sont pas déployées. */
+  function refusMessage(e) {
+    var m = (e && e.message) || "";
+    if (m.indexOf("Pas de token") !== -1) {
+      return "Session TDL absente — recharge la page.";
+    }
+    if (m.indexOf("401") !== -1 || m.indexOf("403") !== -1) {
+      return "Écriture refusée : déploie les règles (reactions, icones) — firebase deploy --only database.";
+    }
+    return "Écriture impossible — erreur réseau ?";
   }
 
   /* ===== PETITS HELPERS ===== */
@@ -160,11 +182,7 @@
     ligne.className = "cw-sysline";
     var txt = document.createElement("span");
     txt.className = "cw-sys-txt";
-    if (marque.cle === "position") {
-      txt.textContent = "📍 " + (marque.reste || "position partagée");
-    } else {
-      txt.textContent = texteSysteme(marque.cle, pseudo);
-    }
+    txt.textContent = texteSysteme(marque.cle, pseudo, marque.reste);
     ligne.appendChild(txt);
     if (heure) {
       var h = document.createElement("span");
@@ -229,7 +247,7 @@
       if (DEBUG) console.log("[CW-actions] réaction", futur || "retirée", "— post", pid);
     }).catch(function (e) {
       if (DEBUG) console.log("[CW-actions] écriture refusée :", e);
-      notice("Réaction refusée (session expirée ?).");
+      notice(refusMessage(e));
     });
   }
 
@@ -315,8 +333,9 @@
       iconePerso = url;
       if (iconeImg) iconeImg.src = url;
       envoyerSysteme("(tdl:icone)");
-    }).catch(function () {
-      notice("Changement d'icône refusé (session expirée ?).");
+    }).catch(function (e) {
+      if (DEBUG) console.log("[CW-actions] changement d'icône refusé :", e);
+      notice(refusMessage(e));
     });
   }
 
