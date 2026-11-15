@@ -478,13 +478,17 @@ body.chat-mode .cw-bar-err {
 body.chat-mode .cw-bar-err.cw-visible { opacity: 1; }
 
 /* ============================================================
-   chat-reserve.css
+   chat-reserve.css — v2
    Styles pour chat-reserve v3 (sujets WhatsApp réservés) et
    chat-reserve-admin (panneau staff). À coller dans la page CSS
    dédiée du forum, sur GitHub dans le même dossier que les
    scripts. La page doit être chargée dans le <head> : la règle
    cw-reserve-attente masque le fil AVANT que les scripts ne
    tranchent l'accès.
+
+   Uniquement des couleurs du :root du forum. Le bouton vit
+   dans .cw-header ; la fenêtre se ferme par une croix, à la
+   manière de .eam-close (eco-admin-modal).
    ============================================================ */
 
 /* ----- pré-masquage du fil pendant la décision d'accès ----- */
@@ -497,9 +501,9 @@ body.chat-mode .cw-reserve-warn {
   margin: 30px auto;
   max-width: 520px;
   text-align: center;
-  background: var(--cntr, #3a2f25);
-  color: var(--txt, #f4e9d8);
-  border: 0.5px solid var(--darkopa3, rgba(0, 0, 0, .3));
+  background: var(--cntr);
+  color: var(--txt);
+  border: 0.5px solid var(--darkopa3);
   border-radius: 12px;
   padding: 18px 22px;
   font-size: 14px;
@@ -508,32 +512,31 @@ body.chat-mode .cw-reserve-warn .fi {
   margin-right: 8px;
 }
 
-/* ----- bouton flottant staff ----- */
-.cw-admin-bouton {
-  position: fixed;
-  top: 14px;
-  right: 16px;
-  z-index: 9998;
+/* ----- bouton staff, dans l'en-tête du chat ----- */
+body.chat-mode .cw-header .cw-admin-bouton {
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  background: var(--darkopa2, rgba(0, 0, 0, .35));
-  color: var(--txt, #f4e9d8);
-  border: 0.5px solid var(--darkopa3, rgba(0, 0, 0, .3));
+  background: var(--clair1opa2);
+  color: var(--clair1);
+  border: 0;
   border-radius: 20px;
-  padding: 6px 14px;
-  font-size: 13px;
+  padding: 5px 12px;
+  font-size: 12px;
   font-family: inherit;
+  line-height: 1;
 }
-.cw-admin-bouton .fi {
+body.chat-mode .cw-header .cw-admin-bouton .fi {
   font-size: 13px;
 }
-.cw-admin-bouton[data-actif="1"] {
-  background: #4d5f4a;
+body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
+  background: var(--clair2);
+  color: var(--dark);
 }
 
-/* ----- panneau staff : fond et boîte ----- */
+/* ----- fenêtre staff : fond ----- */
 .cw-admin-fond {
   position: fixed;
   top: 0;
@@ -541,7 +544,7 @@ body.chat-mode .cw-reserve-warn .fi {
   right: 0;
   bottom: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, .5);
+  background: var(--darkopa5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -549,74 +552,106 @@ body.chat-mode .cw-reserve-warn .fi {
 .cw-admin-fond[hidden] {
   display: none;
 }
+
+/* ----- fenêtre staff : boîte ----- */
 .cw-admin-panneau {
-  background: var(--cntr, #3a2f25);
-  color: var(--txt, #f4e9d8);
+  background: var(--clair1);
+  color: var(--txt);
+  border: 0.5px solid var(--darkopa3);
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 16px 18px 18px;
   width: min(420px, 92vw);
   max-height: 80vh;
   overflow: auto;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, .4);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
   font-size: 14px;
 }
-.cw-admin-panneau h3 {
-  margin: 0 0 4px;
-  font-size: 15px;
+
+/* en-tête de la fenêtre : titre + croix (manière .eam-close) */
+.cw-admin-entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
 }
+.cw-admin-titre {
+  margin: 0;
+  font-family: var(--title3);
+  font-size: 1.3em;
+  color: var(--dark);
+}
+.cw-admin-croix {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  color: var(--dark2);
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  font-family: inherit;
+}
+.cw-admin-croix:hover {
+  color: var(--dark);
+}
+
+/* sous-titre : identité du sujet */
 .cw-admin-panneau .cw-sujet {
   opacity: .7;
   font-size: 12px;
   margin-bottom: 12px;
 }
+
+/* cases à cocher */
 .cw-admin-panneau label {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 6px 0;
   cursor: pointer;
+  font-size: 13px;
 }
+.cw-admin-panneau input[type="checkbox"] {
+  accent-color: var(--dark2);
+}
+
+/* titres de sections (Communautés / Bandes hors-la-loi) */
 .cw-admin-panneau .cw-section {
   margin-top: 12px;
+  font-size: 11px;
   font-weight: 600;
-  opacity: .85;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--dark2);
 }
 .cw-admin-panneau .cw-grille {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2px 10px;
+  gap: 2px 12px;
   margin-top: 2px;
 }
 
-/* ----- panneau staff : boutons et statut ----- */
+/* bouton Enregistrer + statut */
 .cw-admin-bas {
-  display: flex;
-  gap: 10px;
   margin-top: 16px;
-  align-items: center;
 }
-.cw-admin-bas button {
+.cw-admin-valider {
+  width: 100%;
   cursor: pointer;
   border: 0;
   border-radius: 8px;
-  padding: 8px 0;
+  padding: 9px 0;
   font-size: 13px;
   font-family: inherit;
+  background: var(--dark);
+  color: var(--clair1);
 }
-.cw-admin-valider {
-  background: #4d5f4a;
-  color: #fff;
-  flex: 1;
-}
-.cw-admin-fermer {
-  background: var(--darkopa2, rgba(0, 0, 0, .35));
-  color: var(--txt, #f4e9d8);
-  padding-left: 14px;
-  padding-right: 14px;
+.cw-admin-valider:hover {
+  background: var(--dark2);
 }
 .cw-admin-statut {
   margin-top: 10px;
   font-size: 12px;
-  opacity: .8;
+  color: var(--dark2);
   min-height: 16px;
 }
