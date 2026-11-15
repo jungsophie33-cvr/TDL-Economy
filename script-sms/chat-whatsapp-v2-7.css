@@ -187,7 +187,7 @@ body.chat-mode .cw-content blockquote cite {
   color: var(--darkopa8) !important;
 }
 
-body.chat-mode .cw-content blockquote:has(cite)>div {font-family:var(--font0);}
+body.chat-mode .cw-content blockquote:has(cite)>div {font-family:var(--font0);font-size:12px;}
 
 body.chat-mode .cw-content tdl-separator {display:none;}
 
