@@ -286,6 +286,7 @@ body.chat-mode .cw-header {
   background: var(--bgprof); background-size:cover;
   color: var(--darkopa8);
    border-radius: 5px 5px 0 0;
+   height:100px;
   position: sticky; top: 0; z-index: 40; /* [MAJ] retirer si conflit avec le menu fixe FA */
 }
 body.chat-mode .cw-back       { font-size: 18px; cursor: pointer; }
@@ -549,13 +550,15 @@ body.chat-mode .cw-header .cw-admin-bouton {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  background: var(--clair1opa2);
-  color: var(--clair1);
+  background: var(--cntr5);
+  color: var(--dark);
   border: 0;
-  border-radius: 20px;
+  border-radius: 5px;
   padding: 5px 12px;
   font-size: 12px;
-  font-family: inherit;
+  font-family: var(--txt3);
+   text-transform:uppercase;
+   font-weight:600;
   line-height: 1;
 }
 body.chat-mode .cw-header .cw-admin-bouton .fi {
