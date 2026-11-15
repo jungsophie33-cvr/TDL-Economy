@@ -81,6 +81,9 @@
      en repli sans token. */
   var DATABASE_URL = "https://thedrownedlands-b35b4-default-rtdb.europe-west1.firebasedatabase.app";
 
+  /* Cible du bouton de retour affiché dans l'avertissement. */
+  var URL_RETOUR = "https://thedrownedlands.forumactif.com/f2-whatsapp";
+
   /* Drapeaux lus par le fichier rendu :
      - reserveEnAttente : suspend le rendu chat le temps de trancher ;
      - reserveVerrouille : accès refusé — ni bulles, ni barre d'envoi. */
@@ -110,6 +113,14 @@
       "Ce sujet est réservé à : " +
       (noms && noms.length ? noms.join(", ") : "un groupe restreint") + "."
     ));
+    var retour = document.createElement("a");
+    retour.className = "cw-reserve-retour";
+    retour.href = URL_RETOUR;
+    var icoRetour = document.createElement("i");
+    icoRetour.className = "fi fi-rr-angle-left";
+    retour.appendChild(icoRetour);
+    retour.appendChild(document.createTextNode("Retour aux sujets WhatsApp"));
+    w.appendChild(retour);
     (document.querySelector(".sj-wrap") ||
      document.querySelector("#sj-main") ||
      document.body).appendChild(w);
