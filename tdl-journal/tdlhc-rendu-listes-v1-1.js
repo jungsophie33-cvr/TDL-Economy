@@ -63,7 +63,7 @@
     return '<div class="tdlhc-ariane-bar"><div class="tdlhc-ariane">' + esc(TXT.ARIANE) + ' · <b>' + esc(titre) + '</b></div>' + (droite||"") + '</div>';
   }
   function boutonDepot(type, libelle){
-    return typeof A.soumettre==="function"
+     return (typeof A.soumettre==="function" && A.pseudo())
       ? '<button class="tdlhc-btn" type="button" data-soumettre="' + esc(type) + '"><i class="fi fi-tr-add"></i> ' + esc(libelle) + '</button>' : "";
   }
   function lignes(html, videTxt){
