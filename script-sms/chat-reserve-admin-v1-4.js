@@ -70,16 +70,15 @@
        (celles des règles, ex. tdl_bandes.sorcieres).
      Vérifiable via EcoCore.firebaseGet("membres/<pseudo>"). */
   /* même liste que COMMUNAUTES d'eco-core (clé = nom court,
-     libellé = nom long). Providence n'est pas jouable : un sujet
-     qui la coche ne sera lisible que du staff tant que personne
-     n'a ce groupe — mais tout est prêt d'avance. */
+     libellé = nom long). Providence est exclue : le seul compte
+     concerné est le fondateur, la Main n'est proposée que côté
+     bandes hors la loi (clé "main"). */
   var COMMUNAUTES = [
     { cle: "Les Goulipiats", libelle: "Les Goulipiats" },
     { cle: "Les Fardoches", libelle: "Les Fardoches" },
     { cle: "Les Ashlanders", libelle: "Les Ashlanders" },
     { cle: "Les Spectres", libelle: "Les Spectres de Baron Samdi" },
-    { cle: "Les Perles", libelle: "Les Perles de Cocodrie" },
-    { cle: "Providence", libelle: "Main de la Providence" }
+    { cle: "Les Perles", libelle: "Les Perles de Cocodrie" }
   ];
   var BANDES = [
     { cle: "braconneurs", libelle: "Braconneurs" },
