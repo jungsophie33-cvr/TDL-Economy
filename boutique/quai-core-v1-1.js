@@ -136,7 +136,11 @@
   /* Un seul résolveur de pseudo : EcoCore d'abord, _userdata en secours. */
   function pseudo(){
     try { var p = E().getPseudo(); if (p) return String(p).trim(); } catch(e){}
-    try { if (typeof _userdata!=="undefined" && _userdata.username) return String(_userdata.username).trim(); } catch(e){}
+    try {
+      var u = _userdata;
+      if (u && u.username && String(u.username).trim().toLowerCase() !== "anonymous"
+          && (parseInt(u.user_id)||0) > 0) return String(u.username).trim();
+    } catch(e){}
     return null;
   }
   function isStaff(){ try { return typeof _userdata!=="undefined" && (_userdata.user_level===1||_userdata.user_level===2); } catch(e){ return false; } }
