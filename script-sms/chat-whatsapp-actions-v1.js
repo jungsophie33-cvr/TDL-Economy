@@ -1,12 +1,19 @@
 /* ============================================================
-   chat-whatsapp-actions-v1.js — FICHIER 4 : ACTIONS
+   chat-whatsapp-actions-v2.js — FICHIER 4 : ACTIONS
    Réactions émoji, lignes système, icône de conversation.
+
+   v2 : le "vu" quitte le menu des messages et rejoint la barre
+   d'actions ; le bouton d'actions vit à DROITE du champ de saisie
+   (icône fi-rr-menu-dots-vertical, qui existe dans la police —
+   l'ancienne fi-rr-ellipsis-h ne s'affichait pas) ; l'icône de
+   conversation est ancrée au titre en position absolue, elle ne
+   décale jamais cw-head-title.
 
    CHARGEMENT (ordre strict) :
      1. chat-whatsapp-v11-1-commun.js
      2. chat-whatsapp-v11-2-envoi.js
      3. chat-whatsapp-v11-3-rendu.js
-     4. chat-whatsapp-actions-v1.js   <- ce fichier
+     4. chat-whatsapp-actions-v2.js   <- ce fichier
    Dépend du namespace window.CW11 et, pour Firebase, de
    EcoCore (eco-core-v2-2). Aucun style ici : tout va dans la
    page CSS dédiée du forum (section v2 du patch).
@@ -272,19 +279,17 @@
 
   /* ===== ICÔNE DE CONVERSATION ===== */
 
-  /* Insère l'icône à gauche du titre (une seule fois) */
+  /* Insère l'icône DANS le titre, en absolu : le titre garde
+     exactement sa place, l'icône flotte à sa gauche (écart de
+     15px réglé en CSS depuis l'extrémité de la bordure basse). */
   function initIcone() {
     var titre = $(".cw-head-title");
-    if (!titre || $(".cw-head-icone")) return;
-    var ligne = document.createElement("div");
-    ligne.className = "cw-head-ligne";
-    titre.parentNode.insertBefore(ligne, titre);
+    if (!titre || iconeImg) return;
     var img = document.createElement("img");
     img.className = "cw-head-icone";
     img.alt = "";
     img.src = iconePerso || ICONE_DEFAUT;
-    ligne.appendChild(img);
-    ligne.appendChild(titre);
+    titre.appendChild(img);
     iconeImg = img;
   }
 
@@ -323,21 +328,26 @@
   }
 
   var ACTIONS = [
-    { libelle: "Appel manqué",       faire: function () { envoyerSysteme("(tdl:appel)"); } },
-    { libelle: "Position partagée",  faire: partagerPosition },
-    { libelle: "A rejoint le groupe", faire: function () { envoyerSysteme("(tdl:rejoint)"); } },
-    { libelle: "A quitté le groupe", faire: function () { envoyerSysteme("(tdl:quitte)"); } },
-    { libelle: "Icône du groupe",    faire: changerIcone }
+    { libelle: "Laisser un vu",         faire: function () { envoyerSysteme("(tdl:vu)"); } },
+    { libelle: "Appel manqué",           faire: function () { envoyerSysteme("(tdl:appel)"); } },
+    { libelle: "Position partagée",     faire: partagerPosition },
+    { libelle: "A rejoint le groupe",    faire: function () { envoyerSysteme("(tdl:rejoint)"); } },
+    { libelle: "A quitté le groupe",    faire: function () { envoyerSysteme("(tdl:quitte)"); } },
+    { libelle: "Icône du groupe",        faire: changerIcone }
   ];
 
   function decorerBarre() {
     var bar = $(".cw-bar");
-    if (!bar || $(".cw-actions-btn", bar)) return;
+    if (!bar || $(".cw-actions-wrap", bar)) return;
+    var input = $(".cw-bar-input", bar);
+    if (!input) return;
+    var wrap = document.createElement("div");
+    wrap.className = "cw-actions-wrap";
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "cw-actions-btn";
     btn.setAttribute("aria-label", "Actions");
-    btn.innerHTML = '<i class="fi fi-rr-ellipsis-h"></i>';
+    btn.innerHTML = '<i class="fi fi-rr-menu-dots-vertical"></i>';
     var pop = document.createElement("div");
     pop.className = "cw-actions-pop";
     ACTIONS.forEach(function (a) {
@@ -351,15 +361,17 @@
       });
       pop.appendChild(b);
     });
-    bar.appendChild(btn);
-    bar.appendChild(pop);
+    wrap.appendChild(btn);
+    wrap.appendChild(pop);
+    /* juste à droite du champ de saisie */
+    bar.insertBefore(wrap, input.nextSibling);
     btn.addEventListener("click", function (e) {
       e.stopPropagation();
       pop.classList.toggle("cw-open");
     });
   }
 
-  /* ===== MENU D'UN MESSAGE : réactions + vu ===== */
+  /* ===== MENU D'UN MESSAGE : rangée de réactions ===== */
 
   function fermerMenu(pop) {
     var menu = pop.closest(".cw-menu");
@@ -391,16 +403,6 @@
         fermerMenu(pop);
       });
       pop.insertBefore(rangee, pop.firstChild);
-
-      var vu = document.createElement("button");
-      vu.type = "button";
-      vu.className = "cw-menu-act";
-      vu.textContent = "Laisser un vu";
-      vu.addEventListener("click", function () {
-        fermerMenu(pop);
-        envoyerSysteme("(tdl:vu)");
-      });
-      pop.appendChild(vu);
     });
   }
 
