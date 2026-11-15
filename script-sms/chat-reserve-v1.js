@@ -1,5 +1,5 @@
 /* ============================================================
-   chat-reserve.js — v1
+   chat-reserve.js — v3
    Réserve la lecture d'un sujet du forum WhatsApp à un ou
    plusieurs groupes (communautés ET/OU bandes), cochés par le
    staff via chat-reserve-admin.js.
@@ -154,10 +154,36 @@
      - lecture OK -> membre d'au moins un groupe ;
      - 403 partout -> pas membre ;
      - pas de token / pas d'EcoCore -> fail-closed (refus). */
+  /* eco-core peut se charger APRÈS ce script (ordre des balises) :
+     on l'attend, borné, avant de trancher — un refus sans même
+     avoir tenté le portillon serait un faux refus pour un membre
+     légitime. Sans eco-core au bout du délai : fail-closed. */
+  function attendreEcoCore(maxEssais) {
+    return new Promise(function (resoudre) {
+      var essais = 0;
+      var timer = setInterval(function () {
+        essais++;
+        var ok = !!(window.EcoCore &&
+          typeof window.EcoCore.firebaseGet === "function");
+        if (ok || essais >= maxEssais) {
+          clearInterval(timer);
+          resoudre(ok);
+        }
+      }, CONFIG.POLL_INTERVAL);
+    });
+  }
+
   function testerAcces(cles) {
-    if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
-      return Promise.resolve(false);
-    }
+    return attendreEcoCore(15).then(function (pret) {
+      if (!pret) {
+        if (DEBUG) console.warn("[CW-reserve] eco-core jamais charg\u00E9 \u2014 fail-closed");
+        return false;
+      }
+      return tenterCles(cles);
+    });
+  }
+
+  function tenterCles(cles) {
     var index = 0;
     function suivant() {
       if (index >= cles.length) return Promise.resolve(false);
