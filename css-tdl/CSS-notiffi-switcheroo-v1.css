@@ -316,18 +316,18 @@ outline-offset: 2px;
 .switcheroo[direction="vertical"] .switcheroo__squircles {flex-flow: column wrap;}
 
 /* BARRE --- */
-.switcheroo { color: var(--txt); font-size: 16px;}
+.switcheroo { color: var(--txt); font-size: 16px; padding:10px 0 15px 0;}
 
 /* AFFICHAGE DES COMPTES ---*/
 /* Rond */
-.switcheroo__squircle {position: relative; display: grid; place-items: center; background-color: var(--clair1opa6); outline:1px solid var(--clair1opa4); outline-offset:3px; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: border-radius 128ms var(--ease);}
+.switcheroo__squircle {position: relative; display: grid; place-items: center; background-color: var(--clair1opa6); width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: border-radius 128ms var(--ease);}
 
 /* Rond au survol */
 .switcheroo__squircle:hover, .switcheroo__squircle.active:hover {border-radius: 10px; background: var(--clair1opa8)}
 /* Contenenur de l'avatar */
-.switcheroo__avatar {width:45px;height:45px;border:2px solid var(--cntr);border-radius:50%;object-fit:cover;overflow:hidden;}
+.switcheroo__avatar {width:45px;height:45px;border-radius:50%;object-fit:cover;overflow:hidden;}
 /* Image de l'avatar */
-.switcheroo__avatar img {width:43px;height:60px;  object-fit:cover; object-position: center; transition: border-radius 128ms var(--ease); position: relative;}
+.switcheroo__avatar img {width:45px;height:60px;  object-fit:cover; object-position: center; transition: border-radius 128ms var(--ease); position: relative;}
 
 .switcheroo__avatar:hover, .switcheroo__squircle.active .switcheroo__avatar:hover {border-radius: 10px;}
 .switcheroo__squircle.active, .switcheroo__squircle.active .switcheroo__avatar { border-radius: 5px;cursor: default;}
@@ -345,7 +345,7 @@ outline-offset: 2px;
 
 /* TOOLTIP - INFOBULLE DU PSEUDO ---*/
 /* Conteneur du pseudo */
-.switcheroo__popper {background-color: var(--clair1); padding: 10px 15px; position: absolute; width: -webkit-max-content; width: max-content; border-radius: 4px; z-index: 0; opacity: 0; transition: opacity 64ms var(--ease), transform 128ms var(--ease-bounce); pointer-events: none;  font-family:var(--font2); color: var(--dark);  box-shadow:0 0 2px var(--darkopa5);}
+.switcheroo__popper {background-color: var(--clair1); padding: 10px 15px; position: absolute; width: -webkit-max-content; width: max-content; border-radius: 4px; z-index: 0; opacity: 0; transition: opacity 64ms var(--ease), transform 128ms var(--ease-bounce); pointer-events: none;  font-family:var(--font2); color: var(--dark);}
 
 /* Conteneur du pseudo: si vertical */
 .switcheroo[direction="vertical"] .switcheroo__popper {left: 155%; top: 50%; transform-origin: left; transform: translateY(-50%) scale(0.98);}
