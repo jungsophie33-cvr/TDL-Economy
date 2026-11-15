@@ -285,6 +285,13 @@
   var scrollFait = false;
 
   function appliquer() {
+    /* Sujet réservé (chat-reserve-v1.js) :
+       - en attente de décision d'accès -> ne rien rendre pour
+         l'instant (le rendu reprend dès que le drapeau tombe) ;
+       - accès refusé -> ne jamais rendre les bulles ni la barre. */
+    if (CW.reserveVerrouille) return false;
+    if (CW.reserveEnAttente) return false;
+
     var posts = $all(".sj-postmsg");
     if (!posts.length) return false;
 
