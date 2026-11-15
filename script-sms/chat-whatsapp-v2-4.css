@@ -557,28 +557,28 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
 .cw-admin-panneau {
   background: var(--clair1);
   color: var(--txt);
-  border: 0.5px solid var(--darkopa3);
-  border-radius: 12px;
-  padding: 16px 18px 18px;
-  width: min(420px, 92vw);
+  border-radius: 10px;
+  padding: 20px 25px;
+  width: min(520px, 92vw);
   max-height: 80vh;
   overflow: auto;
   box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
-  font-size: 14px;
+  text-align:left;
+   position:relative;
 }
 
 /* en-tête de la fenêtre : titre + croix (manière .eam-close) */
 .cw-admin-entete {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
 }
 .cw-admin-titre {
   margin: 0;
-  font-family: var(--title3);
-  font-size: 1.3em;
+  font-family: var(--title1);
+   line-height:1;
+  font-size: 2em;
+   text-transform:uppercase;
+   letter-spacing:1px;
+   text-align:center;
   color: var(--dark);
 }
 .cw-admin-croix {
@@ -590,6 +590,9 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
   line-height: 1;
   padding: 2px 4px;
   font-family: inherit;
+   position:absolute;
+   top:15px;
+   right:15px;
 }
 .cw-admin-croix:hover {
   color: var(--dark);
@@ -598,7 +601,7 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
 /* sous-titre : identité du sujet */
 .cw-admin-panneau .cw-sujet {
   opacity: .7;
-  font-size: 12px;
+  font-size: 14px;
   margin-bottom: 12px;
 }
 
@@ -609,7 +612,7 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
   gap: 8px;
   margin: 6px 0;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
 }
 .cw-admin-panneau input[type="checkbox"] {
   accent-color: var(--dark2);
@@ -618,7 +621,8 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
 /* titres de sections (Communautés / Bandes hors-la-loi) */
 .cw-admin-panneau .cw-section {
   margin-top: 12px;
-  font-size: 11px;
+  font-size: 12px;
+   font-family:var(--txt3);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .06em;
@@ -639,15 +643,18 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
   width: 100%;
   cursor: pointer;
   border: 0;
-  border-radius: 8px;
+  border-radius: 5px;
   padding: 9px 0;
-  font-size: 13px;
-  font-family: inherit;
-  background: var(--dark);
+  font-size: 14px;
+  font-family: var(--txt1);
+  background: var(--darkopa8);
   color: var(--clair1);
+  text-transform:uppercase;
+   letter-spacing:1px;
+   font-weight:600;
 }
 .cw-admin-valider:hover {
-  background: var(--dark2);
+  background: var(--dark2opa8);
 }
 .cw-admin-statut {
   margin-top: 10px;
