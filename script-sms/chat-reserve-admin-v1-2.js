@@ -354,7 +354,10 @@
     var essais = 0;
     var timer = setInterval(function () {
       essais++;
-      if (!$(".sub-header-path") && essais < CONFIG.POLL_MAX) return;
+      /* le fil d'Ariane ET eco-core peuvent tous deux arriver après
+         nous selon l'ordre des balises script : on attend les deux,
+         avec le même budget de polling que le rendu du chat. */
+      if ((!$(".sub-header-path") || !window.EcoCore) && essais < CONFIG.POLL_MAX) return;
       clearInterval(timer);
       /* uniquement sur les sujets du forum WhatsApp */
       if (!estForumChat() || !topicId()) return;
@@ -364,7 +367,7 @@
         return;
       }
       if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
-        if (DEBUG) console.warn("[CW-admin] EcoCore absent \u2014 bouton ignor\u00E9");
+        console.warn("[CW-admin] eco-core jamais charg\u00E9 sur cette page \u2014 bouton ignor\u00E9 : ajoutez la balise eco-core au template de ces pages");
         return;
       }
       /* puis confirmation par les règles Firebase */
@@ -376,7 +379,7 @@
           console.warn("[CW-admin] staff NON confirm\u00E9 par Firebase \u2014 sentinelle chrono_journal refus\u00E9e (token du pont pr\u00E9sent ?)");
         }
       });
-    }, 100);
+    }, CONFIG.POLL_INTERVAL);
   }
 
   if (document.readyState === "loading") {
