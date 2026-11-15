@@ -8,9 +8,11 @@
    juste après la flèche retour), uniquement pour le staff :
    - pré-filtre Forumactif (_userdata.user_level >= 1) ;
    - confirmation par Firebase : lecture de la sentinelle
-     acces_reserves/__staff__ (les règles accordent au staff la
-     lecture de tout enfant du nœud, même inexistant -> null ;
-     un non-staff reçoit 403). Le bouton ne s'affiche qu'après.
+     chrono_journal (nœud staff-seulement dont la règle est EN
+     PRODUCTION : le staff lit -> 200, même si le nœud est vide ;
+     un non-staff reçoit 403). Ce test ne dépend PAS du
+     déploiement des règles acces_reserves. Le bouton ne
+     s'affiche qu'après.
    Même si un non-staff forçait l'affichage du bouton, les règles
    RTDB refuseraient ses écritures (write = staff uniquement).
 
@@ -88,7 +90,13 @@
     { cle: "sorcieres", libelle: "Sorci\u00E8res" }
   ];
 
-  var SENTINELLE = "acces_reserves/__staff__";
+  /* sentinelle STAFF : nœud lisible par le staff uniquement,
+     déjà régi par les règles en production (chrono_journal).
+     firebaseGet résout (données ou null) si les règles
+     acceptent, rejette sur 403 sinon. Ne dépend PAS des
+     nouvelles règles acces_reserves : le bouton apparaît
+     même avant leur déploiement. */
+  var SENTINELLE = "chrono_journal";
   var bouton = null, panneau = null, champActif = null, statut = null;
   var cases = {}; /* cle -> case \u00E0 cocher */
 
@@ -331,9 +339,10 @@
     return window._userdata && Number(window._userdata.user_level || 0) >= 1;
   }
 
-  /* Confirmation c\u00F4t\u00E9 Firebase : les règles de acces_reserves
-     laissent le staff lire n'importe quel enfant (même inexistant
-     -> null) ; un non-staff reçoit 403. */
+  /* Confirmation c\u00F4t\u00E9 Firebase : la sentinelle est un n\u0153ud
+     staff-seulement d\u00E9j\u00E0 r\u00E9gi par les r\u00E8gles en production.
+     Le staff passe (200, donn\u00E9es ou null), un non-staff
+     re\u00E7oit 403. */
   function verifierStaff() {
     return window.EcoCore.firebaseGet(SENTINELLE)
       .then(function () { return true; })
@@ -349,19 +358,22 @@
       clearInterval(timer);
       /* uniquement sur les sujets du forum WhatsApp */
       if (!estForumChat() || !topicId()) return;
-      /* double filtre staff : FA d'abord (pas de requête inutile),
-         puis confirmation par les règles Firebase. */
-      if (!estStaffFA()) return;
-      if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
-        if (DEBUG) console.warn("[CW-admin] EcoCore absent : panneau ignor\u00E9");
+      /* filtre staff FA d'abord : pas de requête Firebase inutile */
+      if (!estStaffFA()) {
+        if (DEBUG) console.log("[CW-admin] hors staff FA \u2014 bouton ignor\u00E9");
         return;
       }
+      if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
+        if (DEBUG) console.warn("[CW-admin] EcoCore absent \u2014 bouton ignor\u00E9");
+        return;
+      }
+      /* puis confirmation par les règles Firebase */
       verifierStaff().then(function (staff) {
         if (staff) {
           placerBouton();
-          if (DEBUG) console.log("[CW-admin] staff \u2014 bouton affich\u00E9");
+          if (DEBUG) console.log("[CW-admin] staff confirm\u00E9 \u2014 bouton branch\u00E9 sur l'en-t\u00EAte");
         } else if (DEBUG) {
-          console.log("[CW-admin] staff non confirm\u00E9 par Firebase");
+          console.warn("[CW-admin] staff NON confirm\u00E9 par Firebase \u2014 sentinelle chrono_journal refus\u00E9e (token du pont pr\u00E9sent ?)");
         }
       });
     }, 100);
