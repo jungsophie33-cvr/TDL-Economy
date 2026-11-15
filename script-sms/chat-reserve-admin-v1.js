@@ -4,8 +4,8 @@
    plusieurs groupes (communautés et/ou bandes), en cochant,
    sans toucher à la console Firebase.
 
-   AFFICHAGE : bouton flottant "Réserver" en haut à droite des
-   sujets WhatsApp, uniquement pour le staff :
+   AFFICHAGE : bouton "Réserver" dans l'en-tête du chat (cw-header,
+   juste après la flèche retour), uniquement pour le staff :
    - pré-filtre Forumactif (_userdata.user_level >= 1) ;
    - confirmation par Firebase : lecture de la sentinelle
      acces_reserves/__staff__ (les règles accordent au staff la
@@ -67,9 +67,17 @@
      - bande : la clé machine de membres/<pseudo>.hors_la_loi
        (celles des règles, ex. tdl_bandes.sorcieres).
      Vérifiable via EcoCore.firebaseGet("membres/<pseudo>"). */
+  /* même liste que COMMUNAUTES d'eco-core (clé = nom court,
+     libellé = nom long). Providence n'est pas jouable : un sujet
+     qui la coche ne sera lisible que du staff tant que personne
+     n'a ce groupe — mais tout est prêt d'avance. */
   var COMMUNAUTES = [
     { cle: "Les Goulipiats", libelle: "Les Goulipiats" },
-    { cle: "Les Fardoches", libelle: "Les Fardoches" }
+    { cle: "Les Fardoches", libelle: "Les Fardoches" },
+    { cle: "Les Ashlanders", libelle: "Les Ashlanders" },
+    { cle: "Les Spectres", libelle: "Les Spectres de Baron Samdi" },
+    { cle: "Les Perles", libelle: "Les Perles de Cocodrie" },
+    { cle: "Providence", libelle: "Main de la Providence" }
   ];
   var BANDES = [
     { cle: "braconneurs", libelle: "Braconneurs" },
@@ -117,8 +125,8 @@
     return bloc;
   }
 
-  /* ===== BOUTON FLOTTANT ===== */
-  function construireBouton() {
+  /* ===== BOUTON DANS L'EN-TÊTE DU CHAT ===== */
+  function construireBouton(back) {
     bouton = document.createElement("button");
     bouton.type = "button";
     bouton.className = "cw-admin-bouton";
@@ -129,7 +137,24 @@
     bouton.appendChild(icone);
     bouton.appendChild(texte);
     bouton.addEventListener("click", ouvrir);
-    document.body.appendChild(bouton);
+    /* juste après la flèche retour */
+    back.parentNode.insertBefore(bouton, back.nextSibling);
+  }
+
+  /* l'en-tête est construit par le fichier rendu (chargé après
+     ce script) : on guette la flèche retour, puis on s'insère. */
+  function placerBouton() {
+    var essais = 0;
+    var timer = setInterval(function () {
+      essais++;
+      var back = $(".cw-header .cw-back");
+      if (back) {
+        clearInterval(timer);
+        construireBouton(back);
+      } else if (essais >= CONFIG.POLL_MAX) {
+        clearInterval(timer);
+      }
+    }, CONFIG.POLL_INTERVAL);
   }
 
   function majBouton(reserve) {
@@ -156,8 +181,21 @@
     var p = document.createElement("div");
     p.className = "cw-admin-panneau";
 
+    /* en-tête : titre + croix (à la manière de .eam-close) */
+    var entete = document.createElement("div");
+    entete.className = "cw-admin-entete";
     var h = document.createElement("h3");
+    h.className = "cw-admin-titre";
     h.textContent = "R\u00E9servation du sujet";
+    var croix = document.createElement("button");
+    croix.type = "button";
+    croix.className = "cw-admin-croix";
+    croix.setAttribute("aria-label", "Fermer");
+    croix.innerHTML = "&#10005;";
+    croix.addEventListener("click", fermer);
+    entete.appendChild(h);
+    entete.appendChild(croix);
+
     var sujet = document.createElement("div");
     sujet.className = "cw-sujet";
     sujet.textContent = "Sujet n\u00B0" + tid + " \u2014 cochez qui peut le lire.";
@@ -178,15 +216,9 @@
     valider.className = "cw-admin-valider";
     valider.textContent = "Enregistrer";
     valider.addEventListener("click", enregistrer);
-    var fermerBtn = document.createElement("button");
-    fermerBtn.type = "button";
-    fermerBtn.className = "cw-admin-fermer";
-    fermerBtn.textContent = "Fermer";
-    fermerBtn.addEventListener("click", fermer);
     bas.appendChild(valider);
-    bas.appendChild(fermerBtn);
 
-    p.appendChild(h);
+    p.appendChild(entete);
     p.appendChild(sujet);
     p.appendChild(actifLabel);
     p.appendChild(section("Communaut\u00E9s", COMMUNAUTES));
@@ -195,6 +227,10 @@
     p.appendChild(bas);
     fond.appendChild(p);
     document.body.appendChild(fond);
+    /* Échap ferme aussi la fenêtre */
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && panneau && !panneau.hidden) fermer();
+    });
     panneau = fond;
   }
 
@@ -322,7 +358,7 @@
       }
       verifierStaff().then(function (staff) {
         if (staff) {
-          construireBouton();
+          placerBouton();
           if (DEBUG) console.log("[CW-admin] staff \u2014 bouton affich\u00E9");
         } else if (DEBUG) {
           console.log("[CW-admin] staff non confirm\u00E9 par Firebase");
