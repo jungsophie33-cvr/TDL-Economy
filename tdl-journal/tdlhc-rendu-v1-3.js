@@ -122,7 +122,7 @@
           return '<div class="tdlhc-com">' + esc(r.texte) + '<div class="tdlhc-com-meta"><span>' + esc(r.secteur||"")
             + '</span><span>' + esc(A.depuis(r.publie)) + '</span></div></div>';
         }).join("") : '<div class="tdlhc-com">' + esc(TXT.RAIL_VIDE) + '</div>')
-      + (typeof A.soumettre==="function"
+        + (typeof A.soumettre==="function" && A.pseudo()
           ? '<div class="tdlhc-rail-pied"><button class="tdlhc-btn creux" type="button" data-soumettre="rumeur"><i class="fi fi-tr-comments"></i> '
             + esc(TXT.RAPPORTER) + '</button></div>' : "")
       + '</aside>';
