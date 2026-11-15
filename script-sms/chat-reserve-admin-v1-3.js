@@ -87,7 +87,7 @@
     { cle: "flottille", libelle: "Flottille" },
     { cle: "main", libelle: "La Main" },
     { cle: "maringouins", libelle: "Maringouins" },
-    { cle: "sorcieres", libelle: "Sorci\u00E8res" }
+    { cle: "sorcieres", libelle: "Sorcières" }
   ];
 
   /* sentinelle STAFF : nœud lisible par le staff uniquement,
@@ -98,7 +98,7 @@
      même avant leur déploiement. */
   var SENTINELLE = "chrono_journal";
   var bouton = null, panneau = null, champActif = null, statut = null;
-  var cases = {}; /* cle -> case \u00E0 cocher */
+  var cases = {}; /* cle -> case à cocher */
 
   /* ===== PETITS OUTILS ===== */
   function libelleDe(cle) {
@@ -141,7 +141,7 @@
     var icone = document.createElement("i");
     icone.className = "fi fi-rr-lock";
     var texte = document.createElement("span");
-    texte.textContent = "R\u00E9server";
+    texte.textContent = "Réserver";
     bouton.appendChild(icone);
     bouton.appendChild(texte);
     bouton.addEventListener("click", ouvrir);
@@ -170,10 +170,10 @@
     var texte = bouton.querySelector("span");
     if (reserve) {
       bouton.setAttribute("data-actif", "1");
-      texte.textContent = "Sujet r\u00E9serv\u00E9";
+      texte.textContent = "Sujet réservé";
     } else {
       bouton.removeAttribute("data-actif");
-      texte.textContent = "R\u00E9server";
+      texte.textContent = "Réserver";
     }
   }
 
@@ -194,7 +194,7 @@
     entete.className = "cw-admin-entete";
     var h = document.createElement("h3");
     h.className = "cw-admin-titre";
-    h.textContent = "R\u00E9servation du sujet";
+    h.textContent = "Réservation du sujet";
     var croix = document.createElement("button");
     croix.type = "button";
     croix.className = "cw-admin-croix";
@@ -206,13 +206,13 @@
 
     var sujet = document.createElement("div");
     sujet.className = "cw-sujet";
-    sujet.textContent = "Sujet n\u00B0" + tid + " \u2014 cochez qui peut le lire.";
+    sujet.textContent = "Sujet n°" + tid + " — cochez qui peut le lire.";
 
     var actifLabel = document.createElement("label");
     champActif = document.createElement("input");
     champActif.type = "checkbox";
     actifLabel.appendChild(champActif);
-    actifLabel.appendChild(document.createTextNode("R\u00E9server ce sujet"));
+    actifLabel.appendChild(document.createTextNode("Réserver ce sujet"));
 
     statut = document.createElement("div");
     statut.className = "cw-admin-statut";
@@ -229,7 +229,7 @@
     p.appendChild(entete);
     p.appendChild(sujet);
     p.appendChild(actifLabel);
-    p.appendChild(section("Communaut\u00E9s", COMMUNAUTES));
+    p.appendChild(section("Communautés", COMMUNAUTES));
     p.appendChild(section("Bandes hors-la-loi", BANDES));
     p.appendChild(statut);
     p.appendChild(bas);
@@ -258,7 +258,7 @@
   function chargerEtat(tid) {
     Object.keys(cases).forEach(function (c) { cases[c].checked = false; });
     champActif.checked = false;
-    statut.textContent = "Chargement\u2026";
+    statut.textContent = "Chargement…";
     window.EcoCore.firebaseGet("sujets_reserves/" + tid).then(function (res) {
       var actif = !!(res && res.actif !== false &&
         ((Array.isArray(res.groupes) && res.groupes.length) || res.cle));
@@ -277,10 +277,10 @@
       champActif.checked = actif;
       statut.textContent = "";
       majBouton(actif);
-      if (DEBUG) console.log("[CW-admin] \u00E9tat charg\u00E9 :", res);
+      if (DEBUG) console.log("[CW-admin] état chargé :", res);
     }).catch(function (e) {
       statut.textContent = "Lecture impossible.";
-      if (DEBUG) console.warn("[CW-admin] lecture \u00E9tat :", e && e.message);
+      if (DEBUG) console.warn("[CW-admin] lecture état :", e && e.message);
     });
   }
 
@@ -293,11 +293,11 @@
 
     if (champActif.checked && coches.length === 0) {
       statut.textContent =
-        "Cochez au moins un groupe, ou d\u00E9cochez \u00AB R\u00E9server ce sujet \u00BB.";
+        "Cochez au moins un groupe, ou décochez « Réserver ce sujet ».";
       return;
     }
 
-    statut.textContent = "Enregistrement\u2026";
+    statut.textContent = "Enregistrement…";
 
     /* désactivation -> pierre tombale, pas de suppression */
     var ecriture;
@@ -324,13 +324,13 @@
     }
 
     ecriture.then(function () {
-      statut.textContent = "Enregistr\u00E9.";
+      statut.textContent = "Enregistré.";
       majBouton(actif);
-      if (DEBUG) console.log("[CW-admin] enregistr\u00E9 \u2014 actif =", actif, coches);
+      if (DEBUG) console.log("[CW-admin] enregistré — actif =", actif, coches);
       setTimeout(fermer, 700);
     }).catch(function (e) {
-      statut.textContent = "\u00C9chec : " + ((e && e.message) || "\u00E9criture refus\u00E9e");
-      if (DEBUG) console.warn("[CW-admin] \u00E9criture :", e);
+      statut.textContent = "Échec : " + ((e && e.message) || "écriture refusée");
+      if (DEBUG) console.warn("[CW-admin] écriture :", e);
     });
   }
 
@@ -339,10 +339,10 @@
     return window._userdata && Number(window._userdata.user_level || 0) >= 1;
   }
 
-  /* Confirmation c\u00F4t\u00E9 Firebase : la sentinelle est un n\u0153ud
-     staff-seulement d\u00E9j\u00E0 r\u00E9gi par les r\u00E8gles en production.
-     Le staff passe (200, donn\u00E9es ou null), un non-staff
-     re\u00E7oit 403. */
+  /* Confirmation côté Firebase : la sentinelle est un nœud
+     staff-seulement déjà régi par les règles en production.
+     Le staff passe (200, données ou null), un non-staff
+     reçoit 403. */
   function verifierStaff() {
     return window.EcoCore.firebaseGet(SENTINELLE)
       .then(function () { return true; })
@@ -363,20 +363,20 @@
       if (!estForumChat() || !topicId()) return;
       /* filtre staff FA d'abord : pas de requête Firebase inutile */
       if (!estStaffFA()) {
-        if (DEBUG) console.log("[CW-admin] hors staff FA \u2014 bouton ignor\u00E9");
+        if (DEBUG) console.log("[CW-admin] hors staff FA — bouton ignoré");
         return;
       }
       if (!window.EcoCore || typeof window.EcoCore.firebaseGet !== "function") {
-        console.warn("[CW-admin] eco-core jamais charg\u00E9 sur cette page \u2014 bouton ignor\u00E9 : ajoutez la balise eco-core au template de ces pages");
+        console.warn("[CW-admin] eco-core jamais chargé sur cette page — bouton ignoré : ajoutez la balise eco-core au template de ces pages");
         return;
       }
       /* puis confirmation par les règles Firebase */
       verifierStaff().then(function (staff) {
         if (staff) {
           placerBouton();
-          if (DEBUG) console.log("[CW-admin] staff confirm\u00E9 \u2014 bouton branch\u00E9 sur l'en-t\u00EAte");
+          if (DEBUG) console.log("[CW-admin] staff confirmé — bouton branché sur l'en-tête");
         } else if (DEBUG) {
-          console.warn("[CW-admin] staff NON confirm\u00E9 par Firebase \u2014 sentinelle chrono_journal refus\u00E9e (token du pont pr\u00E9sent ?)");
+          console.warn("[CW-admin] staff NON confirmé par Firebase — sentinelle chrono_journal refusée (token du pont présent ?)");
         }
       });
     }, CONFIG.POLL_INTERVAL);
