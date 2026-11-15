@@ -744,23 +744,6 @@ body.chat-mode .cw-react-opt {
 }
 body.chat-mode .cw-react-opt:hover { background: var(--cntr3); }
 
-/* ----- entrée "Laisser un vu" dans le menu d'un message ----- */
-body.chat-mode .cw-menu-pop .cw-menu-act {
-  display: block;
-  width: 100%;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 6px 14px;
-  font-size: 12px;
-  line-height: 1;
-  font-family: var(--txt3);
-  text-transform: uppercase;
-  color: var(--darkopa8);
-  text-align: left;
-}
-body.chat-mode .cw-menu-pop .cw-menu-act:hover { background: var(--cntr3); }
-
 /* ----- réactions affichées sous la bulle ----- */
 body.chat-mode .cw-reacts {
   display: flex;
@@ -784,7 +767,13 @@ body.chat-mode .cw-react-item {
 body.chat-mode .cw-react-item:hover { background: var(--cntr3); }
 body.chat-mode .cw-react-noms { color: var(--darkopa6); }
 
-/* ----- bouton d'actions dans la barre de saisie ----- */
+/* ----- bouton d'actions, à droite du champ de saisie -----
+   Colonne d'actions au-dessus du bouton, ancrée à son
+   enveloppe .cw-actions-wrap. */
+body.chat-mode .cw-actions-wrap {
+  position: relative;
+  flex: none;
+}
 body.chat-mode .cw-actions-btn {
   background: none; border: 0; cursor: pointer; flex: none;
   color: var(--dark); font-size: 18px; line-height: 1; padding: 0 0 4px;
@@ -792,10 +781,10 @@ body.chat-mode .cw-actions-btn {
 body.chat-mode .cw-actions-pop {
   display: none;
   position: absolute;
-  bottom: calc(100% + 6px);
-  right: 12px;
+  bottom: calc(100% + 8px);
+  right: 0;
   z-index: 60;
-  min-width: 170px;
+  min-width: 190px;
   background: var(--clair1);
   border: 0.5px solid var(--darkopa3);
   border-radius: 7px;
@@ -820,17 +809,18 @@ body.chat-mode .cw-actions-item {
 }
 body.chat-mode .cw-actions-item:hover { background: var(--cntr3); }
 
-/* ----- icône de conversation, à gauche du titre ----- */
-body.chat-mode .cw-head-ligne {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
+/* ----- icône de conversation : ancrée au titre, sans le décaler -----
+   Position absolue dans cw-head-title : le titre garde exactement
+   sa place. L'icône flotte à sa gauche, à 15px de l'extrémité
+   gauche de la bordure basse du titre. */
+body.chat-mode .cw-head-title { position: relative; }
 body.chat-mode .cw-head-icone {
+  position: absolute;
+  right: calc(100% + 15px);
+  top: 50%;
+  transform: translateY(-50%);
   width: 44px;
   height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  flex: none;
 }
