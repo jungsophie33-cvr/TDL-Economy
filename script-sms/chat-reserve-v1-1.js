@@ -60,6 +60,9 @@
        (braconneurs, faiseuses, flottille, main, maringouins,
        sorcieres).
 
+   AVERTISSEMENT : affiché dans .sj-wrap (classe du forum), en
+   repli #sj-main puis body.
+
    STYLES : aucune règle CSS ici ; tout est dans la page CSS
    dédiée du forum (cw-reserve-attente, cw-reserve-warn).
    ============================================================ */
@@ -104,11 +107,13 @@
     icone.className = "fi fi-rr-lock";
     w.appendChild(icone);
     w.appendChild(document.createTextNode(
-      "Ce sujet est r\\u00E9serv\\u00E9 \\u00E0 : " +
+      "Ce sujet est réservé à : " +
       (noms && noms.length ? noms.join(", ") : "un groupe restreint") + "."
     ));
-    (document.querySelector("#sj-main") || document.body).appendChild(w);
-    if (DEBUG) console.log("[CW-reserve] acc\\u00E8s refus\\u00E9 \\u2014 avertissement affich\\u00E9");
+    (document.querySelector(".sj-wrap") ||
+     document.querySelector("#sj-main") ||
+     document.body).appendChild(w);
+    if (DEBUG) console.log("[CW-reserve] accès refusé — avertissement affiché");
   }
 
   /* ===== LECTURES FIREBASE ===== */
@@ -176,7 +181,7 @@
   function testerAcces(cles) {
     return attendreEcoCore(15).then(function (pret) {
       if (!pret) {
-        if (DEBUG) console.warn("[CW-reserve] eco-core jamais charg\u00E9 \u2014 fail-closed");
+        if (DEBUG) console.warn("[CW-reserve] eco-core jamais chargé — fail-closed");
         return false;
       }
       return tenterCles(cles);
@@ -192,7 +197,7 @@
         .then(function () { return true; })
         .catch(function (e) {
           if (DEBUG) {
-            console.warn("[CW-reserve] acces_reserves/" + cle + " refus\\u00E9 :",
+            console.warn("[CW-reserve] acces_reserves/" + cle + " refusé :",
               e && e.message);
           }
           return suivant();
@@ -210,11 +215,11 @@
         relacher();
         return;
       }
-      if (DEBUG) console.log("[CW-reserve] sujet r\\u00E9serv\\u00E9 :", info.groupes.join(", "));
+      if (DEBUG) console.log("[CW-reserve] sujet réservé :", info.groupes.join(", "));
       testerAcces(info.groupes).then(function (membre) {
         if (membre) {
           relacher();
-          if (DEBUG) console.log("[CW-reserve] membre \\u2014 conversation affich\\u00E9e");
+          if (DEBUG) console.log("[CW-reserve] membre — conversation affichée");
         } else {
           verrouiller(info.noms);
         }
@@ -222,7 +227,7 @@
     }).catch(function (e) {
       /* métadonnées illisibles : on ne peut pas savoir. Le sujet
          n'est pas confirmé réservé -> chat normal. */
-      if (DEBUG) console.warn("[CW-reserve] lecture m\\u00E9tadonn\\u00E9es \\u00E9chou\\u00E9e :", e);
+      if (DEBUG) console.warn("[CW-reserve] lecture métadonnées échouée :", e);
       relacher();
     });
   }
