@@ -157,17 +157,16 @@ function joursRestants(iso){
 
 /* ===================== DROITS ===================== */
 
+/* [MAJ v2-2] Le filtre invité était piégé dans le catch : le try retournait
+   le pseudo brut ("Anonymous" chez FA) et le filtre ne s'exécutait jamais. */
 function monPseudo(){
-  try { return window._userdata && window._userdata.username ? String(window._userdata.username).trim() : null; }
-  catch(e){ 
-         try {
-      var u = window._userdata;
-      if (!u || !u.username) return null;
-      var p = String(u.username).trim();
-      if (!p || p.toLowerCase() === "anonymous" || (parseInt(u.user_id)||0) <= 0) return null;
-      return p;
-    } catch(e){ return null; }
-  }
+  try {
+    var u = window._userdata;
+    if (!u || !u.username) return null;
+    var p = String(u.username).trim();
+    if (!p || p.toLowerCase() === "anonymous" || (parseInt(u.user_id)||0) <= 0) return null;
+    return p;
+  } catch(e){ return null; }
 }
 /* [MAJ] détection du staff : même convention que les autres tableaux. */
 function estStaff(){
