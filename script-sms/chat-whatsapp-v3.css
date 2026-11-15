@@ -694,3 +694,143 @@ body.chat-mode .cw-header .cw-admin-bouton[data-actif="1"] {
   color: var(--dark2);
   min-height: 16px;
 }
+
+/* ============================================================
+   SECTION v2 — actions et réactions
+   (chat-whatsapp-actions-v1.js). À coller À LA FIN de la page,
+   après la section v1. Mêmes contraintes : couleurs du :root,
+   aucun style dans les scripts.
+   ============================================================ */
+
+/* ----- lignes système : vu, appel manqué, groupe, position ----- */
+body.chat-mode .cw-sysline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px auto;
+  max-width: 560px;
+}
+body.chat-mode .cw-sys-txt {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--txt);
+  background: var(--cntr5);
+  border-radius: 10px;
+  padding: 5px 12px;
+  line-height: 1.4;
+}
+body.chat-mode .cw-sys-heure {
+  font-size: 10px;
+  opacity: 0.6;
+  flex: none;
+}
+
+/* ----- rangée d'émojis en tête du menu d'un message ----- */
+body.chat-mode .cw-react-row {
+  display: flex;
+  gap: 2px;
+  padding: 6px 10px 8px;
+  border-bottom: 0.5px solid var(--cntr4);
+}
+body.chat-mode .cw-react-opt {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 3px 5px;
+  border-radius: 6px;
+}
+body.chat-mode .cw-react-opt:hover { background: var(--cntr3); }
+
+/* ----- entrée "Laisser un vu" dans le menu d'un message ----- */
+body.chat-mode .cw-menu-pop .cw-menu-act {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 6px 14px;
+  font-size: 12px;
+  line-height: 1;
+  font-family: var(--txt3);
+  text-transform: uppercase;
+  color: var(--darkopa8);
+  text-align: left;
+}
+body.chat-mode .cw-menu-pop .cw-menu-act:hover { background: var(--cntr3); }
+
+/* ----- réactions affichées sous la bulle ----- */
+body.chat-mode .cw-reacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+body.chat-mode .cw-received .cw-reacts { justify-content: flex-start; }
+body.chat-mode .cw-sent     .cw-reacts { justify-content: flex-end; }
+body.chat-mode .cw-react-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  background: var(--cntr2);
+  border: 0.5px solid var(--cntr4);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+body.chat-mode .cw-react-item:hover { background: var(--cntr3); }
+body.chat-mode .cw-react-noms { color: var(--darkopa6); }
+
+/* ----- bouton d'actions dans la barre de saisie ----- */
+body.chat-mode .cw-actions-btn {
+  background: none; border: 0; cursor: pointer; flex: none;
+  color: var(--dark); font-size: 18px; line-height: 1; padding: 0 0 4px;
+}
+body.chat-mode .cw-actions-pop {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 12px;
+  z-index: 60;
+  min-width: 170px;
+  background: var(--clair1);
+  border: 0.5px solid var(--darkopa3);
+  border-radius: 7px;
+  padding: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+body.chat-mode .cw-actions-pop.cw-open { display: block; }
+body.chat-mode .cw-actions-item {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  padding: 7px 12px;
+  font-size: 12px;
+  line-height: 1;
+  font-family: var(--txt3);
+  text-transform: uppercase;
+  color: var(--darkopa8);
+  border-radius: 5px;
+}
+body.chat-mode .cw-actions-item:hover { background: var(--cntr3); }
+
+/* ----- icône de conversation, à gauche du titre ----- */
+body.chat-mode .cw-head-ligne {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+body.chat-mode .cw-head-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
