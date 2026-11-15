@@ -149,7 +149,6 @@ body.chat-mode .cw-sent .cw-pseudo .sj-post-pseudo {
 
 /* contenu */
 body.chat-mode .cw-content {
-  font-size: 14px;
   line-height: 1.45;
   color: inherit;
   margin: 0 !important;
@@ -187,7 +186,7 @@ body.chat-mode .cw-content blockquote cite {
   color: var(--darkopa8) !important;
 }
 
-body.chat-mode .cw-content blockquote:has(cite)>div {font-family:var(--font0);font-size:12px;}
+body.chat-mode .cw-content blockquote:has(cite)>div {font-family:var(--font0);font-size:13px;}
 
 body.chat-mode .cw-content tdl-separator {display:none;}
 
