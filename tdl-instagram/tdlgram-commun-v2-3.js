@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1g-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1h-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -30,11 +30,11 @@
      tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1g-commun.js
-     2. tdlgram-v1-2d-rendu.js
-     3. tdlgram-v1-3c-contenu.js
+     1. tdlgram-v1-1h-commun.js
+     2. tdlgram-v1-2e-rendu.js
+     3. tdlgram-v1-3d-contenu.js
      4. tdlgram-v1-4d-actions.js
-     Styles : tdlgram-v2-2.css (page CSS dédiée GitHub, jamais de
+     Styles : tdlgram-v2-3.css (page CSS dédiée GitHub, jamais de
      style dans le JS). Polices et icônes fi- déjà chargées par
      le forum. Dépend, pour Firebase, d'EcoCore (eco-core-v2-2) :
      sans lui, repli lecture seule de la coquille.
@@ -158,6 +158,7 @@
       }
     },
 
+
     /* Icônes (classes fi- chargées par le forum). */
     ICONES: {
       marque: 'fi fi-sr-sparkles',
@@ -174,6 +175,8 @@
       coeurPlein: 'fi fi-sr-heart',
       commentaire: 'fi fi-tr-comment-alt',
       envoyer: 'fi fi-tr-paper-plane',
+      crayon: 'fi fi-tr-pencil',
+      corbeille: 'fi fi-tr-trash',
       lieu: 'fi fi-tr-marker',
       gauche: 'fi fi-tr-angle-left',
       droite: 'fi fi-tr-angle-right',
