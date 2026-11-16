@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3e-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3f-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -41,13 +41,16 @@
     let abonnes = 0;
     Object.keys(cache.abonnements).forEach(ps => { if (cache.abonnements[ps][tid]) abonnes++; });
     $('#tdlgStatAbonnes').textContent = String(abonnes);
+    /* Clé = pseudo FA BRUT : l'écriture encode le chemin
+       (encodeURIComponent), mais REST décode %20 et stocke sous
+       le pseudo brut — les lookups se font donc sur la clé brute. */
     $('#tdlgStatAbonnements').textContent = String(cache.moi
-      ? Object.keys(cache.abonnements[encodeURIComponent(cache.moi.pseudo)] || {}).length : 0);
+      ? Object.keys(cache.abonnements[cache.moi.pseudo] || {}).length : 0);
 
     /* état initial du bouton Suivre (visiteur) */
     const btnFollow = $('.tdlg-follow');
     if (btnFollow) {
-      const suivi = !!(cache.moi && (cache.abonnements[encodeURIComponent(cache.moi.pseudo)] || {})[tid]);
+      const suivi = !!(cache.moi && (cache.abonnements[cache.moi.pseudo] || {})[tid]);
       btnFollow.classList.toggle('is-following', suivi);
       btnFollow.textContent = suivi ? T.boutonSuivi : T.boutonSuivre;
     }
@@ -126,7 +129,7 @@
     const moi = cache.moi;
     const tid = TDLG.tidCourant;
     const cq = TDLG.rendu.coquille;
-    const mesSuivis = moi ? Object.keys(cache.abonnements[encodeURIComponent(moi.pseudo)] || {}) : [];
+    const mesSuivis = moi ? Object.keys(cache.abonnements[moi.pseudo] || {}) : [];
     const tous = Object.keys(cache.miroir);
 
     /* stories du rail : mes actives + celles des suivis */
