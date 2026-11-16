@@ -62,9 +62,9 @@
 
     /* Textes du squelette : tout se règle ici, rien dans le code. */
     TEXTES: {
-      marque: 'TDLgram',
+      marque: 'Bayougram',
       marqueSous: 'Le réseau du bayou',
-      navAria: 'Navigation TDLgram',
+      navAria: 'Navigation Bayougram',
       navProfil: 'Profil',
       navFil: 'Fil d’actualité',
       navForum: 'Retour au forum',
@@ -72,7 +72,7 @@
       invite: 'Invité',
       etatProprio: 'Compte du personnage',
       etatVisiteur: 'Visiteur du mur',
-      etatStaff: 'Staff — outils d’édition ouverts',
+      etatStaff: 'Staff',
       compteVerifie: 'Compte vérifié',
       statPubs: 'publications',
       statAbonnes: 'abonnés',
@@ -90,7 +90,7 @@
       titreOngletIdentifications: 'Publications où ce personnage apparaît',
       titreOngletArchives: 'Stories conservées après 72 heures',
       titreSuivis: 'Nouveau chez vos suivis',
-      noteSuivis: 'Publications plus récentes que votre dernière visite de ces murs.',
+      noteSuivis: 'Publications récentes',
       titreSuggestions: 'Comptes à suivre',
       titreTendances: 'Tendances du bayou',
       altPublication: 'Publication',
@@ -111,16 +111,16 @@
       ariaPartager: 'Partager sur le forum',
       outilEditer: 'Modifier',
       outilSupprimer: 'Supprimer',
-      toastSuppression: 'Lien de suppression introuvable — passe par le bouton du post.',
+      toastSuppression: 'Lien de suppression introuvable.',
       badgeNonVue1: '1 non vue',
       badgeNonVues: ' non vues',
       tendanceUne: ' publication',
       tendancePlusieurs: ' publications',
       storyNouveau: 'Nouveau',
       storyVotre: 'Votre story',
-      noteStoryVide: 'Aucune story en ligne — elles expirent après 72 heures.',
-      noteIdentifications: 'Personne ne l’a identifié pour l’instant — la clé IDENTIFIE d’un fragment fait le lien.',
-      noteFilVide: 'Suivez un mur TDLgram depuis son profil : ses publications arriveront ici.',
+      noteStoryVide: 'Aucune story en ligne : elles expirent après 72 heures.',
+      noteIdentifications: 'Aucune identification pour l’instant.',
+      noteFilVide: 'Suivez un mur depuis son profil : ses publications arriveront ici.',
       uneImageSur: ' image sur ',
       plusieursImagesSur: ' images sur ',
       retirerImage: 'Retirer l’image ',
@@ -138,22 +138,22 @@
         ajouter: 'Ajouter',
         legende: 'Légende',
         lieu: 'Lieu',
-        identifie: 'Identifiés — pseudos Forumactif, séparés par des virgules',
+        identifie: 'Personnes identifiés : pseudos Forumactif, séparés par des virgules',
         adressePh: 'Adresse de l’image (https://…)',
         legendePh: 'Racontez votre moment… Les # restent cliquables sur le forum.',
-        lieuPh: 'Ponton des Desrosiers, Cocodrie',
-        identifiePh: 'ex. Ezra Landry, Perles de Cocodrie',
+        lieuPh: 'Lieu de votre publication',
+        identifiePh: 'ex. Alyssa Desrosiers, Perles de Cocodrie',
         post: {
           titre: 'Nouvelle publication',
-          label: 'Images — jusqu’à 4 par publication',
+          label: 'Images',
           plein: 'Maximum : 4 images par publication.',
-          note: 'Le fragment part en texte brut dans un post Forumactif du mur : les # restent les hashtags natifs du forum (cliquables), et le moteur les compte pour les Tendances.'
+          note: 'La publication est automatiquement postée dans un message sur le topic.'
         },
         story: {
           titre: 'Nouvelle story',
           label: 'Image de la story',
           plein: 'Une story ne prend qu’une image.',
-          note: 'Une story expire après 72 heures (date du post Forumactif) puis rejoint l’onglet Archives du mur.'
+          note: 'Une story expire après 72 heures (date du post) puis rejoint l’onglet Archives du mur.'
         }
       }
     },
