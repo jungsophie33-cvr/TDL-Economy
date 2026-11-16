@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3d-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3e-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -176,11 +176,13 @@
     badge.textContent = nonVues === 1 ? T.badgeNonVue1 : nonVues + T.badgeNonVues;
     badge.classList.toggle('tdlg-hidden', nonVues <= 0);
 
-    /* publications du mur courant + des suivis, plus récentes d'abord */
+    /* publications du mur courant + des suivis, plus récentes d'abord.
+       Les stories ne figurent JAMAIS dans le fil : elles vivent dans
+       le rail (tdlg-stories-strip) et l'onglet Archives du mur. */
     const feed = $('#tdlgFeedPosts');
     feed.innerHTML = '';
     const filTids = [tid, ...mesSuivis.filter(t => t !== tid)];
-    const filPosts = filTids.flatMap(tX => postsDu(tX).map(p => ({ ...p, tid: tX })))
+    const filPosts = filTids.flatMap(tX => postsDu(tX).filter(p => p.type !== 'story').map(p => ({ ...p, tid: tX })))
       .sort(parRecent).slice(0, 24);
     filPosts.forEach(p => feed.appendChild(carteFil(p)));
     if (!filPosts.length) {
