@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3c-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3d-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -222,13 +222,20 @@
     const art = document.createElement('article');
     art.className = 'tdlg-feed-post';
     art.dataset.tid = p.tid; art.dataset.pid = p.pid;
+    /* Outils de gestion dans l'en-tête : mur courant uniquement
+       (le lien de suppression se scrape dans le DOM du sujet) et
+       propriétaire du mur ou staff. */
+    const gere = !!(p.tid && p.tid === TDLG.tidCourant && cache.moi &&
+      TDLG.rendu.coquille &&
+      (TDLG.estStaff() || TDLG.rendu.coquille.pseudo === cache.moi.pseudo));
+    const outils = gere ? `<div class="tdlg-post-tools"><button class="tdlg-post-edit" data-edit="${esc(p.pid)}" type="button" aria-label="${esc(T.outilEditer)}" title="${esc(T.outilEditer)}"><i class="${I.crayon}"></i></button><button class="tdlg-post-del" data-delete="${esc(p.pid)}" type="button" aria-label="${esc(T.outilSupprimer)}" title="${esc(T.outilSupprimer)}"><i class="${I.corbeille}"></i></button></div>` : '';
     const multi = p.images.length > 1;
     art.innerHTML = `
-<header class="tdlg-post-head"><img class="tdlg-post-avatar" src="${esc(p.avatar || '')}" alt=""><div><div class="tdlg-post-author">${esc(p.handle)}</div>${p.lieu ? `<div class="tdlg-post-place"><i class="${I.lieu}"></i> ${esc(p.lieu)}</div>` : ''}</div><a class="tdlg-post-more" href="/t${esc(p.tid)}#${esc(p.pid)}" aria-label="${esc(T.ariaVoirForum)}">···</a></header>
+<header class="tdlg-post-head"><img class="tdlg-post-avatar" src="${esc(p.avatar || '')}" alt=""><div><div class="tdlg-post-author">${esc(p.handle)}</div>${p.lieu ? `<div class="tdlg-post-place"><i class="${I.lieu}"></i> ${esc(p.lieu)}</div>` : ''}</div>${outils}</header>
 <div class="tdlg-post-media" data-images="${esc(p.images.join('|'))}" data-idx="0"><img src="${esc(p.images[0])}" alt="">
   ${multi ? `<button class="tdlg-media-arrow tdlg-media-arrow--prev" type="button" aria-label="${esc(T.imagePrecedente)}"><i class="${I.gauche}"></i></button><button class="tdlg-media-arrow tdlg-media-arrow--next" type="button" aria-label="${esc(T.imageSuivante)}"><i class="${I.droite}"></i></button><div class="tdlg-media-dots">${p.images.map(() => '<b></b>').join('')}</div>` : ''}
 </div>
-<div class="tdlg-post-actions"><button class="tdlg-like" data-like data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}" type="button" aria-label="${esc(T.jaime)}"><i class="${I.coeur}"></i></button><button data-focus-comment type="button" aria-label="${esc(T.ariaCommenter)}"><i class="${I.commentaire}"></i></button><a href="/t${esc(p.tid)}#${esc(p.pid)}" aria-label="${esc(T.ariaPartager)}"><i class="${I.envoyer}"></i></a></div>
+<div class="tdlg-post-actions"><button class="tdlg-like" data-like data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}" type="button" aria-label="${esc(T.jaime)}"><i class="${I.coeur}"></i></button><button data-focus-comment type="button" aria-label="${esc(T.ariaCommenter)}"><i class="${I.commentaire}"></i></button></div>
 <div class="tdlg-likes" data-likes data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}"></div>
 <div class="tdlg-caption"></div>
 <div class="tdlg-comment-list" data-comment-list data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}"></div>
