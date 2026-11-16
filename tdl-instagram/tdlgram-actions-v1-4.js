@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4e-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4f-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -135,7 +135,7 @@
   function chargerInteractions() {
     const Eco = window.EcoCore;
     const suivis = cache.moi
-      ? Object.keys((cache.abonnements[encodeURIComponent(cache.moi.pseudo)] || {}))
+      ? Object.keys((cache.abonnements[cache.moi.pseudo] || {}))
       : [];
     const tids = [...new Set([tid, ...suivis])];
     return Promise.all(tids.flatMap(tX => [
@@ -302,8 +302,12 @@
   R.onSuivre = (tidX, bouton) => {
     if (!cache.moi) { R.toast('Connecte-toi pour suivre un mur.'); return; }
     if (!tidX) return;
-    const maBranche = (cache.abonnements[encodeURIComponent(cache.moi.pseudo)] =
-      cache.abonnements[encodeURIComponent(cache.moi.pseudo)] || {});
+    /* Clé locale = pseudo FA BRUT : le chemin d'écriture passe par
+       encodeURIComponent (obligatoire pour l'URL), mais REST décode
+       %20 et range sous la clé brute « Mami Wata ». Chercher
+       « Mami%20Wata » côté lecture = suivi perdu au rechargement. */
+    const maBranche = (cache.abonnements[cache.moi.pseudo] =
+      cache.abonnements[cache.moi.pseudo] || {});
     const deja = !!maBranche[tidX];
     const futur = deja ? null : true;
     if (futur) maBranche[tidX] = true; else delete maBranche[tidX];
