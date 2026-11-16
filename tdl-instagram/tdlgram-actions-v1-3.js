@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4d-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4e-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -165,6 +165,8 @@
         legende: frag.legende,
         lieu: frag.lieu,
         type: frag.type,
+        url: location.pathname.replace(/(\/t\d+)p\d+/, '$1'), /* canonique :
+          slug FA obligatoire (/t95-titre), /t95 seul = 404, sans pagination */
         t: TDLG.epoquePost(post) || Date.now()
       };
       const ancien = branche[pid];
@@ -279,6 +281,23 @@
       .catch(e => R.toast(TDLG.refusMessage(e)));
   };
 
+  /* ===== URL D'UN MUR : le slug FA est obligatoire ===== */
+  /* Forumactif renvoie 404 sur /t<tid> nu ; il faut /t<tid>-<slug>.
+     Mur courant : l'URL exacte vient de la page (le lien « surveiller
+     le sujet » de FA, caché mais dans le DOM, la porte toute seule).
+     Autre mur : champ url du miroir (posé par la synchronisation),
+     repli /t<tid>- accepté par FA. */
+  TDLG.urlMur = (tidX) => {
+    if (tidX && tidX === tid) {
+      const w = $$('a[href*="watch=topic"]')[0];
+      return ((w ? (w.getAttribute('href') || '') : location.pathname)
+        .split('?')[0]) || '/t' + tidX + '-';
+    }
+    const b = cache.miroir[tidX] || {};
+    const un = Object.keys(b)[0];
+    return (un && b[un] && b[un].url) || '/t' + tidX + '-';
+  };
+
   /* ===== SUIVRE : ?watch=topic Forumactif + abonnements Firebase ===== */
   R.onSuivre = (tidX, bouton) => {
     if (!cache.moi) { R.toast('Connecte-toi pour suivre un mur.'); return; }
@@ -292,7 +311,7 @@
     window.EcoCore.writeField('abonnements/' + encodeURIComponent(cache.moi.pseudo) + '/' + tidX, futur)
       .then(() => {
         if (futur) {
-          window.open('/t' + tidX + '?watch=topic', '_blank'); /* notifications FA natives */
+          window.open(TDLG.urlMur(tidX) + '?watch=topic', '_blank'); /* notifications FA natives */
           R.toast('Mur suivi : notifications Forumactif activées.');
         } else {
           R.toast('Plus suivi.');
