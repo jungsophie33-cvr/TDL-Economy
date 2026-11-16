@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1f-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1g-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -30,11 +30,11 @@
      tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1f-commun.js
-     2. tdlgram-v1-2c-rendu.js
+     1. tdlgram-v1-1g-commun.js
+     2. tdlgram-v1-2d-rendu.js
      3. tdlgram-v1-3c-contenu.js
-     4. tdlgram-v1-4c-actions.js
-     Styles : tdlgram-v2-1.css (page CSS dédiée GitHub, jamais de
+     4. tdlgram-v1-4d-actions.js
+     Styles : tdlgram-v2-2.css (page CSS dédiée GitHub, jamais de
      style dans le JS). Polices et icônes fi- déjà chargées par
      le forum. Dépend, pour Firebase, d'EcoCore (eco-core-v2-2) :
      sans lui, repli lecture seule de la coquille.
@@ -109,6 +109,9 @@
       ariaVoirForum: 'Voir sur le forum',
       ariaCommenter: 'Commenter',
       ariaPartager: 'Partager sur le forum',
+      outilEditer: 'Modifier',
+      outilSupprimer: 'Supprimer',
+      toastSuppression: 'Lien de suppression introuvable — passe par le bouton du post.',
       badgeNonVue1: '1 non vue',
       badgeNonVues: ' non vues',
       tendanceUne: ' publication',
@@ -198,7 +201,11 @@
       const p = ((window._userdata && window._userdata.username) || '').trim();
       const id = parseInt((window._userdata && window._userdata.user_id) || 0, 10);
       if (!p || p.toLowerCase() === 'anonymous' || id <= 0) return null;
-      return { pseudo: p, id };
+      /* _userdata.avatar est une balise <img> HTML : on n'en garde
+         que l'URL (avatar du navigateur, pas celui du mur visité). */
+      const av = ((window._userdata && window._userdata.avatar) || '')
+        .match(/src=['"]([^'"]+)['"]/);
+      return { pseudo: p, id, avatar: av ? av[1] : '' };
     } catch (e) { return null; }
   })();
 
