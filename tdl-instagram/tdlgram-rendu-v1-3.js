@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2d-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2e-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -80,7 +80,7 @@
         <div class="tdlg-identity-copy">
           <div class="tdlg-handle-line"><h2 class="tdlg-handle">${esc(cq.handle)}</h2><i class="${I.verifie} tdlg-verified" title="${esc(T.compteVerifie)}"></i></div>
           <div class="tdlg-real-name">${esc(cq.nom || cq.pseudo || '')}</div>
-          <div class="tdlg-stats"><span><b id="tdlgStatPubs">0</b> ${esc(T.statPubs)}</span><span><b id="tdlgStatAbonnes">0</b> ${esc(T.statAbonnes)}</span><span><b id="tdlgStatAbonnements">0</b> ${esc(T.statAbonnements)}</span></div>
+          <div class="tdlg-stats"><div class="tdlg-stat"><b id="tdlgStatPubs">0</b><span>${esc(T.statPubs)}</span></div><div class="tdlg-stat"><b id="tdlgStatAbonnes">0</b><span>${esc(T.statAbonnes)}</span></div><div class="tdlg-stat"><b id="tdlgStatAbonnements">0</b><span>${esc(T.statAbonnements)}</span></div></div>
           <div class="tdlg-bio" id="tdlgBio"></div>
         </div>
         <div class="tdlg-action-column"><div class="tdlg-profile-tools">
@@ -130,8 +130,7 @@
     <div class="tdlg-modal-media-dots"></div>
   </div>
   <div class="tdlg-modal-info">
-    <div class="tdlg-modal-title" id="tdlgModalTitle"></div>
-    <div class="tdlg-modal-tools tdlg-hidden" id="tdlgModalTools"><button class="tdlg-btn tdlg-btn--mini" id="tdlgEditBtn" type="button">${esc(T.outilEditer)}</button><button class="tdlg-btn tdlg-btn--mini" id="tdlgDeleteBtn" type="button" hidden>${esc(T.outilSupprimer)}</button></div>
+    <div class="tdlg-modal-head"><div class="tdlg-modal-title" id="tdlgModalTitle"></div><div class="tdlg-modal-tools tdlg-hidden" id="tdlgModalTools"><button class="tdlg-icon-btn" id="tdlgEditBtn" type="button" aria-label="${esc(T.outilEditer)}" title="${esc(T.outilEditer)}"><i class="${I.crayon}"></i></button><button class="tdlg-icon-btn" id="tdlgDeleteBtn" type="button" aria-label="${esc(T.outilSupprimer)}" title="${esc(T.outilSupprimer)}" hidden><i class="${I.corbeille}"></i></button></div></div>
     <div class="tdlg-modal-caption" id="tdlgModalCaption"></div>
     <div class="tdlg-modal-comments" id="tdlgModalComments" data-comment-list data-tid="" data-pid=""></div>
     <form class="tdlg-comment-form" id="tdlgModalCommentForm" data-tid="" data-pid=""><input id="tdlgModalCommentInput" type="text" placeholder="${esc(T.commentairePh)}" aria-label="${esc(T.commentairePh)}"><button type="submit">${esc(T.publier)}</button></form>
@@ -393,6 +392,13 @@
       if (cible.closest('[data-view]')) { montrerVue(cible.closest('[data-view]').dataset.view); return; }
       if (cible.closest('.tdlg-tab')) { montrerOnglet(cible.closest('.tdlg-tab').dataset.tab); return; }
       if (cible.closest('[data-close]')) { fermerModal(cible.closest('[data-close]').dataset.close); return; }
+      const gerer = cible.closest('[data-edit],[data-delete]');
+      if (gerer) {
+        const pidOutil = gerer.dataset.edit || gerer.dataset.delete;
+        if (gerer.dataset.edit) window.location.href = '/post?mode=editpost&p=' + pidOutil;
+        else R.onSupprimer?.(TDLG.tidCourant, pidOutil, lienSuppression(pidOutil) || '');
+        return;
+      }
       if (cible.closest('#tdlgEditBtn')) {
         if (modalPid) window.location.href = '/post?mode=editpost&p=' + modalPid;
         return;
