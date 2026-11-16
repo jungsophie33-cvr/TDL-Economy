@@ -62,9 +62,9 @@
 
     /* Textes du squelette : tout se règle ici, rien dans le code. */
     TEXTES: {
-      marque: 'Bayougram',
+      marque: 'TDLgram',
       marqueSous: 'Le réseau du bayou',
-      navAria: 'Navigation Bayougram',
+      navAria: 'Navigation TDLgram',
       navProfil: 'Profil',
       navFil: 'Fil d’actualité',
       boutonNouveau: 'Nouvelle publication',
@@ -87,8 +87,8 @@
       titreOngletPublications: 'Moments partagés par ',
       titreOngletIdentifications: 'Publications où ce personnage apparaît',
       titreOngletArchives: 'Stories conservées après 72 heures',
-      titreSuivis: 'Nouveau dans vos abonnements',
-      noteSuivis: 'Publications récentes depuis votre dernière visite.',
+      titreSuivis: 'Nouveau chez vos suivis',
+      noteSuivis: 'Publications plus récentes que votre dernière visite de ces murs.',
       titreSuggestions: 'Comptes à suivre',
       titreTendances: 'Tendances du bayou',
       altPublication: 'Publication',
@@ -113,9 +113,9 @@
       tendancePlusieurs: ' publications',
       storyNouveau: 'Nouveau',
       storyVotre: 'Votre story',
-      noteStoryVide: 'Aucune story en ligne (elles expirent après 72 heures).',
-      noteIdentifications: 'Personne ne l’a identifié pour l’instant.',
-      noteFilVide: 'Suivez un mur Bayougram depuis son profil : ses publications arriveront ici.',
+      noteStoryVide: 'Aucune story en ligne — elles expirent après 72 heures.',
+      noteIdentifications: 'Personne ne l’a identifié pour l’instant — la clé IDENTIFIE d’un fragment fait le lien.',
+      noteFilVide: 'Suivez un mur TDLgram depuis son profil : ses publications arriveront ici.',
       uneImageSur: ' image sur ',
       plusieursImagesSur: ' images sur ',
       retirerImage: 'Retirer l’image ',
@@ -133,16 +133,16 @@
         ajouter: 'Ajouter',
         legende: 'Légende',
         lieu: 'Lieu',
-        identifie: 'Personnes identifiées : pseudos Forumactif, séparés par des virgules',
+        identifie: 'Identifiés — pseudos Forumactif, séparés par des virgules',
         adressePh: 'Adresse de l’image (https://…)',
-        legendePh: 'Racontez votre moment… Vous pouvez ajouter autant de # que vous voulez.',
-        lieuPh: 'Lieu ici',
+        legendePh: 'Racontez votre moment… Les # restent cliquables sur le forum.',
+        lieuPh: 'Ponton des Desrosiers, Cocodrie',
         identifiePh: 'ex. Ezra Landry, Perles de Cocodrie',
         post: {
           titre: 'Nouvelle publication',
-          label: 'Images',
+          label: 'Images — jusqu’à 4 par publication',
           plein: 'Maximum : 4 images par publication.',
-          note: 'Les # restent les hashtags natifs du forum.'
+          note: 'Le fragment part en texte brut dans un post Forumactif du mur : les # restent les hashtags natifs du forum (cliquables), et le moteur les compte pour les Tendances.'
         },
         story: {
           titre: 'Nouvelle story',
