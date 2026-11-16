@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4c-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4d-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -314,6 +314,20 @@
 
   /* ===== COMPOSER ===== */
   R.onPublier = publierFragment;
+
+  /* ===== SUPPRESSION : miroir purgé, puis post Forumactif ===== */
+  /* Le lien vient du bouton « supprimer » du post lui-même (jeton
+     tid de session inclus) — fourni par le fichier 2. Le miroir
+     Firebase est effacé au mieux : propriétaire et staff y sont
+     autorisés par les règles, et l'échec ne bloque pas la
+     suppression réelle. */
+  R.onSupprimer = (tidX, pid, href) => {
+    if (!tidX || !pid) return;
+    if (!href) { R.toast(TDLG.CONFIG.TEXTES.toastSuppression); return; }
+    window.EcoCore.writeField('tdlgram_posts/' + tidX + '/' + pid, null)
+      .catch(() => {});
+    window.location.href = href;
+  };
 
   /* ===== DÉMARRAGE ===== */
   if (document.readyState === 'loading') {
