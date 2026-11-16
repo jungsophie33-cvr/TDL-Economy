@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3f-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3g-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -154,27 +154,35 @@
         });
     });
 
-    /* rail « non vues » des murs suivis */
+    /* rail « Nouveau chez vos suivis » : uniquement les PUBLICATIONS
+       (jamais les stories) postées depuis la dernière vue du mur.
+       Une vignette = une publication, la plus récente d'abord.
+       Mur jamais visité : seule sa publication la plus récente
+       compte comme non vue — pas de flot au premier passage. */
     const box = $('#tdlgSuivisBox');
     const row = $('#tdlgSuivisRow');
     row.innerHTML = '';
     let nonVues = 0;
-    mesSuivis.forEach(tX => {
-      const dernier = postsDu(tX).sort(parRecent)[0];
-      if (!dernier) return;
+    const fraiches = [];
+    mesSuivis.filter(tX => tX !== tid).forEach(tX => {
       let vue = 0;
-      try { vue = parseInt(localStorage.getItem(CONFIG.LS_VUE + tX) || '0', 10); } catch (e) {}
-      const frais = dernier.t > vue;
-      if (frais) nonVues++;
+      try { vue = parseInt(localStorage.getItem(CONFIG.LS_VUE + tX) || '0', 10) || 0; } catch (e) {}
+      let neuves = postsDu(tX).sort(parRecent).filter(p => p.type !== 'story' && p.t > vue);
+      if (!vue && neuves.length) neuves = neuves.slice(0, 1);
+      nonVues += neuves.length;
+      neuves.forEach(p => fraiches.push({ ...p, tid: tX }));
+    });
+    fraiches.sort(parRecent).slice(0, 10).forEach(p => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tdlg-suivi-card';
-      b.dataset.aller = tX;
-      b.innerHTML = `${frais ? '<span class="tdlg-suivi-dot"></span>' : ''}<img src="${esc(dernier.images[0])}" alt="">` +
-        `<span class="tdlg-suivi-meta"><img src="${esc(dernier.avatar || '')}" alt=""><span class="x"><b>${esc(dernier.handle)}</b><span>${esc(depuis(dernier.t))}</span></span></span>`;
+      b.dataset.tid = p.tid; b.dataset.pid = p.pid;
+      b.innerHTML = `<span class="tdlg-suivi-dot"></span><img src="${esc(p.images[0])}" alt="">` +
+        `<span class="tdlg-suivi-meta"><img src="${esc(p.avatar || '')}" alt=""><span class="x"><b>${esc(p.handle)}</b><span>${esc(depuis(p.t))}</span></span></span>`;
       row.appendChild(b);
     });
-    box.classList.toggle('tdlg-hidden', !mesSuivis.length);
+    /* tout est vu : le bloc entier disparaît du fil */
+    box.classList.toggle('tdlg-hidden', !nonVues);
     const badge = $('#tdlgSuivisBadge');
     badge.textContent = nonVues === 1 ? T.badgeNonVue1 : nonVues + T.badgeNonVues;
     badge.classList.toggle('tdlg-hidden', nonVues <= 0);
