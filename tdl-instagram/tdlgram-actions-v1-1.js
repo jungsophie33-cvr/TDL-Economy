@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4b-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4c-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -17,9 +17,11 @@
      Un simple visiteur ne synchronise rien : lecture seule.
    - ENVOI SILENCIEUX : le composer publie le fragment par le
      form #quick_reply natif (champs cachés recopiés), puis
-     la page du mur se recharge — le fragment fraîchement
-     posté est synchronisé au passage. Repli : fragment copié
-     dans le presse-papier + page Répondre.
+     la page du mur se recharge — la synchronisation qui suit
+     place l'entrée dans le cache local ET re-rend le mur :
+     la publication est visible dès ce rechargement, sans un
+     second F5. Repli : fragment copié dans le presse-papier +
+     page Répondre.
    - Suivre = ?watch=topic Forumactif (notifications natives,
      nouvel onglet) + abonnements/<pseudo>/<tid> = true.
    ============================================================ */
@@ -149,7 +151,8 @@
   /* ===== SYNCHRONISATION DU MIROIR (propriétaire seulement) ===== */
   function synchroniser(posts) {
     const Eco = window.EcoCore;
-    const existants = cache.miroir[tid] || {};
+    const branche = cache.miroir[tid] = cache.miroir[tid] || {};
+    let changements = 0;
     posts.forEach(post => {
       const frag = TDLG.parseFragment(TDLG.textePost(post));
       const pid = TDLG.pidPost(post);
@@ -164,9 +167,13 @@
         type: frag.type,
         t: TDLG.epoquePost(post) || Date.now()
       };
-      const ancien = existants[pid];
+      const ancien = branche[pid];
       const inchange = ancien && JSON.stringify(ancien) === JSON.stringify(entree);
       if (!inchange) {
+        /* le cache local est mis à jour avec l'entrée : la publication
+           apparaît sur le mur et dans le fil SANS rechargement */
+        branche[pid] = entree;
+        changements++;
         Eco.writeField('tdlgram_posts/' + tid + '/' + pid, entree)
           .then(() => { TDLG.log('miroir synchronisé', pid); })
           .catch(e => R.toast(TDLG.refusMessage(e)));
@@ -177,6 +184,7 @@
           .catch(() => {}); /* existe déjà : la règle refuse, c'est voulu */
       });
     });
+    if (changements) { R.rendreProfil?.(); R.rendreFil?.(); }
   }
 
   /* ===== ENVOI SILENCIEUX (emprunté à chat-whatsapp-v11) ===== */
