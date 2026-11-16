@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1c-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -30,7 +30,7 @@
      tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1-commun.js
+     1. tdlgram-v1-1c-commun.js
      2. tdlgram-v1-2-rendu.js
      3. tdlgram-v1-3-contenu.js
      4. tdlgram-v1-4-actions.js
@@ -58,7 +58,7 @@
     STORY_H: 72,                   // expiration des stories en heures
     LS_SHELL: 'tdlgShell_',        // cache de la coquille par tid
     LS_VUE: 'tdlgVue_',            // dernière visite d'un mur, par tid
-    DEBUG: true,                  // true : logs console [TDLG]
+    DEBUG: false,                  // true : logs console [TDLG]
 
     /* Textes du squelette : tout se règle ici, rien dans le code. */
     TEXTES: {
@@ -227,15 +227,26 @@
 
   /* ===== LECTURE D'UN POST ===== */
 
-  /* Texte nettoyé : sans compteur de mots, citations, signature */
+  /* Texte nettoyé : sans compteur de mots, citations, signature.
+     Normalisation Sophie-OS (sos-core) : Forumactif transforme les
+     retours à la ligne en <br> ou en blocs <p>, et textContent les
+     aplatit sans aucun \n. On ramène tout à des \n sur le HTML
+     avant lecture : « CLE: valeur » reste lisible ligne par ligne. */
   function textePost(post) {
     const src = $('.sj-post-msg', post);
     if (!src) return '';
     const c = src.cloneNode(true);
     $$('.post-wordcount, blockquote, .signature_div, .sj-awards, .award_more', c)
       .forEach(el => el.remove());
+    const html = c.innerHTML
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br[^>]*>/gi, '\n')
+      .replace(/<\/(p|div|li)\s*>/gi, '\n')
+      .replace(/<(p|div|li)[^>]*>/gi, '');
+    const holder = document.createElement('div');
+    holder.innerHTML = html;
     /* 160 = espace insécable, sans séquence d'échappement */
-    return (c.textContent || '').split(String.fromCharCode(160)).join(' ');
+    return (holder.textContent || '').split(String.fromCharCode(160)).join(' ');
   }
 
   /* id numérique du post : ancre de sa date (#1234) */
