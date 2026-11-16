@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2e-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2f-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -379,7 +379,7 @@
         const p = document.createElement('p');
         const b = document.createElement('b');
         b.textContent = cm.pseudo || '';
-        p.append(b, document.createTextNode(' ' + (cm.texte || '')));
+        p.append(b, document.createTextNode(' ' + TDLG.texteEmojis(cm.texte || '')));
         liste.appendChild(p);
       });
     });
@@ -444,7 +444,8 @@
         return;
       }
       if (cible.closest('[data-aller]')) {
-        window.location.href = '/t' + cible.closest('[data-aller]').dataset.aller;
+        const tX = cible.closest('[data-aller]').dataset.aller;
+        window.location.href = TDLG.urlMur ? TDLG.urlMur(tX) : '/t' + tX + '-';
         return;
       }
     });
