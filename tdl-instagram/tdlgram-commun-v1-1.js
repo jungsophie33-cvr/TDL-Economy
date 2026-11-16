@@ -58,7 +58,7 @@
     STORY_H: 72,                   // expiration des stories en heures
     LS_SHELL: 'tdlgShell_',        // cache de la coquille par tid
     LS_VUE: 'tdlgVue_',            // dernière visite d'un mur, par tid
-    DEBUG: false,                  // true : logs console [TDLG]
+    DEBUG: true,                  // true : logs console [TDLG]
 
     /* Textes du squelette : tout se règle ici, rien dans le code. */
     TEXTES: {
