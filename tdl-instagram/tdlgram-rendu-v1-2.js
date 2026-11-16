@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2c-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2d-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -69,7 +69,7 @@
     <a class="tdlg-nav-btn" href="/"><i class="${I.forum}"></i><span>${esc(T.navForum)}</span></a>
   </nav>
   <button class="tdlg-new-post ${proprio ? '' : 'tdlg-hidden'}" id="tdlgNewPost" type="button"><i class="${I.plus}"></i><span>${esc(T.boutonNouveau)}</span></button>
-  <div class="tdlg-side-bottom"><img src="${esc(cq.avatar || '')}" alt=""><div><b>${esc(moi ? moi.pseudo : T.invite)}</b><span id="tdlgSideRole">${esc(proprio ? T.etatProprio : T.etatVisiteur)}</span></div></div>
+  <div class="tdlg-side-bottom">${moi && moi.avatar ? `<img src="${esc(moi.avatar)}" alt="">` : ''}<div><b>${esc(moi ? moi.pseudo : T.invite)}</b><span id="tdlgSideRole">${esc(proprio ? T.etatProprio : T.etatVisiteur)}</span></div></div>
 </aside>
 <main class="tdlg-workspace"><div class="tdlg-page">
   <section id="tdlgProfileView" class="tdlg-profile-shell">
@@ -131,6 +131,7 @@
   </div>
   <div class="tdlg-modal-info">
     <div class="tdlg-modal-title" id="tdlgModalTitle"></div>
+    <div class="tdlg-modal-tools tdlg-hidden" id="tdlgModalTools"><button class="tdlg-btn tdlg-btn--mini" id="tdlgEditBtn" type="button">${esc(T.outilEditer)}</button><button class="tdlg-btn tdlg-btn--mini" id="tdlgDeleteBtn" type="button" hidden>${esc(T.outilSupprimer)}</button></div>
     <div class="tdlg-modal-caption" id="tdlgModalCaption"></div>
     <div class="tdlg-modal-comments" id="tdlgModalComments" data-comment-list data-tid="" data-pid=""></div>
     <form class="tdlg-comment-form" id="tdlgModalCommentForm" data-tid="" data-pid=""><input id="tdlgModalCommentInput" type="text" placeholder="${esc(T.commentairePh)}" aria-label="${esc(T.commentairePh)}"><button type="submit">${esc(T.publier)}</button></form>
@@ -272,7 +273,35 @@
   }
 
   /* ---------- Fenêtre publication / story ---------- */
-  let mediaImages = [], mediaIndex = 0;
+  let mediaImages = [], mediaIndex = 0, modalPid = '';
+  /* Lien « supprimer » du post Forumactif : dans .sj-post-btn,
+     le <a> qui entoure le texte « supprimer » porte déjà le jeton
+     tid de session. Aucun lien reconstruit à la main. */
+  function lienSuppression(pid) {
+    const post = $$('.sj-postmsg').filter(p => TDLG.pidPost(p) === pid)[0];
+    if (!post) return null;
+    const zone = $('.sj-post-btn', post) ||
+      (post.parentElement ? $('.sj-post-btn', post.parentElement) : null);
+    if (!zone) return null;
+    const a = $$('a', zone).filter(x => /supprimer/i.test((x.textContent || '').trim()))[0];
+    return a ? a.getAttribute('href') : null;
+  }
+  /* Outils réservés au propriétaire du mur ou au staff, sur le mur
+     courant uniquement (aucun fetch inter-topics). L'aperçu du
+     composer (pid vide) ne les affiche jamais. */
+  function majOutils(tidX, pid) {
+    const outils = $('#tdlgModalTools');
+    if (!outils) return;
+    const gestionnaire = !!(cache.moi && cq.pseudo &&
+      (TDLG.estStaff() || cache.moi.pseudo === cq.pseudo));
+    const ok = !!(pid && tidX && tidX === TDLG.tidCourant && gestionnaire);
+    outils.classList.toggle('tdlg-hidden', !ok);
+    const sup = $('#tdlgDeleteBtn');
+    if (!ok || !sup) return;
+    const lien = lienSuppression(pid);
+    sup.hidden = !lien;
+    if (lien) sup.dataset.href = lien;
+  }
   function ouvrirEntree(p, tidX, pid) {
     mediaImages = p.images.slice(); mediaIndex = 0;
     const img = $('#tdlgModalImg');
@@ -310,6 +339,8 @@
     $('#tdlgModalLikeCount').dataset.tid = tidX || '';
     $('#tdlgModalLikeCount').dataset.pid = pid || '';
     $('#tdlgModalCommentInput').value = '';
+    modalPid = pid || '';
+    majOutils(tidX, pid);
     R.rafraichirInteractions();
     ouvrirModal('tdlgPostModal');
   }
@@ -362,6 +393,14 @@
       if (cible.closest('[data-view]')) { montrerVue(cible.closest('[data-view]').dataset.view); return; }
       if (cible.closest('.tdlg-tab')) { montrerOnglet(cible.closest('.tdlg-tab').dataset.tab); return; }
       if (cible.closest('[data-close]')) { fermerModal(cible.closest('[data-close]').dataset.close); return; }
+      if (cible.closest('#tdlgEditBtn')) {
+        if (modalPid) window.location.href = '/post?mode=editpost&p=' + modalPid;
+        return;
+      }
+      if (cible.closest('#tdlgDeleteBtn')) {
+        if (modalPid) R.onSupprimer?.(TDLG.tidCourant, modalPid, $('#tdlgDeleteBtn').dataset.href || '');
+        return;
+      }
       if (cible.closest('#tdlgNewPost, #tdlgPublishProfile')) { R.ouvrirComposer?.('post'); return; }
       if (cible.closest('.tdlg-story--add')) { R.ouvrirComposer?.('story'); return; }
       const fleche = cible.closest('.tdlg-media-arrow');
