@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2b-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -15,7 +15,9 @@
    composer) sont dans tdlgram-v1-3-contenu.js, qui se branche
    ici : TDLG.contenu.brancher() est appelé au montage, et
    R.rendreProfil / R.rendreFil / R.ouvrirComposer viennent du
-   fichier 3. Rien de tout ça ne touche Firebase : le fichier 4
+   fichier 3. Le staff reçoit les outils du propriétaire via
+   R.actualiserRole (appelé par le fichier 4 à l'arrivée
+   d'eco-core). Rien de tout ça ne touche Firebase : le fichier 4
    (actions) remplit TDLG.cache puis déclenche le rendu.
 
    Rendu sûr : jamais d'innerHTML avec du texte de membre —
@@ -66,7 +68,7 @@
     <button class="tdlg-nav-btn" data-view="feed" type="button"><i class="${I.fil}"></i><span>${esc(T.navFil)}</span></button>
   </nav>
   <button class="tdlg-new-post ${proprio ? '' : 'tdlg-hidden'}" id="tdlgNewPost" type="button"><i class="${I.plus}"></i><span>${esc(T.boutonNouveau)}</span></button>
-  <div class="tdlg-side-bottom"><img src="${esc(cq.avatar || '')}" alt=""><div><b>${esc(moi ? moi.pseudo : T.invite)}</b>${proprio ? esc(T.etatProprio) : esc(T.etatVisiteur)}</div></div>
+  <div class="tdlg-side-bottom"><img src="${esc(cq.avatar || '')}" alt=""><div><b>${esc(moi ? moi.pseudo : T.invite)}</b><span id="tdlgSideRole">${esc(proprio ? T.etatProprio : T.etatVisiteur)}</span></div></div>
 </aside>
 <main class="tdlg-workspace"><div class="tdlg-page">
   <section id="tdlgProfileView" class="tdlg-profile-shell">
@@ -174,6 +176,29 @@
     cabler();
     attacherReplis();
     TDLG.contenu?.brancher?.();
+  };
+
+  /* ---------- Rôle staff : outils du propriétaire dévoilés ---------- */
+  /* Appelé par le fichier 4 quand eco-core est prêt : la liste
+     ADMIN_USERS est alors chargée. Le staff obtient les mêmes
+     outils que le propriétaire, quel que soit le pseudo du mur. */
+  R.actualiserRole = () => {
+    if (!TDLG.estStaff()) return;
+    $('#tdlgNewPost', racine)?.classList.remove('tdlg-hidden');
+    const proprio = !!(cache.moi && cq.pseudo && cache.moi.pseudo === cq.pseudo);
+    const role = $('#tdlgSideRole', racine);
+    if (role && !proprio) role.textContent = T.etatStaff;
+    if (!proprio && !$('#tdlgStaffEdit', racine)) {
+      const outils = $('.tdlg-profile-tools', racine);
+      if (outils) {
+        const a = document.createElement('a');
+        a.className = 'tdlg-btn';
+        a.id = 'tdlgStaffEdit';
+        a.href = '/post?mode=editpost&p=' + (pid1 || '');
+        a.innerHTML = `<i class="${I.reglages}"></i>&nbsp; ${esc(T.boutonModifier)}`;
+        outils.appendChild(a);
+      }
+    }
   };
 
   /* ---------- Vues et onglets ---------- */
