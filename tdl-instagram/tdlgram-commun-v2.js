@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1c-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1d-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -30,11 +30,11 @@
      tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1c-commun.js
-     2. tdlgram-v1-2-rendu.js
-     3. tdlgram-v1-3-contenu.js
-     4. tdlgram-v1-4-actions.js
-     Styles : tdlgram-v1.css (page CSS dédiée GitHub, jamais de
+     1. tdlgram-v1-1d-commun.js
+     2. tdlgram-v1-2b-rendu.js
+     3. tdlgram-v1-3b-contenu.js
+     4. tdlgram-v1-4b-actions.js
+     Styles : tdlgram-v2.css (page CSS dédiée GitHub, jamais de
      style dans le JS). Polices et icônes fi- déjà chargées par
      le forum. Dépend, pour Firebase, d'EcoCore (eco-core-v2-2) :
      sans lui, repli lecture seule de la coquille.
@@ -71,6 +71,7 @@
       invite: 'Invité',
       etatProprio: 'Compte du personnage',
       etatVisiteur: 'Visiteur du mur',
+      etatStaff: 'Staff — outils d’édition ouverts',
       compteVerifie: 'Compte vérifié',
       statPubs: 'publications',
       statAbonnes: 'abonnés',
@@ -198,6 +199,17 @@
       return { pseudo: p, id };
     } catch (e) { return null; }
   })();
+
+  /* Staff : côté client, la liste de référence est EcoCore.ADMIN_USERS
+     (même source que les autres moteurs du forum). Côté serveur, les
+     règles Firebase tranchent sur le claim tdl_niveau — le client ne
+     fait que dévoiler les outils. À appeler APRÈS le chargement
+     d'eco-core, jamais au chargement du fichier. */
+  function estStaff() {
+    const eco = window.EcoCore;
+    return !!(TDLG.MOI && eco && eco.ADMIN_USERS &&
+      eco.ADMIN_USERS.indexOf(TDLG.MOI.pseudo) !== -1);
+  }
 
   /* ===== PAGE ===== */
   function topicId() {
@@ -451,4 +463,5 @@
   TDLG.noeudTexteTags = noeudTexteTags; TDLG.postsDu = postsDu;
   TDLG.parRecent = parRecent; TDLG.expiree = expiree; TDLG.nbLikes = nbLikes;
   TDLG.attendreEcoCore = attendreEcoCore; TDLG.refusMessage = refusMessage;
+  TDLG.estStaff = estStaff;
 })();
