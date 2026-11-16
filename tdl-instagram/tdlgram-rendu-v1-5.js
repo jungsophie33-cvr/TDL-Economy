@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2f-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2g-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -425,6 +425,17 @@
       }
       const tuilleClic = cible.closest('.tdlg-tile[data-pid], .tdlg-story[data-pid]');
       if (tuilleClic) { R.ouvrirPost(tuilleClic.dataset.tid, tuilleClic.dataset.pid); return; }
+      /* Vignette « Nouveau chez vos suivis » : la publication
+         s'ouvre dans la fenêtre (aucune navigation vers le topic),
+         et le mur est marqué vu à hauteur de maintenant — au
+         re-rendu la vignette quitte le rail. */
+      const suiviClic = cible.closest('.tdlg-suivi-card[data-pid]');
+      if (suiviClic) {
+        try { localStorage.setItem(CONFIG.LS_VUE + suiviClic.dataset.tid, String(Date.now())); } catch (e) {}
+        R.ouvrirPost(suiviClic.dataset.tid, suiviClic.dataset.pid);
+        R.rendreFil?.();
+        return;
+      }
       if (cible.closest('[data-like]')) {
         const b = cible.closest('[data-like]');
         R.onAimer?.(b.dataset.tid, b.dataset.pid);
