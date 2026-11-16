@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2b-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2c-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -66,6 +66,7 @@
   <nav class="tdlg-nav" aria-label="${esc(T.navAria)}">
     <button class="tdlg-nav-btn is-active" data-view="profile" type="button"><i class="${I.profil}"></i><span>${esc(T.navProfil)}</span></button>
     <button class="tdlg-nav-btn" data-view="feed" type="button"><i class="${I.fil}"></i><span>${esc(T.navFil)}</span></button>
+    <a class="tdlg-nav-btn" href="/"><i class="${I.forum}"></i><span>${esc(T.navForum)}</span></a>
   </nav>
   <button class="tdlg-new-post ${proprio ? '' : 'tdlg-hidden'}" id="tdlgNewPost" type="button"><i class="${I.plus}"></i><span>${esc(T.boutonNouveau)}</span></button>
   <div class="tdlg-side-bottom"><img src="${esc(cq.avatar || '')}" alt=""><div><b>${esc(moi ? moi.pseudo : T.invite)}</b><span id="tdlgSideRole">${esc(proprio ? T.etatProprio : T.etatVisiteur)}</span></div></div>
