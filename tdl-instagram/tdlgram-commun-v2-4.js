@@ -1,47 +1,31 @@
 /* ============================================================
-   tdlgram-v1-1h-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1i-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
    Source de vérité : les posts Forumactif du topic.
-     - Coquille (premier post) :
-         === INSTA ===
-         PSEUDO: handle instagram (ex. alyssa.desrosiers)
-         NOM: nom affiché
-         BIO: texte multi-lignes (continuations admises)
-         AVATAR: url de l'image
-         COUVERTURE: url (optionnelle, repli --bgprof du forum)
-     - Fragment photo (une publication, IMAGE répétée = carrousel) :
-         === FRAGMENT: PHOTO ===
-         IMAGE: url
-         LEGENDE: texte
-         LIEU: texte (optionnel)
-         IDENTIFIE: pseudo FA (optionnel, répétable)
-     - Fragment story (expire après 72 h, puis onglet Archives) :
-         === FRAGMENT: STORY ===
-         IMAGE: url
-         LEGENDE: texte courte
+   - Coquille (1er post) : === INSTA === puis PSEUDO (handle,
+     requis), NOM, BIO (multi-lignes), AVATAR, COUVERTURE.
+   - Fragment : === FRAGMENT: PHOTO|STORY === puis IMAGE (répétée
+     = carrousel), LEGENDE (répétée = multi-lignes), LIEU (photo
+     seulement), IDENTIFIE (pseudo FA, répétable). Story : expire
+     après 72 h puis rejoint l'onglet Archives du mur.
 
    Firebase (règles dédiées, canvas database-rules) :
      reactions/<tid>/<pid>/<pseudo>   j'aime (nœud WhatsApp existant)
      commentaires/<tid>/<pid>/<cle>   { pseudo, texte, t }
-     identifications/<cible>/<cle>    { par, tid, pid, img }
-     abonnements/<pseudo>/<tid>       true
-     tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
+     identifications/<cible>/<cle>     { par, tid, pid, img }
+     abonnements/<pseudo>/<tid>        true
+     tdlgram_posts/<tid>/<pid>         miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1h-commun.js
-     2. tdlgram-v1-2e-rendu.js
-     3. tdlgram-v1-3d-contenu.js
-     4. tdlgram-v1-4d-actions.js
-     Styles : tdlgram-v2-3.css (page CSS dédiée GitHub, jamais de
-     style dans le JS). Polices et icônes fi- déjà chargées par
-     le forum. Dépend, pour Firebase, d'EcoCore (eco-core-v2-2) :
-     sans lui, repli lecture seule de la coquille.
-
-   Les topics TDLgram ne doivent PAS vivre dans le forum
-   WhatsApp (f2-whatsapp) : les deux moteurs se disputeraient
-   les mêmes posts sj-.
+     1. tdlgram-v1-1i-commun.js   2. tdlgram-v1-2f-rendu.js
+     3. tdlgram-v1-3e-contenu.js  4. tdlgram-v1-4e-actions.js
+     Styles : tdlgram-v2-4.css (page CSS dédiée GitHub, jamais de
+     style dans le JS). Polices et icônes fi- déjà chargées par le
+     forum. Dépend d'EcoCore (eco-core-v2-2) pour Firebase : sans
+     lui, repli lecture seule de la coquille. Les topics TDLgram ne
+     doivent PAS vivre dans f2-whatsapp (conflit de posts sj-).
    ============================================================ */
 (() => {
   'use strict';
@@ -49,9 +33,8 @@
   const TDLG = window.TDLG1 = window.TDLG1 || {};
 
   /* ===== CONFIG ===== */
-  /* Aucune image stockée ici : la couverture de base et le repli
-     des images cassées viennent du CSS du forum (--bgprof,
-     --bgimgsb). L'image du membre (clé COUVERTURE) vient par-dessus. */
+  /* Aucune image stockée ici : couverture de base et repli des
+     images cassées viennent du CSS du forum (--bgprof, --bgimgsb). */
   const CONFIG = TDLG.CONFIG = {
     POLL_INTERVAL: 400,
     POLL_MAX: 25,                  // attente des posts sj- au chargement
@@ -158,7 +141,6 @@
       }
     },
 
-
     /* Icônes (classes fi- chargées par le forum). */
     ICONES: {
       marque: 'fi fi-sr-sparkles',
@@ -182,7 +164,14 @@
       droite: 'fi fi-tr-angle-right',
       image: 'fi fi-tr-image',
       galerie: 'fi fi-tr-gallery'
-    }
+    },
+
+    /* Smileys restés en texte (FA ne les a pas convertis) : mapping
+       vers emoji unicode. Les smileys convertis en <img> gardent leur
+       image (marqueur \x01 dans textePost, rendu par noeudTexteTags). */
+    SMILEYS: { ':)': '🙂', ':(': '🙁', ':D': '😄', ';)': '😉', ';D': '😁',
+      ':p': '😛', ':P': '😛', ':o': '😮', ":'(": '😢', ':heart:': '❤',
+      ':star:': '⭐', ':cool:': '😎', ':sleep:': '😴', ':zzz:': '😴' }
   };
 
   const RE_INSTA = /===\s*INSTA\s*===/;
@@ -197,26 +186,23 @@
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   function log() { if (CONFIG.DEBUG) console.log('[TDLG]', ...arguments); }
-
   /* ===== IDENTITÉ (null pour un invité Forumactif) ===== */
   const MOI = (() => {
     try {
       const p = ((window._userdata && window._userdata.username) || '').trim();
       const id = parseInt((window._userdata && window._userdata.user_id) || 0, 10);
       if (!p || p.toLowerCase() === 'anonymous' || id <= 0) return null;
-      /* _userdata.avatar est une balise <img> HTML : on n'en garde
-         que l'URL (avatar du navigateur, pas celui du mur visité). */
+      /* _userdata.avatar = balise <img> : on n'en garde que l'URL
+         (avatar du navigateur, pas celui du mur visité). */
       const av = ((window._userdata && window._userdata.avatar) || '')
         .match(/src=['"]([^'"]+)['"]/);
       return { pseudo: p, id, avatar: av ? av[1] : '' };
     } catch (e) { return null; }
   })();
 
-  /* Staff : côté client, la liste de référence est EcoCore.ADMIN_USERS
-     (même source que les autres moteurs du forum). Côté serveur, les
-     règles Firebase tranchent sur le claim tdl_niveau — le client ne
-     fait que dévoiler les outils. À appeler APRÈS le chargement
-     d'eco-core, jamais au chargement du fichier. */
+  /* Staff : liste de référence EcoCore.ADMIN_USERS ; les règles
+     Firebase tranchent côté serveur (claim tdl_niveau). À appeler
+     APRÈS le chargement d'eco-core, jamais au chargement du fichier. */
   function estStaff() {
     const eco = window.EcoCore;
     return !!(TDLG.MOI && eco && eco.ADMIN_USERS &&
@@ -239,8 +225,7 @@
     return '/post?t=' + topicId() + '&mode=reply';
   }
 
-  /* Attend les posts sj- du template, borné dans le temps */
-  function attendrePosts(cb) {
+  /* Attend les posts sj- du template, borné dans le temps */  function attendrePosts(cb) {
     let n = 0;
     const t = setInterval(() => {
       const posts = $$('.sj-postmsg');
@@ -250,12 +235,13 @@
   }
 
   /* ===== LECTURE D'UN POST ===== */
+  const MARQ = String.fromCharCode(1); /* délimite une image inline */
 
   /* Texte nettoyé : sans compteur de mots, citations, signature.
-     Normalisation Sophie-OS (sos-core) : Forumactif transforme les
-     retours à la ligne en <br> ou en blocs <p>, et textContent les
-     aplatit sans aucun \n. On ramène tout à des \n sur le HTML
-     avant lecture : « CLE: valeur » reste lisible ligne par ligne. */
+     Normalisation Sophie-OS : les retours à la ligne FA (<br>, <p>)
+     redeviennent des \n ; les smileys et images FA deviennent des
+     marqueurs MARQ+url+MARQ (rendus par noeudTexteTags), le bbcode
+     non converti est réduit à son texte. */
   function textePost(post) {
     const src = $('.sj-post-msg', post);
     if (!src) return '';
@@ -266,7 +252,12 @@
       .replace(/\r\n?/g, '\n')
       .replace(/<br[^>]*>/gi, '\n')
       .replace(/<\/(p|div|li)\s*>/gi, '\n')
-      .replace(/<(p|div|li)[^>]*>/gi, '');
+      .replace(/<(p|div|li)[^>]*>/gi, '')
+      .replace(/\[url[^\]]*\]([\s\S]*?)\[\/url\]/gi, '$1')
+      .replace(/\[img\]([\s\S]*?)\[\/img\]/gi, MARQ + '$1' + MARQ)
+      .replace(/\[\/?(b|i|u|s)\]/gi, '')
+      .replace(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi, MARQ + '$1' + MARQ)
+      .replace(/<img[^>]*>/gi, '');
     const holder = document.createElement('div');
     holder.innerHTML = html;
     /* 160 = espace insécable, sans séquence d'échappement */
@@ -354,10 +345,8 @@
   }
 
   /* Coquille du premier post : handle requis, le reste optionnel.
-     La BIO est multi-lignes : tout ce qui suit « BIO: » sans être
-     une autre clé (ni une ligne vide) la prolonge, retours à la
-     ligne conservés — lignes de continuation à la Sophie-OS.
-     Une clé BIO répétée ajoute aussi une ligne (comme LEGENDE). */
+     BIO multi-lignes : les lignes qui suivent « BIO: » sans être une
+     autre clé (ni vides) la prolongent ; clé BIO répétée = +1 ligne. */
   function parseCoquille(texte) {
     if (!RE_INSTA.test(texte)) return null;
     const cq = { handle: '', nom: '', bio: '', avatar: '', couverture: '' };
@@ -396,8 +385,6 @@
     return frag.images.length ? frag : null;
   }
 
-  /* Légende multi-lignes : LEGENDE répétée = lignes concaténées */
-
   /* Le topic est-il un mur TDLgram ? (coquille dans le premier post) */
   function estTDLgram(posts) {
     if (!posts || !posts.length) return false;
@@ -433,7 +420,7 @@
     }, CONFIG.POLL_INTERVAL);
   }
 
-  /* Message de refus selon la cause : token absent ou règles non déployées */
+  /* Message de refus : token absent ou règles non déployées */
   function refusMessage(e) {
     const m = (e && e.message) || '';
     if (m.indexOf('Pas de token') !== -1) return 'Session TDL absente — recharge la page.';
@@ -449,21 +436,41 @@
   };
   const cache = TDLG.cache;
 
-  /* Texte + hashtags colorés, SANS innerHTML de contenu membre */
+  /* Texte + hashtags colorés + émotes, SANS innerHTML de contenu
+     membre : les segments MARQ deviennent des <img>, le reste des
+     noeuds texte, les # des spans. */
   function noeudTexteTags(texte, classe) {
     const frag = document.createDocumentFragment();
     const re = /#[A-Za-zÀ-ÿ0-9_]+/g;
-    let dernier = 0, m;
-    while ((m = re.exec(texte)) !== null) {
-      if (m.index > dernier) frag.appendChild(document.createTextNode(texte.slice(dernier, m.index)));
-      const s = document.createElement('span');
-      s.className = classe;
-      s.textContent = m[0];
-      frag.appendChild(s);
-      dernier = m.index + m[0].length;
-    }
-    if (dernier < texte.length) frag.appendChild(document.createTextNode(texte.slice(dernier)));
+    String(texte || '').split(MARQ).forEach((segment, i) => {
+      if (i % 2 === 1) { /* image inline : smiley ou [img] FA */
+        const img = document.createElement('img');
+        img.className = 'tdlg-emoji';
+        img.src = segment;
+        img.alt = '';
+        frag.appendChild(img);
+        return;
+      }
+      let dernier = 0, m;
+      segment = texteEmojis(segment);
+      while ((m = re.exec(segment)) !== null) {
+        if (m.index > dernier) frag.appendChild(document.createTextNode(segment.slice(dernier, m.index)));
+        const s = document.createElement('span');
+        s.className = classe;
+        s.textContent = m[0];
+        frag.appendChild(s);
+        dernier = m.index + m[0].length;
+      }
+      if (dernier < segment.length) frag.appendChild(document.createTextNode(segment.slice(dernier)));
+    });
     return frag;
+  }
+
+  /* Smileys restés en texte : mapping CONFIG.SMILEYS vers l'emoji */
+  function texteEmojis(s) {
+    const map = CONFIG.SMILEYS;
+    Object.keys(map).forEach(k => { s = s.split(k).join(map[k]); });
+    return s;
   }
 
   /* Entrées du miroir pour un mur, triées données prêtes */
@@ -476,8 +483,6 @@
   const expiree = (p) => p.t && (Date.now() - p.t) > CONFIG.STORY_H * 3600e3;
   const nbLikes = (tidX, pid) => Object.keys((cache.reactions[tidX] || {})[pid] || {}).length;
 
-  /* ===== CACHE PARTAGÉ (rempli par le fichier actions) ===== */
-
   /* ===== EXPORTS ===== */
   TDLG.$ = $; TDLG.$$ = $$; TDLG.esc = esc; TDLG.log = log;
   TDLG.MOI = MOI; TDLG.topicId = topicId; TDLG.urlReponse = urlReponse;
@@ -486,7 +491,7 @@
   TDLG.epoquePost = epoquePost; TDLG.depuis = depuis;
   TDLG.parseCoquille = parseCoquille; TDLG.parseFragment = parseFragment;
   TDLG.estTDLgram = estTDLgram; TDLG.construireFragment = construireFragment;
-  TDLG.extraireHashtags = extraireHashtags;
+  TDLG.extraireHashtags = extraireHashtags; TDLG.texteEmojis = texteEmojis;
   TDLG.noeudTexteTags = noeudTexteTags; TDLG.postsDu = postsDu;
   TDLG.parRecent = parRecent; TDLG.expiree = expiree; TDLG.nbLikes = nbLikes;
   TDLG.attendreEcoCore = attendreEcoCore; TDLG.refusMessage = refusMessage;
