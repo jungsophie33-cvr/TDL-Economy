@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3b-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -52,10 +52,11 @@
       btnFollow.textContent = suivi ? T.boutonSuivi : T.boutonSuivre;
     }
 
-    /* rangée des stories actives + bouton Nouveau du propriétaire */
+    /* rangée des stories actives + bouton Nouveau du propriétaire
+       (ou du staff : outils d'édition ouverts sur tout mur) */
     const row = $('#tdlgStoryRow');
     row.innerHTML = '';
-    if (cache.moi && cq && cq.pseudo === cache.moi.pseudo) {
+    if ((cache.moi && cq && cq.pseudo === cache.moi.pseudo) || TDLG.estStaff()) {
       const add = document.createElement('button');
       add.type = 'button';
       add.className = 'tdlg-story tdlg-story--add';
@@ -131,7 +132,7 @@
     /* stories du rail : mes actives + celles des suivis */
     const strip = $('#tdlgStrip');
     strip.innerHTML = '';
-    if (moi && cq && cq.pseudo === moi.pseudo) {
+    if ((moi && cq && cq.pseudo === moi.pseudo) || TDLG.estStaff()) {
       const add = document.createElement('button');
       add.type = 'button';
       add.className = 'tdlg-story tdlg-story--add';
