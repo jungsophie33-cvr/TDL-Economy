@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1d-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1f-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -8,7 +8,7 @@
          === INSTA ===
          PSEUDO: handle instagram (ex. alyssa.desrosiers)
          NOM: nom affiché
-         BIO: une ligne
+         BIO: texte multi-lignes (continuations admises)
          AVATAR: url de l'image
          COUVERTURE: url (optionnelle, repli --bgprof du forum)
      - Fragment photo (une publication, IMAGE répétée = carrousel) :
@@ -30,11 +30,11 @@
      tdlgram_posts/<tid>/<pid>        miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1d-commun.js
-     2. tdlgram-v1-2b-rendu.js
-     3. tdlgram-v1-3b-contenu.js
-     4. tdlgram-v1-4b-actions.js
-     Styles : tdlgram-v2.css (page CSS dédiée GitHub, jamais de
+     1. tdlgram-v1-1f-commun.js
+     2. tdlgram-v1-2c-rendu.js
+     3. tdlgram-v1-3c-contenu.js
+     4. tdlgram-v1-4c-actions.js
+     Styles : tdlgram-v2-1.css (page CSS dédiée GitHub, jamais de
      style dans le JS). Polices et icônes fi- déjà chargées par
      le forum. Dépend, pour Firebase, d'EcoCore (eco-core-v2-2) :
      sans lui, repli lecture seule de la coquille.
@@ -67,6 +67,7 @@
       navAria: 'Navigation TDLgram',
       navProfil: 'Profil',
       navFil: 'Fil d’actualité',
+      navForum: 'Retour au forum',
       boutonNouveau: 'Nouvelle publication',
       invite: 'Invité',
       etatProprio: 'Compte du personnage',
@@ -159,6 +160,7 @@
       marque: 'fi fi-sr-sparkles',
       profil: 'fi fi-tr-user',
       fil: 'fi fi-tr-house-blank',
+      forum: 'fi fi-tr-arrow-left',
       plus: 'fi fi-tr-plus',
       reglages: 'fi fi-tr-settings',
       verifie: 'fi fi-sr-badge-check',
@@ -341,17 +343,32 @@
     return sortie;
   }
 
-  /* Coquille du premier post : handle requis, le reste optionnel */
+  /* Coquille du premier post : handle requis, le reste optionnel.
+     La BIO est multi-lignes : tout ce qui suit « BIO: » sans être
+     une autre clé (ni une ligne vide) la prolonge, retours à la
+     ligne conservés — lignes de continuation à la Sophie-OS.
+     Une clé BIO répétée ajoute aussi une ligne (comme LEGENDE). */
   function parseCoquille(texte) {
     if (!RE_INSTA.test(texte)) return null;
     const cq = { handle: '', nom: '', bio: '', avatar: '', couverture: '' };
-    for (const [cle, val] of lireCles(texte, true)) {
-      if (cle === 'PSEUDO' && val) cq.handle = val;
-      else if (cle === 'NOM') cq.nom = val;
-      else if (cle === 'BIO') cq.bio = val;
-      else if (cle === 'AVATAR' && val) cq.avatar = val;
-      else if (cle === 'COUVERTURE' && val) cq.couverture = val;
-    }
+    let dansBio = false;
+    texte.split('\n').forEach(ligne => {
+      const m = ligne.trim().match(RE_CLE);
+      if (m) {
+        const cle = m[1].toUpperCase();
+        const val = m[2].trim();
+        dansBio = false;
+        if (cle === 'BIO') {
+          cq.bio = cq.bio ? cq.bio + '\n' + val : val;
+          dansBio = true;
+        } else if (cle === 'PSEUDO' && val) cq.handle = val;
+        else if (cle === 'NOM') cq.nom = val;
+        else if (cle === 'AVATAR' && val) cq.avatar = val;
+        else if (cle === 'COUVERTURE' && val) cq.couverture = val;
+      } else if (dansBio && ligne.trim()) {
+        cq.bio += '\n' + ligne.trim();
+      }
+    });
     return cq.handle ? cq : null;
   }
 
