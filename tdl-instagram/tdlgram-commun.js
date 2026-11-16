@@ -49,14 +49,131 @@
   const TDLG = window.TDLG1 = window.TDLG1 || {};
 
   /* ===== CONFIG ===== */
+  /* Aucune image stockée ici : la couverture de base et le repli
+     des images cassées viennent du CSS du forum (--bgprof,
+     --bgimgsb). L'image du membre (clé COUVERTURE) vient par-dessus. */
   const CONFIG = TDLG.CONFIG = {
     POLL_INTERVAL: 400,
-    POLL_MAX: 25,                 // attente des posts sj- au chargement
-    STORY_H: 72,                  // expiration des stories en heures
-    LS_SHELL: 'tdlgShell_',       // cache de la coquille par tid
-    LS_VUE: 'tdlgVue_',           // dernière visite d'un mur, par tid
-    IMG_SECOURS: 'https://zupimages.net/up/26/32/enlt.png',
-    DEBUG: false                  // true : logs console [TDLG]
+    POLL_MAX: 25,                  // attente des posts sj- au chargement
+    STORY_H: 72,                   // expiration des stories en heures
+    LS_SHELL: 'tdlgShell_',        // cache de la coquille par tid
+    LS_VUE: 'tdlgVue_',            // dernière visite d'un mur, par tid
+    DEBUG: false,                  // true : logs console [TDLG]
+
+    /* Textes du squelette : tout se règle ici, rien dans le code. */
+    TEXTES: {
+      marque: 'Bayougram',
+      marqueSous: 'Le réseau du bayou',
+      navAria: 'Navigation Bayougram',
+      navProfil: 'Profil',
+      navFil: 'Fil d’actualité',
+      boutonNouveau: 'Nouvelle publication',
+      invite: 'Invité',
+      etatProprio: 'Compte du personnage',
+      etatVisiteur: 'Visiteur du mur',
+      compteVerifie: 'Compte vérifié',
+      statPubs: 'publications',
+      statAbonnes: 'abonnés',
+      statAbonnements: 'abonnements',
+      boutonPublier: 'Publier une photo',
+      boutonModifier: 'Modifier le profil',
+      boutonFil: 'Voir le fil',
+      boutonSuivre: 'Suivre',
+      boutonSuivi: 'Abonné ✓',
+      storiesAria: 'Stories à la une',
+      ongletPublications: 'Publications',
+      ongletIdentifications: 'Identifications',
+      ongletArchives: 'Archives',
+      titreOngletPublications: 'Moments partagés par ',
+      titreOngletIdentifications: 'Publications où ce personnage apparaît',
+      titreOngletArchives: 'Stories conservées après 72 heures',
+      titreSuivis: 'Nouveau dans vos abonnements',
+      noteSuivis: 'Publications récentes depuis votre dernière visite.',
+      titreSuggestions: 'Comptes à suivre',
+      titreTendances: 'Tendances du bayou',
+      altPublication: 'Publication',
+      imagePrecedente: 'Image précédente',
+      imageSuivante: 'Image suivante',
+      imageNumero: 'Image ',
+      commentairePh: 'Ajouter un commentaire…',
+      publier: 'Publier',
+      jaime: 'J’aime',
+      aucunJaime: 'Aucun',
+      compteJaime: ' J’aime',
+      suffixeStory: ' · story',
+      prefixeArchive: 'Story · ',
+      voirPublication: 'Voir la publication',
+      parPrefixe: 'par ',
+      ariaVoirForum: 'Voir sur le forum',
+      ariaCommenter: 'Commenter',
+      ariaPartager: 'Partager sur le forum',
+      badgeNonVue1: '1 non vue',
+      badgeNonVues: ' non vues',
+      tendanceUne: ' publication',
+      tendancePlusieurs: ' publications',
+      storyNouveau: 'Nouveau',
+      storyVotre: 'Votre story',
+      noteStoryVide: 'Aucune story en ligne (elles expirent après 72 heures).',
+      noteIdentifications: 'Personne ne l’a identifié pour l’instant.',
+      noteFilVide: 'Suivez un mur Bayougram depuis son profil : ses publications arriveront ici.',
+      uneImageSur: ' image sur ',
+      plusieursImagesSur: ' images sur ',
+      retirerImage: 'Retirer l’image ',
+      sansLegende: 'Sans légende… pour l’instant.',
+      apercuStory: 'Aperçu de votre story',
+      apercuPublication: 'Aperçu de votre publication',
+      apercuTitre: 'Prévisualisation locale',
+      apercuDetail: ' : rien n’est encore publié.',
+      toastApercuImage: 'Ajoutez au moins une image pour prévisualiser.',
+      toastImageManquante: 'Ajoutez au moins une image.',
+      composer: {
+        annuler: 'Annuler',
+        previsualiser: 'Prévisualiser',
+        publier: 'Publier',
+        ajouter: 'Ajouter',
+        legende: 'Légende',
+        lieu: 'Lieu',
+        identifie: 'Personnes identifiées : pseudos Forumactif, séparés par des virgules',
+        adressePh: 'Adresse de l’image (https://…)',
+        legendePh: 'Racontez votre moment… Vous pouvez ajouter autant de # que vous voulez.',
+        lieuPh: 'Lieu ici',
+        identifiePh: 'ex. Ezra Landry, Perles de Cocodrie',
+        post: {
+          titre: 'Nouvelle publication',
+          label: 'Images',
+          plein: 'Maximum : 4 images par publication.',
+          note: 'Les # restent les hashtags natifs du forum.'
+        },
+        story: {
+          titre: 'Nouvelle story',
+          label: 'Image de la story',
+          plein: 'Une story ne prend qu’une image.',
+          note: 'Une story expire après 72 heures (date du post Forumactif) puis rejoint l’onglet Archives du mur.'
+        }
+      }
+    },
+
+    /* Icônes (classes fi- chargées par le forum). */
+    ICONES: {
+      marque: 'fi fi-sr-sparkles',
+      profil: 'fi fi-tr-user',
+      fil: 'fi fi-tr-house-blank',
+      plus: 'fi fi-tr-plus',
+      reglages: 'fi fi-tr-settings',
+      verifie: 'fi fi-sr-badge-check',
+      grille: 'fi fi-tr-grid',
+      utilisateurs: 'fi fi-tr-users-alt',
+      horloge: 'fi fi-tr-time-past',
+      coeur: 'fi fi-tr-heart',
+      coeurPlein: 'fi fi-sr-heart',
+      commentaire: 'fi fi-tr-comment-alt',
+      envoyer: 'fi fi-tr-paper-plane',
+      lieu: 'fi fi-tr-marker',
+      gauche: 'fi fi-tr-angle-left',
+      droite: 'fi fi-tr-angle-right',
+      image: 'fi fi-tr-image',
+      galerie: 'fi fi-tr-gallery'
+    }
   };
 
   const RE_INSTA = /===\s*INSTA\s*===/;
