@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4b-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -7,12 +7,14 @@
      fragments), abonnements, identifications du propriétaire,
      puis reactions/ et commentaires/ du mur courant et des
      murs suivis. Le fichier 2 rend tout depuis ce cache.
-   - SYNCHRONISATION : quand le propriétaire visite son mur,
-     chaque fragment de la page est recopié dans
+   - SYNCHRONISATION : quand le propriétaire OU UN MEMBRE DU STAFF
+     visite le mur, chaque fragment de la page est recopié dans
      tdlgram_posts/<tid>/<pid> (pseudo du propriétaire dans
-     l'entrée — c'est la règle d'écriture). Les clés IDENTIFIE
-     créent les entrées identifications/<cible>. Un visiteur
-     ne synchronise rien : lecture seule.
+     l'entrée — c'est la règle d'écriture ; le staff passe par sa
+     clause staff, même si son pseudo n'est pas celui du mur).
+     Les clés IDENTIFIE créent les entrées identifications/<cible>,
+     signées par l'auteur du fragment (le propriétaire du mur).
+     Un simple visiteur ne synchronise rien : lecture seule.
    - ENVOI SILENCIEUX : le composer publie le fragment par le
      form #quick_reply natif (champs cachés recopiés), puis
      la page du mur se recharge — le fragment fraîchement
@@ -90,8 +92,11 @@
     try { localStorage.setItem(CONFIG.LS_VUE + tid, String(Date.now())); } catch (e) {}
 
     TDLG.attendreEcoCore(() => {
+      R.actualiserRole?.();
       charger().then(() => {
-        if (TDLG.MOI && cq.pseudo && TDLG.MOI.pseudo === cq.pseudo) synchroniser(posts);
+        if (TDLG.MOI && cq.pseudo &&
+            (TDLG.MOI.pseudo === cq.pseudo || TDLG.estStaff()))
+          synchroniser(posts);
       });
     });
     /* invité ou pont absent : un seul message, pas de spam */
@@ -168,7 +173,7 @@
       }
       frag.identifie.forEach(p => {
         Eco.writeField('identifications/' + encodeURIComponent(p) + '/' + tid + '_' + pid,
-          { par: TDLG.MOI.pseudo, tid: tid, pid: pid, img: frag.images[0] || '' })
+          { par: cq.pseudo, tid: tid, pid: pid, img: frag.images[0] || '' })
           .catch(() => {}); /* existe déjà : la règle refuse, c'est voulu */
       });
     });
