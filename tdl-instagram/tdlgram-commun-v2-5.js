@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1i-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1j-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram.
@@ -19,9 +19,9 @@
      tdlgram_posts/<tid>/<pid>         miroir des fragments (le fil)
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1i-commun.js   2. tdlgram-v1-2f-rendu.js
-     3. tdlgram-v1-3e-contenu.js  4. tdlgram-v1-4e-actions.js
-     Styles : tdlgram-v2-4.css (page CSS dédiée GitHub, jamais de
+     1. tdlgram-v1-1j-commun.js   2. tdlgram-v1-2f-rendu.js
+     3. tdlgram-v1-3f-contenu.js  4. tdlgram-v1-4f-actions.js
+     Styles : tdlgram-v2-5.css (page CSS dédiée GitHub, jamais de
      style dans le JS). Polices et icônes fi- déjà chargées par le
      forum. Dépend d'EcoCore (eco-core-v2-2) pour Firebase : sans
      lui, repli lecture seule de la coquille. Les topics TDLgram ne
