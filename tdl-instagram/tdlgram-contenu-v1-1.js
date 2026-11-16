@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3b-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3c-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -176,10 +176,11 @@
     badge.textContent = nonVues === 1 ? T.badgeNonVue1 : nonVues + T.badgeNonVues;
     badge.classList.toggle('tdlg-hidden', nonVues <= 0);
 
-    /* publications des suivis, plus récentes d'abord */
+    /* publications du mur courant + des suivis, plus récentes d'abord */
     const feed = $('#tdlgFeedPosts');
     feed.innerHTML = '';
-    const filPosts = mesSuivis.flatMap(tX => postsDu(tX).map(p => ({ ...p, tid: tX })))
+    const filTids = [tid, ...mesSuivis.filter(t => t !== tid)];
+    const filPosts = filTids.flatMap(tX => postsDu(tX).map(p => ({ ...p, tid: tX })))
       .sort(parRecent).slice(0, 24);
     filPosts.forEach(p => feed.appendChild(carteFil(p)));
     if (!filPosts.length) {
@@ -189,7 +190,7 @@
       feed.appendChild(note);
     }
 
-    /* suggestions : comptes TDLgram non suivis */
+    /* suggestions : comptes TDLgram non suivis, hors mur courant */
     const sugg = $('#tdlgSuggestions');
     sugg.innerHTML = '';
     tous.filter(tX => tX !== tid && !mesSuivis.includes(tX)).forEach(tX => {
