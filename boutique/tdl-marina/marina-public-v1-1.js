@@ -226,11 +226,17 @@ function poserCagnotte(root){
 
 /* « Gestion staff » et « Proposer une initiative » n'existent que sur La Marina */
 function ajusterBoutons(root){
-  var tgl = root.querySelector("#qb-stafftgl");
+  var tgl = root.querySelector("#qb-stafftgl");    /* bouton édition items de la coque   */
+  var ges = root.querySelector("#qbm-stafftgl");  /* bouton Gestion staff de la Marina  */
   var prop = root.querySelector("#qbm-propose");
   var on = root.querySelector(".qb-tab.qb-on");
   var surMarina = !!(on && on.getAttribute("data-tab")==="marina");
-  if (tgl) tgl.hidden = !surMarina || !m().estStaff();
+  var staff = m().estStaff();
+  /* sur l'onglet marina, l'édition d'items n'existe pas (aucun formulaire) :
+   * le bouton de la coque laisse la place au nôtre ; hors marina, il
+   * redevient le toggle natif de la coque, inchangé. */
+  if (tgl) tgl.hidden = !staff || surMarina;
+  if (ges) ges.hidden = !staff || !surMarina;
   if (prop) prop.hidden = !surMarina;
 }
 
