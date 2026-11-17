@@ -1,13 +1,14 @@
 /* ============================================================
-   tdlgram-v1-3g-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3i-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
    - rendreFil() : stories du rail, « Nouveau chez vos suivis »,
      publications agrégées des murs suivis, suggestions de
      comptes, Tendances (hashtags comptés sur tout le miroir) ;
-   - le composer (mode publication 4 images / mode story
-     1 image, expiration 72 h) et son branchement.
+   - le composer (mode publication 4 images / mode story 1 image,
+     expiration 72 h, champ DATE d'antidatage pour les publications
+     uniquement) et son branchement.
 
    Le cache vient du miroir Firebase tdlgram_posts (rempli par
    la synchronisation du fichier 4). Aucun accès direct à
@@ -20,7 +21,7 @@
   const TDLG = window.TDLG1;
   if (!TDLG || !TDLG.rendu) return;
   const { $, $$, esc, depuis, noeudTexteTags, postsDu, parRecent, expiree,
-    nbLikes, extraireHashtags, CONFIG } = TDLG;
+    nbLikes, extraireHashtags, datePost, CONFIG } = TDLG;
   const T = CONFIG.TEXTES;
   const I = CONFIG.ICONES;
   const R = TDLG.rendu;
@@ -71,7 +72,7 @@
       b.type = 'button';
       b.className = 'tdlg-story';
       b.dataset.tid = tid; b.dataset.pid = p.pid;
-      b.innerHTML = `<span class="tdlg-story-ring"><img src="${esc(p.images[0])}" alt=""></span>${esc(courtDate(p.t))}`;
+      b.innerHTML = `<span class="tdlg-story-ring"><img src="${esc(p.images[0])}" alt=""></span>${esc(courtDate(datePost(p)))}`;
       row.appendChild(b);
     });
     if (!row.children.length) {
@@ -85,7 +86,7 @@
     $('#tdlgPublicationGrid').innerHTML = '';
     pubs.forEach(p => $('#tdlgPublicationGrid').appendChild(tuille(p, tid)));
     $('#tdlgArchivesGrid').innerHTML = '';
-    archives.forEach(p => $('#tdlgArchivesGrid').appendChild(tuille(p, tid, T.prefixeArchive + courtDate(p.t))));
+    archives.forEach(p => $('#tdlgArchivesGrid').appendChild(tuille(p, tid, T.prefixeArchive + courtDate(datePost(p)))));
 
     /* identifications reçues par ce personnage */
     $('#tdlgTaggedGrid').innerHTML = '';
@@ -178,7 +179,7 @@
       b.className = 'tdlg-suivi-card';
       b.dataset.tid = p.tid; b.dataset.pid = p.pid;
       b.innerHTML = `<span class="tdlg-suivi-dot"></span><img src="${esc(p.images[0])}" alt="">` +
-        `<span class="tdlg-suivi-meta"><img src="${esc(p.avatar || '')}" alt=""><span class="x"><b>${esc(p.handle)}</b><span>${esc(depuis(p.t))}</span></span></span>`;
+        `<span class="tdlg-suivi-meta"><img src="${esc(p.avatar || '')}" alt=""><span class="x"><b>${esc(p.handle)}</b><span>${esc(depuis(datePost(p)))}</span></span></span>`;
       row.appendChild(b);
     });
     /* tout est vu : le bloc entier disparaît du fil */
@@ -253,7 +254,7 @@
 <div class="tdlg-caption"></div>
 <div class="tdlg-comment-list" data-comment-list data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}"></div>
 <form class="tdlg-comment-form" data-tid="${esc(p.tid)}" data-pid="${esc(p.pid)}"><input type="text" placeholder="${esc(T.commentairePh)}" aria-label="${esc(T.commentairePh)}"><button type="submit">${esc(T.publier)}</button></form>
-<div class="tdlg-post-date">${esc(depuis(p.t))}</div>`;
+<div class="tdlg-post-date">${esc(depuis(datePost(p)))}</div>`;
     const cap = $('.tdlg-caption', art);
     const b = document.createElement('b');
     b.textContent = p.handle;
@@ -293,11 +294,13 @@
     $('#tdlgComposerNote').textContent = t.note;
     $('#tdlgPlaceField').classList.toggle('tdlg-hidden', modeComposer === 'story');
     $('#tdlgTagsField').classList.toggle('tdlg-hidden', modeComposer === 'story');
+    $('#tdlgDateField').classList.toggle('tdlg-hidden', modeComposer === 'story');
     photos = [];
     $('#tdlgImageUrl').value = '';
     $('#tdlgCaptionText').value = '';
     $('#tdlgPlaceText').value = '';
     $('#tdlgTagsText').value = '';
+    $('#tdlgDateText').value = '';
     $('#tdlgLiveTags').innerHTML = '';
     $('#tdlgPublishBtn').disabled = false;
     rendreCases();
@@ -355,9 +358,11 @@
       const identifie = modeComposer === 'story'
         ? []
         : $('#tdlgTagsText').value.split(',').map(s => s.trim()).filter(Boolean);
+      const antidate = $('#tdlgDateText').value.trim();
+      if (antidate && !TDLG.epoqueChampDate(antidate)) { R.toast(T.toastDateInvalide); return; }
       const fragment = TDLG.construireFragment(
         modeComposer, photos, $('#tdlgCaptionText').value,
-        $('#tdlgPlaceText').value, identifie);
+        $('#tdlgPlaceText').value, identifie, antidate);
       R.onPublier?.(fragment);
     });
   };
