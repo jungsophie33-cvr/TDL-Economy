@@ -402,9 +402,22 @@ function quandQuais(){
     wire: function(){
       /* la coque vient de se rendre : la Marina reprend la main sur la
          colonne gauche, la fiche, la cagnotte et ses deux boutons */
-      if (!document.querySelector("#qbm-propose")){
-        var tabs = document.querySelector("#qb-tabs");
-        if (tabs) tabs.insertAdjacentHTML("beforeend",
+      /* barre d'onglets façon tdlev-barre : (gauche) | nav centrée | proposer.
+         quais-core rend les onglets à plat : on les DÉPLACE dans .qb-nav
+         (les handlers suivent les nœuds, jamais d'innerHTML ici). */
+      var tabs = document.querySelector("#qb-tabs");
+      if (tabs && !tabs.querySelector(".qb-nav")){
+        var nav = document.createElement("nav");
+        nav.className = "qb-nav";
+        Array.prototype.slice.call(tabs.querySelectorAll(".qb-tab")).forEach(function(b){ nav.appendChild(b); });
+        var fill = document.createElement("span");
+        fill.className = "qbm-tabfill";
+        tabs.appendChild(fill);
+        tabs.appendChild(nav);
+      }
+      var nav = tabs && tabs.querySelector(".qb-nav");
+      if (nav && !document.querySelector("#qbm-propose")){
+        nav.insertAdjacentHTML("afterend",
           '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
       }
       rendre();
