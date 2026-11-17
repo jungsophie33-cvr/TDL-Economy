@@ -6,8 +6,7 @@
  *   - DROITS  : staff FA, auteur, co-auteur, membre d'une communauté ;
  *   - DÉRIVÉS : voix par option, opposition par communauté, quorum,
  *              engagement (gel de cagnotte des fiches en vote), quota mensuel ;
- *   - RENDU   : l'onglet « La Marina » de la coque des Quais (colonne gauche
- *              + fiche détaillée), en module enregistré auprès de quais-core ;
+ *   - RENDU   : délégué à marina-public (module enregistré auprès de quais-core).
  *   - VOTE    : une voix par membre, opposition par communauté ;
  *   - BARRE   : la cagnotte de la communauté du membre, nette des engagements.
  *
@@ -26,61 +25,17 @@
  * EXPOSE : window.Marina
  * DÉPEND DE : window.EcoCore, window.Quais (quais-core), window.TDLBase.
  * ORDRE : eco-core → tdl-base → quais-core → quais-comptoir/barge →
- *         ce fichier → marina-volet → marina-staff.
+ *         marina-config → ce fichier → marina-public → marina-volet → marina-staff.
  */
 (function () {
 "use strict";
 
-/* ===================== CONFIG ===================== */
+/* ===================== CONFIG (window.MarinaConfig) ===================== */
 
-var CFG = {
-  NODE:        "marina_fiches",
-  NODE_MEMBRES:"membres",
-  NODE_CAGNOTTES:"cagnottes",
-  NODE_EVENTS: "evenements",
-  VOTE_JOURS:  7,
-  CO_JOURS:    3,          /* confirmation du co-auteur d'une inter */
-  PLAFOND:     0.5,        /* jamais plus de 50 % de la cagnotte nette */
-  VEILLE_MS:  15000
-};
-
-/* Clés = libellés courts EcoCore (membres/<pseudo>/group, clés de cagnottes).
-   NE PAS renommer sans migration des cagnottes. */
-var COMMU = {
-  "Les Goulipiats":  { nom:"Goulipiats", c:"var(--gr1-color)", icon:"fi-tr-house-flood" },
-  "Les Fardoches":   { nom:"Fardoches",  c:"var(--gr2-color)", icon:"fi-tr-bolt" },
-  "Les Ashlanders":  { nom:"Ashlanders", c:"var(--gr3-color)", icon:"fi-tr-crystal-ball" },
-  "Les Spectres":    { nom:"Spectres de Baron Samedi", c:"var(--gr4-color)", icon:"fi-tr-cocktail" },
-  "Les Perles":      { nom:"Perles de Cocodrie", c:"var(--gr5-color)", icon:"fi-tr-box" }
-};
-var BANDES_KEY = "bandes";   /* case « Bandes hors la loi » des conséquences */
-
-var TYPES = {
-  faveur:  { lab:"Petite faveur",         m:500,  ic:"fi-tr-cocktail" },
-  dossier: { lab:"Dossier communautaire", m:1000, ic:"fi-tr-marketplace-store" },
-  oeuvre:  { lab:"Grand œuvre",           m:2000, ic:"fi-tr-ship" },
-  inter:   { lab:"Intercommunautaire",    m:2000, ic:"fi-tr-arrows-repeat", split:1000 }
-};
-
-var ST = {
-  attente_co:    { t:"En attente de co-auteur", c:"var(--gr4-color)" },
-  publiee:       { t:"En attente",             c:"var(--gr3-color)" },
-  en_vote:       { t:"En vote",                c:"var(--gr1-color)" },
-  en_jeu:        { t:"En jeu",                 c:"var(--gr5-color)" },
-  cloturee:      { t:"Clôturée",               c:"var(--gr2-color)" },
-  non_tranchee:  { t:"Non tranchée",           c:"var(--dark2)" }
-};
-
-var TXT = {
-  VIDE:      "Rien par ici — l'eau est calme.",
-  CHOISIR:   "Choisissez une initiative dans la colonne de gauche.",
-  VOTE_OK:   "Voix consignée. Égalité : un dé tranche, tiré en public.",
-  OPP_OK:    "Opposition consignée — une seule communauté majoritairement opposée bloque tout.",
-  DEJA:      "Vous avez déjà voté sur cette initiative.",
-  CONFIRMEE: "Co-authorat confirmé — la fiche part en relecture staff.",
-  CO_EXPIRE: "Le délai de confirmation de 3 jours est dépassé."
-};
-
+var MC = window.MarinaConfig;
+var CFG = MC.CFG, COMMU = MC.COMMU, BANDES_KEY = MC.BANDES_KEY,
+    TYPES = MC.TYPES, ST = MC.ST, TXT = MC.TEXTES.CORE,
+    ICONES = MC.ICONES;
 /* ===================== UTILS ===================== */
 
 function E(){ return window.EcoCore; }
@@ -127,7 +82,7 @@ var D = { fiches:{}, membres:{}, cagnottes:{} };   /* brut firebase */
 var S = { cat:"solo", sel:null, pov:{}, arm:{} };  /* rendu public */
 
 function fiche(id){ return D.fiches[id] || null; }
-function commuOf(f){ return COMMU[f && f.com] || { nom:"—", c:"var(--dark2)", icon:"fi-tr-anchor" }; }
+function commuOf(f){ return COMMU[f && f.com] || MC.COMMU_DEFAUT; }
 
 /* ===================== NORMALISATION ===================== */
 
@@ -268,187 +223,6 @@ function reprendre(){
   charger().then(function(){ rendre(); if (window.MarinaStaff) MarinaStaff.absorber(); }).catch(function(){});
 }
 
-/* ===================== RENDU : COLONNE GAUCHE ===================== */
-
-function bands(){
-  var defs = [
-    { k:"solo", icon:"fi-tr-house-flood",   lab:"Internes",   c:"var(--gr2-color)" },
-    { k:"inter",icon:"fi-tr-arrows-repeat", lab:"Inter",      c:"var(--gr5-color)" },
-    { k:"done", icon:"fi-tr-clipboard-check",lab:"Terminées", c:"var(--darkopa6)" }
-  ];
-  return '<div class="qb-bandgrid qbm-bands">' + defs.map(function(d){
-    return '<button class="qb-bandcell'+(S.cat===d.k?" qb-on":"")+'" data-cat="'+d.k+'" style="--c:'+d.c+'" type="button">'
-      + '<i class="fi '+d.icon+'"></i><span class="qb-bcell"><span>'+d.lab+'</span><em class="qbm-bn">'+fichesOf(d.k).length+'</em></span></button>';
-  }).join("") + '</div>';
-}
-
-function row(f){
-  var st = ST[f.statut], j = f.statut==="en_vote" ? joursRestants(f.fin) : null;
-  return '<button class="tdlev-e qbm-e" aria-current="'+(S.sel===f.id)+'" style="--c:'+commuOf(f).c+'" data-f="'+f.id+'" type="button">'
-    + '<span class="qbm-eimg"'+(f.img?' style="background-image:url(\''+esc(f.img)+'\')"':'')+'>'
-    + (f.img?'':'<i class="fi '+commuOf(f).icon+'"></i>')+'</span>'
-    + '<span>'
-    + '<span class="qbm-eline"><span class="tdlev-marq" style="background:'+st.c+'">'+st.t+'</span>'
-    + '<span class="tdlev-e-t">'+esc(f.nom)+'</span></span>'
-    + (j!=null && j>=0 ? '<span class="qbm-emeta"><span class="qbm-ej">J-'+j+'</span></span>' : '')
-    + '</span>'
-    + '<span class="qb-cp">'+money(f.montant)+'</span>'
-    + '</button>';
-}
-
-function renderLeft(root){
-  var left = root.querySelector("#qb-left"); if (!left) return;
-  var list = fichesOf(S.cat);
-  left.innerHTML = bands()
-    + (list.length ? '<div class="tdlev-liste" style="overflow:visible">' + list.map(row).join("") + '</div>'
-                   : '<div class="tdlev-vide">'+TXT.VIDE+'</div>');
-}
-
-/* ===================== RENDU : FICHE DÉTAILLÉE ===================== */
-
-function elem(icon, k, v){
-  return '<div><span class="tdlev-elem-k"><i class="fi '+icon+'"></i>'+esc(k)+'</span><p class="tdlev-elem-v">'+esc(v)+'</p></div>';
-}
-function pave(icon, titre, corps){
-  var ico = icon.indexOf("fi-sr-")===0 ? icon : icon.replace("fi-tr-","fi-sr-");
-  return '<section class="tdlev-pave"><i class="fi '+ico+' tdlev-pave-ico"></i>'
-    + '<div class="tdlev-pave-tete"><h4 class="tdlev-pave-h">'+esc(titre)+'</h4></div>'
-    + '<div class="tdlev-pave-c">'+corps+'</div></section>';
-}
-function voteInfo(f){
-  var j = joursRestants(f.fin);
-  if (f.statut==="en_vote")   return "ouvert"+(j!=null && j>=0 ? " — clos dans "+j+" jours" : "");
-  if (f.statut==="attente_co") return "en attente du co-auteur";
-  if (f.statut==="publiee")    return "ouvre après revue du staff";
-  if (f.statut==="en_jeu")     return "résolu — fonds engagés";
-  return "clos";
-}
-
-function heroHead(f){
-  var st = ST[f.statut], j = f.statut==="en_vote" ? joursRestants(f.fin) : null;
-  var p = pseudo();
-  var auteur = f.auteurs && Object.keys(f.auteurs).some(function(k){ return f.auteurs[k]===p; });
-  var tags = '<span class="tdlev-tag est-etat">'+st.t+'</span>'
-    + (j!=null && j>=0 ? '<span class="tdlev-tag qbm-ej-tag">J-'+j+'</span>' : '')
-    + (f.avec ? '<span class="tdlev-tag qbm-avec" style="--sc:'+commuOf({com:f.avec}).c+'">× '+commuOf({com:f.avec}).nom+'</span>' : '');
-  var stats = Object.keys(f.auteurs).map(function(k){
-    return '<div class="tdlev-hero-s"><i class="fi fi-tr-comment-user"></i><b>Auteur</b><em>'+esc(f.auteurs[k])+'</em></div>';
-  }).join("");
-  var edit = (auteur && f.statut==="publiee")
-    ? '<button class="tdlev-hero-cta est-second" data-act="editer" type="button">Éditer la fiche</button>' : "";
-  return '<div class="tdlev-hero est-fiche'+(f.img?" est-image":"")+'">'
-    + (f.img ? '<div class="tdlev-hero-img" style="background-image:url(\''+esc(f.img)+'\')"></div>' : "")
-    + '<div class="tdlev-hero-c">'
-    + '<h2 class="tdlev-hero-titre">'+esc(f.nom)+'</h2>'
-    + '<p class="tdlev-hero-sous">Déposée '+esc(ilya(f.cree))+'</p>'
-    + '<div class="tdlev-hero-tags">'+tags+'</div>'
-    + '</div>'
-    + '<div class="tdlev-hero-d">'+edit+'<div class="tdlev-hero-stats">'+stats+'</div></div>'
-    + '</div>';
-}
-
-function optRow(f, k, votable){
-  var o = f.options[k], v = voixDe(f), total = v.tot || 1;
-  var moi = pseudo() ? f.votes[cle(pseudo())] : null;
-  var arm = S.arm[f.id+k];
-  var right = '<span class="tdlev-opt-p">'+(v[k]||0)+' voix</span>';
-  if (votable){
-    right += moi
-      ? '<span class="tdlev-etat est-ok">voix consignée</span>'
-      : '<button class="tdlev-btn'+(arm?" est-second":"")+' qbm-vbtn" data-vote="'+f.id+':'+k+'" type="button">'+(arm?"Confirmer ?":"Voter")+'</button>';
-  }
-  return '<div class="tdlev-opt qbm-opt" style="--c:'+commuOf(f).c+'">'
-    + '<i class="fi fi-tr-box"></i>'
-    + '<span class="qbm-opttxt"><span class="tdlev-opt-n">Option '+k+' — '+esc(o.t)+'</span>'
-    + '<span class="tdlev-opt-d">'+esc(o.d||"")+'</span>'
-    + '<span class="qbm-vbar"><span class="qbm-vfill" style="width:'+Math.round(100*(v[k]||0)/total)+'%"></span></span></span>'
-    + '<span class="qbm-optright">'+right+'</span>'
-    + '</div>';
-}
-
-function oppRow(f){
-  var opp = oppositionDe(f), moi = pseudo() ? f.votes[cle(pseudo())] : null;
-  var counts = Object.keys(opp).map(function(k){ return commuOf({com:k}).nom+" "+opp[k]; }).join(" · ");
-  var right = '<span class="tdlev-opt-p">'+(counts||"aucune")+'</span>';
-  right += moi
-    ? '<span class="tdlev-etat est-ok">opposition consignée</span>'
-    : '<button class="tdlev-btn qbm-vbtn" data-vote="'+f.id+':opp" type="button">Voter</button>';
-  return '<div class="tdlev-opt qbm-opt" style="--c:var(--dark2)">'
-    + '<i class="fi fi-tr-diamond-exclamation"></i>'
-    + '<span class="qbm-opttxt"><span class="tdlev-opt-n">S\'y opposer</span>'
-    + '<span class="tdlev-opt-d">Ne finance rien : bloque le lancement. Comptée par communauté.</span></span>'
-    + '<span class="qbm-optright">'+right+'</span>'
-    + '</div>';
-}
-
-function consBlock(f){
-  var cq = f.conseq || {};
-  var nom = function(k){ return k==="paroisse" ? "Par toute la paroisse" : (k===BANDES_KEY ? "Bandes hors la loi" : (COMMU[k] ? COMMU[k].nom : k)); };
-  var ma = maCommu();
-  var tabs = [];
-  if (cq.paroisse) tabs.push("paroisse");
-  if (ma && cq[ma]!==undefined) tabs.push(ma);
-  if (estStaff()) cles(cq).forEach(function(k){ if (k!=="paroisse" && tabs.indexOf(k)<0) tabs.push(k); });
-  if (!tabs.length){
-    return '<div class="qb-sec"><div class="qb-lab">Conséquences connues</div>'
-      + '<div class="qb-empty">Les conséquences se rédigent à la clôture — selon qui doit les savoir.</div></div>';
-  }
-  var cur = S.pov[f.id];
-  if (tabs.indexOf(cur)<0) cur = tabs[0];
-  var border = cur==="paroisse" || cur===BANDES_KEY ? "var(--dark2)" : commuOf({com:cur}).c;
-  return '<div class="qb-sec"><div class="qb-lab">Conséquences connues</div>'
-    + '<div class="tdlm-ptabs" style="margin:0 0 4px">'
-    + tabs.map(function(k){ return '<button class="tdlm-ptab'+(k===cur?" on":"")+'" data-pov="'+f.id+':'+k+'" type="button">'+esc(nom(k))+'</button>'; }).join("")
-    + '</div>'
-    + '<div class="qb-asbox qbm-couche" style="--sc:'+border+'"><span class="qb-lab">Conséquences connues — '+esc(nom(cur))+'</span><p>'+esc(cq[cur]||"—")+'</p></div>'
-    + (f.statut==="en_jeu" ? '<p class="qbm-note">Conséquences générales publiées 7 à 10 jours après le vote. Les suites s\'éditeront quand les RP rattachés se clôtureront.</p>' : "")
-    + '</div>';
-}
-
-function detailHTML(f){
-  if (!f) return '<button class="qbm-ret" data-act="ret" type="button">← Les initiatives</button><div class="qb-empty">'+TXT.CHOISIR+'</div>';
-  var h = '<button class="qbm-ret" data-act="ret" type="button">← Les initiatives</button>' + heroHead(f);
-  h += '<div class="qbm-fcorps">';
-  h += '<div class="qb-sec" style="margin-top:20px"><div class="tdlev-elem">'
-    + elem("fi-sr-hand-present","Bénéficiaires", f.benef||"—")
-    + elem("fi-tr-balance-scale-left","Conflit d'intérêts", f.conflit||"—")
-    + elem("fi-tr-diamond-exclamation","Abandon", f.abandon||"—")
-    + '</div></div>';
-  if (f.precisions && (f.statut==="publiee" || f.statut==="attente_co")){
-    h += '<div class="qb-sec"><div class="qb-lab">Précisions demandées par le staff</div>'
-      + '<div class="qb-asbox" style="border-left:3px solid var(--gr1-color)"><p>'+esc(f.precisions)+'</p></div></div>';
-  }
-  h += '<div class="qb-sec"><div class="qb-lab">Contexte de l\'initiative</div>'
-    + pave("fi-tr-house-flood","Contexte",'<p class="tdlev-f-p">'+esc(f.probleme||"")+'</p>')
-    + '<div class="qbm-pavgrid">'
-    + pave("fi-tr-bullseye","Objectifs",'<ul class="tdlev-obj"><li>'+esc(f.objectif||"")+'</li></ul>')
-    + pave("fi-tr-diamond-exclamation","Risques",'<p class="tdlev-f-p">'+esc(f.risque||"")+'</p>')
-    + '</div></div>';
-  var votable = (f.statut==="en_vote");
-  h += '<div class="qb-sec"><div class="qb-lab">Les options soumises au vote</div><div class="tdlev-opts">'
-    + cles(f.options).sort().map(function(k){ return optRow(f, k, votable); }).join("")
-    + (f.avec && votable ? oppRow(f) : "")
-    + '</div></div>';
-  /* co-auteur d'une inter : confirmation sur la fiche même */
-  if (f.statut==="attente_co"){
-    var p = pseudo();
-    var attends = p && Object.keys(f.auteurs).some(function(k){ return f.auteurs[k]===p; }) && !f.coConfirme;
-    var expire = new Date(f.cree).getTime() + CFG.CO_JOURS*86400000 < Date.now();
-    h += '<div class="qb-sec"><div class="qb-lab">Co-authorat</div><div class="qb-asbox"><p>'
-      + (attends && !expire
-          ? 'La fiche attend votre confirmation de co-auteur.'
-            + '<div style="margin-top:10px"><button class="tdlev-btn" data-act="coconfirme" type="button">Confirmer le co-authorat</button></div>'
-          : expire ? TXT.CO_EXPIRE : 'Confirmation attendue du co-auteur — délai de '+CFG.CO_JOURS+' jours.')
-      + '</p></div></div>';
-  }
-  if (f.resultat){
-    h += '<div class="qb-sec"><div class="qb-lab">Résolu</div><div class="qb-asbox"><p>'+esc(f.resultat)+'</p></div></div>';
-  }
-  if (f.statut==="en_jeu" || f.statut==="cloturee" || f.statut==="non_tranchee") h += consBlock(f);
-  h += '</div>';
-  return h;
-}
-
 /* ===================== VOTE ===================== */
 
 function tryVote(fid, key){
@@ -472,40 +246,6 @@ function confirmerCo(fid){
   maj[CFG.NODE+"/"+fid+"/statut"] = "publiee";
   Promise.resolve(E().firebaseUpdate(maj)).then(function(){ toast(TXT.CONFIRMEE); reprendre(); })
     .catch(function(){ toast("L'envoi a échoué."); });
-}
-
-/* ===================== MODULE QUAIS ===================== */
-
-function rendre(){
-  var root = document.querySelector("#quais-app"); if (!root) return;
-  renderLeft(root);
-  var det = root.querySelector("#qb-detail");
-  if (det) det.innerHTML = detailHTML(fiche(S.sel));
-  poserCagnotte(root);
-  ajusterBoutons(root);
-}
-
-function poserCagnotte(root){
-  var bar = root.querySelector(".qb-bar"); if (!bar) return;
-  var old = bar.querySelector(".qbm-cag"); if (old) old.remove();
-  var com = maCommu(); if (!com) return;
-  var eng = engagementDe(com);
-  bar.querySelector(".qb-accueil").insertAdjacentHTML("afterend",
-    '<span class="qbm-cag qbm-cagnotte"><i class="fi fi-sr-hand-present"></i>'
-    + '<span class="qb-lab">Cagnotte '+esc(COMMU[com].nom)+'</span>'
-    + '<b>'+money(cagnotteDe(com))+(eng?' <span style="font-size:11px;color:var(--darkopa6)">dont '+money(eng)+' engagés</span>':"")+'</b>'
-    + '</span>');
-}
-
-/* « Gestion staff » et « Proposer une initiative » n'existent que sur La Marina */
-function ajusterBoutons(root){
-  var tgl = root.querySelector("#qb-stafftgl");
-  var prop = root.querySelector("#qbm-propose");
-  /* l'onglet actif se lit dans la coque : bouton .qb-tab.qb-on */
-  var on = root.querySelector(".qb-tab.qb-on");
-  var surMarina = !!(on && on.getAttribute("data-tab")==="marina");
-  if (tgl) tgl.hidden = !surMarina || !estStaff();
-  if (prop) prop.hidden = !surMarina;
 }
 
 /* ===================== ÉVÉNEMENT (bascule en jeu) ===================== */
@@ -545,7 +285,7 @@ function creerEvenement(f){
 /* Notifications sos-emi-notif — plage 240+, à déclarer dans sos-emi-notif :
    240 nouvelle fiche (staff) · 241 vote ouvert (auteurs) · 242 précisions
    demandées (auteurs) · 243 clôture (auteurs) · 244 co-authorat à confirmer. */
-var NOTIF = { NOUVELLE:240, VOTE:241, PRECISIONS:242, CLOTURE:243, CO:244 };
+var NOTIF = MC.NOTIF;
 function notifier(code, dest, vars, ref){
   try {
     if (!window.EcoNotif) return;
@@ -618,15 +358,15 @@ function quandQuais(){
       { k:"done", l:"Terminées", ic:"fi fi-tr-clipboard-check" }
     ],
     data:{},
-    detail: function(id){ return detailHTML(fiche(S.sel || id)); },
-    emptyDetail: function(){ return detailHTML(fiche(S.sel)); },
+    detail: function(id){ return window.MarinaPublic ? MarinaPublic.detailHTML(fiche(S.sel || id)) : ""; },
+    emptyDetail: function(){ return window.MarinaPublic ? MarinaPublic.detailHTML(fiche(S.sel)) : ""; },
     wire: function(){
       /* la coque vient de se rendre : la Marina reprend la main sur la
          colonne gauche, la fiche, la cagnotte et ses deux boutons */
       if (!document.querySelector("#qbm-propose")){
         var tabs = document.querySelector("#qb-tabs");
         if (tabs) tabs.insertAdjacentHTML("beforeend",
-          '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi fi-tr-add"></i><span>Proposer une initiative</span></button>');
+          '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
       }
       rendre();
       /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
@@ -653,7 +393,7 @@ function quandQuais(){
    de la Marina doivent disparaître quand un autre onglet est actif. */
 function observerBoutons(){
   var root = document.querySelector("#quais-app"); if (!root) return false;
-  var obs = new MutationObserver(function(){ ajusterBoutons(root); });
+  var obs = new MutationObserver(function(){ if (window.MarinaPublic) MarinaPublic.ajusterBoutons(root); });
   obs.observe(root, { childList:true, subtree:true });
   return true;
 }
@@ -683,13 +423,13 @@ window.Marina = {
   CFG:CFG, TYPES:TYPES, COMMU:COMMU, ST:ST, BANDES_KEY:BANDES_KEY,
   esc:esc, money:money, cle:cle, ilya:ilya, joursRestants:joursRestants, toast:toast,
   estStaff:estStaff, pseudo:pseudo, maCommu:maCommu, commuOf:commuOf,
-  elem:elem, pave:pave,
+  ICONES:ICONES, TXT:TXT, CHAMPS_VOLET:window.MarinaConfig.CHAMPS_VOLET, CHAMPS_STAFF:window.MarinaConfig.CHAMPS_STAFF,
   normaliser:normaliser, listeFiches:listeFiches, fichesOf:fichesOf, fiche:fiche, active:active,
   voixDe:voixDe, oppositionDe:oppositionDe, quorumDe:quorumDe, effDe:effDe,
   engagementDe:engagementDe, cagnotteDe:cagnotteDe, cagnotteNette:cagnotteNette,
   quotaDe:quotaDe, creerEvenement:creerEvenement,
   notifier:notifier, NOTIF:NOTIF,
-  reprendre:reprendre, rendre:rendre, detailHTML:detailHTML, S:S, D:D
+  reprendre:reprendre, rendre:rendre, S:S, D:D
 };
 
 if (document.readyState==="loading") document.addEventListener("DOMContentLoaded", demarrer); else demarrer();
