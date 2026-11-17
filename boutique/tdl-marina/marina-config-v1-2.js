@@ -62,6 +62,7 @@ var ST = {
 
 var ICONES = {
   onglet:     "fi-tr-anchor",                 /* onglet La Marina de la coque  */
+  boutonStaff:"fi-tr-customize-edit",        /* bouton Gestion Marina         */
   retour:     "fi-tr-angle-left",
   deposer:    "fi-tr-clipboard-check",
   ajouter:    "fi-tr-add",
@@ -248,6 +249,7 @@ var TEXTES = {
   /* ----- panneau de gestion staff ----- */
   STAFF: {
     TITRE:"Gestion Marina",
+    BTN_TITRE:"Gestion Marina",
     RETOUR:"Retour à la marina",
     NOTE_VOTE:"Le vote ne s'ouvre que de la main du staff. Le plafond des 50 % de la cagnotte nette est revérifié au lancement.",
     NOTE_EDIT:"Le staff corrige avant l'ouverture du vote — les auteurs en sont prévenus par le résultat visible.",
