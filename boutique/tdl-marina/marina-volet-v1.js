@@ -277,12 +277,11 @@ function envoyer(){
   var f = {
     schema:1, type:S.type, nom:v.nom, com:com, avec:null,
     montant:m.TYPES[S.type].m, img:v.img,
-    auteurs:{}, statut:"publiee", cree:now, ouverte:"", fin:"",
-    votes:{}, options:{ A:{t:v.optA,d:v.optAd}, B:{t:v.optB,d:v.optBd} },
+    auteurs:{}, statut:"publiee", cree:now,
+    options:{ A:{t:v.optA,d:v.optAd}, B:{t:v.optB,d:v.optBd} },
     probleme:v.ctx, objectif:v.obj,
     benef:v.ben || "—", risque:v.ris || "—",
-    conflit:v.conflit || "Aucun déclaré.", abandon:v.ab || "—",
-    precisions:"", resultat:"", conseq:{}, event:""
+    conflit:v.conflit || "Aucun déclaré.", abandon:v.ab || "—"
   };
   f.auteurs[m.cle(p)] = p;
   if (S.type==="inter"){
