@@ -428,38 +428,27 @@ function quandQuais(){
           '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
       }
       var tgl = document.querySelector("#qb-stafftgl");
-      /* La coque ne rend son bouton staff que si _userdata.user_level vaut
-         1 ou 2 — un compte admin que ce champ ne qualifie pas restait sans
-         aucun outil, sans même une erreur console. La Marina ne dépend plus
-         de la coque pour ça : si elle te dit staff, elle pose SON bouton
-         (mêmes id et classe, donc mêmes styles et position absolue). */
-      if (!tgl && tabs && estStaff()){
+      /* JAMAIS de détournement du bouton de la coque : son onclick bascule
+         st.staff (mode édition d'items), qui n'existe pas pour la Marina
+         (aucun formulaire) et corrompt son rendu. Sur l'onglet marina, on le
+         masque — ajusterBoutons le rend à nouveau hors marina — et on pose
+         NOTRE bouton, id distinct, onclick entièrement nôtre. */
+      if (tgl) tgl.hidden = true;
+      if (tabs && !tabs.querySelector("#qbm-stafftgl") && estStaff()){
         tabs.insertAdjacentHTML("afterbegin",
-          '<button class="tdlev-txt-btn" id="qb-stafftgl" type="button" title="'+esc(MC.TEXTES.STAFF.BTN_TITRE)+'"><i class="fi '+ICONES.boutonStaff+'"></i><span>'+esc(MC.TEXTES.STAFF.BTN_LABEL)+'</span></button>');
-        tgl = document.querySelector("#qb-stafftgl");
-        if (!window.__marinaStaffPosé){
-          window.__marinaStaffPosé = true;
-          if (window.console) console.warn("[Marina] la coque n'a pas rendu son bouton staff (user_level="+
-            ((window._userdata && window._userdata.user_level) || "absent")+
-            ") ; la Marina a posé le sien pour "+ (pseudo() || "?") +".");
-        }
+          '<button class="tdlev-txt-btn" id="qbm-stafftgl" type="button" title="'+esc(MC.TEXTES.STAFF.BTN_TITRE)+'"><i class="fi '+ICONES.boutonStaff+'"></i><span>'+esc(MC.TEXTES.STAFF.BTN_LABEL)+'</span></button>');
       }
-      if (tabs && tgl && tgl.parentElement !== tabs) tabs.insertBefore(tgl, tabs.firstChild);
-      rendre();
-      /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
-         d'items de la boutique : on garde notre propre vue, la coque garde
-         la sienne (elle ne rend que des cartes d'items) */
-      if (tgl && !tgl._marina){
-        tgl._marina = true;
-        tgl.addEventListener("click", function(){
-          setTimeout(function(){
-            if (window.MarinaStaff){
-              if (!MarinaStaff.SS.ouvert) MarinaStaff.ouvrir();
-              else MarinaStaff.fermer();
-            }
-          }, 0);
+      var ges = tabs && tabs.querySelector("#qbm-stafftgl");
+      if (ges && !ges._marina){
+        ges._marina = true;
+        ges.addEventListener("click", function(){
+          if (window.MarinaStaff){
+            if (!MarinaStaff.SS.ouvert) MarinaStaff.ouvrir();
+            else MarinaStaff.fermer();
+          }
         });
       }
+      rendre();
     }
   });
   return true;
