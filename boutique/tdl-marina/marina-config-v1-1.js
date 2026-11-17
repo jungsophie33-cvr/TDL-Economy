@@ -62,7 +62,6 @@ var ST = {
 
 var ICONES = {
   onglet:     "fi-tr-anchor",                 /* onglet La Marina de la coque  */
-  cagnotte:   "fi-sr-hand-present",           /* cagnotte dans la barre        */
   retour:     "fi-tr-angle-left",
   deposer:    "fi-tr-clipboard-check",
   ajouter:    "fi-tr-add",
@@ -169,7 +168,7 @@ var TEXTES = {
     ATTEND_CO:"La fiche attend votre confirmation de co-auteur.",
     BTN_CONFIRME:"Confirmer le co-authorat",
     CONFIRMATION:"Confirmation attendue du co-auteur — délai de 3 jours.",
-    CAGNOTTE:"Cagnotte",
+    SOLDE_COMMU:"Solde communauté",
     ENGAGES:"dont",
     PROPOSER:"Proposer une initiative",
     RETOUR_LISTE:"← Les initiatives",
