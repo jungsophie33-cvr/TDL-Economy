@@ -1,488 +1,347 @@
-/* THE DROWNED LANDS — LA MARINA · SOCLE + ONGLET PUBLIC · v1
+/* THE DROWNED LANDS — LA MARINA · VOLET DE PROPOSITION · v1
+ *
+ * Deux pages, dans l'esprit du volet du Courier : le choix du type
+ * (Petite faveur 500 · Dossier communautaire 1 000 · Grand œuvre 2 000 ·
+ * Intercommunautaire 2 000 partagés), puis le formulaire du type choisi.
+ * Le montant se déduit du type : plus de palier.
  *
  * CE QUE CE FICHIER FAIT
- *   - CONTRAT : la forme d'une fiche du nœud racine marina_fiches ;
- *   - LECTURE : marina_fiches, membres (communauté, effectifs), cagnottes ;
- *   - DROITS  : staff FA, auteur, co-auteur, membre d'une communauté ;
- *   - DÉRIVÉS : voix par option, opposition par communauté, quorum,
- *              engagement (gel de cagnotte des fiches en vote), quota mensuel ;
- *   - RENDU   : délégué à marina-public (module enregistré auprès de quais-core).
- *   - VOTE    : une voix par membre, opposition par communauté ;
- *   - BARRE   : la cagnotte de la communauté du membre, nette des engagements.
+ *   - pose et anime le volet, gère les deux pages et le retour ;
+ *   - affiche le quota restant du membre pour le mois calendaire ;
+ *   - valide les champs, contrôle le plafond des 50 % de la cagnotte NETTE
+ *     (engagements des fiches en vote déduits — motif du gel de la Main) ;
+ *   - crée la fiche (push marina_fiches) ou enregistre la retouche d'un
+ *     auteur tant que le vote n'est pas ouvert.
  *
- * GEL (motif rep-det-main) : une fiche « en vote » engage son montant sur la
- * cagnotte de sa communauté (moitié de chaque côté pour une inter). Rien
- * n'est débité : la somme est affichée en moins, et le débit réel n'a lieu
- * qu'à la clôture du vote (marina-staff), par transaction.
+ * CE QU'IL NE FAIT PAS : ni l'ouverture du vote, ni le débit (marina-staff).
  *
- * QUOTA (motif tdlhc-envoi) : rien ne se stocke par membre. On compte les
- * fiches du mois calendaire (YYYY-MM de f.cree) portant le pseudo comme
- * auteur et non classées sans suite.
- *
- * ÉVÉNEMENT : le passage « en jeu » crée la fiche dans evenements/
- * (contrat tdlev-core, schéma 2), origine "boutique", lien « Fiche boutique ».
- *
- * EXPOSE : window.Marina
- * DÉPEND DE : window.EcoCore, window.Quais (quais-core), window.TDLBase.
- * ORDRE : eco-core → tdl-base → quais-core → quais-comptoir/barge →
- *         marina-config → ce fichier → marina-public → marina-volet → marina-staff.
+ * DÉPEND DE : window.Marina (marina-core), window.EcoCore.
+ * EXPOSE : window.MarinaVolet.
  */
 (function () {
 "use strict";
 
-var T0 = Date.now();   /* repère pour la grâce d'enregistrement (onglet n°3) */
+var M = function(){ return window.Marina; };
+function E(){ return window.EcoCore; }
+function $(s,r){ return (r||document).querySelector(s); }
 
-/* ===================== CONFIG (window.MarinaConfig) ===================== */
+var S = { type:null, edit:null, occupe:false };
+var el = {};
 
 var MC = window.MarinaConfig;
-var CFG = MC.CFG, COMMU = MC.COMMU, BANDES_KEY = MC.BANDES_KEY,
-    TYPES = MC.TYPES, ST = MC.ST, TXT = MC.TEXTES.CORE,
-    ICONES = MC.ICONES;
-/* ===================== UTILS ===================== */
+var TXT = MC.TEXTES.VOLET, CH = MC.CHAMPS_VOLET, IC = MC.ICONES, TYPES = MC.TYPES;
 
-function E(){ return window.EcoCore; }
-function B(){ return window.TDLBase; }
-function Q(){ return window.Quais; }
+/* ===================== CONSTRUCTION ===================== */
 
-function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
-function money(n){ return (typeof n==="number"?n.toLocaleString("fr-FR").replace(/\u202f/g," "):n)+" $"; }
-function cle(s){ return B() && B().clePseudo ? B().clePseudo(s) : String(s||"").replace(/[.$#\[\]\/]/g,"_"); }
-function vt(v){ return !v ? [] : (Array.isArray(v) ? v : Object.keys(v).map(function(k){ return v[k]; })); }
-function cles(v){ return (v && typeof v==="object") ? Object.keys(v) : []; }
-function mois(d){ var x = new Date(d); return x.getFullYear() + "-" + ("0"+(x.getMonth()+1)).slice(-2); }
-function ilya(iso){
-  if (!iso) return "";
-  var j = Math.floor((Date.now() - new Date(iso).getTime())/86400000);
-  if (j <= 0) return "à l'instant";
-  if (j === 1) return "hier";
-  return "il y a " + j + " jours";
-}
-function joursRestants(iso){ return iso ? Math.ceil((new Date(iso).getTime()-Date.now())/86400000) : null; }
-function plein(v){ return String(v==null?"":v).trim().length > 0; }
-
-function pseudo(){
-  try { return E() && E().getPseudo ? E().getPseudo() : null; } catch(e){ return null; }
-}
-function estStaff(){
-  try { var g = window._userdata && window._userdata.user_level; return g===1 || g===2; } catch(e){ return false; }
+function construire(){
+  el.voile = document.createElement("div"); el.voile.id = "marina-voile"; el.voile.className = "tdlhc-voile";
+  el.volet = document.createElement("aside"); el.volet.id = "marina-volet"; el.volet.className = "tdlhc-volet";
+  el.volet.setAttribute("aria-hidden", "true");
+  el.volet.innerHTML = voletHTML();
+  document.body.appendChild(el.voile); document.body.appendChild(el.volet);
+  el.titre = $("#marina-volet-titre", el.volet); el.corps = $("#mrv-choix", el.volet);
+  el.form = $("#mrv-form", el.volet); el.cout = $("#mrv-cout", el.volet);
+  el.quota = $("#mrv-quota", el.volet); el.ok = $("#mrv-ok", el.volet);
+  brancher();
 }
 
-function toast(msg){
-  var t = document.querySelector("#marina-toast");
-  if (!t){
-    t = document.createElement("div"); t.id = "marina-toast"; t.className = "tdlhc-toast";
-    document.body.appendChild(t);
+function voletHTML(){
+  var COMMU = M().COMMU;
+  var autres = Object.keys(COMMU).filter(function(k){ return k!==M().maCommu(); });
+  var sp = function(lab, span){ return ' <span>— '+span+'</span>'; };
+  var champ = function(label, inner, aide){ return '<div class="tdlhc-champ"><label>'+label+'</label>'+inner+(aide?'<p class="tdlhc-aide">'+aide+'</p>':'')+'</div>'; };
+  var inp = function(id, ph, ta, minh){
+    return '<input id="'+id+'" type="text" placeholder="'+ph+'"'+(ta?' class="tdlhc-ta-court qbm-u-ta60"':'')+'>';
+  };
+  var types = Object.keys(TYPES).map(function(k){
+    var t = TYPES[k];
+    return '<div class="tdlhc-type" data-type="'+k+'" style="--c:'+t.c+'"><i class="fi '+t.ic+'"></i>'
+      + '<div class="tdlhc-type-txt"><h5>'+t.lab+'</h5><p>'+t.desc+'</p></div><span class="tdlhc-tarif">'+t.tarif+'</span></div>';
+  }).join("");
+  return '<div class="tdlhc-volet-tete">'
+    + '<button class="tdlhc-x" id="mrv-back" type="button" hidden title="Retour au choix du type"><i class="fi '+IC.retour+'"></i></button>'
+    + '<h3 id="marina-volet-titre">'+TXT.TITRE+'</h3>'
+    + '<button class="tdlhc-x" id="mrv-x" type="button">&times;</button></div>'
+    + '<div class="tdlhc-volet-corps">'
+    + '<div id="mrv-choix">'
+    + '<div class="tdlhc-quota"><i class="fi '+IC.opposition+'"></i><span id="mrv-quota"></span></div>'
+    + '<div class="tdlhc-champ"><span class="tdlhc-legende">'+TXT.CHOIX_TITRE+'</span>'
+    + '<div class="tdlhc-types" id="mrv-types">'+types+'</div></div>'
+    + '<p class="tdlhc-note">'+TXT.NOTE_RELECTURE+'</p>'
+    + '</div>'
+    + '<div id="mrv-form" hidden>'
+    + '<div id="mrv-inter" hidden>'
+    + champ(CH.part, '<select id="mrv-part">'
+      + autres.map(function(k){ return '<option value="'+M().esc(k)+'">'+M().esc(COMMU[k].nom)+'</option>'; }).join("")
+      + '</select>', CH.part_aide)
+    + champ(CH.coaut+' <span>— '+CH.coaut_span+'</span>', '<input id="mrv-coaut" type="text" placeholder="Pseudo du co-auteur">', CH.coaut_aide)
+    + '</div>'
+    + '<div class="tdlhc-duo">'
+    + champ(CH.nom, '<input id="mrv-nom" type="text" placeholder="'+CH.nom_ph+'">')
+    + champ(CH.img+sp(), '<input id="mrv-img" type="text" placeholder="'+CH.img_ph+'">')
+    + '</div>'
+    + champ(CH.ctx+sp(), '<textarea id="mrv-ctx" class="qbm-u-ta86" placeholder="'+CH.ctx_ph+'"></textarea>')
+    + champ(CH.obj+sp(), '<textarea id="mrv-obj" class="tdlhc-ta-court qbm-u-ta60" placeholder="'+CH.obj_ph+'"></textarea>')
+    + '<div class="tdlhc-duo">'
+    + champ(CH.ben, '<input id="mrv-ben" type="text" placeholder="'+CH.ben_ph+'">')
+    + champ(CH.ris, '<input id="mrv-ris" type="text" placeholder="'+CH.ris_ph+'">')
+    + '</div>'
+    + '<div class="tdlhc-duo">'
+    + champ(CH.conflit+sp(), '<input id="mrv-conflit" type="text" placeholder="'+CH.conflit_ph+'">')
+    + champ(CH.ab+sp(), '<input id="mrv-ab" type="text" placeholder="'+CH.ab_ph+'">')
+    + '</div>'
+    + '<div class="tdlhc-champ"><label>'+CH.opts+' <span>— '+CH.opts_span+'</span></label>'
+    + '<input id="mrv-optA" type="text" placeholder="'+CH.optA_ph+'">'
+    + '<input id="mrv-optAd" type="text" placeholder="'+CH.optAd_ph+'" class="qbm-u-mt8">'
+    + '<input id="mrv-optB" type="text" placeholder="'+CH.optB_ph+'" class="qbm-u-mt12">'
+    + '<input id="mrv-optBd" type="text" placeholder="'+CH.optBd_ph+'" class="qbm-u-mt8">'
+    + '<input id="mrv-optC" type="text" placeholder="'+CH.optC_ph+'" hidden class="qbm-u-mt12">'
+    + '<input id="mrv-optCd" type="text" placeholder="'+CH.optCd_ph+'" hidden class="qbm-u-mt8">'
+    + '<button class="tdlhc-btn creux petit" id="mrv-addc" type="button" class="qbm-u-mt10"><i class="fi '+IC.ajouter+'"></i>'+CH.addc+'</button>'
+    + '</div>'
+    + '<div class="tdlhc-encart"><h5><i class="fi fi-tr-balance-scale-left"></i>'+TXT.AVANT_TITRE+'</h5><ul>'
+    + TXT.AVANT.map(function(x){ return '<li>'+x+'</li>'; }).join("")
+    + '</ul></div>'
+    + '</div></div>'
+    + '<div class="tdlhc-volet-pied"><div class="tdlhc-pied-ligne">'
+    + '<span class="tdlhc-cout" id="mrv-cout">'+TXT.CHOISIR+'</span>'
+    + '<span class="qbm-u-flex">'
+    + '<button class="tdlhc-btn creux" id="mrv-retour" type="button" hidden>'+TXT.RETOUR+'</button>'
+    + '<button class="tdlhc-btn" id="mrv-ok" type="button"><i class="fi '+IC.deposer+'"></i><span>'+TXT.DEPOSER+'</span></button>'
+    + '</span></div></div>';
+}
+
+/* ===================== PAGES ===================== */
+
+function pageChoix(){
+  S.type = null;
+  el.titre.textContent = TXT.TITRE;
+  el.corps.hidden = false; el.form.hidden = true;
+  el.cout.textContent = TXT.CHOISIR;
+  $("#mrv-retour").hidden = true; $("#mrv-back").hidden = true;
+  el.ok.hidden = true;
+  Array.prototype.forEach.call(el.volet.querySelectorAll("#mrv-types .tdlhc-type"), function(t){
+    t.classList.toggle("selu", false);
+  });
+  poserQuota();
+}
+function pageForm(){
+  el.titre.textContent = S.edit ? TXT.MODIFIER : (M().TYPES[S.type] ? M().TYPES[S.type].lab : TXT.TITRE);
+  el.corps.hidden = true; el.form.hidden = false;
+  updateCout();
+  $("#mrv-retour").hidden = false; $("#mrv-back").hidden = false;
+  el.ok.hidden = false;
+  el.ok.querySelector("span").textContent = S.edit ? TXT.ENREGISTRER : TXT.DEPOSER;
+}
+function setType(t){
+  S.type = t;
+  Array.prototype.forEach.call(el.volet.querySelectorAll("#mrv-types .tdlhc-type"), function(x){
+    x.classList.toggle("selu", x.getAttribute("data-type")===t);
+  });
+  $("#mrv-inter").hidden = (t!=="inter");
+  updateCout();
+}
+function updateCout(){
+  var T = M().TYPES;
+  el.cout.textContent = S.type
+    ? TXT.MONTANT + M().money(T[S.type].m) + (S.type==="inter" ? TXT.PARTAGE : "")
+    : TXT.CHOISIR;
+}
+function poserQuota(){
+  var p = M().pseudo(); if (!p){ el.quota.textContent = "Connecte-toi pour proposer une initiative."; return; }
+  var q = M().quotaDe(p);
+  el.quota.innerHTML = "<b>" + (q.max - q.n > 0 ? (q.max - q.n) + TXT.QUOTA_1 : TXT.QUOTA_0) + "</b>" + TXT.QUOTA_NOTE;
+}
+
+/* ===================== OUVERTURE ===================== */
+
+function ouvrir(fid){
+  if (!el.volet) construire();
+  var edit = fid ? M().fiche(fid) : null;
+  S.edit = edit ? edit.id : null;
+  el.ok.hidden = false;
+  el.ok.querySelector("span").textContent = edit ? TXT.ENREGISTRER : TXT.DEPOSER;
+  if (edit){
+    setType(edit.avec ? "inter" : (edit.montant===500 ? "faveur" : edit.montant===2000 ? "oeuvre" : "dossier"));
+    $("#mrv-nom").value = edit.nom; $("#mrv-ctx").value = edit.probleme||"";
+    $("#mrv-obj").value = edit.objectif||""; $("#mrv-ben").value = edit.benef||"";
+    $("#mrv-ris").value = edit.risque||""; $("#mrv-conflit").value = edit.conflit||"";
+    $("#mrv-ab").value = edit.abandon||""; $("#mrv-img").value = edit.img||"";
+    var ks = Object.keys(edit.options).sort();
+    $("#mrv-optA").value = edit.options[ks[0]] ? edit.options[ks[0]].t : "";
+    $("#mrv-optAd").value = edit.options[ks[0]] ? edit.options[ks[0]].d : "";
+    $("#mrv-optB").value = edit.options[ks[1]] ? edit.options[ks[1]].t : "";
+    $("#mrv-optBd").value = edit.options[ks[1]] ? edit.options[ks[1]].d : "";
+    var a3 = !!ks[2];
+    $("#mrv-optC").hidden = !a3; $("#mrv-optCd").hidden = !a3; $("#mrv-addc").hidden = a3;
+    $("#mrv-optC").value = a3 ? edit.options[ks[2]].t : "";
+    $("#mrv-optCd").value = a3 ? edit.options[ks[2]].d : "";
+    if (edit.avec){
+      $("#mrv-part").value = edit.avec;
+      $("#mrv-coaut").value = Object.keys(edit.auteurs).map(function(k){ return edit.auteurs[k]; })
+        .filter(function(a){ return a!==M().pseudo(); })[0] || "";
+    } else { $("#mrv-coaut").value = ""; }
+    pageForm();
+  } else {
+    ["mrv-nom","mrv-ctx","mrv-obj","mrv-ben","mrv-ris","mrv-conflit","mrv-ab","mrv-img",
+     "mrv-optA","mrv-optAd","mrv-optB","mrv-optBd","mrv-optC","mrv-optCd","mrv-coaut"].forEach(function(id){
+      $("#"+id).value = "";
+    });
+    $("#mrv-optC").hidden = true; $("#mrv-optCd").hidden = true; $("#mrv-addc").hidden = false;
+    pageChoix();
   }
-  t.textContent = msg; t.classList.add("on");
-  clearTimeout(toast._h);
-  toast._h = setTimeout(function(){ t.classList.remove("on"); }, 3000);
+  /* reflow AVANT la classe .on : au premier ouverture le volet vient d'être
+     inséré dans le DOM ; sans ce calcul forcé, le navigateur n'anime pas la
+     transformation (il peint l'état final directement). */
+  void el.volet.offsetWidth;
+  el.voile.classList.add("on"); el.volet.classList.add("on"); el.volet.setAttribute("aria-hidden", "false");
+}
+function fermer(){
+  el.voile.classList.remove("on"); el.volet.classList.remove("on"); el.volet.setAttribute("aria-hidden", "true");
+  S.edit = null; S.type = null;
 }
 
-/* ===================== ÉTAT ===================== */
+/* ===================== VALIDATION ET ÉCRITURE ===================== */
 
-var D = { fiches:{}, membres:{}, cagnottes:{} };   /* brut firebase */
-var S = { cat:"solo", sel:null, pov:{}, arm:{} };  /* rendu public */
-
-function fiche(id){ return D.fiches[id] || null; }
-function commuOf(f){ return COMMU[f && f.com] || MC.COMMU_DEFAUT; }
-
-/* ===================== NORMALISATION ===================== */
-
-var SCHEMA = 1;
-
-function normaliser(o){
-  o = o || {};
-  o.schema   = SCHEMA;
-  o.type     = TYPES[o.type] ? o.type : "dossier";
-  o.nom      = o.nom || "(sans titre)";
-  o.com      = COMMU[o.com] ? o.com : "";
-  o.avec     = COMMU[o.avec] ? o.avec : null;
-  o.montant  = (o.montant|0) || TYPES[o.type].m;
-  o.img      = o.img || "";
-  o.auteurs  = o.auteurs || {};                      /* nœud à clés : clePseudo → pseudo */
-  o.statut   = ST[o.statut] ? o.statut : "publiee";
-  o.cree     = o.cree || "";
-  o.ouverte  = o.ouverte || "";
-  o.fin      = o.fin || "";
-  o.votes    = o.votes || {};                        /* clePseudo → 'A'/'B'/'C'/'opp' */
-  o.options  = o.options || {};                      /* 'A'/'B'/'C' → {t, d, v?} */
-  if (!cles(o.options).length) o.options = { A:{t:"",d:""}, B:{t:"",d:""} };
-  o.conseq   = o.conseq || {};
-  o.resultat = o.resultat || "";
-  o.precisions = o.precisions || "";
-  o.event    = o.event || "";                        /* id de la fiche evenements/ */
-  return o;
-}
-
-/* ===================== DÉRIVÉS ===================== */
-
-function listeFiches(){
-  return cles(D.fiches).map(function(id){ var o = normaliser(D.fiches[id]); o.id = id; return o; })
-    .sort(function(a,b){ return String(b.cree).localeCompare(String(a.cree)); });
-}
-function active(f){ return f.statut!=="cloturee" && f.statut!=="non_tranchee"; }
-function fichesOf(cat){
-  return listeFiches().filter(function(f){
-    if (cat==="done")   return !active(f);
-    if (cat==="inter")  return !!f.avec && active(f);
-    return !f.avec && active(f);
-  });
-}
-
-/* effetifs d'une communauté : membres dont le groupe porte le libellé court */
-function effDe(com){
-  var n = 0;
-  Object.keys(D.membres || {}).forEach(function(p){
-    var g = String((D.membres[p]||{}).group || "");
-    if (com && g.indexOf(com) > -1) n++;
-  });
-  return n;
-}
-function maCommu(){
-  var p = pseudo(); if (!p) return null;
-  var g = String(((D.membres||{})[p]||{}).group || "");
-  var trouve = null;
-  Object.keys(COMMU).forEach(function(k){ if (g.indexOf(k) > -1) trouve = k; });
-  return trouve;
-}
-
-/* voix par option : issues du nœud votes, jamais stockées */
-function voixDe(f){
-  var v = { tot:0 };
-  cles(f.options).forEach(function(k){ v[k] = 0; });
-  cles(f.votes).forEach(function(p){
-    var x = f.votes[p];
-    if (v[x] !== undefined){ v[x]++; v.tot++; }
-  });
+function champs(){
+  var v = {};
+  ["nom","ctx","obj","ben","ris","conflit","ab","img","optA","optAd","optB","optBd","optC","optCd","part","coaut"]
+    .forEach(function(k){ v[k] = $("#mrv-"+k).value.trim(); });
   return v;
 }
-function oppositionDe(f){
-  var opp = {};
-  cles(f.votes).forEach(function(p){
-    if (f.votes[p]!=="opp") return;
-    var g = String(((D.membres||{})[p]||{}).group || "");
-    Object.keys(COMMU).forEach(function(k){ if (g.indexOf(k) > -1) opp[k] = (opp[k]||0)+1; });
-  });
-  return opp;
-}
-function quorumDe(f){
-  var eff = f.avec ? Math.max(effDe(f.com), 1) : effDe(f.com);
-  if (f.avec) eff = Math.max(eff, effDe(f.avec));   /* inter : côté le plus fourni */
-  return eff < 7 ? 3 : Math.ceil(eff/2);
-}
 
-/* engagement (gel) : ce que les fiches en vote retiennent sur une cagnotte */
-function engagementDe(com){
-  var t = 0;
-  listeFiches().forEach(function(f){
-    if (f.statut!=="en_vote") return;
-    if (f.avec) { if (f.com===com || f.avec===com) t += (f.montant/2)|0; }
-    else if (f.com===com) t += f.montant|0;
-  });
-  return t;
-}
-function cagnotteDe(com){ return ((D.cagnottes||{})[com]|0) || 0; }
-function cagnotteNette(com){ return Math.max(0, cagnotteDe(com) - engagementDe(com)); }
-
-/* quota du mois calendaire : compté, jamais stocké (motif tdlhc-envoi) */
-function quotaDe(p){
-  var per = mois(Date.now()), n = 0;
-  listeFiches().forEach(function(f){
-    if (f.statut==="non_tranchee") return;
-    if (mois(f.cree)!==per) return;
-    if (Object.keys(f.auteurs).some(function(k){ return f.auteurs[k]===p; })) n++;
-  });
-  return { n:n, max:1 };
-}
-
-/* ===================== CHARGEMENT / VEILLE ===================== */
-
-var VEILLE = null;
-
-/* Conséquences : nœud séparé marina_conseq, filtré CÔTÉ SERVEUR par les
-   règles (paroisse pour tous, sa communauté pour un membre, tout pour le
-   staff). Les lectures refusées (case d'un autre groupe) sont silencieuses. */
-function chargerConseq(){
-  var node = CFG.NODE_CONSEQ;
-  if (estStaff()){
-    return Promise.resolve(E().firebaseGet(node)).catch(function(){ return {}; })
-      .then(function(t){ return t || {}; });
+function plafondOK(type, com, avec){
+  var T = M().TYPES, m = M();
+  var net = m.cagnotteNette(com);
+  var besoin = (type==="inter") ? T.inter.split : T[type].m;
+  if (besoin > Math.floor(m.CFG.PLAFOND * net)) return { ok:false, net:net };
+  if (type==="inter"){
+    var net2 = m.cagnotteNette(avec);
+    if (besoin > Math.floor(m.CFG.PLAFOND * net2)) return { ok:false, net:net2, com:avec };
   }
-  var ma = maCommu();
-  var cles = ["paroisse"].concat(ma ? [ma] : []).concat([BANDES_KEY]);
-  var ids = Object.keys(D.fiches);
-  return Promise.all(ids.map(function(id){
-    return Promise.all(cles.map(function(k){
-      return Promise.resolve(E().firebaseGet(node + "/" + id + "/" + k))
-        .catch(function(){ return null; })
-        .then(function(v){ return v==null ? null : [k, v]; });
-    })).then(function(pairs){
-      var o = {};
-      pairs.forEach(function(p){ if (p) o[p[0]] = p[1]; });
-      return [id, o];
-    });
-  })).then(function(entries){
-    var out = {};
-    entries.forEach(function(e){ out[e[0]] = e[1]; });
-    return out;
-  });
+  return { ok:true };
 }
 
-function charger(){
-  return Promise.all([
-    Promise.resolve(E().firebaseGet(CFG.NODE)).catch(function(){ return {}; }),
-    Promise.resolve(E().firebaseGet(CFG.NODE_MEMBRES)).catch(function(){ return {}; }),
-    Promise.resolve(E().firebaseGet(CFG.NODE_CAGNOTTES)).catch(function(){ return {}; })
-  ]).then(function(r){
-    D.fiches = r[0] || {}; D.membres = r[1] || {}; D.cagnottes = r[2] || {};
-    if (!S.sel || !D.fiches[S.sel]){
-      var l = fichesOf(S.cat);
-      S.sel = l.length ? l[0].id : null;
+function envoyer(){
+  if (S.occupe) return;
+  var m = M(), p = m.pseudo();
+  if (!p){ m.toast("Connecte-toi pour proposer une initiative."); return; }
+  if (!S.type){ m.toast(TXT.ERR_TYPE); return; }
+  var v = champs();
+  if (!v.nom){ m.toast(TXT.ERR_NOM); return; }
+  if (!v.ctx){ m.toast(TXT.ERR_CTX); return; }
+  if (!v.obj){ m.toast(TXT.ERR_OBJ); return; }
+  if (!v.optA || !v.optB){ m.toast(TXT.ERR_OPTS); return; }
+  if (!v.optAd || !v.optBd){ m.toast(TXT.ERR_CONCEPTS); return; }
+  var com = m.maCommu();
+  if (!com){ m.toast("Ta communauté n'est pas identifiable — préviens le staff."); return; }
+
+  var now = new Date().toISOString();
+  var maj = null;
+
+  if (S.edit){
+    var f = m.fiche(S.edit);
+    if (!f){ S.edit = null; fermer(); return; }
+    if (f.statut!=="publiee" && f.statut!=="attente_co"){ m.toast("Le vote est ouvert — la fiche ne s'édite plus."); return; }
+    maj = {};
+    maj["nom"] = v.nom; maj["probleme"] = v.ctx; maj["objectif"] = v.obj;
+    maj["benef"] = v.ben || "—"; maj["risque"] = v.ris || "—";
+    maj["conflit"] = v.conflit || "Aucun déclaré.";
+    maj["abandon"] = v.ab || "—";
+    if (v.img) maj["img"] = v.img;
+    maj["type"] = S.type; maj["montant"] = m.TYPES[S.type].m;
+    maj["options"] = { A:{t:v.optA,d:v.optAd}, B:{t:v.optB,d:v.optBd} };
+    if (v.optC) maj["options"].C = { t:v.optC, d:v.optCd };
+    var base = m.CFG.NODE + "/" + S.edit + "/";
+    var up = {};
+    Object.keys(maj).forEach(function(k){ up[base+k] = maj[k]; });
+    if (S.type==="inter"){
+      if (!v.coaut){ m.toast(TXT.ERR_CO); return; }
+      var mb = (m.D.membres||{})[v.coaut];
+      if (!mb || String(mb.group||"").indexOf(v.part)<0){ m.toast(TXT.ERR_CO_INCONNU); return; }
+      up[base+"avec"] = v.part;
+      up[base+"auteurs/"+m.cle(v.coaut)] = v.coaut;
+    } else if (f.avec){
+      /* retour d'une inter au solo : le partenaire et son auteur sortent */
+      up[base+"avec"] = null;
+      Object.keys(f.auteurs).forEach(function(k){
+        if (f.auteurs[k]!==p) up[base+"auteurs/"+k] = null;
+      });
     }
-    return chargerConseq();
-  }).then(function(cons){
-    Object.keys(D.fiches).forEach(function(id){
-      D.fiches[id].conseq = cons[id] || {};
-    });
-  });
-}
+    ecrire(up, TXT.OK_EDIT);
+    return;
+  }
 
-function veiller(){
-  if (!B() || !B().suivre || VEILLE) return;
-  VEILLE = B().suivre({
-    node: CFG.NODE, rev: true, ms: CFG.VEILLE_MS,
-    occupe: function(){ return !!(document.querySelector("#marina-volet.on") || document.querySelector("#marina-staff:not([hidden])")); },
-    onEntrees: function(){ reprendre(); }
-  });
-}
-/* rendu délégué : marina-public tient la colonne gauche et la cagnotte */
-function rendre(){
-  if (window.MarinaPublic && MarinaPublic.rendre) MarinaPublic.rendre();
-}
+  /* création : quota calendaire puis plafond des 50 % de la cagnotte nette */
+  var q = m.quotaDe(p);
+  if (q.n >= q.max){ m.toast(TXT.ERR_QUOTA); return; }
+  var pl = plafondOK(S.type, com, v.part);
+  if (!pl.ok){ m.toast(TXT.ERR_PLAFOND(M().money(pl.net), pl.com ? m.COMMU[pl.com].nom : m.COMMU[com].nom)); return; }
 
-function reprendre(){
-  charger().then(function(){ rendre(); if (window.MarinaStaff) MarinaStaff.absorber(); }).catch(function(){});
-}
-
-/* ===================== VOTE ===================== */
-
-function tryVote(fid, key){
-  var f = fiche(fid); if (!f) return;
-  var p = pseudo();
-  if (!p){ toast("Connecte-toi pour voter."); return; }
-  if (f.statut!=="en_vote"){ toast("Le vote n'est pas ouvert."); return; }
-  var k = cle(p);
-  if (f.votes && f.votes[k] && f.votes[k]!==key){ toast(TXT.DEJA); return; }
-  var maj = {}; maj[CFG.NODE+"/"+fid+"/votes/"+k] = key;
-  Promise.resolve(E().firebaseUpdate(maj)).then(function(){
-    toast(key==="opp" ? TXT.OPP_OK : TXT.VOTE_OK);
-    reprendre();
-  }).catch(function(){ toast("L'envoi a échoué — réessaie."); });
-}
-
-function confirmerCo(fid){
-  var p = pseudo(); if (!p) return;
-  var maj = {};
-  maj[CFG.NODE+"/"+fid+"/coConfirme"] = new Date().toISOString();
-  maj[CFG.NODE+"/"+fid+"/statut"] = "publiee";
-  Promise.resolve(E().firebaseUpdate(maj)).then(function(){ toast(TXT.CONFIRMEE); reprendre(); })
-    .catch(function(){ toast("L'envoi a échoué."); });
-}
-
-/* ===================== ÉVÉNEMENT (bascule en jeu) ===================== */
-
-/* Crée la fiche evenements/ du contrat tdlev (schéma 2), origine boutique.
-   Le lien « Fiche boutique » pose l'id Marina : son affichage côté tdlev
-   demandera la petite modif prévue par ailleurs. */
-function creerEvenement(f){
-  var id = B() && B().nouvelleCle ? B().nouvelleCle() : ("ev"+Date.now().toString(36));
-  var ev = {
-    schema: 2,
-    origine: "boutique",
-    categorie: "communautaire",
-    titre: f.nom,
-    sous: "Initiative votée à la Marina",
-    periode: "",
-    contexte: [f.probleme||""],
-    objectifs: [f.objectif||""],
-    portees: (function(){ var p = {}; p[cle(f.com)] = { nom:f.com }; if (f.avec) p[cle(f.avec)] = { nom:f.avec }; return p; })(),
-    statut: "en_cours",
-    ouvert: false,
-    visibilite: "publique",
-    elements: {}, faits: {},
-    ampleur: true,
-    consequences: [],
-    liens: { fiche_boutique: { id: f.id, label: "Fiche boutique" } },
-    rps: {}, participants: {}, retenus: {}, rappels: {},
-    referent: Object.keys(f.auteurs)[0] ? f.auteurs[Object.keys(f.auteurs)[0]] : "",
-    cree: new Date().toISOString()
+  var f = {
+    schema:1, type:S.type, nom:v.nom, com:com, avec:null,
+    montant:m.TYPES[S.type].m, img:v.img,
+    auteurs:{}, statut:"publiee", cree:now,
+    options:{ A:{t:v.optA,d:v.optAd}, B:{t:v.optB,d:v.optBd} },
+    probleme:v.ctx, objectif:v.obj,
+    benef:v.ben || "—", risque:v.ris || "—",
+    conflit:v.conflit || "Aucun déclaré.", abandon:v.ab || "—"
   };
-  var maj = {};
-  maj[CFG.NODE_EVENTS+"/"+id] = ev;
-  maj[CFG.NODE+"/"+f.id+"/event"] = id;
-  return Promise.resolve(E().firebaseUpdate(maj)).then(function(){ return id; });
+  f.auteurs[m.cle(p)] = p;
+  if (S.type==="inter"){
+    if (!v.coaut){ m.toast(TXT.ERR_CO); return; }
+    /* le co-auteur doit exister et appartenir à la communauté partenaire */
+    var mb = (m.D.membres||{})[v.coaut];
+    if (!mb || String(mb.group||"").indexOf(v.part)<0){ m.toast(TXT.ERR_CO_INCONNU); return; }
+    f.avec = v.part;
+    f.auteurs[m.cle(v.coaut)] = v.coaut;
+    f.statut = "attente_co";         /* le co-auteur confirme sur la fiche, 3 jours */
+    f.coNotifie = v.coaut;
+  }
+  ecrire(null, TXT.OK, f);
 }
 
-/* Notifications sos-emi-notif — plage 240+, à déclarer dans sos-emi-notif :
-   240 nouvelle fiche (staff) · 241 vote ouvert (auteurs) · 242 précisions
-   demandées (auteurs) · 243 clôture (auteurs) · 244 co-authorat à confirmer. */
-var NOTIF = MC.NOTIF;
-function notifier(code, dest, vars, ref){
-  try {
-    if (!window.EcoNotif) return;
-    if (!dest || dest==="staff") EcoNotif.staff(code, vars, ref);
-    else EcoNotif.a(dest, code, vars, ref);
-  } catch(e){}
+/* up : PATCH racine (retouche) ; nouv : fiche à pousser (création) */
+function ecrire(up, message, nouv){
+  var m = M();
+  S.occupe = true;
+  var promesse;
+  if (nouv){
+    promesse = Promise.resolve(E().firebasePush(m.CFG.NODE, nouv));
+  } else {
+    promesse = Promise.resolve(E().firebaseUpdate(up));
+  }
+  promesse.then(function(res){
+    S.occupe = false; fermer(); m.toast(message); m.reprendre();
+    if (nouv){
+      m.notifier(m.NOTIF.NOUVELLE, "staff", { pseudo:m.pseudo(), titre:nouv.nom }, "marina-" + ((res && res.name) || Date.now()));
+      if (nouv.avec && nouv.coNotifie) m.notifier(m.NOTIF.CO, nouv.coNotifie, { titre:nouv.nom }, "marina-co-" + ((res && res.name) || Date.now()));
+    }
+  }).catch(function(){
+    S.occupe = false; m.toast(TXT.ERR_ENVOI);
+  });
 }
 
-/* ===================== ACCROCHES DOM ===================== */
+/* ===================== ÉVÉNEMENTS ===================== */
 
 function brancher(){
-  document.addEventListener("click", function(e){
-    var t = e.target, el;
-    if ((el = t.closest("[data-vote]"))){
-      var p = el.getAttribute("data-vote").split(":");
-      var f = fiche(p[0]);
-      if (p[1]==="opp"){
-        tryVote(p[0], "opp");
-      } else if (!S.arm[p[0]+p[1]]){
-        S.arm[p[0]+p[1]] = true;
-        rendre();
-        setTimeout(function(){
-          if (S.arm[p[0]+p[1]]){ delete S.arm[p[0]+p[1]]; rendre(); }
-        }, 3500);
-      } else {
-        delete S.arm[p[0]+p[1]];
-        tryVote(p[0], p[1]);
-      }
-      return;
-    }
-    if ((el = t.closest("[data-cat]"))){
-      S.cat = el.getAttribute("data-cat");
-      var l = fichesOf(S.cat);
-      if (!l.some(function(f){ return f.id===S.sel; })) S.sel = l.length ? l[0].id : null;
-      rendre();
-      return;
-    }
-    if ((el = t.closest("[data-f]"))){ S.sel = el.getAttribute("data-f"); rendre(); return; }
-    if ((el = t.closest("[data-pov]"))){
-      var q = el.getAttribute("data-pov").split(":");
-      S.pov[q[0]] = q[1]; rendre(); return;
-    }
-    if (t.closest('[data-act="coconfirme"]')){ confirmerCo(S.sel); return; }
-    if (t.closest('[data-act="editer"]')){
-      if (window.MarinaVolet) MarinaVolet.ouvrir(S.sel);
-      return;
-    }
-    if (t.closest("#qbm-propose")){
-      if (window.MarinaVolet) MarinaVolet.ouvrir(null);
-      return;
-    }
-    if (t.closest('[data-act="ret"]')){
-      var root = document.querySelector("#quais-app");
-      if (root) root.querySelector("#qb-main").classList.remove("qbm-focus");
-      rendre(); return;
-    }
+  el.voile.addEventListener("click", fermer);
+  document.addEventListener("keydown", function(e){
+    if (e.key==="Escape" && el.volet.classList.contains("on")) fermer();
   });
-}
-
-/* ===================== ENREGISTREMENT AUPRÈS DE QUAIS-CORE ===================== */
-
-function quandQuais(){
-  if (!(window.Quais && window.Quais.register && window.EcoCore && window.EcoCore.firebaseGet)) return false;
-  /* la Marina s'enregistre en DERNIER (onglet n°3) : barge-core pose
-     window.QuaisBarge à son chargement et s'enregistre aussitôt. On attend
-     ce signal, avec une grâce de 10 s si le marché noir n'est pas sur la
-     page — sinon la Marina ne s'enregistrerait jamais. */
-  if (!window.QuaisBarge && (Date.now() - T0 < 10000)) return false;
-  window.Quais.register({
-    key:"marina", label:"La Marina", sub:"boutique communautaire",
-    icon:"fi fi-tr-anchor", mode:"grid", leftW:"450px", cols:2,
-    cats: [
-      { k:"solo", l:"Internes",  ic:"fi fi-tr-house-flood" },
-      { k:"inter",l:"Inter",     ic:"fi fi-tr-arrows-repeat" },
-      { k:"done", l:"Terminées", ic:"fi fi-tr-clipboard-check" }
-    ],
-    data:{},
-    detail: function(id){ return window.MarinaPublic ? MarinaPublic.detailHTML(fiche(S.sel || id)) : ""; },
-    emptyDetail: function(){ return window.MarinaPublic ? MarinaPublic.detailHTML(fiche(S.sel)) : ""; },
-    wire: function(){
-      /* la coque vient de se rendre : la Marina reprend la main sur la
-         colonne gauche, la fiche, la cagnotte et ses deux boutons.
-         La barre d'onglets reste CELLE DE QUAIS-CORE, intacte (flex centré).
-         Les deux boutons sont ajoutés DANS #qb-tabs et sortis du flux par
-         position:absolute (cf. CSS-marina) : jamais de restructure ici, les
-         handlers suivent les nœuds déplacés, jamais d'innerHTML sur les onglets. */
-      var tabs = document.querySelector("#qb-tabs");
-      if (tabs && !tabs.querySelector("#qbm-propose")){
-        tabs.insertAdjacentHTML("beforeend",
-          '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
-      }
-      var tgl = document.querySelector("#qb-stafftgl");
-      if (tabs && tgl && tgl.parentElement !== tabs) tabs.insertBefore(tgl, tabs.firstChild);
-      rendre();
-      /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
-         d'items de la boutique : on garde notre propre vue, la coque garde
-         la sienne (elle ne rend que des cartes d'items) */
-      if (tgl && !tgl._marina){
-        tgl._marina = true;
-        tgl.addEventListener("click", function(){
-          setTimeout(function(){
-            if (window.MarinaStaff){
-              if (!MarinaStaff.SS.ouvert) MarinaStaff.ouvrir();
-              else MarinaStaff.fermer();
-            }
-          }, 0);
-        });
-      }
-    }
+  el.volet.addEventListener("click", function(e){
+    var t = e.target;
+    if (t.closest("#mrv-x")){ fermer(); return; }
+    if (t.closest("#mrv-back") || t.closest("#mrv-retour")){ pageChoix(); return; }
+    if (t.closest("#mrv-ok")){ envoyer(); return; }
+    if (t.closest("#mrv-addc")){ $("#mrv-optC").hidden = false; $("#mrv-optCd").hidden = false; $("#mrv-addc").hidden = true; return; }
+    var ty = t.closest("#mrv-types .tdlhc-type");
+    if (ty){ setType(ty.getAttribute("data-type")); pageForm(); }
   });
-  return true;
-}
-
-/* La coque se re-rend à chaque achat ou changement d'onglet : les deux boutons
-   de la Marina doivent disparaître quand un autre onglet est actif. */
-function observerBoutons(){
-  var root = document.querySelector("#quais-app"); if (!root) return false;
-  var obs = new MutationObserver(function(){ if (window.MarinaPublic) MarinaPublic.ajusterBoutons(root); });
-  obs.observe(root, { childList:true, subtree:true });
-  return true;
-}
-
-function demarrer(){
-  var n = 0;
-  (function attendre(){
-    if (quandQuais()){
-      brancher();
-      charger().then(function(){ veiller(); rendre(); }).catch(function(){});
-      var m = 0;
-      (function attendreRoot(){
-        if (observerBoutons()) return;
-        if (++m > 60) return;
-        setTimeout(attendreRoot, 250);
-      })();
-      return;
-    }
-    if (++n > 80){ if (window.console) console.warn("[Marina] quais-core ou eco-core absent."); return; }
-    setTimeout(attendre, 250);
-  })();
 }
 
 /* ===================== EXPORT ===================== */
 
-window.Marina = {
-  CFG:CFG, TYPES:TYPES, COMMU:COMMU, ST:ST, BANDES_KEY:BANDES_KEY,
-  esc:esc, money:money, cle:cle, ilya:ilya, joursRestants:joursRestants, toast:toast,
-  estStaff:estStaff, pseudo:pseudo, maCommu:maCommu, commuOf:commuOf,
-  ICONES:ICONES, TXT:TXT, CHAMPS_VOLET:window.MarinaConfig.CHAMPS_VOLET, CHAMPS_STAFF:window.MarinaConfig.CHAMPS_STAFF,
-  normaliser:normaliser, listeFiches:listeFiches, fichesOf:fichesOf, fiche:fiche, active:active,
-  voixDe:voixDe, oppositionDe:oppositionDe, quorumDe:quorumDe, effDe:effDe,
-  engagementDe:engagementDe, cagnotteDe:cagnotteDe, cagnotteNette:cagnotteNette,
-  quotaDe:quotaDe, creerEvenement:creerEvenement,
-  notifier:notifier, NOTIF:NOTIF,
-  reprendre:reprendre, rendre:rendre, S:S, D:D
-};
-
-if (document.readyState==="loading") document.addEventListener("DOMContentLoaded", demarrer); else demarrer();
+window.MarinaVolet = { ouvrir:ouvrir, fermer:fermer };
 
 })();
