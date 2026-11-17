@@ -401,25 +401,18 @@ function quandQuais(){
     emptyDetail: function(){ return window.MarinaPublic ? MarinaPublic.detailHTML(fiche(S.sel)) : ""; },
     wire: function(){
       /* la coque vient de se rendre : la Marina reprend la main sur la
-         colonne gauche, la fiche, la cagnotte et ses deux boutons */
-      /* barre d'onglets façon tdlev-barre : (gauche) | nav centrée | proposer.
-         quais-core rend les onglets à plat : on les DÉPLACE dans .qb-nav
-         (les handlers suivent les nœuds, jamais d'innerHTML ici). */
+         colonne gauche, la fiche, la cagnotte et ses deux boutons.
+         La barre d'onglets reste CELLE DE QUAIS-CORE, intacte (flex centré).
+         Les deux boutons sont ajoutés DANS #qb-tabs et sortis du flux par
+         position:absolute (cf. CSS-marina) : jamais de restructure ici, les
+         handlers suivent les nœuds déplacés, jamais d'innerHTML sur les onglets. */
       var tabs = document.querySelector("#qb-tabs");
-      if (tabs && !tabs.querySelector(".qb-nav")){
-        var nav = document.createElement("nav");
-        nav.className = "qb-nav";
-        Array.prototype.slice.call(tabs.querySelectorAll(".qb-tab")).forEach(function(b){ nav.appendChild(b); });
-        var fill = document.createElement("span");
-        fill.className = "qbm-tabfill";
-        tabs.appendChild(fill);
-        tabs.appendChild(nav);
-      }
-      var nav = tabs && tabs.querySelector(".qb-nav");
-      if (nav && !document.querySelector("#qbm-propose")){
-        nav.insertAdjacentHTML("afterend",
+      if (tabs && !tabs.querySelector("#qbm-propose")){
+        tabs.insertAdjacentHTML("beforeend",
           '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
       }
+      var tgl = document.querySelector("#qb-stafftgl");
+      if (tabs && tgl && tgl.parentElement !== tabs) tabs.insertBefore(tgl, tabs.firstChild);
       rendre();
       /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
          d'items de la boutique : on garde notre propre vue, la coque garde
