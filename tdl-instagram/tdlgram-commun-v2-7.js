@@ -1,31 +1,26 @@
 /* ============================================================
-   tdlgram-v1-1k-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1m-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
-   Un personnage = un compte Forumactif = un topic TDLgram.
-   Source de vérité : les posts Forumactif du topic.
-   - Coquille (1er post) : === INSTA === puis PSEUDO (handle,
-     requis), NOM, BIO (multi-lignes), AVATAR, COUVERTURE.
-   - Fragment : === FRAGMENT: PHOTO|STORY === puis IMAGE (répétée
-     = carrousel), LEGENDE (répétée = multi-lignes), LIEU (photo
-     seulement), IDENTIFIE (pseudo FA, répétable). Story : expire
-     après 72 h puis rejoint l'onglet Archives du mur.
+   Un personnage = un compte Forumactif = un topic TDLgram, source
+   de vérité = les posts Forumactif du topic.
+   - Coquille (1er post) : === INSTA === puis PSEUDO (handle requis),
+     NOM, BIO (multi-lignes), AVATAR, COUVERTURE.
+   - Fragment : === FRAGMENT: PHOTO|STORY === puis IMAGE (répétée =
+     carrousel), LEGENDE (répétée = multi-lignes), LIEU (photo),
+     DATE (photo seulement : antidatage jj/mm/aaaa), IDENTIFIE
+     (pseudo FA, répétable). Story : 72 h à sa date réelle, jamais antidatable.
 
    Firebase (règles dédiées, canvas database-rules) :
-     reactions/<tid>/<pid>/<pseudo>   j'aime (nœud WhatsApp existant)
-     commentaires/<tid>/<pid>/<cle>   { pseudo, texte, t }
-     identifications/<cible>/<cle>     { par, tid, pid, img }
-     abonnements/<pseudo>/<tid>        true
-     tdlgram_posts/<tid>/<pid>         miroir des fragments (le fil)
+     reactions/<tid>/<pid>/<pseudo> (j'aime WhatsApp) · commentaires/<tid>/<pid>/<cle> ·
+     identifications/<cible>/<cle> · abonnements/<pseudo>/<tid> true · tdlgram_posts/<tid>/<pid> = miroir (le fil).
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1k-commun.js   2. tdlgram-v1-2g-rendu.js
-     3. tdlgram-v1-3g-contenu.js  4. tdlgram-v1-4f-actions.js
-     Styles : tdlgram-v2-5.css (page CSS dédiée GitHub, jamais de
-     style dans le JS). Polices et icônes fi- déjà chargées par le
-     forum. Dépend d'EcoCore (eco-core-v2-2) pour Firebase : sans
-     lui, repli lecture seule de la coquille. Les topics TDLgram ne
-     doivent PAS vivre dans f2-whatsapp (conflit de posts sj-).
+     1. tdlgram-v1-1m-commun.js   2. tdlgram-v1-2h-rendu.js
+     3. tdlgram-v1-3i-contenu.js  4. tdlgram-v1-4g-actions.js
+     Styles : tdlgram-v2-5.css (CSS dédié GitHub, jamais de style
+     dans le JS). Dépend d'EcoCore (eco-core-v2-2) : sans lui, repli
+     lecture seule. Jamais dans f2-whatsapp (conflit de posts sj-).
    ============================================================ */
 (() => {
   'use strict';
@@ -33,8 +28,7 @@
   const TDLG = window.TDLG1 = window.TDLG1 || {};
 
   /* ===== CONFIG ===== */
-  /* Aucune image stockée ici : couverture de base et repli des
-     images cassées viennent du CSS du forum (--bgprof, --bgimgsb). */
+  /* Aucune image en dur : replis via le CSS du forum (--bgprof, --bgimgsb). */
   const CONFIG = TDLG.CONFIG = {
     POLL_INTERVAL: 400,
     POLL_MAX: 25,                  // attente des posts sj- au chargement
@@ -114,6 +108,7 @@
       apercuDetail: ' : rien n’est encore publié.',
       toastApercuImage: 'Ajoutez au moins une image pour prévisualiser.',
       toastImageManquante: 'Ajoutez au moins une image.',
+      toastDateInvalide: 'Date non reconnue — formats acceptés : 14/07/2023 ou « 14 juillet 2023 ».',
       composer: {
         annuler: 'Annuler',
         previsualiser: 'Prévisualiser',
@@ -121,10 +116,12 @@
         ajouter: 'Ajouter',
         legende: 'Légende',
         lieu: 'Lieu',
+        date: 'Date du moment (antidatage optionnel)',
         identifie: 'Personnes identifiés : pseudos Forumactif, séparés par des virgules',
         adressePh: 'Adresse de l’image (https://…)',
         legendePh: 'Racontez votre moment… Les # restent cliquables sur le forum.',
         lieuPh: 'Lieu de votre publication',
+        datePh: 'ex. 14/07/2023 ou 14 juillet 2023 — vide = date réelle',
         identifiePh: 'ex. Alyssa Desrosiers, Perles de Cocodrie',
         post: {
           titre: 'Nouvelle publication',
@@ -166,9 +163,7 @@
       galerie: 'fi fi-tr-gallery'
     },
 
-    /* Smileys restés en texte (FA ne les a pas convertis) : mapping
-       vers emoji unicode. Les smileys convertis en <img> gardent leur
-       image (marqueur \x01 dans textePost, rendu par noeudTexteTags). */
+    /* Smileys texte → emoji unicode ; convertis en <img> → marqueur MARQ (noeudTexteTags). */
     SMILEYS: { ':)': '🙂', ':(': '🙁', ':D': '😄', ';)': '😉', ';D': '😁',
       ':p': '😛', ':P': '😛', ':o': '😮', ":'(": '😢', ':heart:': '❤',
       ':star:': '⭐', ':cool:': '😎', ':sleep:': '😴', ':zzz:': '😴' }
@@ -192,17 +187,15 @@
       const p = ((window._userdata && window._userdata.username) || '').trim();
       const id = parseInt((window._userdata && window._userdata.user_id) || 0, 10);
       if (!p || p.toLowerCase() === 'anonymous' || id <= 0) return null;
-      /* _userdata.avatar = balise <img> : on n'en garde que l'URL
-         (avatar du navigateur, pas celui du mur visité). */
+      /* _userdata.avatar = balise <img> : on n'en garde que l'URL (avatar du navigateur). */
       const av = ((window._userdata && window._userdata.avatar) || '')
         .match(/src=['"]([^'"]+)['"]/);
       return { pseudo: p, id, avatar: av ? av[1] : '' };
     } catch (e) { return null; }
   })();
 
-  /* Staff : liste de référence EcoCore.ADMIN_USERS ; les règles
-     Firebase tranchent côté serveur (claim tdl_niveau). À appeler
-     APRÈS le chargement d'eco-core, jamais au chargement du fichier. */
+  /* Staff : liste de référence EcoCore.ADMIN_USERS, à appeler APRÈS
+     le chargement d'eco-core ; les règles tranchent côté serveur. */
   function estStaff() {
     const eco = window.EcoCore;
     return !!(TDLG.MOI && eco && eco.ADMIN_USERS &&
@@ -237,11 +230,9 @@
   /* ===== LECTURE D'UN POST ===== */
   const MARQ = String.fromCharCode(1); /* délimite une image inline */
 
-  /* Texte nettoyé : sans compteur de mots, citations, signature.
-     Normalisation Sophie-OS : les retours à la ligne FA (<br>, <p>)
-     redeviennent des \n ; les smileys et images FA deviennent des
-     marqueurs MARQ+url+MARQ (rendus par noeudTexteTags), le bbcode
-     non converti est réduit à son texte. */
+  /* Texte nettoyé : compteur de mots, citations, signature retirés.
+     Normalisation Sophie-OS : <br>/<p> FA → \n, smileys et images FA →
+     marqueurs MARQ, bbcode non converti réduit (rendu par noeudTexteTags). */
   function textePost(post) {
     const src = $('.sj-post-msg', post);
     if (!src) return '';
@@ -284,8 +275,8 @@
   }
 
   /* ===== DATES FA → epoch (approximation maîtrisée) ===== */
-  const MOIS = { jan: 0, 'fév': 1, feb: 1, mar: 2, avr: 3, apr: 3, mai: 4,
-    juin: 5, juil: 6, jul: 6, 'aoû': 7, aug: 7, sep: 8, oct: 9, nov: 10, 'déc': 11, dec: 11 };
+  const MOIS = { jan: 0, janvier: 0, 'fév': 1, 'février': 1, feb: 1, mar: 2, mars: 2, avr: 3, avril: 3, apr: 3, mai: 4, juin: 5,
+    juil: 6, juillet: 6, jul: 6, 'aoû': 7, 'août': 7, aug: 7, sep: 8, septembre: 8, oct: 9, octobre: 9, nov: 10, novembre: 10, 'déc': 11, 'décembre': 11, dec: 11 };
 
   function epoqueDate(texte) {
     const t = (texte || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -300,8 +291,7 @@
     if (!m || !(m[2] in MOIS)) return 0;
     const annee = m[3] ? +m[3] : maintenant.getFullYear();
     let d = new Date(annee, MOIS[m[2]], +m[1], hh, mm).getTime();
-    /* pas d'année affichée = année en cours ; si la date tombe dans le
-       futur, c'était l'année précédente (tournant de janvier) */
+    /* pas d'année affichée = année en cours ; future = année précédente (janvier) */
     if (!m[3] && d > Date.now() + 432e5)
       d = new Date(annee - 1, MOIS[m[2]], +m[1], hh, mm).getTime();
     return d;
@@ -309,6 +299,13 @@
 
   function epoquePost(post) {
     return epoqueDate(texteDate(post));
+  }
+
+  /* Champ DATE (antidatage) : jj/mm/aaaa (aussi jj-mm, jj.mm) ou « 14 juillet 2023 » ; 0 = date réelle. */
+  function epoqueChampDate(texte) {
+    const m = String(texte || '').trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1], 12).getTime();
+    return epoqueDate(String(texte || '').trim());
   }
 
   /* Temps affiché relatif : « Il y a 2 h », « Hier », « 12 octobre » */
@@ -344,9 +341,8 @@
     return sortie;
   }
 
-  /* Coquille du premier post : handle requis, le reste optionnel.
-     BIO multi-lignes : les lignes qui suivent « BIO: » sans être une
-     autre clé (ni vides) la prolongent ; clé BIO répétée = +1 ligne. */
+  /* Coquille du 1er post : handle requis. BIO multi-lignes : les lignes
+     qui suivent « BIO: » sans autre clé (ni vides) la prolongent. */
   function parseCoquille(texte) {
     if (!RE_INSTA.test(texte)) return null;
     const cq = { handle: '', nom: '', bio: '', avatar: '', couverture: '' };
@@ -375,12 +371,13 @@
   function parseFragment(texte) {
     const m = texte.match(RE_FRAGMENT);
     if (!m) return null;
-    const frag = { type: m[1].toLowerCase(), images: [], legende: '', lieu: '', identifie: [] };
+    const frag = { type: m[1].toLowerCase(), images: [], legende: '', lieu: '', identifie: [], date: '', tVoulu: 0 };
     for (const [cle, val] of lireCles(texte, true)) {
       if (cle === 'IMAGE' && val) frag.images.push(val);
       else if (cle === 'LEGENDE') frag.legende = frag.legende ? frag.legende + '\n' + val : val;
       else if (cle === 'LIEU') frag.lieu = val;
       else if (cle === 'IDENTIFIE' && val) frag.identifie.push(val);
+      else if (cle === 'DATE' && val && frag.type === 'photo') { frag.date = val; frag.tVoulu = epoqueChampDate(val) || 0; }
     }
     return frag.images.length ? frag : null;
   }
@@ -392,12 +389,13 @@
   }
 
   /* ===== COMPOSER : génération du fragment à publier ===== */
-  function construireFragment(mode, images, legende, lieu, identifie) {
+  function construireFragment(mode, images, legende, lieu, identifie, date) {
     const lignes = ['=== FRAGMENT: ' + (mode === 'story' ? 'STORY' : 'PHOTO') + ' ==='];
     (images || []).forEach(u => lignes.push('IMAGE: ' + u));
     if (legende && legende.trim())
       legende.trim().split('\n').forEach(l => lignes.push('LEGENDE: ' + l));
     if (mode !== 'story' && lieu && lieu.trim()) lignes.push('LIEU: ' + lieu.trim());
+    if (mode !== 'story' && date && date.trim()) lignes.push('DATE: ' + date.trim());
     (identifie || []).forEach(p => p && lignes.push('IDENTIFIE: ' + p));
     return lignes.join('\n');
   }
@@ -436,9 +434,8 @@
   };
   const cache = TDLG.cache;
 
-  /* Texte + hashtags colorés + émotes, SANS innerHTML de contenu
-     membre : les segments MARQ deviennent des <img>, le reste des
-     noeuds texte, les # des spans. */
+  /* Texte + hashtags + émotes, SANS innerHTML de contenu membre :
+     segments MARQ → <img>, # → spans, reste en noeuds texte. */
   function noeudTexteTags(texte, classe) {
     const frag = document.createDocumentFragment();
     const re = /#[A-Za-zÀ-ÿ0-9_]+/g;
@@ -479,7 +476,9 @@
     return Object.keys(branche).map(pid => ({ pid, ...branche[pid] }))
       .filter(p => p.t && p.images && p.images.length);
   }
-  const parRecent = (a, b) => (b.t || 0) - (a.t || 0);
+  /* Date affichée et de tri : l'antidatage DATE (publications seulement) l'emporte ; stories = date réelle. */
+  const datePost = (p) => (p.tVoulu || p.t || 0);
+  const parRecent = (a, b) => datePost(b) - datePost(a);
   const expiree = (p) => p.t && (Date.now() - p.t) > CONFIG.STORY_H * 3600e3;
   const nbLikes = (tidX, pid) => Object.keys((cache.reactions[tidX] || {})[pid] || {}).length;
 
@@ -494,6 +493,7 @@
   TDLG.extraireHashtags = extraireHashtags; TDLG.texteEmojis = texteEmojis;
   TDLG.noeudTexteTags = noeudTexteTags; TDLG.postsDu = postsDu;
   TDLG.parRecent = parRecent; TDLG.expiree = expiree; TDLG.nbLikes = nbLikes;
+  TDLG.datePost = datePost; TDLG.epoqueChampDate = epoqueChampDate;
   TDLG.attendreEcoCore = attendreEcoCore; TDLG.refusMessage = refusMessage;
   TDLG.estStaff = estStaff;
 })();
