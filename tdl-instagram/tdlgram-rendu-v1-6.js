@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2g-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2h-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -155,6 +155,10 @@
   <div id="tdlgTagsField">
     <label class="tdlg-composer-label" for="tdlgTagsText">${esc(T.composer.identifie)}</label>
     <input id="tdlgTagsText" placeholder="${esc(T.composer.identifiePh)}">
+  </div>
+  <div id="tdlgDateField">
+    <label class="tdlg-composer-label" for="tdlgDateText">${esc(T.composer.date)}</label>
+    <input id="tdlgDateText" placeholder="${esc(T.composer.datePh)}">
   </div>
   <div class="tdlg-composer-note" id="tdlgComposerNote"></div>
   <div class="tdlg-composer-actions"><button class="tdlg-btn" data-close="tdlgComposerModal" type="button">${esc(T.composer.annuler)}</button><button class="tdlg-btn" id="tdlgPreviewBtn" type="button">${esc(T.composer.previsualiser)}</button><button class="tdlg-btn tdlg-btn--primary" id="tdlgPublishBtn" type="button">${esc(T.composer.publier)}</button></div>
