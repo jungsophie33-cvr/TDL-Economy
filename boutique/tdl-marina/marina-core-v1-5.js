@@ -64,7 +64,16 @@ function pseudo(){
   try { return E() && E().getPseudo ? E().getPseudo() : null; } catch(e){ return null; }
 }
 function estStaff(){
-  try { var g = window._userdata && window._userdata.user_level; return g===1 || g===2; } catch(e){ return false; }
+  try { var g = window._userdata && window._userdata.user_level; if (g===1 || g===2) return true; } catch(e){}
+  /* _userdata.user_level manque selon la version du forum ou du template :
+     la liste de référence de l'économie (EcoCore.ADMIN_USERS, même convention
+     que TDLgram) tranche alors côté client, le claim tdl_niveau trançant
+     côté serveur. */
+  try {
+    var E2 = window.EcoCore;
+    if (E2 && E2.ADMIN_USERS && E2.getPseudo) return E2.ADMIN_USERS.indexOf(E2.getPseudo()) >= 0;
+  } catch(e){}
+  return false;
 }
 
 function toast(msg){
@@ -419,6 +428,22 @@ function quandQuais(){
           '<button class="tdlev-txt-btn est-plein" id="qbm-propose" type="button"><i class="fi '+ICONES.ajouter+'"></i><span>'+esc(TXT.PROPOSER)+'</span></button>');
       }
       var tgl = document.querySelector("#qb-stafftgl");
+      /* La coque ne rend son bouton staff que si _userdata.user_level vaut
+         1 ou 2 — un compte admin que ce champ ne qualifie pas restait sans
+         aucun outil, sans même une erreur console. La Marina ne dépend plus
+         de la coque pour ça : si elle te dit staff, elle pose SON bouton
+         (mêmes id et classe, donc mêmes styles et position absolue). */
+      if (!tgl && tabs && estStaff()){
+        tabs.insertAdjacentHTML("afterbegin",
+          '<button class="qb-stafftgl" id="qb-stafftgl" type="button" title="'+esc(MC.TEXTES.STAFF.BTN_TITRE)+'"><i class="fi '+ICONES.boutonStaff+'"></i></button>');
+        tgl = document.querySelector("#qb-stafftgl");
+        if (!window.__marinaStaffPosé){
+          window.__marinaStaffPosé = true;
+          if (window.console) console.warn("[Marina] la coque n'a pas rendu son bouton staff (user_level="+
+            ((window._userdata && window._userdata.user_level) || "absent")+
+            ") ; la Marina a posé le sien pour "+ (pseudo() || "?") +".");
+        }
+      }
       if (tabs && tgl && tgl.parentElement !== tabs) tabs.insertBefore(tgl, tabs.firstChild);
       rendre();
       /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
