@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4f-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4g-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -165,6 +165,7 @@
         legende: frag.legende,
         lieu: frag.lieu,
         type: frag.type,
+        tVoulu: frag.tVoulu || 0, /* antidatage DATE ; 0 = date réelle */
         url: location.pathname.replace(/(\/t\d+)p\d+/, '$1'), /* canonique :
           slug FA obligatoire (/t95-titre), /t95 seul = 404, sans pagination */
         t: TDLG.epoquePost(post) || Date.now()
