@@ -197,6 +197,35 @@ function quotaDe(p){
 
 var VEILLE = null;
 
+/* Conséquences : nœud séparé marina_conseq, filtré CÔTÉ SERVEUR par les
+   règles (paroisse pour tous, sa communauté pour un membre, tout pour le
+   staff). Les lectures refusées (case d'un autre groupe) sont silencieuses. */
+function chargerConseq(){
+  var node = CFG.NODE_CONSEQ;
+  if (estStaff()){
+    return Promise.resolve(E().firebaseGet(node)).catch(function(){ return {}; })
+      .then(function(t){ return t || {}; });
+  }
+  var ma = maCommu();
+  var cles = ["paroisse"].concat(ma ? [ma] : []).concat([BANDES_KEY]);
+  var ids = Object.keys(D.fiches);
+  return Promise.all(ids.map(function(id){
+    return Promise.all(cles.map(function(k){
+      return Promise.resolve(E().firebaseGet(node + "/" + id + "/" + k))
+        .catch(function(){ return null; })
+        .then(function(v){ return v==null ? null : [k, v]; });
+    })).then(function(pairs){
+      var o = {};
+      pairs.forEach(function(p){ if (p) o[p[0]] = p[1]; });
+      return [id, o];
+    });
+  })).then(function(entries){
+    var out = {};
+    entries.forEach(function(e){ out[e[0]] = e[1]; });
+    return out;
+  });
+}
+
 function charger(){
   return Promise.all([
     Promise.resolve(E().firebaseGet(CFG.NODE)).catch(function(){ return {}; }),
@@ -208,6 +237,11 @@ function charger(){
       var l = fichesOf(S.cat);
       S.sel = l.length ? l[0].id : null;
     }
+    return chargerConseq();
+  }).then(function(cons){
+    Object.keys(D.fiches).forEach(function(id){
+      D.fiches[id].conseq = cons[id] || {};
+    });
   });
 }
 
