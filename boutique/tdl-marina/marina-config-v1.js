@@ -18,6 +18,7 @@ var CFG = {
   NODE_MEMBRES:   "membres",
   NODE_CAGNOTTES: "cagnottes",
   NODE_EVENTS:    "evenements",
+  NODE_CONSEQ:    "marina_conseq",
   VOTE_JOURS:     7,        /* scrutin de 7 jours                      */
   CO_JOURS:       3,        /* confirmation du co-auteur d'une inter   */
   PLAFOND:        0.5,      /* jamais plus de 50 % de la cagnotte nette */
