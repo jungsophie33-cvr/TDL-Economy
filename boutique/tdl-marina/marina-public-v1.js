@@ -210,14 +210,18 @@ function rendre(){
 
 function poserCagnotte(root){
   var bar = root.querySelector(".qb-bar"); if (!bar) return;
-  var old = bar.querySelector(".qbm-cag"); if (old) old.remove();
+  var old = bar.querySelector(".qbm-cagnotte"); if (old) old.remove();
+  var acc = bar.querySelector(".qb-accueil"); if (!acc) return;
+  /* maquette : accueil et cagnotte partagent la zone gauche (.qb-barg) */
+  var g = bar.querySelector(".qb-barg");
+  if (!g){ g = document.createElement("div"); g.className = "qb-barg"; acc.parentNode.insertBefore(g, acc); g.appendChild(acc); }
   var com = m().maCommu(); if (!com) return;
   var eng = m().engagementDe(com);
-  bar.querySelector(".qb-accueil").insertAdjacentHTML("afterend",
-    '<span class="qbm-cag qbm-cagnotte"><i class="fi '+IC.cagnotte+'"></i>'
-    + '<span class="qb-lab">'+m().esc(TXT.CAGNOTTE)+' '+m().esc(COMMU[com].nom)+'</span>'
-    + '<b>'+m().money(m().cagnotteDe(com))+(eng?' <span class="qbm-u-petit">'+m().esc(TXT.ENGAGES)+' '+m().money(eng)+' '+m().esc(TXT.ENGAGES_SUITE)+'</span>':"")+'</b>'
-    + '</span>');
+  g.insertAdjacentHTML("beforeend",
+    '<div class="qb-ublock qbm-cagnotte"><span class="qb-lab">'+m().esc(TXT.SOLDE_COMMU)+'</span>'
+    + '<span class="qb-usolde">'+m().money(m().cagnotteDe(com))
+    + (eng?' <span class="qb-gele">'+m().esc(TXT.ENGAGES)+' '+m().money(eng)+'</span>':"")
+    + '</span></div>');
 }
 
 /* « Gestion staff » et « Proposer une initiative » n'existent que sur La Marina */
