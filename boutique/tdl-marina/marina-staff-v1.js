@@ -290,6 +290,10 @@ function rendrePanneau(){
 function patch(id, maj, message){
   var base = M().CFG.NODE + "/" + id + "/", up = {};
   Object.keys(maj).forEach(function(k){ up[base+k] = maj[k]; });
+  return patchAbs(up, message);
+}
+/* patchAbs : écriture de chemins absolus (nœud marina_conseq notamment) */
+function patchAbs(up, message){
   return Promise.resolve(E().firebaseUpdate(up))
     .then(function(){ if (message) M().toast(message); M().reprendre(); })
     .catch(function(){ M().toast(TXT.ERR_ECRIT); });
@@ -368,7 +372,7 @@ function brancher(){
     if ((el = t.closest("[data-sf]"))){ SS.ssel = el.getAttribute("data-sf"); SS.editing = false; rendrePanneau(); return; }
     if ((el = t.closest("[data-cqdel]"))){
       var fc = M().fiche(SS.ssel); if (!fc) return;
-      var up = {}; up[M().CFG.NODE+"/"+fc.id+"/conseq/"+el.getAttribute("data-cqdel")] = null;
+      var up = {}; up[M().CFG.NODE_CONSEQ+"/"+fc.id+"/"+el.getAttribute("data-cqdel")] = null;
       Promise.resolve(E().firebaseUpdate(up)).then(function(){ M().reprendre(); }).catch(function(){ M().toast(TXT.ERR_ECRIT); });
       return;
     }
@@ -421,7 +425,7 @@ function brancher(){
       }
       if (act==="qadd" && f){
         var gk = $("#qbm-cqsel").value;
-        var up = {}; up[M().CFG.NODE+"/"+f.id+"/conseq/"+gk] = "";
+        var up = {}; up[M().CFG.NODE_CONSEQ+"/"+f.id+"/"+gk] = "";
         if (f.conseq && f.conseq[gk]!==undefined){ M().toast(TXT.CQ_DEJA); return; }
         Promise.resolve(E().firebaseUpdate(up)).then(function(){ M().reprendre(); }).catch(function(){ M().toast(TXT.ERR_ECRIT); });
         return;
@@ -432,7 +436,8 @@ function brancher(){
         Array.prototype.forEach.call($("#qbm-gtrav").querySelectorAll("[data-cq]"), function(x){
           cq[x.getAttribute("data-cq")] = x.value.trim();
         });
-        patch(f.id, { conseq:cq }, TXT.OK_CONSEQ);
+        var o = {}; o[M().CFG.NODE_CONSEQ+"/"+f.id] = cq;
+        patchAbs(o, TXT.OK_CONSEQ);
         return;
       }
       return;
