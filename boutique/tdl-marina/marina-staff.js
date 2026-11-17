@@ -35,23 +35,9 @@ function $(s,r){ return (r||document).querySelector(s); }
 
 var SS = { stab:"vote", ssel:null, editing:false, ouvert:false };
 
-var TXT = {
-  TITRE:"Gestion Marina", RETOUR:"Retour à la marina",
-  NOTE_VOTE:"Le vote ne s'ouvre que de la main du staff. Le plafond des 50 % de la cagnotte nette est revérifié au lancement.",
-  NOTE_EDIT:"Le staff corrige avant l'ouverture du vote — les auteurs en sont prévenus par le résultat visible.",
-  NOTE_CONSEQ:"Les conséquences se rédigent à la clôture : la paroisse d'abord, puis une case par groupe qui doit en savoir plus.",
-  PRECISIONS_PH:"Ce que le staff attend des auteurs avant le vote — un point à préciser, un modèle à justifier, un responsable à nommer…",
-  OK_VOTE:"Vote ouvert — scrutin de 7 jours.",
-  OK_PREC:"Demande envoyée — les auteurs la liront sur leur fiche.",
-  OK_EDIT:"Fiche corrigée — prête à partir au vote.",
-  OK_CONSEQ:"Conséquences consignées — chaque audience lira sa part, jamais celle des autres.",
-  ERR_PLAFOND:function(c, m){ return "Plafond des 50 % : la cagnotte nette de " + c + " est de " + m + " — lance un dossier moins cher, ou attends une clôture."; },
-  ERR_DE:"Indique le résultat du dé (1 à 2 pour départager les options A et B, 1 à 3 avec l'option C).",
-  ERR_ECRIT:"L'écriture a échoué — réessaie.",
-  QUORUM:function(q, n){ return "Quorum : " + n + " voix" + (n<q?" sur " + q + " requises":" — atteint") + "."; },
-  DEBITE:function(m, c){ return " " + m + " débités de la cagnotte " + c + "."; },
-  ERR_FONDS:function(c){ return "La cagnotte " + c + " ne couvre pas l'engagement : corrige-la à la main avant de clôturer."; }
-};
+var MC = window.MarinaConfig;
+var TXT = MC.TEXTES.STAFF, CH = MC.CHAMPS_STAFF, IC = MC.ICONES;
+var NOTIF = MC.NOTIF;
 
 /* ===================== STRUCTURE ===================== */
 
@@ -60,7 +46,7 @@ function construire(){
   p.id = "marina-staff"; p.className = "qbm-fixe"; p.hidden = true;
   p.innerHTML =
     '<header class="qbm-gmastic">'
-    + '<div><button class="tdlev-txt-btn" id="qbm-staffclose" type="button"><i class="fi fi-tr-angle-left"></i><span>'+TXT.RETOUR+'</span></button></div>'
+    + '<div><button class="tdlev-txt-btn" id="qbm-staffclose" type="button"><i class="fi '+IC.retour+'"></i><span>'+TXT.RETOUR+'</span></button></div>'
     + '<h2>'+TXT.TITRE+'</h2><div></div></header>'
     + '<div class="qbm-gcorps">'
     + '<div class="qbm-gcol">'
@@ -102,11 +88,9 @@ function items(){
   });
 }
 function staffTabs(){
-  var defs = [
-    { k:"vote",    icon:"fi-tr-bolt",           lab:"Lancer au vote", c:"var(--gr1-color)" },
-    { k:"cloture", icon:"fi-tr-clipboard-check", lab:"Clôturer",       c:"var(--gr4-color)" },
-    { k:"conseq",  icon:"fi-tr-customize-edit", lab:"Conséquences",   c:"var(--gr5-color)" }
-  ];
+  var defs = Object.keys(IC.staffTabs).map(function(k){
+    return { k:k, icon:IC.staffTabs[k].ic, lab:IC.staffTabs[k].lab, c:IC.staffTabs[k].c };
+  });
   var nOf = function(k){
     return M().listeFiches().filter(function(f){
       return k==="vote" ? (f.statut==="publiee"||f.statut==="attente_co")
@@ -132,7 +116,7 @@ function staffTete(f){
   return '<div class="qbm-gtete">'
     + '<span class="tdlev-marq" style="background:'+st.c+'">'+st.t+'</span>'
     + '<span class="qbm-ge-d">'+M().esc(M().commuOf(f).nom)+(f.avec?' · × '+M().esc(M().COMMU[f.avec].nom):'')+' · déposée '+M().esc(M().ilya(f.cree))+'</span>'
-    + (M().joursRestants(new Date(f.cree).getTime()+7*86400000)<0 && f.statut==="publiee" ? '<span class="tdlev-tag qbm-ej-tag">> 1 semaine sans revue</span>' : '')
+    + (M().joursRestants(new Date(f.cree).getTime()+7*86400000)<0 && f.statut==="publiee" ? '<span class="tdlev-tag qbm-ej-tag">'+TXT.SANS_REVUE+'</span>' : '')
     + '<h3>'+M().esc(f.nom)+'</h3></div>';
 }
 
@@ -143,13 +127,13 @@ function dossier(f){
     + m.elem("fi-tr-bolt","Vote", voteInfo(f))
     + m.elem("fi-sr-hand-present","Bénéficiaires", f.benef||"—")
     + '</div>'
-    + (f.precisions ? '<div class="qb-asbox" style="margin-top:16px"><span class="qb-lab">Précisions demandées</span><p>'+m.esc(f.precisions)+'</p></div>' : "")
+    + (f.precisions ? '<div class="qb-asbox qbm-u-mt16"><span class="qb-lab">'+TXT.PRECISIONS+'</span><p>'+m.esc(f.precisions)+'</p></div>' : "")
     + m.pave("fi-tr-house-flood","Contexte",'<p class="tdlev-f-p">'+m.esc(f.probleme||"")+'</p>')
-    + '<div class="qbm-pavgrid" style="margin-top:16px">'
+    + '<div class="qbm-pavgrid qbm-u-mt16">'
     + m.pave("fi-tr-bullseye","Objectifs",'<ul class="tdlev-obj"><li>'+m.esc(f.objectif||"")+'</li></ul>')
     + m.pave("fi-tr-diamond-exclamation","Risques",'<p class="tdlev-f-p">'+m.esc(f.risque||"")+'</p>')
     + '</div>'
-    + '<p class="qb-lab" style="margin:20px 0 8px">Les options — trois au maximum</p>'
+    + '<p class="qb-lab qbm-u-m208">'+TXT.OPT_MAX+'</p>'
     + '<div class="tdlev-opts">' + Object.keys(f.options).sort().map(function(k){
         return '<div class="tdlev-opt qbm-opt" style="--c:'+m.commuOf(f).c+'">'
           + '<i class="fi fi-tr-box"></i>'
@@ -175,18 +159,18 @@ function escAttr(s){ return M().esc(s||""); }
 function editForm(f){
   var inp = function(lab,k,val){ return '<div class="tdlhc-champ"><label>'+lab+'</label><input type="text" data-ed="'+k+'" value="'+escAttr(val)+'"></div>'; };
   var ta  = function(lab,k,val){ return '<div class="tdlhc-champ"><label>'+lab+'</label><textarea data-ed="'+k+'">'+escAttr(val)+'</textarea></div>'; };
-  var h = '<p class="qb-lab" style="margin:0 0 12px">Édition de la fiche — avant l\'ouverture du vote</p>'
+  var h = '<p class="qb-lab qbm-u-m012">'+TXT.EDIT_TITRE+'</p>'
     + '<div class="qbm-edgrid">'
-    + inp("Nom de l'initiative","nom", f.nom)
-    + ta("Contexte","probleme", f.probleme)
-    + ta("Objectif","objectif", f.objectif)
-    + inp("Bénéficiaires","benef", f.benef)
-    + ta("Risques","risque", f.risque)
-    + ta("Conflit d'intérêts","conflit", f.conflit)
-    + ta("Abandon","abandon", f.abandon)
-    + inp("Image du hero (URL)","img", f.img)
+    + inp(CH.nom,"nom", f.nom)
+    + ta(CH.probleme,"probleme", f.probleme)
+    + ta(CH.objectif,"objectif", f.objectif)
+    + inp(CH.benef,"benef", f.benef)
+    + ta(CH.risque,"risque", f.risque)
+    + ta(CH.conflit,"conflit", f.conflit)
+    + ta(CH.abandon,"abandon", f.abandon)
+    + inp(CH.img,"img", f.img)
     + '</div>'
-    + '<p class="qb-lab" style="margin:20px 0 12px">Les options soumises au vote</p>'
+    + '<p class="qb-lab qbm-u-m2012">'+TXT.OPT_TITRE+'</p>'
     + '<div class="qbm-edgrid">'
     + Object.keys(f.options).sort().map(function(k){
         return '<div class="qbm-edopt">'
@@ -207,7 +191,7 @@ function conseqForm(f){
       + '</label><textarea data-cq="'+m.esc(k)+'">'+escAttr(cq[k])+'</textarea></div>';
   };
   var h = dossier(f)
-    + '<p class="qb-lab" style="margin:24px 0 8px">Conséquences connues — qui sait quoi, à la clôture</p>'
+    + '<p class="qb-lab qbm-u-m248">'+TXT.CQ_TITRE+'</p>'
     + '<div class="qbm-edgrid">' + box("paroisse");
   Object.keys(cq).forEach(function(k){ if (k!=="paroisse") h += box(k); });
   h += '</div>';
@@ -218,12 +202,12 @@ function conseqForm(f){
   h += opts
     ? '<div class="qbm-cqadd"><select id="qbm-cqsel">'+opts+'</select>'
       + '<button class="tdlev-btn est-second" data-gact="qadd" type="button">Ajouter une case</button></div>'
-    : '<p class="qbm-note" style="margin-top:14px">Tous les groupes ont déjà leur case de conséquences.</p>';
+    : '<p class="qbm-note qbm-u-mt14">'+TXT.CQ_TOUTES+'</p>';
   /* passage en jeu d'un dossier communautaire : décision staff */
   if (f.statut==="cloturee" && f.type==="dossier" && !f.event){
-    h += '<div class="qb-asbox" style="margin-top:18px"><span class="qb-lab">Passage en jeu</span>'
-      + '<p>Ce dossier a été clôturé sur une option. Son passage « en jeu » crée l\'événement tdlev — décision staff.</p>'
-      + '<div style="margin-top:10px"><button class="tdlev-btn" data-gact="enjeu" type="button">Passer en jeu — créer l\'évent</button></div></div>';
+    h += '<div class="qb-asbox qbm-u-mt18"><span class="qb-lab">'+TXT.ENJEU_TITRE+'</span>'
+      + '<p>'+TXT.ENJEU_TXT+'</p>'
+      + '<div class="qbm-u-mt10"><button class="tdlev-btn" data-gact="enjeu" type="button">'+TXT.ENJEU_BTN+'</button></div></div>';
   }
   return h;
 }
@@ -234,7 +218,7 @@ function clotureForm(f){
   var m = M(), v = m.voixDe(f), opp = m.oppositionDe(f);
   var q = m.quorumDe(f);
   var h = staffTete(f) + dossier(f);
-  h += '<div class="qb-asbox" style="margin-top:16px"><span class="qb-lab">Décompte</span><p>'
+  h += '<div class="qb-asbox qbm-u-mt16"><span class="qb-lab">'+TXT.DECOMPTE+'</span><p>'
     + m.esc(TXT.QUORUM(q, v.tot));
   if (f.avec){
     Object.keys(opp).forEach(function(k){
@@ -245,16 +229,16 @@ function clotureForm(f){
   }
   h += '</p></div>';
   var boutons = Object.keys(f.options).sort().map(function(k){
-    return '<button class="tdlev-btn est-second" data-cloture="'+k+'" type="button">Clôturer — l\'option '+k+' l\'emporte ('+(v[k]||0)+' voix)</button>';
+    return '<button class="tdlev-btn est-second" data-cloture="'+k+'" type="button">'+TXT.CLOTURER_OPT(k, v[k]||0)+'</button>';
   }).join("");
-  h += '<p class="qb-lab" style="margin:18px 0 8px">Issue du vote</p>'
-    + '<div style="display:flex;flex-wrap:wrap;gap:10px">'
+  h += '<p class="qb-lab qbm-u-m188">'+TXT.ISSUE_TITRE+'</p>'
+    + '<div class="qbm-u-flexw">'
     + boutons
-    + '<button class="tdlev-btn est-second" data-gact="nontranchee" type="button">Non tranchée</button>'
+    + '<button class="tdlev-btn est-second" data-gact="nontranchee" type="button">'+TXT.NON_TRANCHEE+'</button>'
     + '</div>'
-    + '<div class="qbm-cqadd"><input type="number" id="qbm-de" min="1" max="'+Object.keys(f.options).length+'" placeholder="Dé de départage — résultat"'
-    + ' style="flex:0 1 240px"><button class="tdlev-btn est-second" data-gact="de" type="button">Consigner le dé (égalité)</button></div>'
-    + '<p class="qbm-note" style="margin-top:12px">En cas d\'égalité, le dé est tiré en public : 1 = première option, et ainsi de suite. Une inter ne se clôture que sur une vraie option — « s\'y opposer » ne finance rien.</p>';
+    + '<div class="qbm-cqadd"><input type="number" class="qbm-u-de" id="qbm-de" min="1" max="'+Object.keys(f.options).length+'" placeholder="'+TXT.DE_PH+'"'
+    + '><button class="tdlev-btn est-second" data-gact="de" type="button">'+TXT.CONSIGNER_DE+'</button></div>'
+    + '<p class="qbm-note qbm-u-mt12">'+TXT.NOTE_DE+'</p>';
   return h;
 }
 
@@ -265,12 +249,12 @@ function rendrePanneau(){
   if (!M().estStaff()){ fermer(); return; }
   staffTabs();
   var l = items();
-  $("#qbm-gnom").textContent = SS.stab==="vote" ? "Revue avant ouverture du vote"
-    : SS.stab==="cloture" ? "Votes à clôturer" : "Fiches résolues ou en jeu";
-  $("#qbm-gnb").textContent = l.length + (l.length>1?" fiches":" fiche");
+  $("#qbm-gnom").textContent = SS.stab==="vote" ? TXT.TITRE_VOTE
+    : SS.stab==="cloture" ? TXT.TITRE_CLOTURE : TXT.TITRE_CONSEQ;
+  $("#qbm-gnb").textContent = l.length + " " + (l.length>1?TXT.FICHES:TXT.FICHE);
   if (!l.length){
-    $("#qbm-gliste").innerHTML = '<div class="tdlev-vide">Rien par ici — le Bayou est calme. Savourons.</div>';
-    $("#qbm-gtrav").innerHTML = '<div class="tdlev-vide">Choisissez une fiche dans la colonne de gauche.</div>';
+    $("#qbm-gliste").innerHTML = '<div class="tdlev-vide">'+TXT.LISTE_VIDE+'</div>';
+    $("#qbm-gtrav").innerHTML = '<div class="tdlev-vide">'+TXT.TRAVAIL_VIDE+'</div>';
     $("#qbm-gpied").innerHTML = "";
     return;
   }
@@ -282,22 +266,22 @@ function rendrePanneau(){
     if (SS.editing){
       trav.innerHTML = staffTete(f) + editForm(f);
       pied.innerHTML = '<span class="qbm-gnote">'+TXT.NOTE_EDIT+'</span>'
-        + '<button class="tdlev-btn est-second" data-gact="editcancel" type="button">Annuler</button>'
-        + '<button class="tdlev-btn" data-gact="editsave" type="button">Enregistrer les modifications</button>';
+        + '<button class="tdlev-btn est-second" data-gact="editcancel" type="button">'+TXT.ANNULER+'</button>'
+        + '<button class="tdlev-btn" data-gact="editsave" type="button">'+TXT.ENREGISTRER+'</button>';
     } else {
       trav.innerHTML = staffTete(f) + dossier(f);
       pied.innerHTML = '<span class="qbm-gnote">'+TXT.NOTE_VOTE+'</span>'
-        + '<button class="tdlev-btn est-second" data-gact="precisions" type="button">Demander des précisions</button>'
-        + '<button class="tdlev-btn est-second" data-gact="edit" type="button">Éditer la fiche</button>'
-        + '<button class="tdlev-btn" data-gact="voter" type="button">Ouvrir le vote — '+M().CFG.VOTE_JOURS+' jours</button>';
+        + '<button class="tdlev-btn est-second" data-gact="precisions" type="button">'+TXT.DEMANDER+'</button>'
+        + '<button class="tdlev-btn est-second" data-gact="edit" type="button">'+TXT.EDITER+'</button>'
+        + '<button class="tdlev-btn" data-gact="voter" type="button">'+TXT.OUVRIR_VOTE(M().CFG.VOTE_JOURS)+'</button>';
     }
   } else if (SS.stab==="cloture"){
     trav.innerHTML = clotureForm(f);
-    pied.innerHTML = '<span class="qbm-gnote">Le débit des cagnottes n\'a lieu qu\'à la clôture — jusque-là, la somme est affichée en gel d\'engagement.</span>';
+    pied.innerHTML = '<span class="qbm-gnote">'+TXT.NOTE_DEBIT+'</span>';
   } else {
     trav.innerHTML = staffTete(f) + conseqForm(f);
     pied.innerHTML = '<span class="qbm-gnote">'+TXT.NOTE_CONSEQ+'</span>'
-      + '<button class="tdlev-btn" data-gact="qsave" type="button">Enregistrer les conséquences</button>';
+      + '<button class="tdlev-btn" data-gact="qsave" type="button">'+TXT.OK_CONSEQ_BTN+'</button>';
   }
 }
 
@@ -342,22 +326,22 @@ function cloturer(f, cleGagnante, jet){
   if (f.avec){
     var opp = m.oppositionDe(f);
     var bloque = Object.keys(opp).some(function(k){ return opp[k] > Math.floor(m.effDe(k)/2); });
-    if (bloque){ m.toast("Une communauté est majoritairement opposée — la fiche ne peut que rester non tranchée."); return; }
+    if (bloque){ m.toast(TXT.ERR_OPPO); return; }
   }
   var v = m.voixDe(f);
   var q = m.quorumDe(f);
-  if (v.tot < q){ m.toast("Le quorum ("+q+") n'est pas atteint — classe en non tranchée."); return; }
+  if (v.tot < q){ m.toast(TXT.ERR_QUORUM(q)); return; }
   var opt = f.options[cleGagnante];
   var montant = f.avec ? m.TYPES.inter.split : f.montant;
   var cotes = f.avec ? [f.com, f.avec] : [f.com];
-  var resultat = "L'option "+cleGagnante+" — "+opt.t+" — l'emporte, "+v[cleGagnante]+" voix sur "+v.tot+"."
-    + (jet ? " Dé de départage tiré publiquement : "+jet.valeur+" — consigné dans la fiche." : "")
-    + (f.avec ? " 1 000 $ engagés sur chaque cagnotte." : " "+m.money(f.montant)+" engagés sur la cagnotte "+m.COMMU[f.com].nom+".");
+  var resultat = TXT.RESULTAT_OPT(cleGagnante, opt.t, v[cleGagnante], v.tot)
+    + (jet ? TXT.RESULTAT_JET(jet.valeur) : "")
+    + (f.avec ? TXT.RESULTAT_INTER : TXT.RESULTAT_SOLO(m.money(f.montant), m.COMMU[f.com].nom));
   var suite = function(){
     var maj = { statut:"cloturee", resultat:resultat, cloturee:new Date().toISOString() };
     if (jet) maj.jet = { valeur:jet.valeur, gagnant:cleGagnante, date:new Date().toISOString() };
     Object.keys(f.auteurs).forEach(function(k){ m.notifier(m.NOTIF.CLOTURE, f.auteurs[k], { titre:f.nom, resultat:resultat }, "marina-clot-" + f.id); });
-    patch(f.id, maj, "Vote clôturé — " + m.money(f.avec ? m.TYPES.inter.split : f.montant) + " débités.").then(function(){
+    patch(f.id, maj, TXT.OK_CLOTURE(m.money(f.avec ? m.TYPES.inter.split : f.montant))).then(function(){
       /* grand œuvre et inter : passage en jeu automatique, évent d'origine boutique */
       if (f.type==="oeuvre" || f.type==="inter") basculerEnJeu(m.fiche(f.id) || f);
     });
@@ -371,7 +355,7 @@ function cloturer(f, cleGagnante, jet){
 function basculerEnJeu(f){
   var m = M();
   m.creerEvenement(f).then(function(){
-    patch(f.id, { statut:"en_jeu" }, "Événement créé — la fiche est en jeu.");
+    patch(f.id, { statut:"en_jeu" }, TXT.OK_ENJEU);
   }).catch(function(){ m.toast(TXT.ERR_ECRIT); });
 }
 
@@ -394,7 +378,7 @@ function brancher(){
       var f = M().fiche(SS.ssel);
       if (act==="voter" && f){ ouvrirVote(f); return; }
       if (act==="nontranchee" && f){
-        patch(f.id, { statut:"non_tranchee", cloturee:new Date().toISOString() }, "Fiche classée non tranchée — les fonds restent en cagnotte.");
+        patch(f.id, { statut:"non_tranchee", cloturee:new Date().toISOString() }, TXT.OK_NONTRANCHEE);
         return;
       }
       if (act==="de" && f){
@@ -406,16 +390,16 @@ function brancher(){
       }
       if (act==="precisions"){
         $("#qbm-gpied").innerHTML = '<textarea class="qbm-prect" id="qbm-prect" placeholder="'+M().esc(TXT.PRECISIONS_PH)+'"></textarea>'
-          + '<button class="tdlev-btn est-second" data-gact="precisions-annul" type="button">Annuler</button>'
-          + '<button class="tdlev-btn" data-gact="precisions-envoi" type="button">Envoyer la demande</button>';
+          + '<button class="tdlev-btn est-second" data-gact="precisions-annul" type="button">'+TXT.ANNULER+'</button>'
+          + '<button class="tdlev-btn" data-gact="precisions-envoi" type="button">'+TXT.ENVOYER_DEMANDE+'</button>';
         $("#qbm-prect").focus();
         return;
       }
       if (act==="precisions-annul"){ rendrePanneau(); return; }
       if (act==="precisions-envoi" && f){
         var ptxt = $("#qbm-prect").value.trim();
-        if (!ptxt){ M().toast("Écrivez d'abord ce que vous attendez des auteurs."); return; }
-        Object.keys(f.auteurs).forEach(function(k){ m.notifier(m.NOTIF.PRECISIONS, f.auteurs[k], { titre:f.nom }, "marina-prec-" + f.id); });
+        if (!ptxt){ M().toast(TXT.PRECISIONS_ERR); return; }
+        Object.keys(f.auteurs).forEach(function(k){ M().notifier(NOTIF.PRECISIONS, f.auteurs[k], { titre:f.nom }, "marina-prec-" + f.id); });
         patch(f.id, { precisions:ptxt }, TXT.OK_PREC);
         return;
       }
@@ -438,7 +422,7 @@ function brancher(){
       if (act==="qadd" && f){
         var gk = $("#qbm-cqsel").value;
         var up = {}; up[M().CFG.NODE+"/"+f.id+"/conseq/"+gk] = "";
-        if (f.conseq && f.conseq[gk]!==undefined){ M().toast("Ce groupe a déjà sa case de conséquences."); return; }
+        if (f.conseq && f.conseq[gk]!==undefined){ M().toast(TXT.CQ_DEJA); return; }
         Promise.resolve(E().firebaseUpdate(up)).then(function(){ M().reprendre(); }).catch(function(){ M().toast(TXT.ERR_ECRIT); });
         return;
       }
