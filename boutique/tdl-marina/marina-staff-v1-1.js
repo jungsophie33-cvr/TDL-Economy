@@ -68,6 +68,8 @@ function ouvrir(){
   var p = $("#marina-staff");
   p.hidden = false;
   SS.ouvert = true;
+  var ges = document.querySelector("#qbm-stafftgl");
+  if (ges) ges.classList.add("qb-on");
   if (window.Quais && window.Quais.api && !window.Quais.api.staff()){ /* le toggle de la coque pilote aussi */ }
   rendrePanneau();
 }
@@ -75,6 +77,8 @@ function fermer(){
   var p = $("#marina-staff");
   if (p) p.hidden = true;
   SS.ouvert = false;
+  var ges = document.querySelector("#qbm-stafftgl");
+  if (ges) ges.classList.remove("qb-on");
 }
 function ouvert(){ var p = $("#marina-staff"); return !!(p && !p.hidden); }
 
