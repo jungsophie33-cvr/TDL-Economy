@@ -253,6 +253,11 @@ function veiller(){
     onEntrees: function(){ reprendre(); }
   });
 }
+/* rendu délégué : marina-public tient la colonne gauche et la cagnotte */
+function rendre(){
+  if (window.MarinaPublic && MarinaPublic.rendre) MarinaPublic.rendre();
+}
+
 function reprendre(){
   charger().then(function(){ rendre(); if (window.MarinaStaff) MarinaStaff.absorber(); }).catch(function(){});
 }
