@@ -435,7 +435,7 @@ function quandQuais(){
          (mêmes id et classe, donc mêmes styles et position absolue). */
       if (!tgl && tabs && estStaff()){
         tabs.insertAdjacentHTML("afterbegin",
-          '<button class="qb-stafftgl" id="qb-stafftgl" type="button" title="'+esc(MC.TEXTES.STAFF.BTN_TITRE)+'"><i class="fi '+ICONES.boutonStaff+'"></i></button>');
+          '<button class="tdlev-txt-btn" id="qb-stafftgl" type="button" title="'+esc(MC.TEXTES.STAFF.BTN_TITRE)+'"><i class="fi '+ICONES.boutonStaff+'"></i><span>'+esc(MC.TEXTES.STAFF.BTN_LABEL)+'</span></button>');
         tgl = document.querySelector("#qb-stafftgl");
         if (!window.__marinaStaffPosé){
           window.__marinaStaffPosé = true;
