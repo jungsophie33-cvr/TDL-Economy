@@ -30,6 +30,8 @@
 (function () {
 "use strict";
 
+var T0 = Date.now();   /* repère pour la grâce d'enregistrement (onglet n°3) */
+
 /* ===================== CONFIG (window.MarinaConfig) ===================== */
 
 var MC = window.MarinaConfig;
@@ -388,6 +390,11 @@ function brancher(){
 
 function quandQuais(){
   if (!(window.Quais && window.Quais.register && window.EcoCore && window.EcoCore.firebaseGet)) return false;
+  /* la Marina s'enregistre en DERNIER (onglet n°3) : barge-core pose
+     window.QuaisBarge à son chargement et s'enregistre aussitôt. On attend
+     ce signal, avec une grâce de 10 s si le marché noir n'est pas sur la
+     page — sinon la Marina ne s'enregistrerait jamais. */
+  if (!window.QuaisBarge && (Date.now() - T0 < 10000)) return false;
   window.Quais.register({
     key:"marina", label:"La Marina", sub:"boutique communautaire",
     icon:"fi fi-tr-anchor", mode:"grid", leftW:"450px", cols:2,
@@ -417,13 +424,12 @@ function quandQuais(){
       /* le toggle staff de la coque ouvre le panneau Marina, pas l'édition
          d'items de la boutique : on garde notre propre vue, la coque garde
          la sienne (elle ne rend que des cartes d'items) */
-      var tgl = document.querySelector("#qb-stafftgl");
       if (tgl && !tgl._marina){
         tgl._marina = true;
         tgl.addEventListener("click", function(){
           setTimeout(function(){
             if (window.MarinaStaff){
-              if (!MarinaStaff.S.ouvert) MarinaStaff.ouvrir();
+              if (!MarinaStaff.SS.ouvert) MarinaStaff.ouvrir();
               else MarinaStaff.fermer();
             }
           }, 0);
