@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-3i-contenu.js — FICHIER 3/4 : CONTENUS
+   tdlgram-v1-3j-contenu.js — FICHIER 3/4 : CONTENUS
    Tout ce qui se remplit avec les données du cache :
    - rendreProfil() : stories actives, grilles Publications /
      Identifications / Archives, compteurs du mur ;
@@ -261,6 +261,58 @@
     cap.append(b, document.createTextNode(' '), noeudTexteTags(p.legende || '', 'tdlg-hashtags'));
     return art;
   }
+
+  /* ---------- Filtre par mot-clé ---------- */
+  /* Appelé par R.onTagger (fichier 4) une fois les interactions des
+     murs concernés chargées : grille des publications ET stories de
+     tout le miroir portant le mot-clé, la plus récente d'abord.
+     Comparaison insensible à la casse ; les stories expirées y
+     figurent avec leur badge d'archive (elles vivent dans les
+     Archives du mur). Une vignette s'ouvre dans la fenêtre. */
+  C.voirTag = (tag) => {
+    const bas = (tag || '').toLowerCase();
+    const res = [];
+    Object.keys(cache.miroir).forEach(tX =>
+      postsDu(tX).forEach(p => {
+        const hs = extraireHashtags((p.legende || '') + ' ' + (p.lieu || ''));
+        if (hs.map(h => h.toLowerCase()).indexOf(bas) !== -1) res.push({ ...p, tid: tX });
+      }));
+    res.sort(parRecent);
+    $('#tdlgTagTitle').textContent = tag;
+    const grid = $('#tdlgTagGrid');
+    grid.innerHTML = '';
+    res.forEach(p => grid.appendChild(tuille(p, p.tid,
+      p.type === 'story' ? T.prefixeArchive + courtDate(datePost(p)) : '')));
+    $('#tdlgTagNote').classList.toggle('tdlg-hidden', !!res.length);
+    R.rafraichirInteractions();
+    R.ouvrirModal('tdlgTagModal');
+  };
+
+  /* ---------- Filtre par mot-clé ---------- */
+  /* Appelé par R.onTagger (fichier 4) une fois les interactions des
+     murs concernés chargées : grille des publications ET stories de
+     tout le miroir portant le mot-clé, la plus récente d'abord.
+     Comparaison insensible à la casse ; les stories expirées y
+     figurent avec leur badge d'archive (elles vivent dans les
+     Archives du mur). Une vignette s'ouvre dans la fenêtre. */
+  C.voirTag = (tag) => {
+    const bas = (tag || '').toLowerCase();
+    const res = [];
+    Object.keys(cache.miroir).forEach(tX =>
+      postsDu(tX).forEach(p => {
+        const hs = extraireHashtags((p.legende || '') + ' ' + (p.lieu || ''));
+        if (hs.map(h => h.toLowerCase()).indexOf(bas) !== -1) res.push({ ...p, tid: tX });
+      }));
+    res.sort(parRecent);
+    $('#tdlgTagTitle').textContent = tag;
+    const grid = $('#tdlgTagGrid');
+    grid.innerHTML = '';
+    res.forEach(p => grid.appendChild(tuille(p, p.tid,
+      p.type === 'story' ? T.prefixeArchive + courtDate(datePost(p)) : '')));
+    $('#tdlgTagNote').classList.toggle('tdlg-hidden', !!res.length);
+    R.rafraichirInteractions();
+    R.ouvrirModal('tdlgTagModal');
+  };
 
   /* ---------- Composer ---------- */
   const LIMITES = { post: 4, story: 1 };
