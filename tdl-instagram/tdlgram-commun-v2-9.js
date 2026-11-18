@@ -15,9 +15,9 @@
      identifications/<cible>/<cle> · abonnements/<pseudo>/<tid> true · tdlgram_posts/<tid>/<pid> = miroir (le fil).
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1n-commun.js   2. tdlgram-v1-2i-rendu.js
-     3. tdlgram-v1-3j-contenu.js  4. tdlgram-v1-4h-actions.js
-     Styles : tdlgram-v2-6.css (CSS dédié GitHub, jamais de style
+     1. tdlgram-v1-1n-commun.js   2. tdlgram-v1-2k-rendu.js
+     3. tdlgram-v1-3j-contenu.js  4. tdlgram-v1-4i-actions.js
+     Styles : tdlgram-v2-9.css (CSS dédié GitHub, jamais de style
      dans le JS). Dépend d'EcoCore (eco-core-v2-2) : sans lui, repli
      lecture seule. Jamais dans f2-whatsapp (conflit de posts sj-).
    ============================================================ */
