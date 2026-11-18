@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4h-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4i-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -30,7 +30,7 @@
 
   const TDLG = window.TDLG1;
   if (!TDLG || !TDLG.rendu) return;
-  const { $$, CONFIG } = TDLG;
+  const { $, $$, CONFIG } = TDLG;
   const T = CONFIG.TEXTES;
   const R = TDLG.rendu;
   const cache = TDLG.cache;
@@ -265,17 +265,67 @@
       });
   };
 
+  /* ===== IDENTITÉ BAYOGRAM DES COMMENTAIRES ===== */
+  /* Pages bayougram d'un compte FA : handles des coquilles du miroir
+     dont l'auteur du premier post est ce compte (règle de propriété
+     existante), par tid croissant, doublons écartés. Un compte sans
+     topic insta n'a aucune page — ses commentaires gardent le
+     username, remplacé automatiquement dès que sa page existe. */
+  TDLG.pagesDe = (pseudoFA) => {
+    const vus = {}, out = [];
+    Object.keys(cache.miroir).sort().forEach(tx => {
+      const pp = cache.miroir[tx] || {}, un = Object.keys(pp)[0];
+      const e = un ? pp[un] : null;
+      if (e && e.pseudo === pseudoFA && e.handle && !vus[e.handle]) {
+        vus[e.handle] = 1; out.push(e.handle);
+      }
+    });
+    return out;
+  };
+  /* Nom affiché d'un commentaire : handle choisi à l'écriture, sinon
+     la première page de l'auteur, sinon le username. */
+  TDLG.nomComment = (cm) => (cm && cm.handle) || TDLG.pagesDe(cm && cm.pseudo)[0] || (cm && cm.pseudo) || '';
+  /* Sélecteur de page dans les formulaires de commentaire quand le
+     compte possède plusieurs pages (staff multi-pages compris) ;
+     dernier choix retenu par navigateur, rappelé à chaque rendu. */
+  TDLG.majIdentites = (racine) => {
+    if (!cache.moi) return;
+    const pages = TDLG.pagesDe(cache.moi.pseudo);
+    $$('.tdlg-comment-form', racine || document).forEach(form => {
+      let sel = $('select', form);
+      if (pages.length < 2) { if (sel) sel.remove(); return; }
+      if (!sel) {
+        sel = document.createElement('select');
+        sel.className = 'tdlg-ident';
+        sel.addEventListener('change', () => localStorage.setItem('tdlgIdent', sel.value));
+        form.insertBefore(sel, form.firstChild);
+      }
+      sel.innerHTML = '';
+      pages.forEach(h => {
+        const o = document.createElement('option');
+        o.value = h; o.textContent = h;
+        sel.appendChild(o);
+      });
+      const garde = localStorage.getItem('tdlgIdent') || '';
+      if (pages.indexOf(garde) !== -1) sel.value = garde;
+    });
+  };
+
   /* ===== COMMENTAIRES ===== */
-  R.onCommenter = (tidX, pid, texte, fait) => {
+  R.onCommenter = (tidX, pid, texte, fait, voulu) => {
     if (!cache.moi) { R.toast('Connecte-toi pour commenter.'); return; }
     if (!tidX || !pid || !texte) return;
     const cle = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+    const pages = TDLG.pagesDe(cache.moi.pseudo);
+    /* une page : identité automatique ; plusieurs : choix du sélecteur ;
+       aucune : le champ reste vide, l'affichage garde le username */
+    const handle = pages.indexOf(voulu) !== -1 ? voulu : (pages[0] || '');
     window.EcoCore.writeField('commentaires/' + tidX + '/' + pid + '/' + cle, {
-      pseudo: cache.moi.pseudo, texte: texte, t: Date.now()
+      pseudo: cache.moi.pseudo, texte: texte, t: Date.now(), handle: handle
     })
       .then(() => {
         const branche = (cache.commentaires[tidX] = cache.commentaires[tidX] || {});
-        (branche[pid] = branche[pid] || {})[cle] = { pseudo: cache.moi.pseudo, texte: texte, t: Date.now() };
+        (branche[pid] = branche[pid] || {})[cle] = { pseudo: cache.moi.pseudo, texte: texte, t: Date.now(), handle: handle };
         R.rafraichirInteractions();
         if (typeof fait === 'function') fait();
       })
@@ -335,31 +385,6 @@
       b.textContent = suivi ? T.boutonSuivi : T.boutonSuivre;
     });
   }
-
-  /* ===== FILTRE PAR MOT-CLÉ ===== */
-  /* Les likes/commentaires ne sont chargés que pour le mur courant
-     et les suivis : avant d'ouvrir le filtre, on complète pour les
-     murs porteurs du mot-clé (règle d'or : lectures en bloc par
-     tid), puis le fichier 3 rend la grille. */
-  R.onTagger = (tag) => {
-    const bas = (tag || '').toLowerCase();
-    const tids = [];
-    Object.keys(cache.miroir).forEach(tX => {
-      const porte = TDLG.postsDu(tX).some(p =>
-        TDLG.extraireHashtags((p.legende || '') + ' ' + (p.lieu || ''))
-          .map(h => h.toLowerCase()).indexOf(bas) !== -1);
-      if (porte && cache.reactions[tX] === undefined) tids.push(tX);
-    });
-    const Eco = window.EcoCore;
-    Promise.all(tids.flatMap(tX => [
-      Eco.firebaseGet('reactions/' + tX)
-        .then(r => { cache.reactions[tX] = r || {}; })
-        .catch(() => { cache.reactions[tX] = {}; }),
-      Eco.firebaseGet('commentaires/' + tX)
-        .then(c => { cache.commentaires[tX] = c || {}; })
-        .catch(() => { cache.commentaires[tX] = {}; })
-    ])).catch(() => {}).then(() => TDLG.contenu?.voirTag?.(tag));
-  };
 
   /* ===== FILTRE PAR MOT-CLÉ ===== */
   /* Les likes/commentaires ne sont chargés que pour le mur courant
