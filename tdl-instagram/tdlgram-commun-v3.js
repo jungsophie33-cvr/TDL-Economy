@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-1n-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1o-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
    Un personnage = un compte Forumactif = un topic TDLgram (source de vérité : les posts du topic).
@@ -15,7 +15,7 @@
      identifications/<cible>/<cle> · abonnements/<pseudo>/<tid> true · tdlgram_posts/<tid>/<pid> = miroir (le fil).
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1n-commun.js   2. tdlgram-v1-2k-rendu.js
+     1. tdlgram-v1-1o-commun.js   2. tdlgram-v1-2k-rendu.js
      3. tdlgram-v1-3j-contenu.js  4. tdlgram-v1-4i-actions.js
      Styles : tdlgram-v2-9.css (CSS dédié GitHub, jamais de style
      dans le JS). Dépend d'EcoCore (eco-core-v2-2) : sans lui, repli
@@ -264,7 +264,7 @@
 
   function pseudoPost(post) {
     const el = $('.sj-post-pseudo', post);
-    return el ? el.textContent.trim() : '';
+    return el ? el.textContent.trim().replace(/^\s*@\s*/, '') : ''; /* @ du lien mention ≠ username */
   }
 
   function texteDate(post) {
