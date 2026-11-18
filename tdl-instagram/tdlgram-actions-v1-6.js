@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4g-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4h-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -335,6 +335,56 @@
       b.textContent = suivi ? T.boutonSuivi : T.boutonSuivre;
     });
   }
+
+  /* ===== FILTRE PAR MOT-CLÉ ===== */
+  /* Les likes/commentaires ne sont chargés que pour le mur courant
+     et les suivis : avant d'ouvrir le filtre, on complète pour les
+     murs porteurs du mot-clé (règle d'or : lectures en bloc par
+     tid), puis le fichier 3 rend la grille. */
+  R.onTagger = (tag) => {
+    const bas = (tag || '').toLowerCase();
+    const tids = [];
+    Object.keys(cache.miroir).forEach(tX => {
+      const porte = TDLG.postsDu(tX).some(p =>
+        TDLG.extraireHashtags((p.legende || '') + ' ' + (p.lieu || ''))
+          .map(h => h.toLowerCase()).indexOf(bas) !== -1);
+      if (porte && cache.reactions[tX] === undefined) tids.push(tX);
+    });
+    const Eco = window.EcoCore;
+    Promise.all(tids.flatMap(tX => [
+      Eco.firebaseGet('reactions/' + tX)
+        .then(r => { cache.reactions[tX] = r || {}; })
+        .catch(() => { cache.reactions[tX] = {}; }),
+      Eco.firebaseGet('commentaires/' + tX)
+        .then(c => { cache.commentaires[tX] = c || {}; })
+        .catch(() => { cache.commentaires[tX] = {}; })
+    ])).catch(() => {}).then(() => TDLG.contenu?.voirTag?.(tag));
+  };
+
+  /* ===== FILTRE PAR MOT-CLÉ ===== */
+  /* Les likes/commentaires ne sont chargés que pour le mur courant
+     et les suivis : avant d'ouvrir le filtre, on complète pour les
+     murs porteurs du mot-clé (règle d'or : lectures en bloc par
+     tid), puis le fichier 3 rend la grille. */
+  R.onTagger = (tag) => {
+    const bas = (tag || '').toLowerCase();
+    const tids = [];
+    Object.keys(cache.miroir).forEach(tX => {
+      const porte = TDLG.postsDu(tX).some(p =>
+        TDLG.extraireHashtags((p.legende || '') + ' ' + (p.lieu || ''))
+          .map(h => h.toLowerCase()).indexOf(bas) !== -1);
+      if (porte && cache.reactions[tX] === undefined) tids.push(tX);
+    });
+    const Eco = window.EcoCore;
+    Promise.all(tids.flatMap(tX => [
+      Eco.firebaseGet('reactions/' + tX)
+        .then(r => { cache.reactions[tX] = r || {}; })
+        .catch(() => { cache.reactions[tX] = {}; }),
+      Eco.firebaseGet('commentaires/' + tX)
+        .then(c => { cache.commentaires[tX] = c || {}; })
+        .catch(() => { cache.commentaires[tX] = {}; })
+    ])).catch(() => {}).then(() => TDLG.contenu?.voirTag?.(tag));
+  };
 
   /* ===== COMPOSER ===== */
   R.onPublier = publierFragment;
