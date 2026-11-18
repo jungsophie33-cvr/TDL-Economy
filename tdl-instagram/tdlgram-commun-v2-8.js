@@ -1,9 +1,8 @@
 /* ============================================================
-   tdlgram-v1-1m-commun.js — FICHIER 1/4 : COMMUN
+   tdlgram-v1-1n-commun.js — FICHIER 1/4 : COMMUN
    TDLgram — le réseau du bayou (The Drowned Lands)
 
-   Un personnage = un compte Forumactif = un topic TDLgram, source
-   de vérité = les posts Forumactif du topic.
+   Un personnage = un compte Forumactif = un topic TDLgram (source de vérité : les posts du topic).
    - Coquille (1er post) : === INSTA === puis PSEUDO (handle requis),
      NOM, BIO (multi-lignes), AVATAR, COUVERTURE.
    - Fragment : === FRAGMENT: PHOTO|STORY === puis IMAGE (répétée =
@@ -16,9 +15,9 @@
      identifications/<cible>/<cle> · abonnements/<pseudo>/<tid> true · tdlgram_posts/<tid>/<pid> = miroir (le fil).
 
    CHARGEMENT (ordre strict) :
-     1. tdlgram-v1-1m-commun.js   2. tdlgram-v1-2h-rendu.js
-     3. tdlgram-v1-3i-contenu.js  4. tdlgram-v1-4g-actions.js
-     Styles : tdlgram-v2-5.css (CSS dédié GitHub, jamais de style
+     1. tdlgram-v1-1n-commun.js   2. tdlgram-v1-2i-rendu.js
+     3. tdlgram-v1-3j-contenu.js  4. tdlgram-v1-4h-actions.js
+     Styles : tdlgram-v2-6.css (CSS dédié GitHub, jamais de style
      dans le JS). Dépend d'EcoCore (eco-core-v2-2) : sans lui, repli
      lecture seule. Jamais dans f2-whatsapp (conflit de posts sj-).
    ============================================================ */
@@ -98,6 +97,7 @@
       noteStoryVide: 'Aucune story en ligne : elles expirent après 72 heures.',
       noteIdentifications: 'Aucune identification pour l’instant.',
       noteFilVide: 'Suivez un mur depuis son profil : ses publications arriveront ici.',
+      noteTagVide: 'Aucune publication ni story avec ce mot-clé pour l’instant.',
       uneImageSur: ' image sur ',
       plusieursImagesSur: ' images sur ',
       retirerImage: 'Retirer l’image ',
