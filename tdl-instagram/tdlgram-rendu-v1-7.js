@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2h-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2i-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -138,6 +138,11 @@
   </div>
 </div></div>
 
+<div class="tdlg-modal" id="tdlgTagModal"><div class="tdlg-tag-view">
+  <button class="tdlg-modal-close" data-close="tdlgTagModal" type="button">×</button><h2 id="tdlgTagTitle"></h2>
+  <div class="tdlg-grid" id="tdlgTagGrid"></div><p class="tdlg-suivis-note tdlg-hidden" id="tdlgTagNote">${esc(T.noteTagVide)}</p>
+</div></div>
+
 <div class="tdlg-modal" id="tdlgComposerModal"><div class="tdlg-composer">
   <button class="tdlg-modal-close" data-close="tdlgComposerModal" type="button">×</button>
   <h2 id="tdlgComposerTitle">${esc(T.composer.post.titre)}</h2>
@@ -228,7 +233,9 @@
   R.montrerOnglet = montrerOnglet;
 
   /* ---------- Fenêtres ---------- */
-  const ouvrirModal = (id) => $('#' + id).classList.add('is-open');
+  /* Une seule à la fois : la précédente se referme (filtre et
+     publication se remplacent sans empilement). */
+  const ouvrirModal = (id) => { $$('.tdlg-modal.is-open', racine).forEach(m => m.classList.remove('is-open')); $('#' + id).classList.add('is-open'); };
   const fermerModal = (id) => $('#' + id).classList.remove('is-open');
   R.ouvrirModal = ouvrirModal;
   R.fermerModal = fermerModal;
@@ -395,6 +402,10 @@
       const cible = e.target;
       if (cible.closest('[data-view]')) { montrerVue(cible.closest('[data-view]').dataset.view); return; }
       if (cible.closest('.tdlg-tab')) { montrerOnglet(cible.closest('.tdlg-tab').dataset.tab); return; }
+      /* Mot-clé cliquable (légendes, bio, tendances) : R.onTagger
+         (fichier 4) charge les interactions puis rend la grille. */
+      const tagClic = cible.closest('.tdlg-hashtags, .tdlg-bio-tags, .tdlg-trend');
+      if (tagClic) { const b = $('b', tagClic); R.onTagger?.(b ? b.textContent : tagClic.textContent); return; }
       if (cible.closest('[data-close]')) { fermerModal(cible.closest('[data-close]').dataset.close); return; }
       const gerer = cible.closest('[data-edit],[data-delete]');
       if (gerer) {
