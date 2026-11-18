@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2j-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2k-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -375,6 +375,7 @@
 
   /* ---------- J'aime et commentaires : rafraîchissement ---------- */
   R.rafraichirInteractions = () => {
+    TDLG.majIdentites?.(racine); /* sélecteur de page bayougram (fichier 4) */
     $$('[data-likes]', racine).forEach(el => {
       const n = nbLikes(el.dataset.tid, el.dataset.pid);
       el.textContent = (n > 0 ? n : T.aucunJaime) + T.compteJaime;
@@ -392,7 +393,7 @@
       Object.keys(branche).map(c => branche[c]).sort((a, b) => (a.t || 0) - (b.t || 0)).forEach(cm => {
         const p = document.createElement('p');
         const b = document.createElement('b');
-        b.textContent = cm.pseudo || '';
+        b.textContent = TDLG.nomComment?.(cm) || '';
         p.append(b, document.createTextNode(' ' + TDLG.texteEmojis(cm.texte || '')));
         liste.appendChild(p);
       });
@@ -491,7 +492,7 @@
       e.preventDefault();
       const input = $('input[type="text"]', form);
       const texte = (input.value || '').trim();
-      if (texte && form.dataset.tid) R.onCommenter?.(form.dataset.tid, form.dataset.pid, texte, () => { input.value = ''; });
+      if (texte && form.dataset.tid) R.onCommenter?.(form.dataset.tid, form.dataset.pid, texte, () => { input.value = ''; }, (($('select', form) || {}).value) || '');
     });
   }
 })();
