@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-2i-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
+   tdlgram-v1-2j-rendu.js — FICHIER 2/4 : RENDU (STRUCTURE)
    Monte l'application TDLgram par-dessus le topic Forumactif :
    squelette HTML complet (barre latérale, profil, fil, fenêtres,
    composer, toast), bascule des vues et onglets, carrousels,
@@ -29,7 +29,7 @@
 
   const TDLG = window.TDLG1;
   if (!TDLG || !TDLG.CONFIG) return;
-  const { $, $$, esc, noeudTexteTags, nbLikes, CONFIG } = TDLG;
+  const { $, $$, esc, noeudTexteTags, nbLikes, depuis, datePost, CONFIG } = TDLG;
   const T = CONFIG.TEXTES;
   const I = CONFIG.ICONES;
 
@@ -134,7 +134,7 @@
     <div class="tdlg-modal-caption" id="tdlgModalCaption"></div>
     <div class="tdlg-modal-comments" id="tdlgModalComments" data-comment-list data-tid="" data-pid=""></div>
     <form class="tdlg-comment-form" id="tdlgModalCommentForm" data-tid="" data-pid=""><input id="tdlgModalCommentInput" type="text" placeholder="${esc(T.commentairePh)}" aria-label="${esc(T.commentairePh)}"><button type="submit">${esc(T.publier)}</button></form>
-    <div class="tdlg-modal-foot"><button class="tdlg-modal-like" id="tdlgModalLike" type="button" aria-label="${esc(T.jaime)}" aria-pressed="false"><i class="${I.coeur}"></i></button><span class="tdlg-likes" id="tdlgModalLikeCount" data-likes></span></div>
+    <div class="tdlg-modal-foot"><button class="tdlg-modal-like" id="tdlgModalLike" type="button" aria-label="${esc(T.jaime)}" aria-pressed="false"><i class="${I.coeur}"></i></button><span class="tdlg-likes" id="tdlgModalLikeCount" data-likes></span><span class="tdlg-modal-date" id="tdlgModalDate"></span></div>
   </div>
 </div></div>
 
@@ -318,6 +318,9 @@
     reinitImage(img);
     img.src = p.images[0];
     $('#tdlgModalTitle').textContent = p.handle + (p.type === 'story' ? T.suffixeStory : '');
+    /* Date relative de publication — antidatage respecté (tVoulu || t),
+       même affichage que le fil. */
+    $('#tdlgModalDate').textContent = depuis(datePost(p));
     const cap = $('#tdlgModalCaption');
     cap.innerHTML = '';
     cap.appendChild(noeudTexteTags(p.legende || '', 'tdlg-hashtags'));
