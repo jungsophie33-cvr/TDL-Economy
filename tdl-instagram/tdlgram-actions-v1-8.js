@@ -1,5 +1,5 @@
 /* ============================================================
-   tdlgram-v1-4i-actions.js — FICHIER 4/4 : ACTIONS
+   tdlgram-v1-4j-actions.js — FICHIER 4/4 : ACTIONS
    Firebase + publication + abonnements. Dernier fichier chargé,
    il démarre l'application dès que les posts sj- arrivent.
 
@@ -276,7 +276,11 @@
     Object.keys(cache.miroir).sort().forEach(tx => {
       const pp = cache.miroir[tx] || {}, un = Object.keys(pp)[0];
       const e = un ? pp[un] : null;
-      if (e && e.pseudo === pseudoFA && e.handle && !vus[e.handle]) {
+      /* le @ du lien mention a pu être stocké dans le miroir avant le
+         correctif : la comparaison l'écarte, les entrées pas encore
+         resynchronisées matchent déjà. */
+      const dp = e ? String(e.pseudo || '').replace(/^\s*@\s*/, '') : '';
+      if (e && dp === pseudoFA && e.handle && !vus[e.handle]) {
         vus[e.handle] = 1; out.push(e.handle);
       }
     });
