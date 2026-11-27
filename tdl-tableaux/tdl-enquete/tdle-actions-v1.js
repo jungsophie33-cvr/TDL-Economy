@@ -18,10 +18,6 @@ var ACT={};
 function persistFull(a){ return window.TDLBase.ecrireEntree(CFG.NODE, a.id, D.serialize(a), "création de "+(a.cote||a.titre)); }
 function patch(a, champs){ return window.TDLBase.ecrire(CFG.NODE, a.id, champs, "modification de "+(a.cote||a.titre)); }
 ACT.patch=patch;
-/* Registre des écritures optimistes en attente : absorber() les
-   ré-applique sur la version distante, sinon un refresh ferait
-   « disparaître » une modification juste saisie avant que la file
-   ne la rejoue. vidé dès que la file est vide. */
 var PEND={};
 ACT.ecr=function(a, champs){
   var p=PEND[a.id]=PEND[a.id]||{}, k;
@@ -164,9 +160,9 @@ function act(k){
     R.toast(T.toast.demandeRefOk); R.renderStage();
   }
   else if(k==="rp"){ if(a.cloturee){ R.toast(T.toast.close); return; } if(!D.estMembre()){ R.toast(T.toast.connexionReq); return; } S.drawer="rp"; S.inline=null; R.renderStage(); }
-  else if(k==="verif"){ S.onglet="personnes"; S.drawer=null; S.inline=null; R.renderStage(); }
   else if(k==="askclose"){
     if(a.cloturee){ R.toast(T.toast.close); return; }
+    if(!a.valides.length){ R.toast(T.toast.clotureRefuse); return; }   /* garde : aucun participant validé */
     a.demandeCloture=true; patch(a,{demandeCloture:true});
     notif(function(N){
       var dc=R.participants(a).slice();
@@ -479,8 +475,6 @@ function initApp(){
   var vue=R.$("#tdle-vue");
   if(vue) vue.querySelectorAll("button").forEach(function(b){ b.onclick=function(){ S.vue=b.getAttribute("data-v"); S.mob="liste"; S.drawer=null; S.inline=null; R.syncVue(); R.renderStage(); }; });
   R.syncVue();
-  var rb=R.$("#tdle-refonly");
-  if(rb) rb.onclick=function(){ S.refOnly=!S.refOnly; rb.setAttribute("aria-pressed",S.refOnly); R.fixSel(); R.renderStage(); R.renderStatutFilters(); };
   var ed=R.$("#tdle-edit");
   if(ed){ ed.onclick=function(ev){ ev.preventDefault(); window.open(CFG.EDIT_URL,"_blank","noopener"); }; if(R.estStaffCourant()) ed.classList.add("on"); }
   whenEco(function(){
