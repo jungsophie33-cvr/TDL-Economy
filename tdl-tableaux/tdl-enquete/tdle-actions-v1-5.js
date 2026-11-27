@@ -92,7 +92,7 @@ ACT.brancher=function(stage){
   stage=stage||R.$("#tdle-stage"); if(!stage) return;
   stage.querySelectorAll("[data-sel]").forEach(function(el){ el.onclick=function(){ S.sel=el.getAttribute("data-sel"); S.onglet="resume"; S.drawer=null; S.inline=null; S.mob="detail"; R.renderStage(); }; });
   stage.querySelectorAll("[data-open]").forEach(function(el){ el.onclick=function(){ S.sel=el.getAttribute("data-open"); S.onglet="resume"; S.drawer=null; S.inline=null; S.vue="dossiers"; S.mob="detail"; R.syncVue(); R.renderStage(); }; });
-  stage.querySelectorAll("[data-tab]").forEach(function(el){ el.onclick=function(){ S.onglet=el.getAttribute("data-tab"); S.drawer=null; S.inline=null; R.renderStage(); }; });
+  stage.querySelectorAll("[data-tab]").forEach(function(el){ el.onclick=function(){ S.onglet=el.getAttribute("data-tab"); S.drawer=null; S.inline=null; R.renderTab(); }; });
   stage.querySelectorAll("[data-type]").forEach(function(el){ el.onclick=function(){ S.type=el.getAttribute("data-type"); if(S.statut==="demandes"&&!R.estStaffCourant()) S.statut="tous"; R.fixSel(); R.renderAll(); }; });
   stage.querySelectorAll("[data-goto]").forEach(function(el){ el.onclick=function(){
     var id=el.getAttribute("data-goto");
@@ -114,7 +114,7 @@ ACT.brancher=function(stage){
       a[champ]=a[champ].filter(function(x){ return x.k!==k; });
       var ch={}; ch[champ+"/"+k]=null; ACT.ecr(a,ch);
       if(apres&&apres.message) R.toast(apres.message);
-      R.renderStage(); }; });
+      R.renderTab(); }; });
   }
   retirer("data-delrole","roles");
   retirer("data-delpart","particularites");
@@ -130,7 +130,7 @@ ACT.brancher=function(stage){
     var ch={}; ch["liens/"+tid]=null; ACT.ecr(a,ch);
     var b=R.parId(tid);
     if(b&&!b.archive&&b.schema===CFG.SCHEMA){ b.liens=b.liens.filter(function(l){ return l.k!==a.id; }); var cb={}; cb["liens/"+a.id]=null; ACT.ecr(b,cb); }
-    R.toast(T.toast.lienRetire); R.renderStage(); }; });
+    R.toast(T.toast.lienRetire); R.renderTab(); }; });
   stage.querySelectorAll("[data-valref]").forEach(function(el){ el.onclick=function(){
     var a=R.parId(S.sel), m=el.getAttribute("data-valref");
     if(!a) return;
@@ -144,7 +144,7 @@ ACT.brancher=function(stage){
     ajouterLien(a,tid,dm?dm.note:"");
     a.demandesLien=a.demandesLien.filter(function(l){ return l.k!==tid; });
     var ch={}; ch["demandesLien/"+tid]=null; ACT.ecr(a,ch);
-    R.toast(T.toast.lienValide); R.renderStage(); }; });
+    R.toast(T.toast.lienValide); R.renderStage(); }; });   /* le bandeau demandes vit hors du volet */
   stage.querySelectorAll("[data-act]").forEach(function(el){ el.onclick=function(){ act(el.getAttribute("data-act")); }; });
   stage.querySelectorAll("[data-do]").forEach(function(el){ el.onclick=function(){ doo(el.getAttribute("data-do")); }; });
 };
@@ -176,11 +176,11 @@ function act(k){
     });
     R.toast(T.toast.clotureOk); R.renderStage();
   }
-  else if(k==="addel"){ S.inline=S.inline==="element"?null:"element"; R.renderStage(); }
-  else if(k==="addpart"){ S.inline=S.inline==="particularite"?null:"particularite"; R.renderStage(); }
-  else if(k==="addchr"){ S.inline=S.inline==="chrono"?null:"chrono"; R.renderStage(); }
-  else if(k==="addrole"){ S.inline=S.inline==="role"?null:"role"; R.renderStage(); }
-  else if(k==="addlien"){ S.inline=S.inline==="lien"?null:"lien"; R.renderStage(); }
+  else if(k==="addel"){ S.inline=S.inline==="element"?null:"element"; R.renderTab(); }
+  else if(k==="addpart"){ S.inline=S.inline==="particularite"?null:"particularite"; R.renderTab(); }
+  else if(k==="addchr"){ S.inline=S.inline==="chrono"?null:"chrono"; R.renderTab(); }
+  else if(k==="addrole"){ S.inline=S.inline==="role"?null:"role"; R.renderTab(); }
+  else if(k==="addlien"){ S.inline=S.inline==="lien"?null:"lien"; R.renderTab(); }
   else if(k==="edit"){ S.drawer=S.drawer==="edit"?null:"edit"; S.inline=null; R.renderStage(); }
   else if(k==="cold"){ a.coldcase=!a.coldcase; patch(a,{coldcase:a.coldcase}); R.toast(a.coldcase?T.toast.coldOk:T.toast.coldKo); R.renderAll(); }
   else if(k==="intrigue"){
@@ -240,14 +240,14 @@ function doo(k){
     notif(function(N){ var dst=R.participants(a).slice();
       if(a.referent&&dst.indexOf(a.referent)<0) dst.push(a.referent);
       N.a(dst,CFG.NOTIFS.ajout,{titre:a.titre},"el"+a.id+"_"+ke); });
-    S.inline=null; R.toast(T.toast.elAjoute); R.renderStage();
+    S.inline=null; R.toast(T.toast.elAjoute); R.renderTab();
   }
   if(k==="partok"){
     var tp=val("#tdle-partin").trim(); if(!tp){ R.toast(T.toast.rienAAjouter); return; } if(!exigeV2(a)) return;
     var kp=D.cle(), vp={txt:tp,par:staffNom(),date:new Date().toISOString()};
     a.particularites.push(Object.assign({k:kp},vp));
     var chp={}; chp["particularites/"+kp]=vp; ACT.ecr(a,chp);
-    S.inline=null; R.toast(T.toast.partAjoutee); R.renderStage();
+    S.inline=null; R.toast(T.toast.partAjoutee); R.renderTab();
   }
   if(k==="chok"){
     var dt=val("#tdle-chdate").trim(), tx=val("#tdle-chtxt").trim();
@@ -258,12 +258,12 @@ function doo(k){
     notif(function(N){ var dst=R.participants(a).slice();
       if(a.referent&&dst.indexOf(a.referent)<0) dst.push(a.referent);
       N.a(dst,CFG.NOTIFS.ajout,{titre:a.titre},"chr"+a.id+"_"+kc); });
-    S.inline=null; R.toast(T.toast.chrAjoute); R.renderStage();
+    S.inline=null; R.toast(T.toast.chrAjoute); R.renderTab();
   }
   if(k==="rlok"){
     var tr=val("#tdle-rlin").trim(); if(!tr||!exigeV2(a)) return;
     var kr=D.cle(); a.roles.push({k:kr,txt:tr,par:"",date:""});
-    var chr2={}; chr2["roles/"+kr]={txt:tr}; ACT.ecr(a,chr2); R.renderStage();
+    var chr2={}; chr2["roles/"+kr]={txt:tr}; ACT.ecr(a,chr2); R.renderTab();
   }
   if(k==="lienok"){
     var tid=val("#tdle-liensel").trim(); if(!tid){ R.toast(T.toast.aucuneAffaire); return; }
@@ -275,7 +275,7 @@ function doo(k){
       var chdl={}; chdl["demandesLien/"+tid]={note:note,par:moi}; ACT.ecr(a,chdl);
       R.toast(T.toast.lienDemande);
     }
-    S.inline=null; R.renderStage();
+    S.inline=null; R.renderTab();
   }
   if(k==="editok"){
     var rt=document.querySelector('input[name=tdle-etype]:checked'); if(rt) a.type=rt.value;
