@@ -152,10 +152,10 @@ R.barreMigration=function(){
 function viewDossier(){
   var d=filtre(), st=R.estStaffCourant();
   var rowsHtml=d.length?d.map(function(x){
-    var foot=(x.intrigue?'<span class="tdle-lockflag">🔒</span>':'')
-      +(st&&x.demandesReferent.length?'<span class="tdle-req">⚑ '+x.demandesReferent.length+' réf.</span>':'')
-      +(st&&x.demandeCloture?'<span class="tdle-req">⚑ clôture</span>':'')
-      +(st&&x.demandesLien.length?'<span class="tdle-req">⚑ lien</span>':'');
+    var foot=(x.intrigue?'<span class="tdle-lockflag"><i class="fi fi-tr-lock"></i></span>':'')
+      +(st&&x.demandesReferent.length?'<span class="tdle-req"><i class="fi fi-tr-diamond-exclamation"></i> '+x.demandesReferent.length+' réf.</span>':'')
+      +(st&&x.demandeCloture?'<span class="tdle-req"><i class="fi fi-tr-diamond-exclamation"></i> clôture</span>':'')
+      +(st&&x.demandesLien.length?'<span class="tdle-req"><i class="fi fi-tr-diamond-exclamation"></i> lien</span>':'');
     return '<div class="tdle-drow" data-sel="'+x.id+'" aria-current="'+(x.id===S.sel)+'">'
       +'<div class="tdle-drow-main">'
         +'<div class="tdle-drow-head"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(x)].c+'">'+x.cote+'</span>'
