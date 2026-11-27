@@ -185,7 +185,7 @@ D.markdownAffaire = function(a){
   var bloc=function(cle, arr, fmt){
     if(!arr.length) return;
     L.push(cle+":");
-    arr.forEach(function(e){ L.push("- "+fmt(e)); });
+    arr.forEach(function(e){ L.push((CFG.ARCHIVE.puce||"- ")+fmt(e)); });
   };
   bloc(K.particularites, a.particularites, function(e){ return l(e.txt)+(e.par?" (par "+l(D.nomAffiche(e.par))+")":""); });
   bloc(K.elements, a.elements, function(e){ return l(e.txt)+(e.par?" (par "+l(D.nomAffiche(e.par))+")":""); });
@@ -235,21 +235,21 @@ D.parserArchive = function(texte){
       o[section].push({k:"arch", txt:val.trim()}); }
   }
   for(i=0;i<lignes.length;i++){
-    t=lignes[i];
+    t=lignes[i].replace(/^(\s*)\\+/,"$1");   /* tolère l'échappement FA des débuts de ligne (\- , \===) */
     if(!dans){
       if(reB.test(t)) dans=true;
       continue;
     }
     if(reFin.test(t)||t.trim().indexOf("--- BLOC")===0) break;   /* fin du bloc */
     var m=t.match(/^\s*([A-ZÀ-ÖØ-Þ][A-ZÀ-ÖØ-Þ0-9_]*)\s*:\s?(.*)$/);
-    var p=t.match(/^\s*-\s+(.*)$/);
+    var p=t.match(/^\s*[-•]\s+(.*)$/);
     if(p){ if(section) pousse(p[1]); continue; }
     if(m){
       var c=inverse[m[1].toUpperCase()];
       if(c){
         section=c;
         if(LISTE[c]){ o[c]=[]; if(m[2].trim()) pousse(m[2]); }
-        else o[c]=m[2];
+        else o[c]=m[2].trim();   /* FA laisse des espaces traîner : sans trim, la cote ne matcherait jamais */
         continue;
       }
     }
