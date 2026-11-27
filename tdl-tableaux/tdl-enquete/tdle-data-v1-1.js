@@ -206,6 +206,14 @@ D.markdownAffaire = function(a){
    normalisée {archive:true} ou null si le texte n'est pas une archive. */
 D.normaliserHTML = function(html){
   return String(html||"").replace(/\r\n?/g,"\n")
+    /* FA transforme toute URL du post en <a href="…">…</a> : on déroule
+       l'ancre — si le texte visible est l'URL (autolien), on garde le href
+       (propre, sans markup) ; sinon on garde le texte. Sans ça, la clé
+       SUJETS se retrouve polluée par le HTML et le titre extrait cassé. */
+    .replace(/<a\b[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, function(m,href,txt){
+      return /^\s*https?:\/\//.test(txt)?href:txt;
+    })
+    .replace(/<\/?(?:a|b|strong|i|em|u|s|span)\b[^>]*>/gi,"")
     .replace(/<br[^>]*>/gi,"\n").replace(/<\/p>/gi,"\n")
     .replace(/<p[^>]*>/gi,"").replace(/<\/div>/gi,"\n");
 };
@@ -257,6 +265,10 @@ D.parserArchive = function(texte){
     if(section&&!LISTE[section]&&t.trim()) o[section]=(o[section]?o[section]+"\n":"")+t.trim();
   }
   if(!dans) return null;
+  /* clés du post ≠ champs internes : le markdown porte OUVERTURE et
+     STATUT, l'affaire vit sur dateISO et statutTxt */
+  if(o.ouverture){ o.dateISO=o.ouverture; delete o.ouverture; }
+  if(o.statut){ o.statutTxt=o.statut; delete o.statut; }
   /* liens : le parseur rend la forme v2 (objet à clés = id cible) attendue
      par lstRefs, pas un tableau mixte */
   o.liens={};
