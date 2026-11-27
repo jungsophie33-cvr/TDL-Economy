@@ -14,6 +14,7 @@ var R={};
 
 /* ===================== ÉTAT ===================== */
 R.S={vue:"dossiers", type:"tous", statut:"tous", refOnly:false, sel:null, onglet:"resume", mob:"liste", drawer:null, inline:null};
+var S=R.S;   /* alias local : tout le fichier parle de S */
 R.A=[];            /* affaires en mémoire : vives (Firebase) + archives (topic) */
 
 function $(s,ctx){ return (ctx||document).querySelector(s); }
