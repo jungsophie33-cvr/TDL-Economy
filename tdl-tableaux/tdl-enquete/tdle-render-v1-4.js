@@ -152,19 +152,16 @@ R.barreMigration=function(){
 function viewDossier(){
   var d=filtre(), st=R.estStaffCourant();
   var rowsHtml=d.length?d.map(function(x){
+    var foot=(x.intrigue?'<span class="tdle-lockflag">🔒</span>':'')
+      +(st&&x.demandesReferent.length?'<span class="tdle-req">⚑ '+x.demandesReferent.length+' réf.</span>':'')
+      +(st&&x.demandeCloture?'<span class="tdle-req">⚑ clôture</span>':'')
+      +(st&&x.demandesLien.length?'<span class="tdle-req">⚑ lien</span>':'');
     return '<div class="tdle-drow" data-sel="'+x.id+'" aria-current="'+(x.id===S.sel)+'">'
       +'<div class="tdle-drow-main">'
         +'<div class="tdle-drow-head"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(x)].c+'">'+x.cote+'</span>'
         +'<span class="tdle-type">'+D.esc(x.titre)+'</span></div>'
         +'<div class="tdle-drow-vic">'+D.esc(x.victime)+'</div>'
-        +'<div class="tdle-drow-foot">'
-          +(x.archive?'<span class="tdle-archbadge">'+T.archBadge+'</span>':'')
-          +(x.aArchive?'<span class="tdle-archbadge todo">'+T.archBadge+'</span>':'')
-          +(x.intrigue?'<span class="tdle-lockflag">🔒</span>':'')
-          +(st&&x.demandesReferent.length?'<span class="tdle-req">⚑ '+x.demandesReferent.length+' réf.</span>':'')
-          +(st&&x.demandeCloture?'<span class="tdle-req">⚑ clôture</span>':'')
-          +(st&&x.demandesLien.length?'<span class="tdle-req">⚑ lien</span>':'')
-        +'</div>'
+        +(foot?'<div class="tdle-drow-foot">'+foot+'</div>':'')
       +'</div>'
       +'<div class="tdle-drow-side">'+(x.referent?av(x.referent):'')+'</div>'
     +'</div>';
@@ -190,8 +187,7 @@ R.panel=function(a){
   }
   return ''
     +'<button class="tdle-dret" data-back>'+D.esc(T.retourListe)+'</button>'
-    +'<div class="tdle-dp-title"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(a)].c+'">'+a.cote+'</span><span class="tdle-type">'+D.esc(a.titre)+'</span>'+R.badge(a)
-      +(a.archive?'<span class="tdle-archbadge">'+T.archBadge+'</span>':'')+'</div>'
+    +'<div class="tdle-dp-title"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(a)].c+'">'+a.cote+'</span><span class="tdle-type">'+D.esc(a.titre)+'</span>'+R.badge(a)+'</div>'
     +'<div class="tdle-dp-body">'
     +'<div class="tdle-dp-hd">'
       +'<div class="tdle-dp-meta">'
@@ -286,7 +282,7 @@ R.actionbar=function(a){
        la suppression (du nœud) ; le post se supprime via les outils FA. */
     label=T.roleVisiteur;
     btns=(r==="staff")?'<button class="tdle-abtn warn" data-act="delete">'+D.esc(T.supprimerBtn)+'</button>'
-                      :'<span class="tdle-vide">'+D.esc(T.archBadge)+'</span>';
+                      :'<span class="tdle-vide">'+D.esc(T.closeTxt)+'</span>';
   }
   else if(r==="staff"){ label=T.roleStaff;
     if(a.cloturee){
@@ -363,7 +359,7 @@ function viewBoard(){
     return '<article class="tdle-fc" data-open="'+a.id+'">'
       +'<div class="tdle-fc-top"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(a)].c+'">'+a.cote+'</span>'+R.badge(a)+'</div>'
       +'<div class="tdle-dateline">'+D.esc(D.formatFR(a.dateISO))+'</div><div class="tdle-type">'+D.esc(a.titre)+'</div><div class="tdle-fc-vic">'+D.esc(a.victime)+'</div>'
-      +'<div class="tdle-fc-foot"><span>'+(a.intrigue?'🔒':(a.archive?D.esc(T.archBadge):D.esc(CFG.CAT_LABEL[R.cat(a)])))+(st&&R.aDesDemandes(a)?' <span class="tdle-req">⚑</span>':'')+'</span><span>'+D.esc(T.ouvrir)+'</span></div>'
+      +'<div class="tdle-fc-foot"><span>'+(a.intrigue?'🔒':D.esc(CFG.CAT_LABEL[R.cat(a)]))+(st&&R.aDesDemandes(a)?' <span class="tdle-req">⚑</span>':'')+'</span><span>'+D.esc(T.ouvrir)+'</span></div>'
     +'</article>';
   }).join("")+'</div>':'<div class="tdle-empty">'+D.esc(T.videFiltre)+'</div>';
   return '<div class="tdle-boardwrap">'+typeStripHTML()+'<div class="tdle-boardscroll">'+grid+'</div></div>';
