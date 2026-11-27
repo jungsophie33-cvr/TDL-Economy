@@ -133,6 +133,21 @@ R.renderStage=function(){
   if(window.TDLE_ACT) window.TDLE_ACT.brancher(el);
 };
 R.renderAll=function(){ R.renderStatutFilters(); R.renderStage(); };
+/* Changement d'onglet : on ne re-rend QUE le volet .tdle-tabpane.
+   Le titre et le bloc méta ne sont pas re-générés, leur animation
+   d'apparition ne rejoue donc pas. Le volet, lui, est remplacé par un
+   nœud neuf : son animation rejoue à chaque changement d'onglet. */
+R.renderTab=function(){
+  var el=$("#tdle-stage"); if(!el) return;
+  var pane=el.querySelector(".tdle-tabpane"), tabs=el.querySelector(".tdle-tabs");
+  var a=R.parId(S.sel);
+  if(!pane||!a){ R.renderStage(); return; }
+  if(S.drawer){ S.drawer=null; R.renderStage(); return; }   /* le tiroir vit hors du volet */
+  if(tabs) tabs.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-selected", b.getAttribute("data-tab")===S.onglet); });
+  var nv=pane.cloneNode(false); nv.innerHTML=R.tab(a);
+  pane.parentNode.replaceChild(nv,pane);
+  if(window.TDLE_ACT) window.TDLE_ACT.brancher(nv);
+};
 R.loading=function(msg){ var el=$("#tdle-stage"); if(el) el.innerHTML='<div class="tdle-empty">'+D.esc(msg||T.chargement)+'</div>'; };
 R.syncVue=function(){ var v=$("#tdle-vue");
   if(v) v.querySelectorAll("button").forEach(function(b){ b.setAttribute("aria-selected",b.getAttribute("data-v")===S.vue); }); };
