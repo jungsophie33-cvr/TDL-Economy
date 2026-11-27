@@ -78,10 +78,12 @@ R.badge=function(a){ var v=CFG.STATUTS[R.statut(a)];
 R.coquille=function(){
   return '<div class="tdle-bg"><div class="tdle-app">'
     +'<header class="tdle-header">'
-      +'<span class="tdle-badge"><i class="fi fi-ts-badge-sheriff"></i></span>'
+      +'<div class="tdle-head-left">'
+        +'<span class="tdle-badge"><i class="fi fi-ts-badge-sheriff"></i></span>'
+        +'<a class="tdle-edit" id="tdle-edit" href="'+D.escAttr(CFG.EDIT_URL||"#")+'" title="'+D.escAttr(T.titreEditer)+'" target="_blank" rel="noopener"><i class="fi fi-tr-pen-field"></i></a>'
+      +'</div>'
       +'<h1 class="tdle-h1">'+D.esc(T.titre)+'</h1>'
       +'<div class="tdle-brand"><span class="b1">'+D.esc(T.brand1)+'</span><span class="b2">'+D.esc(T.brand2)+'</span></div>'
-      +'<a class="tdle-edit" id="tdle-edit" href="'+D.escAttr(CFG.EDIT_URL||"#")+'" title="'+D.escAttr(T.titreEditer)+'" target="_blank" rel="noopener"><i class="fi fi-tr-pen-field"></i></a>'
     +'</header>'
     +'<div class="tdle-tools">'
       +'<div id="tdle-stf"></div>'
@@ -160,7 +162,7 @@ function viewDossier(){
         +'<div class="tdle-drow-head"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(x)].c+'">'+x.cote+'</span>'
         +'<span class="tdle-type">'+D.esc(x.titre)+'</span></div>'
         +'<div class="tdle-drow-vic">'+D.esc(x.victime)+'</div>'
-        +'<div class="tdle-drow-foot">'+R.badge(x)
+        +'<div class="tdle-drow-foot">'
           +(x.archive?'<span class="tdle-archbadge">'+T.archBadge+'</span>':'')
           +(x.aArchive?'<span class="tdle-archbadge todo">'+T.archBadge+'</span>':'')
           +(x.intrigue?'<span class="tdle-lockflag">🔒</span>':'')
