@@ -18,6 +18,10 @@ var ACT={};
 function persistFull(a){ return window.TDLBase.ecrireEntree(CFG.NODE, a.id, D.serialize(a), "création de "+(a.cote||a.titre)); }
 function patch(a, champs){ return window.TDLBase.ecrire(CFG.NODE, a.id, champs, "modification de "+(a.cote||a.titre)); }
 ACT.patch=patch;
+/* Registre des écritures optimistes en attente : absorber() les
+   ré-applique sur la version distante, sinon un refresh ferait
+   « disparaître » une modification juste saisie avant que la file
+   ne la rejoue. vidé dès que la file est vide. */
 var PEND={};
 ACT.ecr=function(a, champs){
   var p=PEND[a.id]=PEND[a.id]||{}, k;
@@ -376,9 +380,24 @@ function archiver(a){
   ta.value=md;
   qr.submit();
 }
+/* Finalisation : le nœud n'est pas détruit mais ALLÉGÉ — il ne garde que
+   titre, référent, bonusVerse et la carte verses (audit d'idempotence),
+   plus le fanion archive. Le panneau ne rend jamais un stub : l'affaire
+   s'affiche depuis son post d'archive, et le stub prête son id pour que
+   les liens d'autres affaires continuent de la désigner. */
 function finaliserArchive(a){
-  window.TDLBase.supprimerEntree(CFG.NODE, a.id, "archivage de "+a.cote)
-    .then(function(){ a.aArchive=false; a.archive=true; R.toast(T.toast.finalise); R.renderAll(); })
+  var stub={schema:CFG.SCHEMA, archive:true, titre:a.titre, referent:a.referent||null,
+            bonusVerse:true, verses:a.verses||{}};
+  window.TDLBase.ecrireEntree(CFG.NODE, a.id, stub, "archivage de "+a.cote)
+    .then(function(){
+      delete PEND[a.id];
+      var arch=A.filter(function(x){ return x.archive&&x.cote===a.cote; })[0];
+      if(arch) arch.id=a.id;                       /* alias : les liens visent l'id du stub */
+      var i=A.indexOf(a); if(i>=0) A.splice(i,1);
+      R.fixSel();
+      R.toast(T.toast.finalise);
+      R.renderAll();
+    })
     .catch(function(){ R.toast(T.toast.finaliseErreur); });
 }
 
@@ -420,10 +439,21 @@ function loadData(){
   Promise.resolve(pr).then(function(raw){
     raw=raw||{};
     A.length=0;
-    Object.keys(raw).forEach(function(id){ var o=raw[id]||{}; o.id=id; A.push(D.normaliser(o)); });
+    var stubs={};
+    Object.keys(raw).forEach(function(id){
+      var o=raw[id]||{}; o.id=id;
+      if(o.archive){ stubs[id]=o; return; }   /* nœud allégé : vit dans le topic */
+      A.push(D.normaliser(o));
+    });
     /* archives du topic : même format, figées, badge Archive */
     lireArchives().forEach(function(o){
       o.id="arch-"+(o.cote||A.length);
+      /* stub correspondant (même titre, même référent) : l'archive hérite
+         de son id pour que les liens et coteDe continuent de fonctionner */
+      Object.keys(stubs).forEach(function(sid){
+        var s=stubs[sid];
+        if(s.titre===o.titre&&(s.referent||null)===(o.referent||null)) o.id=sid;
+      });
       var doublon=A.filter(function(x){ return !x.archive&&x.cote===o.cote; })[0];
       if(doublon){ doublon.aArchive=true; o.aArchive=true; }
       A.push(o);
@@ -446,7 +476,12 @@ function startAutoRefresh(){
 function absorber(majs, supprimes){
   var change=false, j;
   majs.forEach(function(m){
-    var o=m.brut||{}; o.id=m.id;
+    var brut=m.brut||{};
+    if(brut.archive){                      /* le nœud vient d'être allégé : la version du topic prime */
+      for(j=0;j<A.length;j++){ if(A[j].id===m.id&&!A[j].archive) A.splice(j,1); }
+      return;
+    }
+    var o=brut; o.id=m.id;
     var n=D.normaliser(o), i=-1;
     for(j=0;j<A.length;j++){ if(A[j].id===m.id){ i=j; break; } }
     appliquerPend(n);                 /* ré-applique les écritures en attente */
