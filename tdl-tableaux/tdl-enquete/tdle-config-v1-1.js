@@ -94,7 +94,7 @@ window.TDLE_CFG = {
 
     chargement: "Chargement des enquêtes…",
     connexionBase: "Connexion à la base…",
-    introuvable: "EcoCore ou tdl-base introuvable : vérifiez l'ordre de chargement des scripts.",
+    introuvable: "EcoCore ou tdl-base introuvable — vérifiez l'ordre de chargement des scripts.",
     ecoIndispo: "EcoCore indisponible.",
     loadErreur: "Impossible de charger les enquêtes.",
     videMembre: "Aucune enquête pour l'instant.",
@@ -172,9 +172,9 @@ window.TDLE_CFG = {
     demandeEnvoyee: "Demande envoyée ✓",
     closeTxt: "Affaire close.",
     inviteTxt: "Connectez-vous pour vous impliquer dans une affaire.",
-    intrigueTxt: "Pilotée par le staff, contactez le staff pour vous impliquer.",
+    intrigueTxt: "Pilotée par le staff ; contactez le staff pour vous impliquer.",
     archiverBtn: "Archiver dans le topic",
-    finaliserBtn: "Finaliser l'archivage (purger la base)",
+    finaliserBtn: "Finaliser l'archivage (alléger le nœud)",
 
     drawerRpTitre: "M'impliquer en RP ; ",
     drawerRpCochez: "Cochez le(s) sujet(s) où joue votre personnage :",
@@ -210,7 +210,7 @@ window.TDLE_CFG = {
       refRetire: "Référent retiré → En attente.",
       coldOk: "Marquée « cold case ».",
       coldKo: "« Cold case » retiré.",
-      intrOk: "Marquée « intrigue », verrouillée staff.",
+      intrOk: "Marquée « intrigue » : verrouillée staff.",
       intrKo: "« Intrigue » retiré.",
       enregistre: "Affaire enregistrée, cote : ",
       cree: "Affaire ",
@@ -218,22 +218,22 @@ window.TDLE_CFG = {
       supprime: "Affaire supprimée.",
       supprimeRef: " référent.",
       dejaVerse: "Bonus déjà versés.",
-      clotureRefuse: "Aucun participant validé : cochez au moins un participant avant la clôture.",
-      clotureErreur: "Erreur lors du versement des bonus, clôture annulée, réessayez.",
+      clotureRefuse: "Aucun participant validé — cochez au moins un participant avant la clôture.",
+      clotureErreur: "Erreur lors du versement des bonus — clôture annulée, réessayez.",
       clotureOkPart1: "Clôturée. ",
       clotureReferentBonus: " + ",
       clotureRefSuffix: "$ référent",
       archivRefuse: "Seule une affaire clôturée peut être archivée.",
       archivConfirm: "Archiver cette affaire dans le topic ?\nLe post d'archive sera publié automatiquement, puis le nœud Firebase pourra être purgé.",
-      archivErreur: "Quick reply introuvable ; archivage impossible depuis cette page.",
-      finalise: "Nœud Firebase purgé ; l'affaire vit désormais dans le topic.",
+      archivErreur: "Quick reply introuvable — archivage impossible depuis cette page.",
+      finalise: "Nœud allégé — l'affaire vit désormais dans le topic.",
       finaliseErreur: "Purge impossible.",
       resteEchec: "Il reste ",
       resteEchec2: " modification(s) en échec.",
       ecrits: "Modifications enregistrées.",
       migrerRefuse: "Réservé au staff.",
       rienAConvertir: "Rien à convertir.",
-      migrImpossible: "Conversion impossible — rien n'a été modifié."
+      migrImpossible: "Conversion impossible : rien n'a été modifié."
     },
 
     confirmes: {
@@ -246,7 +246,7 @@ window.TDLE_CFG = {
       migrer1: "Convertir ",
       migrer2: " affaire(s) au nouveau format ?\n\nChaque affaire est traitée séparément et l'opération peut être relancée sans risque.\nAssurez-vous que personne n'a le panneau ouvert sur l'ancienne version du script.",
       migrerPart1: " affaire(s) converties, ",
-      migrerPart2: " en échec — relancez la conversion.",
+      migrerPart2: " en échec ; relancez la conversion.",
       migrerOk: " affaire(s) converties."
     },
 
