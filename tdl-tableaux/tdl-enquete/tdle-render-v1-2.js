@@ -13,7 +13,7 @@ var CFG=window.TDLE_CFG, T=CFG.TEXTES, D=window.TDLE_DATA;
 var R={};
 
 /* ===================== ÉTAT ===================== */
-R.S={vue:"dossiers", type:"tous", statut:"tous", refOnly:false, sel:null, onglet:"resume", mob:"liste", drawer:null, inline:null};
+R.S={vue:"dossiers", type:"tous", statut:"tous", sel:null, onglet:"resume", mob:"liste", drawer:null, inline:null};
 var S=R.S;   /* alias local : tout le fichier parle de S */
 R.A=[];            /* affaires en mémoire : vives (Firebase) + archives (topic) */
 
@@ -34,9 +34,6 @@ R.role=function(a){
 R.estStaffCourant=function(){ return D.isStaff(); };
 R.participants=function(a){ var s=[]; a.sujets.forEach(function(x){ x.membres.forEach(function(m){ if(s.indexOf(m)<0) s.push(m); }); }); return s; };
 R.aDesDemandes=function(a){ return a.demandesReferent.length>0||a.demandeCloture||a.demandesLien.length>0; };
-/* remplace « ouverte au RP » : une enquête vivante non-intrigue est jouable
-   dès qu'elle a un référent ; le flag roles ne filtre plus rien */
-R.avecRef=function(a){ return !a.cloturee&&!!a.referent; };
 
 /* cote recalculée : uniquement pour les affaires VIVES ; une archive
    garde la cote figée de son post. */
@@ -55,7 +52,7 @@ R.renumeroter=function(){
 function baseType(){ return R.A.filter(function(a){ return S.type==="tous"||a.type===S.type; }); }
 function filtre(){ return baseType().filter(function(a){
   if(S.statut==="demandes") return R.aDesDemandes(a);
-  return (S.statut==="tous"||R.statut(a)===S.statut)&&(!S.refOnly||R.avecRef(a));
+  return (S.statut==="tous"||R.statut(a)===S.statut);
 });}
 R.filtre=filtre;
 R.fixSel=function(){ var d=filtre(), ok=false;
@@ -87,7 +84,6 @@ R.coquille=function(){
     +'</header>'
     +'<div class="tdle-tools">'
       +'<div id="tdle-stf"></div>'
-      +'<button class="tdle-refonly" id="tdle-refonly" aria-pressed="false">'+D.esc(T.filtreRef)+'</button>'
       +'<div class="tdle-vue" id="tdle-vue">'
         +'<button data-v="dossiers" aria-selected="true">'+D.esc(T.vueDossiers)+'</button>'
         +'<button data-v="board" aria-selected="false">'+D.esc(T.vueBoard)+'</button>'
@@ -112,7 +108,6 @@ R.renderStatutFilters=function(){
   }
   var el=$("#tdle-stf"); if(el){ el.innerHTML=html;
     el.querySelectorAll(".tdle-stf").forEach(function(b){ b.onclick=function(){ S.statut=b.getAttribute("data-st"); R.fixSel(); R.renderStage(); R.renderStatutFilters(); }; }); }
-  var rb=$("#tdle-refonly"); if(rb){ rb.setAttribute("aria-pressed",S.refOnly); }
 };
 
 /* ===================== BANDE DE TYPES ===================== */
@@ -300,7 +295,7 @@ R.actionbar=function(a){
   }else if(r==="referent"){ label=T.roleReferent;
     if(a.cloturee) btns='<span class="tdle-vide">'+D.esc(T.closeTxt)+'</span>';
     else{
-      btns+='<button class="tdle-abtn" data-act="verif">'+D.esc(T.verifierBtn)+'</button>'+rpBtn;
+      btns+=rpBtn;
       btns+=a.demandeCloture?'<button class="tdle-abtn prim" disabled>'+D.esc(T.clotureDemandee)+'</button>':'<button class="tdle-abtn prim" data-act="askclose">'+D.esc(T.demanderCloture)+'</button>';
     }
   }else if(!D.estMembre()){ label=T.roleInvite;
