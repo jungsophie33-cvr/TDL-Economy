@@ -422,12 +422,33 @@ function lancerMigration(){
 }
 
 /* ===================== LECTURE ===================== */
+/* Lecture des archives : AUCUN sélecteur propre au template — on cherche
+   le plus profond élément porteur du marqueur, puis on remonte jusqu'au
+   conteneur qui couvre le post entier (contient marqueur ET une clé COTE:),
+   en s'arrêtant dès que le parent engloberait deux marqueurs (deux posts)
+   ou perdrait la clé. Tolère les échappements FA (\- , \===). */
 function lireArchives(){
-  var out=[], posts=document.querySelectorAll(".post .content, .postbody .content, .postbody");
-  posts.forEach(function(p){
-    var html=p.innerHTML||"";
-    if(html.indexOf("--- BLOC "+CFG.ARCHIVE.bloc+" ---")<0) return;
-    var o=D.parserArchive(html);
+  var out=[], marqueur="--- BLOC "+CFG.ARCHIVE.bloc+" ---";
+  var porteurs=[], elus=[], traites=[];
+  document.querySelectorAll("div,article,td,dd").forEach(function(el){
+    if((el.textContent||"").indexOf(marqueur)>=0) porteurs.push(el);
+  });
+  porteurs.forEach(function(el){
+    var englobe=false;
+    elus.forEach(function(g){ if(g.contains(el)) englobe=true; });
+    if(!englobe) elus.push(el);
+  });
+  elus.forEach(function(el){
+    var c=el;
+    while(c.parentNode&&c.parentNode!==document.body){
+      var p=c.parentNode, txt=p.textContent||"";
+      if(txt.split(marqueur).length-1>1) break;   /* deux posts dans ce parent : trop large */
+      if(txt.indexOf("COTE:")<0) break;           /* plus de clé : conteneur incomplet */
+      c=p;
+    }
+    if(traites.indexOf(c)>=0) return;             /* même conteneur déjà parsé */
+    traites.push(c);
+    var o=D.parserArchive(c.innerHTML);
     if(o) out.push(o);
   });
   return out;
