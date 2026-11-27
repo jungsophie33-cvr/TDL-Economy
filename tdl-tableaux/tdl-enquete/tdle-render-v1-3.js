@@ -279,19 +279,35 @@ R.tab=function(a){
 
 /* ===================== BARRE D'ACTIONS ===================== */
 R.actionbar=function(a){
-  var r=R.role(a), btns="", label="", X=window.TDLE_ACT||{};
+  var r=R.role(a), btns="", label="";
   var rpBtn='<button class="tdle-abtn rp" data-act="rp">'+D.esc(T.impliquer)+'</button>';
-  if(a.archive){ label=T.roleVisiteur; btns='<span class="tdle-vide">'+D.esc(T.archBadge)+'</span>'; }
+  if(a.archive){
+    /* affaire purgée : elle vit dans le topic. Le staff ne garde que
+       la suppression (du nœud) ; le post se supprime via les outils FA. */
+    label=T.roleVisiteur;
+    btns=(r==="staff")?'<button class="tdle-abtn warn" data-act="delete">'+D.esc(T.supprimerBtn)+'</button>'
+                      :'<span class="tdle-vide">'+D.esc(T.archBadge)+'</span>';
+  }
   else if(r==="staff"){ label=T.roleStaff;
-    btns+='<button class="tdle-abtn" data-act="edit">'+D.esc(T.editerAffaire)+'</button>';
-    btns+='<button class="tdle-abtn" data-act="cold">'+D.esc(a.coldcase?T.coldRetirer:T.coldAjouter)+'</button>';
-    btns+='<button class="tdle-abtn" data-act="intrigue">'+D.esc(a.intrigue?T.intrRetirer:T.intrAjouter)+'</button>';
-    if(!a.intrigue) btns+='<button class="tdle-abtn" data-act="ref">'+D.esc(a.referent?T.refRetirer:T.refAssigner)+'</button>';
-    btns+=rpBtn;
-    btns+='<button class="tdle-abtn prim" data-act="close" '+((a.cloturee||!a.valides.length)?'disabled':'')+'>'+D.esc(a.cloturee?T.dejaCloturee:T.clôturerBtn)+'</button>';
-    if(a.cloturee&&!a.aArchive) btns+='<button class="tdle-abtn" data-act="archiver">'+D.esc(T.archiverBtn)+'</button>';
-    if(a.aArchive) btns+='<button class="tdle-abtn warn" data-act="finaliser">'+D.esc(T.finaliserBtn)+'</button>';
-    if(!a.cloturee) btns+='<button class="tdle-abtn warn" data-act="delete">'+D.esc(T.supprimerBtn)+'</button>';
+    if(a.cloturee){
+      /* clôturée : plus d'outils de travail, seulement le cycle d'archivage */
+      btns+='<button class="tdle-abtn" data-act="edit">'+D.esc(T.editerAffaire)+'</button>';
+      if(a.aArchive){
+        btns+='<button class="tdle-abtn" disabled>'+D.esc(T.dejaArchivee)+'</button>';
+        btns+='<button class="tdle-abtn prim" data-act="finaliser">'+D.esc(T.finaliserBtn)+'</button>';
+      }else{
+        btns+='<button class="tdle-abtn" data-act="archiver">'+D.esc(T.archiverBtn)+'</button>';
+      }
+      btns+='<button class="tdle-abtn warn" data-act="delete">'+D.esc(T.supprimerBtn)+'</button>';
+    }else{
+      btns+='<button class="tdle-abtn" data-act="edit">'+D.esc(T.editerAffaire)+'</button>';
+      btns+='<button class="tdle-abtn" data-act="cold">'+D.esc(a.coldcase?T.coldRetirer:T.coldAjouter)+'</button>';
+      btns+='<button class="tdle-abtn" data-act="intrigue">'+D.esc(a.intrigue?T.intrRetirer:T.intrAjouter)+'</button>';
+      if(!a.intrigue) btns+='<button class="tdle-abtn" data-act="ref">'+D.esc(a.referent?T.refRetirer:T.refAssigner)+'</button>';
+      btns+=rpBtn;
+      btns+='<button class="tdle-abtn prim" data-act="close" '+((a.cloturee||!a.valides.length)?'disabled':'')+'>'+D.esc(a.cloturee?T.dejaCloturee:T.clôturerBtn)+'</button>';
+      btns+='<button class="tdle-abtn warn" data-act="delete">'+D.esc(T.supprimerBtn)+'</button>';
+    }
   }else if(r==="referent"){ label=T.roleReferent;
     if(a.cloturee) btns='<span class="tdle-vide">'+D.esc(T.closeTxt)+'</span>';
     else{
