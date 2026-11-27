@@ -422,33 +422,15 @@ function lancerMigration(){
 }
 
 /* ===================== LECTURE ===================== */
-/* Lecture des archives : AUCUN sélecteur propre au template — on cherche
-   le plus profond élément porteur du marqueur, puis on remonte jusqu'au
-   conteneur qui couvre le post entier (contient marqueur ET une clé COTE:),
-   en s'arrêtant dès que le parent engloberait deux marqueurs (deux posts)
-   ou perdrait la clé. Tolère les échappements FA (\- , \===). */
+/* Lecture des archives — méthode Sophie-OS : chaque post du topic vit
+   dans .sj-post-msg > div:first-child. Un post par post, jamais plus :
+   aucun conteneur global, donc aucun doublon possible. Le parseur
+   tolère les échappements FA (\- , \===). */
 function lireArchives(){
   var out=[], marqueur="--- BLOC "+CFG.ARCHIVE.bloc+" ---";
-  var porteurs=[], elus=[], traites=[];
-  document.querySelectorAll("div,article,td,dd").forEach(function(el){
-    if((el.textContent||"").indexOf(marqueur)>=0) porteurs.push(el);
-  });
-  porteurs.forEach(function(el){
-    var englobe=false;
-    elus.forEach(function(g){ if(g.contains(el)) englobe=true; });
-    if(!englobe) elus.push(el);
-  });
-  elus.forEach(function(el){
-    var c=el;
-    while(c.parentNode&&c.parentNode!==document.body){
-      var p=c.parentNode, txt=p.textContent||"";
-      if(txt.split(marqueur).length-1>1) break;   /* deux posts dans ce parent : trop large */
-      if(txt.indexOf("COTE:")<0) break;           /* plus de clé : conteneur incomplet */
-      c=p;
-    }
-    if(traites.indexOf(c)>=0) return;             /* même conteneur déjà parsé */
-    traites.push(c);
-    var o=D.parserArchive(c.innerHTML);
+  document.querySelectorAll(".sj-post-msg > div:first-child").forEach(function(el){
+    if((el.textContent||"").indexOf(marqueur)<0) return;
+    var o=D.parserArchive(el.innerHTML);
     if(o) out.push(o);
   });
   return out;
@@ -466,7 +448,10 @@ function loadData(){
       if(o.archive){ stubs[id]=o; return; }   /* nœud allégé : vit dans le topic */
       A.push(D.normaliser(o));
     });
-    /* archives du topic : même format, figées, badge Archive */
+    /* archives du topic : une affaire archivée vit dans son post ;
+       si l'affaire vive existe encore en base (finalisation non faite),
+       on ne crée PAS de deuxième entrée : on marque la vive « aArchive »
+       pour que le staff voie Déjà archivée / Finaliser. */
     lireArchives().forEach(function(o){
       o.id="arch-"+(o.cote||A.length);
       /* stub correspondant (même titre, même référent) : l'archive hérite
@@ -475,8 +460,14 @@ function loadData(){
         var s=stubs[sid];
         if(s.titre===o.titre&&(s.referent||null)===(o.referent||null)) o.id=sid;
       });
-      var doublon=A.filter(function(x){ return !x.archive&&x.cote===o.cote; })[0];
-      if(doublon){ doublon.aArchive=true; o.aArchive=true; }
+      /* rapprochement avec l'affaire vive : par cote d'abord, puis par
+         (titre + référent) — la cote peut bouger si la liste a changé
+         entre l'archivage et la finalisation */
+      var doublon=A.filter(function(x){ return !x.archive&&String(x.cote||"").trim()===String(o.cote||"").trim(); })[0];
+      if(!doublon) doublon=A.filter(function(x){ return !x.archive
+        &&String(x.titre||"").trim()===String(o.titre||"").trim()
+        &&(x.referent||"")===(o.referent||""); })[0];
+      if(doublon){ doublon.aArchive=true; return; }   /* une seule ligne, côté vif */
       A.push(o);
     });
     R.renumeroter(); R.fixSel(); R.renderAll();
@@ -505,6 +496,7 @@ function absorber(majs, supprimes){
     var o=brut; o.id=m.id;
     var n=D.normaliser(o), i=-1;
     for(j=0;j<A.length;j++){ if(A[j].id===m.id){ i=j; break; } }
+    if(i>=0) n.aArchive=A[i].aArchive;      /* le fanion vit dans le topic, pas en base : on le reporte */
     appliquerPend(n);                 /* ré-applique les écritures en attente */
     if(i<0) A.push(n); else A[i]=n;
     change=true;
