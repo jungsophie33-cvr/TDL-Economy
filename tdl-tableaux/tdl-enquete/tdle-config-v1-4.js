@@ -56,6 +56,8 @@ window.TDLE_CFG = {
     { id: "DR", label: "Disparitions" }
   ],
   TYPE_ICON: { VC: "fi-tr-people-robbery", AG: "fi-ts-user-injured", MH: "fi-tr-gun-shooting", FP: "fi-ts-ghost", DR: "fi-tr-shield-interrogation" },
+  /* icônes solid du bloc méta (colonne TYPE) */
+  TYPE_ICON_SR: { VC: "fi-sr-people-robbery", AG: "fi-sr-user-injured", MH: "fi-sr-gun-shooting", FP: "fi-sr-ghost", DR: "fi-sr-shield-interrogation" },
   TYPE_CAT:  { VC: "vols", AG: "agressions", MH: "meurtres", FP: "faits", DR: "disparitions" },
   CAT_LABEL: {
     vols: "Vols & infractions civiles",
