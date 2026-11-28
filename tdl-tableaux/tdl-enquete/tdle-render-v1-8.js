@@ -206,7 +206,7 @@ R.panel=function(a){
     +'<div class="tdle-dp-body">'
     +'<div class="tdle-dp-hd">'
       +'<div class="tdle-dp-meta">'
-        +'<div class="tdle-m m-type"><span class="tdle-k">'+D.esc(T.metaType)+'</span><span class="tdle-v">'+D.esc(D.typeLabel(a.type))+'</span></div>'
+        +'<div class="tdle-m m-type"><span class="tdle-k">'+D.esc(T.metaType)+'</span><span class="tdle-v">'+(CFG.TYPE_ICON_SR&&CFG.TYPE_ICON_SR[a.type]?'<i class="fi '+CFG.TYPE_ICON_SR[a.type]+'"></i>':'')+D.esc(D.typeLabel(a.type))+'</span></div>'
         +'<div class="tdle-m m-ouverture"><span class="tdle-k">'+D.esc(T.metaOuverture)+'</span><span class="tdle-v">'+D.esc(D.formatFR(a.dateISO))+'</span></div>'
         +'<div class="tdle-m m-lieu"><span class="tdle-k">'+D.esc(T.metaLieu)+'</span><span class="tdle-v">'+D.esc(a.lieu)+'</span></div>'
         +'<div class="tdle-m m-victime"><span class="tdle-k">'+D.esc(T.metaVictime)+'</span><span class="tdle-v"><b>'+D.esc(a.victime)+'</b></span></div>'
