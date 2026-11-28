@@ -371,10 +371,11 @@ R.drawer=function(a){
 function viewBoard(){
   var d=filtre(), st=R.estStaffCourant();
   var grid=d.length?'<div class="tdle-board">'+d.map(function(a){
-    return '<article class="tdle-fc" data-open="'+a.id+'">'
-      +'<div class="tdle-fc-top"><span class="tdle-cote" style="--sc:'+CFG.STATUTS[R.statut(a)].c+'">'+a.cote+'</span>'+R.badge(a)+'</div>'
-      +'<div class="tdle-dateline">'+D.esc(D.formatFR(a.dateISO))+'</div><div class="tdle-type">'+D.esc(a.titre)+'</div><div class="tdle-fc-vic">'+D.esc(a.victime)+'</div>'
-      +'<div class="tdle-fc-foot"><span>'+(a.intrigue?'🔒':D.esc(CFG.CAT_LABEL[R.cat(a)]))+(st&&R.aDesDemandes(a)?' <span class="tdle-req">⚑</span>':'')+'</span><span>'+D.esc(T.ouvrir)+'</span></div>'
+    var sv=CFG.STATUTS[R.statut(a)];
+    return '<article class="tdle-fc" data-open="'+a.id+'" style="--tint:'+sv.tint+'">'
+      +'<div class="tdle-fc-top"><span class="tdle-cote" style="--sc:'+sv.c+'">'+a.cote+'</span><span class="tdle-dateline">'+D.esc(D.formatFR(a.dateISO))+'</span></div>'
+      +'<div class="tdle-type">'+D.esc(a.titre)+'</div><div class="tdle-fc-vic">'+D.esc(a.victime)+'</div>'
+      +'<div class="tdle-fc-foot"><span><i class="fi '+(CFG.TYPE_ICON_SR?CFG.TYPE_ICON_SR[a.type]:"")+'"></i>'+(a.intrigue?' 🔒':'')+'</span>'+(st&&R.aDesDemandes(a)?'<span class="tdle-req">⚑</span>':'')+'</div>'
     +'</article>';
   }).join("")+'</div>':'<div class="tdle-empty">'+D.esc(T.videFiltre)+'</div>';
   return '<div class="tdle-boardwrap">'+typeStripHTML()+'<div class="tdle-boardscroll">'+grid+'</div></div>';
