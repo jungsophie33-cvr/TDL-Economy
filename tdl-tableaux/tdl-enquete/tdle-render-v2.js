@@ -375,7 +375,7 @@ function viewBoard(){
     return '<article class="tdle-fc" data-open="'+a.id+'" style="--tint:'+sv.tint+'">'
       +'<div class="tdle-fc-top"><span class="tdle-cote" style="--sc:'+sv.c+'">'+a.cote+'</span><span class="tdle-dateline">'+D.esc(D.formatFR(a.dateISO))+'</span></div>'
       +'<div class="tdle-type">'+D.esc(a.titre)+'</div><div class="tdle-fc-vic">'+D.esc(a.victime)+'</div>'
-      +'<div class="tdle-fc-foot"><span><i class="fi '+(CFG.TYPE_ICON_SR?CFG.TYPE_ICON_SR[a.type]:"")+'"></i>'+(a.intrigue?' 🔒':'')+'</span>'+(st&&R.aDesDemandes(a)?'<span class="tdle-req">⚑</span>':'')+'</div>'
+      +'<div class="tdle-fc-foot"><span><i class="fi '+(CFG.TYPE_ICON_SR?CFG.TYPE_ICON_SR[a.type]:"")+'"></i>'+(a.intrigue?'<span class="tdle-lockflag"><i class="fi fi-tr-lock"></i></span>':'')+'</span>'+(st&&R.aDesDemandes(a)?'<span class="tdle-req">⚑</span>':'')+'</div>'
     +'</article>';
   }).join("")+'</div>':'<div class="tdle-empty">'+D.esc(T.videFiltre)+'</div>';
   return '<div class="tdle-boardwrap">'+typeStripHTML()+'<div class="tdle-boardscroll">'+grid+'</div></div>';
