@@ -284,7 +284,9 @@
       ctx.affaires = Object.keys(j.affaires || {}).filter(function(s){ return j.affaires[s] && j.affaires[s].statut!=="close"; })
         .map(function(s){ return { slug:s, nom:j.affaires[s].nom || s }; });
       var en = (root && root[A.CFG.NODE_ENQUETES]) || {};
-      ctx.enquetes = Object.keys(en).filter(function(id){ return en[id] && en[id].cloturee; })
+      /* affaires classées : vivantes avec cloturee, ou stub d'archive
+         ({archive:true} sans cloturee) laissé par la finalisation du panneau */
+      ctx.enquetes = Object.keys(en).filter(function(id){ return en[id] && (en[id].cloturee || en[id].archive); })
         .map(function(id){ return { id:id, titre:en[id].titre || id }; })
         .sort(function(a,b){ return String(a.titre).localeCompare(String(b.titre), "fr"); });
     }
