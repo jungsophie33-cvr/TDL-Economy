@@ -72,12 +72,6 @@
     if (typeof v !== "object") return [];
     return Object.keys(v).map(function (k) { return v[k]; }).filter(Boolean);
   }
-  function aDesRoles(a) {
-    return elements(a.roles).some(function (r) {
-      var t = (typeof r === "string") ? r : (r && (r.txt || r.text || ""));
-      return String(t || "").trim() && String(t).trim() !== "\u2014";
-    });
-  }
 
   /* ===================== SOURCES =====================
      Chaque entrée dit : où lire, sous quelle clé ranger le compte, et ce qui
@@ -166,13 +160,12 @@
       /* eco-rep-enquete : le statut est CALCULÉ, il n'est pas stocké.
             cloturee → classée · coldcase → non élucidée
             sinon : référent → en cours, pas de référent → en attente
-         On exclut donc les deux premiers, plus les affaires d'intrigue, que le
-         staff coordonne et qu'on ne rejoint pas librement.
-         Le test sur les rôles est un choix : « à saisir » promet quelque chose
-         à jouer, et une affaire sans rôle ouvert n'offre rien. Retirer
-         aDesRoles(a) ci-dessous compterait toutes les affaires ouvertes. */
+         Sont donc comptées : en attente, en cours et non élucidées.
+         Sont exclues : les classées (cloturee), les affaires d'intrigue,
+         coordonnées par le staff, et les stubs d'archive ({archive:true},
+         sans cloturee) que la finalisation du panneau laisse en base. */
       garde: function (a) {
-        return !a.cloturee && !a.coldcase && !a.intrigue && aDesRoles(a);
+        return !a.archive && !a.cloturee && !a.intrigue;
       }
     }
   ];
