@@ -41,10 +41,10 @@ window.TDLE_CFG = {
 
   /* ---- Statuts (couleurs issues du :root du forum) ---- */
   STATUTS: {
-    en_cours:     { label: "En cours",     c: "var(--gr1-color)" },
-    attente:      { label: "En attente",   c: "var(--gr3-color)" },
-    non_elucidee: { label: "Non élucidée", c: "var(--gr6-color)" },
-    classee:      { label: "Classée",      c: "var(--cntr)" }
+    en_cours:     { label: "En cours",     c: "var(--gr1-color)", tint: "var(--gr1-20)" },
+    attente:      { label: "En attente",   c: "var(--gr3-color)", tint: "var(--gr3-20)" },
+    non_elucidee: { label: "Non élucidée", c: "var(--gr6-color)", tint: "var(--gr6-20)" },
+    classee:      { label: "Classée",      c: "var(--cntr)",      tint: "var(--cntr2)" }
   },
 
   /* ---- Types d'affaires ---- */
