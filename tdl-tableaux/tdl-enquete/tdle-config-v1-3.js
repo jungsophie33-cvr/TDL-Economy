@@ -51,16 +51,17 @@ window.TDLE_CFG = {
   TYPES: [
     { id: "VC", label: "Vols & infractions civiles" },
     { id: "AG", label: "Agressions" },
-    { id: "MH", label: "Meurtres / tentatives d'homicide" },
+    { id: "MH", label: "Meurtres & tentatives d'homicide" },
     { id: "FP", label: "Faits particuliers" },
     { id: "DR", label: "Disparitions" }
   ],
   TYPE_ICON: { VC: "fi-tr-people-robbery", AG: "fi-ts-user-injured", MH: "fi-tr-gun-shooting", FP: "fi-ts-ghost", DR: "fi-tr-shield-interrogation" },
-  TYPE_CAT:  { VC: "vols", AG: "meurtres", MH: "meurtres", FP: "faits", DR: "disparitions" },
+  TYPE_CAT:  { VC: "vols", AG: "agressions", MH: "meurtres", FP: "faits", DR: "disparitions" },
   CAT_LABEL: {
     vols: "Vols & infractions civiles",
-    meurtres: "Meurtres & agressions",
-    faits: "Signalements & faits particuliers",
+    agressions:"Agressions",
+    meurtres: "Meurtres & homicides",
+    faits: "Faits particuliers",
     disparitions: "Disparitions"
   },
   MOIS: ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"],
